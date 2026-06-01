@@ -1129,6 +1129,10 @@ export default function Gradebook({
                   <th className="px-4 py-3 text-center">គណិត (មធ្យម)</th>
                   <th className="px-4 py-3 text-center">វិទ្យាសាស្ត្រ</th>
                   <th className="px-4 py-3 text-center">សិក្សាសង្គម</th>
+                  <th className="px-4 py-3 text-center">អប់រំកាយកីឡា</th>
+                  <th className="px-4 py-3 text-center">សុខភាព</th>
+                  <th className="px-4 py-3 text-center">បំណិនជីវិត</th>
+                  <th className="px-4 py-3 text-center">ភាសាបរទេស</th>
                   <th className="px-4 py-3 text-center">មធ្យមភាគរួម</th>
                   <th className="px-4 py-3 text-center">និទ្ទេស</th>
                   <th className="px-4 py-3 text-center">លទ្ធផល</th>
@@ -1171,6 +1175,10 @@ export default function Gradebook({
                         </td>
                         <td className="px-4 py-3 text-center font-mono text-slate-500">{st.science}</td>
                         <td className="px-4 py-3 text-center font-mono text-slate-500">{st.socialStudies}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.physicalEducation}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.health}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.lifeSkills}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.foreignLanguage}</td>
                         <td className="px-4 py-3 text-center font-mono font-bold text-blue-600 bg-blue-50/10">
                           {st.overallAvg}
                         </td>
@@ -1205,7 +1213,7 @@ export default function Gradebook({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={13} className="px-4 py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={17} className="px-4 py-12 text-center text-slate-400 font-medium">
                       <FolderLock size={32} className="mx-auto text-slate-300 mb-2" />
                       គ្មានគណនីសិស្ស ឬពិន្ទុត្រូវនឹងការជ្រើសរើសរបស់អ្នកទេ សូមចុច «បញ្ចូលពិន្ទុសិស្សថ្មី» ដើម្បីបន្ថែម!
                     </td>
