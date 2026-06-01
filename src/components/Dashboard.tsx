@@ -29,6 +29,7 @@ interface DashboardProps {
   onDeleteReport: (id: string) => void;
   onCreateReportClick: () => void;
   onOpenGradebookClick: () => void;
+  grades?: string[];
 }
 
 export const KHMER_MONTHS = [
@@ -52,8 +53,13 @@ export default function Dashboard({
   onViewReport,
   onDeleteReport,
   onCreateReportClick,
-  onOpenGradebookClick
+  onOpenGradebookClick,
+  grades
 }: DashboardProps) {
+
+  const gradesList = useMemo(() => {
+    return ['ទាំងអស់', ...(grades || ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦'])];
+  }, [grades]);
 
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
@@ -153,7 +159,7 @@ export default function Dashboard({
               onChange={(e) => setSelectedGrade(e.target.value)}
               className="px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-blue-500 transition-colors"
             >
-              {KHMER_GRADES.map(grade => (
+              {gradesList.map(grade => (
                 <option key={grade} value={grade}>{grade}</option>
               ))}
             </select>

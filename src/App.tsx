@@ -15,21 +15,28 @@ import {
   HelpCircle,
   Menu,
   X,
-  Smartphone
+  Smartphone,
+  Lock,
+  LogOut
 } from 'lucide-react';
 
-import { StudentScore, SchoolReport } from './types';
+import { StudentScore, SchoolReport, SchoolUser } from './types';
 import { initialStudents, initialReports } from './mockData';
 import Dashboard from './components/Dashboard';
 import Gradebook from './components/Gradebook';
 import ReportWizard from './components/ReportWizard';
 import ReportDetail from './components/ReportDetail';
 import AcledaMobile from './components/AcledaMobile';
+import LoginPortal from './components/LoginPortal';
+
 
 export default function App() {
   // Navigation states
   const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'acleda'>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // User session state
+  const [currentUser, setCurrentUser] = useState<SchoolUser | null>(null);
 
   // Shared Global Filter states
   const [selectedMonth, setSelectedMonth] = useState<string>('ទាំងអស់');
@@ -38,6 +45,7 @@ export default function App() {
   // Data Persistence states
   const [students, setStudents] = useState<StudentScore[]>([]);
   const [reports, setReports] = useState<SchoolReport[]>([]);
+  const [grades, setGrades] = useState<string[]>(['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦']);
   
   // Specific Report details/edit state
   const [selectedReport, setSelectedReport] = useState<SchoolReport | null>(null);
@@ -48,6 +56,31 @@ export default function App() {
 
   // 1. Initial State Hydration with safety fallback (LocalStorage)
   useEffect(() => {
+    // Session Hydration
+    const cachedUser = localStorage.getItem('school_current_user_v2');
+    if (cachedUser) {
+      try {
+        const parsed = JSON.parse(cachedUser);
+        setCurrentUser(parsed);
+        if (parsed.role === 'teacher') {
+          setActiveView('gradebook');
+          setSelectedGrade(parsed.grade);
+        }
+      } catch (e) {
+        console.error('Failed to parse cached user', e);
+      }
+    }
+
+    // Grades Hydration
+    const cachedGrades = localStorage.getItem('school_grades_v2');
+    if (cachedGrades) {
+      try {
+        setGrades(JSON.parse(cachedGrades));
+      } catch (e) {
+        console.error('Failed to parse grades', e);
+      }
+    }
+
     // Student Scores Hydration
     const cachedScores = localStorage.getItem('school_student_scores_v2');
     if (cachedScores) {
@@ -77,16 +110,67 @@ export default function App() {
     }
   }, []);
 
+
   // 2. Real-time Ticking Clock
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Sync Mutated States to LocalStorage
+  // 3. User Session Management Handlers
+  const handleLoginSuccess = (user: SchoolUser) => {
+    setCurrentUser(user);
+    localStorage.setItem('school_current_user_v2', JSON.stringify(user));
+    
+    // Auto-routes based on role
+    if (user.role === 'teacher') {
+      setActiveView('gradebook');
+      setSelectedGrade(user.grade);
+    } else {
+      setActiveView('dashboard');
+      setSelectedGrade('ទាំងអស់');
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('school_current_user_v2');
+  };
+
+  // 4. Sync Mutated States to LocalStorage
   const handleSaveStudents = (updatedList: StudentScore[]) => {
     setStudents(updatedList);
     localStorage.setItem('school_student_scores_v2', JSON.stringify(updatedList));
+  };
+
+  const handleAddGrade = (newGrade: string) => {
+    const trimmed = newGrade.trim();
+    if (!trimmed) return;
+    if (grades.includes(trimmed)) {
+      alert('ថ្នាក់នេះមានរួចរាល់ហើយ!');
+      return;
+    }
+    const updatedGrades = [...grades, trimmed];
+    setGrades(updatedGrades);
+    localStorage.setItem('school_grades_v2', JSON.stringify(updatedGrades));
+  };
+
+  const handleDeleteGrade = (gradeToDelete: string) => {
+    if (window.confirm(`តើអ្នកពិតជាចង់លុប «${gradeToDelete}» ឬទេ?`)) {
+      const hasStudents = students.some(s => s.grade === gradeToDelete);
+      const hasReports = reports.some(r => r.generalInfo.grade === gradeToDelete);
+      if (hasStudents || hasReports) {
+        if (!window.confirm(`ការព្រមាន៖ មានសិស្ស ឬរបាយការណ៍ដែលកំពុងប្រើប្រាស់ ${gradeToDelete} នេះរួចហើយ។ តើអ្នកប្រាកដជាចង់លុបថ្នាក់នេះមែនទេ? (ទិន្នន័យសិស្សចាស់នឹងមិនរងការបាត់បង់ឡើយប៉ុន្តែអាចនឹងគ្មានថ្នាក់សំរាប់ច្បោះ)`)) {
+          return;
+        }
+      }
+      const updatedGrades = grades.filter(g => g !== gradeToDelete);
+      setGrades(updatedGrades);
+      localStorage.setItem('school_grades_v2', JSON.stringify(updatedGrades));
+      if (selectedGrade === gradeToDelete) {
+        setSelectedGrade('ទាំងអស់');
+      }
+    }
   };
 
   const handleSaveReport = (report: SchoolReport) => {
@@ -134,6 +218,10 @@ export default function App() {
     day: 'numeric' 
   });
 
+  if (!currentUser) {
+    return <LoginPortal onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F4F7FA] text-slate-800 font-sans flex selection:bg-blue-105 selection:text-blue-900 overflow-hidden w-full">
       
@@ -150,79 +238,100 @@ export default function App() {
               <p className="text-[10px] text-slate-400 font-bold font-mono tracking-widest mt-0.5 uppercase">School Admin v2.0</p>
             </div>
           </div>
-          <p className="text-[9px] text-slate-400 mt-3 text-center uppercase tracking-wider bg-slate-900/30 py-1.5 rounded-lg border border-slate-800/20 font-semibold">សាលាសហគមន៍ច្បារច្រុះ</p>
+          <p className="text-[9px] text-slate-400 mt-3 tracking-wide bg-slate-900/40 py-1 px-2 text-center rounded border border-slate-800/10 font-medium">សាលាសហគមន៍ច្បារច្រុះ</p>
         </div>
 
         {/* Sidebar Nav Links */}
         <nav className="flex-1 p-4 space-y-2 mt-4 overflow-y-auto">
           <button
             onClick={() => setActiveView('dashboard')}
-            className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all text-xs font-semibold ${
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
               activeView === 'dashboard'
                 ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
                 : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
             }`}
           >
-            <LayoutDashboard size={16} className={activeView === 'dashboard' ? 'text-blue-400' : 'text-slate-400'} />
-            <span>ផ្ទាំងគ្រប់គ្រងព័ត៌មាន</span>
+            <div className="flex items-center gap-3">
+              <LayoutDashboard size={16} className={activeView === 'dashboard' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>ផ្ទាំងគ្រប់គ្រងព័ត៌មាន</span>
+            </div>
+            {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
           </button>
 
           <button
             id="nav_gradebook_tab"
             onClick={() => setActiveView('gradebook')}
-            className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all text-xs font-semibold ${
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
               activeView === 'gradebook'
                 ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
                 : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
             }`}
           >
-            <GraduationCap size={16} className={activeView === 'gradebook' ? 'text-blue-400' : 'text-slate-400'} />
-            <span>តារាងពិន្ទុសិស្ស (Gradebook)</span>
+            <div className="flex items-center gap-3">
+              <GraduationCap size={16} className={activeView === 'gradebook' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>តារាងពិន្ទុសិស្ស (Gradebook)</span>
+            </div>
           </button>
 
           <button
             id="nav_report_wizard_tab"
-            onClick={handleCreateReportInit}
-            className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all text-xs font-semibold ${
+            onClick={currentUser?.role === 'teacher' ? () => setActiveView('wizard') : handleCreateReportInit}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
               activeView === 'wizard'
                 ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
                 : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
             }`}
           >
-            <FileText size={16} className={activeView === 'wizard' ? 'text-blue-400' : 'text-slate-400'} />
-            <span>របាយការណ៍ប្រចាំខែ</span>
+            <div className="flex items-center gap-3">
+              <FileText size={16} className={activeView === 'wizard' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>របាយការណ៍ប្រចាំខែ</span>
+            </div>
+            {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
           </button>
 
           <button
             id="nav_acleda_tab"
             onClick={() => setActiveView('acleda')}
-            className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all text-xs font-semibold ${
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
               activeView === 'acleda'
                 ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
                 : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
             }`}
           >
-            <Smartphone size={16} className={activeView === 'acleda' ? 'text-blue-400' : 'text-slate-400'} />
-            <span>គំរូទូរស័ព្ទ ACLEDA UI</span>
+            <div className="flex items-center gap-3">
+              <Smartphone size={16} className={activeView === 'acleda' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>គំរូទូរស័ព្ទ ACLEDA UI</span>
+            </div>
           </button>
         </nav>
 
         {/* Info Box */}
-        <div className="p-4 mx-4 mb-4 rounded-xl bg-slate-900/40 border border-slate-800/60 text-center text-[10px] text-slate-450 leading-relaxed font-medium">
-          <HelpCircle size={14} className="mx-auto text-slate-500 mb-1" />
+        <div className="p-4 mx-4 mb-4 rounded-xl bg-slate-900/40 border border-slate-800/60 text-center text-[10px] text-slate-400 leading-relaxed font-medium">
+          <HelpCircle size={14} className="mx-auto text-slate-555 mb-1 text-slate-500" />
           <span>ទិន្នន័យត្រូវបានរក្សាសុវត្ថិភាពស្វ័យប្រវត្តក្នុង LocalStorage</span>
         </div>
 
-        {/* Sidebar Footer (Teacher Profile Box) */}
+        {/* Sidebar Footer (Active Profile Box & Logout Trigger) */}
         <div className="p-4 border-t border-slate-700/50 bg-[#151D2A] shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center font-bold text-blue-400 text-xs">
-              សវ
+          <div className="flex items-center justify-between gap-2 bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/40">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={`w-8 h-8 rounded-lg ${currentUser?.avatarBg} flex-shrink-0 flex items-center justify-center font-bold text-white text-xs`}>
+                {currentUser?.photoCode}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-slate-100 truncate leading-tight">{currentUser?.name}</p>
+                <p className="text-[9px] text-slate-400 truncate mt-0.5 font-medium">
+                  {currentUser?.role === 'principal' ? 'នាយកសាលា' : `${currentUser?.grade}`}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-slate-100 truncate">លោកគ្រូ សុខ វិបុល</p>
-              <p className="text-[10px] text-slate-400 truncate">គ្រូបន្ទុកថ្នាក់ទី ៦អា (6A)</p>
-            </div>
+            <button
+              onClick={handleLogout}
+              className="p-1.5 hover:bg-slate-800 hover:text-rose-450 text-slate-400 hover:text-rose-400 rounded-lg transition-colors flex-shrink-0"
+              title="ប្តូរគណនី / ចាកចេញ"
+            >
+              <LogOut size={13} />
+            </button>
           </div>
         </div>
       </aside>
@@ -269,14 +378,17 @@ export default function App() {
                     setActiveView('dashboard');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left p-3 rounded-lg flex items-center gap-3 text-xs font-medium ${
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
                     activeView === 'dashboard'
                       ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
                       : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
                   }`}
                 >
-                  <LayoutDashboard size={16} />
-                  <span>ផ្ទាំងគ្រប់គ្រងព័ត៌មាន</span>
+                  <div className="flex items-center gap-3">
+                    <LayoutDashboard size={16} />
+                    <span>ផ្ទាំងគ្រប់គ្រងព័ត៌មាន</span>
+                  </div>
+                  {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
                 </button>
 
                 <button
@@ -284,29 +396,38 @@ export default function App() {
                     setActiveView('gradebook');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left p-3 rounded-lg flex items-center gap-3 text-xs font-medium ${
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
                     activeView === 'gradebook'
                       ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
                       : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
                   }`}
                 >
-                  <GraduationCap size={16} />
-                  <span>តារាងពិន្ទុសិស្ស</span>
+                  <div className="flex items-center gap-3">
+                    <GraduationCap size={16} />
+                    <span>តារាងពិន្ទុសិស្ស</span>
+                  </div>
                 </button>
 
                 <button
                   onClick={() => {
-                    handleCreateReportInit();
+                    if (currentUser?.role === 'teacher') {
+                      setActiveView('wizard');
+                    } else {
+                      handleCreateReportInit();
+                    }
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left p-3 rounded-lg flex items-center gap-3 text-xs font-medium ${
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
                     activeView === 'wizard'
                       ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
                       : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
                   }`}
                 >
-                  <FileText size={16} />
-                  <span>របាយការណ៍ប្រចាំខែ</span>
+                  <div className="flex items-center gap-3">
+                    <FileText size={16} />
+                    <span>របាយការណ៍ប្រចាំខែ</span>
+                  </div>
+                  {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
                 </button>
 
                 <button
@@ -314,20 +435,37 @@ export default function App() {
                     setActiveView('acleda');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left p-3 rounded-lg flex items-center gap-3 text-xs font-medium ${
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
                     activeView === 'acleda'
                       ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
                       : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
                   }`}
                 >
-                  <Smartphone size={16} />
-                  <span>គំរូទូរស័ព្ទ ACLEDA UI</span>
+                  <div className="flex items-center gap-3">
+                    <Smartphone size={16} />
+                    <span>គំរូទូរស័ព្ទ ACLEDA UI</span>
+                  </div>
                 </button>
               </nav>
 
               <div className="p-4 border-t border-slate-700/50 bg-[#151D2A] shrink-0">
-                <p className="text-xs font-semibold text-slate-200">លោកគ្រូ សុខ វិបុល</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">គ្រូបន្ទុកថ្នាក់ទី ៦អា (6A)</p>
+                <div className="flex items-center justify-between gap-2 p-1">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-slate-200 truncate">{currentUser?.name}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      {currentUser?.role === 'principal' ? 'នាយកសាលា' : `${currentUser?.grade}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="p-1 px-2.5 bg-slate-800/80 rounded border border-slate-700 hover:text-rose-400 text-slate-400 text-[10px] font-medium transition-colors flex items-center gap-1"
+                  >
+                    <LogOut size={10} /> ចាកចេញ
+                  </button>
+                </div>
               </div>
             </motion.aside>
           </>
@@ -383,94 +521,136 @@ export default function App() {
         <main className="flex-1 overflow-y-auto bg-[#F4F7FA] p-4 md:p-8 print:p-0 print:m-0 print:overflow-visible print:bg-white min-h-0">
           <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
             <AnimatePresence mode="wait">
-              {activeView === 'dashboard' && (
+              {currentUser?.role === 'teacher' && (activeView === 'dashboard' || activeView === 'wizard') ? (
                 <motion.div
-                  key="dashboard"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <Dashboard
-                    reports={reports}
-                    students={students}
-                    selectedMonth={selectedMonth}
-                    setSelectedMonth={setSelectedMonth}
-                    selectedGrade={selectedGrade}
-                    setSelectedGrade={setSelectedGrade}
-                    onViewReport={handleViewReportDetails}
-                    onDeleteReport={handleDeleteReport}
-                    onCreateReportClick={handleCreateReportInit}
-                    onOpenGradebookClick={() => setActiveView('gradebook')}
-                  />
-                </motion.div>
-              )}
-
-              {activeView === 'gradebook' && (
-                <motion.div
-                  key="gradebook"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <Gradebook
-                    students={students}
-                    selectedMonth={selectedMonth}
-                    setSelectedMonth={setSelectedMonth}
-                    selectedGrade={selectedGrade}
-                    setSelectedGrade={setSelectedGrade}
-                    onSaveStudents={handleSaveStudents}
-                  />
-                </motion.div>
-              )}
-
-              {activeView === 'wizard' && (
-                <motion.div
-                  key="wizard"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <ReportWizard
-                    onSaveReport={handleSaveReport}
-                    onCancel={() => setActiveView('dashboard')}
-                    students={students}
-                    reportToEdit={reportToEdit}
-                  />
-                </motion.div>
-              )}
-
-              {activeView === 'detail' && selectedReport && (
-                <motion.div
-                  key="detail"
+                  key="access-restricted"
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.15 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-white p-8 md:p-12 rounded-3xl border border-rose-100 shadow-md text-center max-w-xl mx-auto my-8 space-y-5"
                 >
-                  <ReportDetail
-                    report={selectedReport}
-                    onBack={() => {
-                      setSelectedReport(null);
-                      setActiveView('dashboard');
-                    }}
-                  />
+                  <div className="w-16 h-16 bg-rose-50 border border-rose-100 rounded-full flex items-center justify-center mx-auto text-rose-500 animate-bounce">
+                    <Lock size={30} />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800">សិទ្ធិចូលប្រើប្រាស់ត្រូវបានកម្រិត (Access Restricted)</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    គណនីបច្ចុប្បន្ន៖ <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentUser.name} ({currentUser.grade})</span>។ <br/>
+                    ទំព័រ <strong>«ផ្ទាំងគ្រប់គ្រងទិន្នន័យទូទៅ»</strong> និង <strong>«សេចក្តីព្រាងរបាយការណ៍សរុបសាលា»</strong> ត្រូវបានចាក់សោសុវត្ថិភាព និងអនុញ្ញាតជូនតែ <strong className="text-slate-700 font-bold">លោកនាយកសាលាប៉ុណ្ណោះ</strong> មានសិទ្ធិពិនិត្យ តាមដាន និងរក្សាឯកសារជាផ្លូវការ។
+                  </p>
+                  <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button
+                      onClick={() => setActiveView('gradebook')}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+                    >
+                      ត្រឡប់ទៅកាន់សៀវភៅពិន្ទុរបស់អ្នកវិញ
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-650 rounded-xl text-xs font-bold transition-colors border border-slate-200"
+                    >
+                      ប្តូរគណនីជា «លោកនាយកសាលា» 🔑
+                    </button>
+                  </div>
                 </motion.div>
-              )}
+              ) : (
+                <>
+                  {activeView === 'dashboard' && (
+                    <motion.div
+                      key="dashboard"
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <Dashboard
+                        reports={reports}
+                        students={students}
+                        selectedMonth={selectedMonth}
+                        setSelectedMonth={setSelectedMonth}
+                        selectedGrade={selectedGrade}
+                        setSelectedGrade={setSelectedGrade}
+                        onViewReport={handleViewReportDetails}
+                        onDeleteReport={handleDeleteReport}
+                        onCreateReportClick={handleCreateReportInit}
+                        onOpenGradebookClick={() => setActiveView('gradebook')}
+                        grades={grades}
+                      />
+                    </motion.div>
+                  )}
 
-              {activeView === 'acleda' && (
-                <motion.div
-                  key="acleda"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.15 }}
-                  className="w-full font-sans text-slate-800"
-                >
-                  <AcledaMobile />
-                </motion.div>
+                  {activeView === 'gradebook' && (
+                    <motion.div
+                      key="gradebook"
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <Gradebook
+                        students={students}
+                        selectedMonth={selectedMonth}
+                        setSelectedMonth={setSelectedMonth}
+                        selectedGrade={selectedGrade}
+                        setSelectedGrade={setSelectedGrade}
+                        onSaveStudents={handleSaveStudents}
+                        currentUser={currentUser}
+                        grades={grades}
+                        onAddGrade={handleAddGrade}
+                        onDeleteGrade={handleDeleteGrade}
+                      />
+                    </motion.div>
+                  )}
+
+                  {activeView === 'wizard' && (
+                    <motion.div
+                      key="wizard"
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <ReportWizard
+                        onSaveReport={handleSaveReport}
+                        onCancel={() => setActiveView('dashboard')}
+                        students={students}
+                        reportToEdit={reportToEdit}
+                        grades={grades}
+                      />
+                    </motion.div>
+                  )}
+
+                  {activeView === 'detail' && selectedReport && (
+                    <motion.div
+                      key="detail"
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <ReportDetail
+                        report={selectedReport}
+                        onBack={() => {
+                          setSelectedReport(null);
+                          setActiveView('dashboard');
+                        }}
+                      />
+                    </motion.div>
+                  )}
+
+                  {activeView === 'acleda' && (
+                    <motion.div
+                      key="acleda"
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      transition={{ duration: 0.15 }}
+                      className="w-full font-sans text-slate-800"
+                    >
+                      <AcledaMobile />
+                    </motion.div>
+                  )}
+                </>
               )}
             </AnimatePresence>
 

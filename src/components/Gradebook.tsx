@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -16,7 +16,7 @@ import {
   GraduationCap, 
   HelpCircle 
 } from 'lucide-react';
-import { StudentScore, KhmerScore, MathScore } from '../types';
+import { StudentScore, KhmerScore, MathScore, SchoolUser } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
 
 interface GradebookProps {
@@ -26,6 +26,10 @@ interface GradebookProps {
   selectedGrade: string;
   setSelectedGrade: (grade: string) => void;
   onSaveStudents: (updatedList: StudentScore[]) => void;
+  currentUser?: SchoolUser | null;
+  grades?: string[];
+  onAddGrade?: (newGrade: string) => void;
+  onDeleteGrade?: (gradeToDelete: string) => void;
 }
 
 const MONTHS_LIST = [
@@ -33,7 +37,7 @@ const MONTHS_LIST = [
   'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'
 ];
 
-const GRADES_LIST = [
+const DEFAULT_GRADES_LIST = [
   'ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦'
 ];
 
@@ -43,12 +47,27 @@ export default function Gradebook({
   setSelectedMonth,
   selectedGrade,
   setSelectedGrade,
-  onSaveStudents
+  onSaveStudents,
+  currentUser,
+  grades,
+  onAddGrade,
+  onDeleteGrade
 }: GradebookProps) {
+  const gradesList = grades || DEFAULT_GRADES_LIST;
+  const [newClassName, setNewClassName] = useState('');
+  const [isClassManagerOpen, setIsClassManagerOpen] = useState(false);
+  // Lock grade selection to teacher's grade if teacher role
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'teacher') {
+      setSelectedGrade(currentUser.grade);
+    }
+  }, [currentUser, setSelectedGrade]);
+
   // UI states
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+
 
   // Form states
   const [formName, setFormName] = useState('');
@@ -100,7 +119,7 @@ export default function Gradebook({
     setEditingStudentId(null);
     setFormName('');
     setFormGender('ប្រុស');
-    setFormGrade(selectedGrade === 'ទាំងអស់' ? 'ថ្នាក់ទី៦' : selectedGrade);
+    setFormGrade(currentUser && currentUser.role === 'teacher' ? currentUser.grade : (selectedGrade === 'ទាំងអស់' ? (gradesList[0] || 'ថ្នាក់ទី៦') : selectedGrade));
     setFormMonth(selectedMonth === 'ទាំងអស់' ? 'មេសា' : selectedMonth);
     
     // reset scores
@@ -224,15 +243,114 @@ export default function Gradebook({
           </p>
         </div>
 
-        <button
-          id="btn_add_student_score"
-          onClick={handleOpenCreateForm}
-          className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white font-semibold hover:bg-blue-700 rounded-xl text-sm transition-all shadow-md shadow-blue-500/10"
-        >
-          <UserPlus size={16} />
-          បញ្ចូលពិន្ទុសិស្សថ្មី
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsClassManagerOpen(!isClassManagerOpen)}
+            className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+              isClassManagerOpen
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/10'
+                : 'bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100/80'
+            }`}
+          >
+            <Plus size={16} />
+            គ្រប់គ្រង/បន្ថែមថ្នាក់
+          </button>
+
+          <button
+            id="btn_add_student_score"
+            onClick={handleOpenCreateForm}
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white font-semibold hover:bg-blue-700 rounded-xl text-sm transition-all shadow-md shadow-blue-500/10"
+          >
+            <UserPlus size={16} />
+            បញ្ចូលពិន្ទុសិស្សថ្មី
+          </button>
+        </div>
       </div>
+
+      {/* Dynamic Class Manager Panel */}
+      {isClassManagerOpen && (
+        <div id="class_manager_panel" className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-indigo-50">
+            <h3 className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+              <GraduationCap className="text-indigo-600" size={18} />
+              គ្រប់គ្រង និងបន្ថែមថ្នាក់រៀនក្នុងប្រព័ន្ធ
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsClassManagerOpen(false)}
+              className="text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Input Column */}
+            <div className="md:col-span-1 space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <span className="text-xs font-bold text-slate-600 block flex items-center gap-1">បន្ថែមថ្នាក់ថ្មី</span>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={newClassName}
+                  onChange={(e) => setNewClassName(e.target.value)}
+                  placeholder="ឧ. ថ្នាក់ទី៦អា, ថ្នាក់ទី៧..."
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-indigo-500 font-medium text-slate-800 placeholder-slate-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newClassName.trim()) {
+                      alert('សូមបញ្ចូលឈ្មោះថ្នាក់រៀនថ្មី!');
+                      return;
+                    }
+                    if (onAddGrade) {
+                      onAddGrade(newClassName.trim());
+                      setNewClassName('');
+                    }
+                  }}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs"
+                >
+                  <Plus size={14} />
+                  បន្ថែមថ្នាក់ចូលប្រព័ន្ធ
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-normal">
+                * បន្ទាប់ពីបន្ថែមថ្នាក់ថ្មីរួច អ្នកនឹងអាចជ្រើសរើសថ្នាក់នេះនៅពេលបញ្ចូលពិន្ទុសិស្ស ឬរៀបចំរបាយការណ៍ប្រចាំខែ។
+              </p>
+            </div>
+
+            {/* List Column */}
+            <div className="md:col-span-2 space-y-3">
+              <span className="text-xs font-bold text-slate-600 block">បញ្ជីថ្នាក់រៀនបច្ចុប្បន្ន ({gradesList.length} ថ្នាក់)</span>
+              <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto p-1 text-xs">
+                {gradesList.map((g) => {
+                  return (
+                    <div
+                      key={g}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700 shadow-3xs hover:border-indigo-200 transition-all hover:bg-indigo-50/20"
+                    >
+                      <span className="font-sans font-medium">{g}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onDeleteGrade) {
+                            onDeleteGrade(g);
+                          }
+                        }}
+                        className="text-slate-400 hover:text-rose-550 hover:text-rose-600 hover:bg-rose-50 p-0.5 rounded transition-colors"
+                        title="លុបថ្នាក់នេះ"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sliding/Responsive Score Entry Form Modal or Inline Section */}
       {isFormOpen && (
@@ -282,11 +400,12 @@ export default function Gradebook({
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1">ថ្នាក់សិក្សា</label>
                   <select
+                    disabled={currentUser?.role === 'teacher'}
                     value={formGrade}
                     onChange={(e) => setFormGrade(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-800"
+                    className="w-full px-3 py-2 text-sm bg-white disabled:bg-slate-100 disabled:text-slate-500 border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-800"
                   >
-                    {GRADES_LIST.map(g => (
+                    {gradesList.map(g => (
                       <option key={g} value={g}>{g}</option>
                     ))}
                   </select>
@@ -593,7 +712,7 @@ export default function Gradebook({
             </div>
 
             {/* Quick selectors matching the upper selections */}
-            <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200">
+            <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200 text-xs">
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
@@ -604,16 +723,23 @@ export default function Gradebook({
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>
-              <select
-                value={selectedGrade}
-                onChange={(e) => setSelectedGrade(e.target.value)}
-                className="px-2 py-1 text-[11px] bg-white border-none text-slate-600 outline-none font-medium"
-              >
-                <option value="ទាំងអស់">គ្រប់ថ្នាក់</option>
-                {GRADES_LIST.map(g => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </select>
+
+              {currentUser?.role === 'teacher' ? (
+                <span className="px-3 py-1 text-[11px] bg-blue-50 text-blue-700/90 font-bold border-l border-slate-200 font-sans">
+                  ថ្នាក់៖ {currentUser.grade} 🔒
+                </span>
+              ) : (
+                <select
+                  value={selectedGrade}
+                  onChange={(e) => setSelectedGrade(e.target.value)}
+                  className="px-2 py-1 text-[11px] bg-white border-none text-slate-600 outline-none font-medium"
+                >
+                  <option value="ទាំងអស់">គ្រប់ថ្នាក់</option>
+                  {gradesList.map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
         </div>

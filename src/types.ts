@@ -123,3 +123,13 @@ export interface SchoolReport {
   challenges: ChallengeItem[];
   createdAt: string;
 }
+
+export interface SchoolUser {
+  id: string;
+  name: string;
+  role: 'principal' | 'teacher';
+  grade: string; // 'ថ្នាក់ទី១' ... 'ថ្នាក់ទី៦', or 'ទាំងអស់'
+  photoCode: string;
+  avatarBg: string;
+}
+
