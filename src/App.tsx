@@ -17,7 +17,8 @@ import {
   X,
   Smartphone,
   Lock,
-  LogOut
+  LogOut,
+  Users
 } from 'lucide-react';
 
 import { StudentScore, SchoolReport, SchoolUser } from './types';
@@ -28,11 +29,12 @@ import ReportWizard from './components/ReportWizard';
 import ReportDetail from './components/ReportDetail';
 import AcledaMobile from './components/AcledaMobile';
 import LoginPortal from './components/LoginPortal';
+import ClassStudentMgmt from './components/ClassStudentMgmt';
 
 
 export default function App() {
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'acleda'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'acleda' | 'class-mgmt'>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // User session state
@@ -173,6 +175,48 @@ export default function App() {
     }
   };
 
+  const handleRenameGrade = (oldName: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) return;
+
+    // 1. Rename inside grades list
+    const updatedGrades = grades.map(g => g === oldName ? trimmed : g);
+    setGrades(updatedGrades);
+    localStorage.setItem('school_grades_v2', JSON.stringify(updatedGrades));
+
+    // 2. Rename inside student list
+    const updatedStudents = students.map(s => {
+      if (s.grade === oldName) {
+        return { ...s, grade: trimmed };
+      }
+      return s;
+    });
+    setStudents(updatedStudents);
+    localStorage.setItem('school_student_scores_v2', JSON.stringify(updatedStudents));
+
+    // 3. Rename inside reports list
+    const updatedReports = reports.map(r => {
+      if (r.generalInfo.grade === oldName) {
+        return {
+          ...r,
+          generalInfo: { ...r.generalInfo, grade: trimmed }
+        };
+      }
+      return r;
+    });
+    setReports(updatedReports);
+    localStorage.setItem('school_reports_v2', JSON.stringify(updatedReports));
+
+    if (selectedGrade === oldName) {
+      setSelectedGrade(trimmed);
+    }
+    if (currentUser && currentUser.grade === oldName) {
+      const updatedUser = { ...currentUser, grade: trimmed };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('school_current_user_v2', JSON.stringify(updatedUser));
+    }
+  };
+
   const handleSaveReport = (report: SchoolReport) => {
     let updatedReportsList: SchoolReport[];
     const isEditing = reports.some(r => r.id === report.id);
@@ -270,6 +314,21 @@ export default function App() {
             <div className="flex items-center gap-3">
               <GraduationCap size={16} className={activeView === 'gradebook' ? 'text-blue-400' : 'text-slate-400'} />
               <span>តារាងពិន្ទុសិស្ស (Gradebook)</span>
+            </div>
+          </button>
+
+          <button
+            id="nav_class_mgmt_tab"
+            onClick={() => setActiveView('class-mgmt')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'class-mgmt'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Users size={16} className={activeView === 'class-mgmt' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>គ្រប់គ្រងថ្នាក់ និងសិស្ស</span>
             </div>
           </button>
 
@@ -410,6 +469,23 @@ export default function App() {
 
                 <button
                   onClick={() => {
+                    setActiveView('class-mgmt');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
+                    activeView === 'class-mgmt'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
+                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Users size={16} />
+                    <span>គ្រប់គ្រងថ្នាក់ និងសិស្ស</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
                     if (currentUser?.role === 'teacher') {
                       setActiveView('wizard');
                     } else {
@@ -521,137 +597,125 @@ export default function App() {
         <main className="flex-1 overflow-y-auto bg-[#F4F7FA] p-4 md:p-8 print:p-0 print:m-0 print:overflow-visible print:bg-white min-h-0">
           <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
             <AnimatePresence mode="wait">
-              {currentUser?.role === 'teacher' && (activeView === 'dashboard' || activeView === 'wizard') ? (
-                <motion.div
-                  key="access-restricted"
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.2 }}
-                  className="bg-white p-8 md:p-12 rounded-3xl border border-rose-100 shadow-md text-center max-w-xl mx-auto my-8 space-y-5"
-                >
-                  <div className="w-16 h-16 bg-rose-50 border border-rose-100 rounded-full flex items-center justify-center mx-auto text-rose-500 animate-bounce">
-                    <Lock size={30} />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-800">សិទ្ធិចូលប្រើប្រាស់ត្រូវបានកម្រិត (Access Restricted)</h3>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    គណនីបច្ចុប្បន្ន៖ <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{currentUser.name} ({currentUser.grade})</span>។ <br/>
-                    ទំព័រ <strong>«ផ្ទាំងគ្រប់គ្រងទិន្នន័យទូទៅ»</strong> និង <strong>«សេចក្តីព្រាងរបាយការណ៍សរុបសាលា»</strong> ត្រូវបានចាក់សោសុវត្ថិភាព និងអនុញ្ញាតជូនតែ <strong className="text-slate-700 font-bold">លោកនាយកសាលាប៉ុណ្ណោះ</strong> មានសិទ្ធិពិនិត្យ តាមដាន និងរក្សាឯកសារជាផ្លូវការ។
-                  </p>
-                  <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <button
-                      onClick={() => setActiveView('gradebook')}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
-                    >
-                      ត្រឡប់ទៅកាន់សៀវភៅពិន្ទុរបស់អ្នកវិញ
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-650 rounded-xl text-xs font-bold transition-colors border border-slate-200"
-                    >
-                      ប្តូរគណនីជា «លោកនាយកសាលា» 🔑
-                    </button>
-                  </div>
-                </motion.div>
-              ) : (
-                <>
-                  {activeView === 'dashboard' && (
-                    <motion.div
-                      key="dashboard"
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -15 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <Dashboard
-                        reports={reports}
-                        students={students}
-                        selectedMonth={selectedMonth}
-                        setSelectedMonth={setSelectedMonth}
-                        selectedGrade={selectedGrade}
-                        setSelectedGrade={setSelectedGrade}
-                        onViewReport={handleViewReportDetails}
-                        onDeleteReport={handleDeleteReport}
-                        onCreateReportClick={handleCreateReportInit}
-                        onOpenGradebookClick={() => setActiveView('gradebook')}
-                        grades={grades}
-                      />
-                    </motion.div>
-                  )}
+              <>
+                {activeView === 'dashboard' && (
+                  <motion.div
+                    key="dashboard"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Dashboard
+                      reports={reports}
+                      students={students}
+                      selectedMonth={selectedMonth}
+                      setSelectedMonth={setSelectedMonth}
+                      selectedGrade={selectedGrade}
+                      setSelectedGrade={setSelectedGrade}
+                      onViewReport={handleViewReportDetails}
+                      onDeleteReport={handleDeleteReport}
+                      onCreateReportClick={handleCreateReportInit}
+                      onOpenGradebookClick={() => setActiveView('gradebook')}
+                      grades={grades}
+                      currentUser={currentUser}
+                    />
+                  </motion.div>
+                )}
 
-                  {activeView === 'gradebook' && (
-                    <motion.div
-                      key="gradebook"
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -15 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <Gradebook
-                        students={students}
-                        selectedMonth={selectedMonth}
-                        setSelectedMonth={setSelectedMonth}
-                        selectedGrade={selectedGrade}
-                        setSelectedGrade={setSelectedGrade}
-                        onSaveStudents={handleSaveStudents}
-                        currentUser={currentUser}
-                        grades={grades}
-                        onAddGrade={handleAddGrade}
-                        onDeleteGrade={handleDeleteGrade}
-                      />
-                    </motion.div>
-                  )}
+                {activeView === 'gradebook' && (
+                  <motion.div
+                    key="gradebook"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Gradebook
+                      students={students}
+                      selectedMonth={selectedMonth}
+                      setSelectedMonth={setSelectedMonth}
+                      selectedGrade={selectedGrade}
+                      setSelectedGrade={setSelectedGrade}
+                      onSaveStudents={handleSaveStudents}
+                      currentUser={currentUser}
+                      grades={grades}
+                      onAddGrade={handleAddGrade}
+                      onDeleteGrade={handleDeleteGrade}
+                    />
+                  </motion.div>
+                )}
 
-                  {activeView === 'wizard' && (
-                    <motion.div
-                      key="wizard"
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -15 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <ReportWizard
-                        onSaveReport={handleSaveReport}
-                        onCancel={() => setActiveView('dashboard')}
-                        students={students}
-                        reportToEdit={reportToEdit}
-                        grades={grades}
-                      />
-                    </motion.div>
-                  )}
+                {activeView === 'wizard' && (
+                  <motion.div
+                    key="wizard"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <ReportWizard
+                      onSaveReport={handleSaveReport}
+                      onCancel={() => setActiveView('dashboard')}
+                      students={students}
+                      reportToEdit={reportToEdit}
+                      grades={grades}
+                      currentUser={currentUser}
+                    />
+                  </motion.div>
+                )}
 
-                  {activeView === 'detail' && selectedReport && (
-                    <motion.div
-                      key="detail"
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.98 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <ReportDetail
-                        report={selectedReport}
-                        onBack={() => {
-                          setSelectedReport(null);
-                          setActiveView('dashboard');
-                        }}
-                      />
-                    </motion.div>
-                  )}
+                {activeView === 'detail' && selectedReport && (
+                  <motion.div
+                    key="detail"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <ReportDetail
+                      report={selectedReport}
+                      onBack={() => {
+                        setSelectedReport(null);
+                        setActiveView('dashboard');
+                      }}
+                    />
+                  </motion.div>
+                )}
 
-                  {activeView === 'acleda' && (
-                    <motion.div
-                      key="acleda"
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -15 }}
-                      transition={{ duration: 0.15 }}
-                      className="w-full font-sans text-slate-800"
-                    >
-                      <AcledaMobile />
-                    </motion.div>
-                  )}
-                </>
-              )}
+                {activeView === 'acleda' && (
+                  <motion.div
+                    key="acleda"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                    className="w-full font-sans text-slate-800"
+                  >
+                    <AcledaMobile />
+                  </motion.div>
+                )}
+
+                {activeView === 'class-mgmt' && (
+                  <motion.div
+                    key="class-mgmt"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <ClassStudentMgmt
+                      students={students}
+                      grades={grades}
+                      onSaveStudents={handleSaveStudents}
+                      onAddGrade={handleAddGrade}
+                      onDeleteGrade={handleDeleteGrade}
+                      onRenameGrade={handleRenameGrade}
+                      currentUser={currentUser}
+                    />
+                  </motion.div>
+                )}
+              </>
             </AnimatePresence>
 
             {/* Recent Live Activity Ticker widget matching HTML spec exactly */}

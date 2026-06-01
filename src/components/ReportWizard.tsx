@@ -27,7 +27,8 @@ import {
   PlanActivity, 
   StrugglingStudent, 
   ChallengeItem, 
-  StudentScore 
+  StudentScore,
+  SchoolUser
 } from '../types';
 import { generateUniqueId } from '../mockData';
 
@@ -37,6 +38,7 @@ interface ReportWizardProps {
   students: StudentScore[]; // used for auto-extraction if selected
   reportToEdit?: SchoolReport | null;
   grades?: string[];
+  currentUser?: SchoolUser | null;
 }
 
 const STEP_LABELS = [
@@ -66,22 +68,31 @@ export default function ReportWizard({
   onCancel,
   students,
   reportToEdit,
-  grades
+  grades,
+  currentUser
 }: ReportWizardProps) {
   const gradesList = grades || ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦'];
   const [currentStep, setCurrentStep] = useState(1);
 
   // --- Step 1: General Info states ---
-  const [teacherName, setTeacherName] = useState('');
-  const [grade, setGrade] = useState(gradesList[0] || 'ថ្នាក់ទី៦');
+  const [teacherName, setTeacherName] = useState(
+    currentUser?.role === 'teacher' ? (currentUser.name || '') : ''
+  );
+  const [grade, setGrade] = useState(
+    currentUser?.role === 'teacher' ? (currentUser.grade || gradesList[0] || 'ថ្នាក់ទី៦') : (gradesList[0] || 'ថ្នាក់ទី៦')
+  );
   const [month, setMonth] = useState('មេសា');
   const [academicYear, setAcademicYear] = useState('២០២៥-២០២៦');
 
   useEffect(() => {
     if (gradesList.length > 0 && !reportToEdit) {
-      setGrade(gradesList[0]);
+      if (currentUser?.role === 'teacher') {
+        setGrade(currentUser.grade);
+      } else {
+        setGrade(gradesList[0]);
+      }
     }
-  }, [gradesList, reportToEdit]);
+  }, [gradesList, reportToEdit, currentUser]);
 
   // --- Step 2: Student Stats states ---
   const [startYearTotal, setStartYearTotal] = useState(30);
@@ -467,19 +478,21 @@ export default function ReportWizard({
                 <input
                   type="text"
                   required
+                  disabled={currentUser?.role === 'teacher'}
                   placeholder="ឧ. សៅរ៍ កុសល"
                   value={teacherName}
                   onChange={(e) => setTeacherName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 transition-colors disabled:bg-slate-100 disabled:text-slate-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1.5">ថ្នាក់សិក្សា</label>
                 <select
+                  disabled={currentUser?.role === 'teacher'}
                   value={grade}
                   onChange={(e) => setGrade(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-slate-700"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-slate-700 disabled:bg-slate-100 disabled:text-slate-500"
                 >
                   {gradesList.map(g => (
                     <option key={g} value={g}>{g}</option>

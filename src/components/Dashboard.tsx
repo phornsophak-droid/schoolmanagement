@@ -16,7 +16,7 @@ import {
   Eye, 
   GraduationCap 
 } from 'lucide-react';
-import { SchoolReport, StudentScore } from '../types';
+import { SchoolReport, StudentScore, SchoolUser } from '../types';
 
 interface DashboardProps {
   reports: SchoolReport[];
@@ -30,6 +30,7 @@ interface DashboardProps {
   onCreateReportClick: () => void;
   onOpenGradebookClick: () => void;
   grades?: string[];
+  currentUser?: SchoolUser | null;
 }
 
 export const KHMER_MONTHS = [
@@ -54,7 +55,8 @@ export default function Dashboard({
   onDeleteReport,
   onCreateReportClick,
   onOpenGradebookClick,
-  grades
+  grades,
+  currentUser
 }: DashboardProps) {
 
   const gradesList = useMemo(() => {
@@ -363,13 +365,15 @@ export default function Dashboard({
                       <Eye size={13} />
                       ព័ត៌មានលម្អិត
                     </button>
-                    <button
-                      onClick={() => onDeleteReport(report.id)}
-                      className="p-1.5 bg-white border border-rose-100 rounded-md text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors"
-                      title="លុបរបាយការណ៍"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    {currentUser?.role !== 'teacher' && (
+                      <button
+                        onClick={() => onDeleteReport(report.id)}
+                        className="p-1.5 bg-white border border-rose-100 rounded-md text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors"
+                        title="លុបរបាយការណ៍"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
