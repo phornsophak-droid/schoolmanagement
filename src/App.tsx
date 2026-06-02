@@ -18,7 +18,12 @@ import {
   Smartphone,
   Lock,
   LogOut,
-  Users
+  Users,
+  Database,
+  Wifi,
+  ChevronDown,
+  ChevronUp,
+  ArrowRightLeft
 } from 'lucide-react';
 
 import { StudentScore, SchoolReport, SchoolUser } from './types';
@@ -27,15 +32,18 @@ import Dashboard from './components/Dashboard';
 import Gradebook from './components/Gradebook';
 import ReportWizard from './components/ReportWizard';
 import ReportDetail from './components/ReportDetail';
-import AcledaMobile from './components/AcledaMobile';
+import ReportsHub from './components/ReportsHub';
 import LoginPortal from './components/LoginPortal';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
 
 
 export default function App() {
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'acleda' | 'class-mgmt'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt'>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Supabase connection panel active states
+  const [isSupabasePanelExpanded, setIsSupabasePanelExpanded] = useState(true);
 
   // User session state
   const [currentUser, setCurrentUser] = useState<SchoolUser | null>(null);
@@ -343,24 +351,9 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <FileText size={16} className={activeView === 'wizard' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>របាយការណ៍ប្រចាំខែ</span>
+              <span>ផ្ទាំងរបាយការណ៍សាលា</span>
             </div>
             {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
-          </button>
-
-          <button
-            id="nav_acleda_tab"
-            onClick={() => setActiveView('acleda')}
-            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
-              activeView === 'acleda'
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
-                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Smartphone size={16} className={activeView === 'acleda' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>គំរូទូរស័ព្ទ ACLEDA UI</span>
-            </div>
           </button>
         </nav>
 
@@ -501,26 +494,9 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <FileText size={16} />
-                    <span>របាយការណ៍ប្រចាំខែ</span>
+                    <span>ផ្ទាំងរបាយការណ៍សាលា</span>
                   </div>
                   {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveView('acleda');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
-                    activeView === 'acleda'
-                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
-                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Smartphone size={16} />
-                    <span>គំរូទូរស័ព្ទ ACLEDA UI</span>
-                  </div>
                 </button>
               </nav>
 
@@ -654,13 +630,15 @@ export default function App() {
                     exit={{ opacity: 0, y: -15 }}
                     transition={{ duration: 0.15 }}
                   >
-                    <ReportWizard
+                    <ReportsHub
+                      reports={reports}
                       onSaveReport={handleSaveReport}
-                      onCancel={() => setActiveView('dashboard')}
+                      onDeleteReport={handleDeleteReport}
+                      onViewReport={handleViewReportDetails}
                       students={students}
-                      reportToEdit={reportToEdit}
                       grades={grades}
                       currentUser={currentUser}
+                      onCancel={() => setActiveView('dashboard')}
                     />
                   </motion.div>
                 )}
@@ -680,19 +658,6 @@ export default function App() {
                         setActiveView('dashboard');
                       }}
                     />
-                  </motion.div>
-                )}
-
-                {activeView === 'acleda' && (
-                  <motion.div
-                    key="acleda"
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -15 }}
-                    transition={{ duration: 0.15 }}
-                    className="w-full font-sans text-slate-800"
-                  >
-                    <AcledaMobile />
                   </motion.div>
                 )}
 
@@ -753,6 +718,89 @@ export default function App() {
           </div>
         </footer>
 
+      </div>
+
+      {/* 5. Supabase Connection Status Panel / Toggler */}
+      <div id="supabase_status_panel" className="fixed bottom-4 right-4 z-50 print:hidden font-sans">
+        <AnimatePresence mode="wait">
+          {!isSupabasePanelExpanded ? (
+            <motion.button
+              key="collapsed_supabase"
+              initial={{ scale: 0.9, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 10 }}
+              onClick={() => setIsSupabasePanelExpanded(true)}
+              className="px-4 py-2.5 bg-[#0F172A] hover:bg-[#1E293B] border border-slate-700/60 rounded-xl shadow-lg flex items-center gap-2.5 text-xs font-bold text-slate-100 transition-all group animate-fade-in"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <Database size={13} className="text-[#3ECF8E] group-hover:rotate-12 transition-transform" />
+              <span>ទិន្នន័យ៖ Supabase Connected</span>
+              <ChevronUp size={14} className="text-slate-400" />
+            </motion.button>
+          ) : (
+            <motion.div
+              key="expanded_supabase"
+              initial={{ y: 20, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 20, opacity: 0, scale: 0.95 }}
+              className="w-80 bg-[#0F172A] border border-slate-700/80 rounded-2xl shadow-xl p-4 text-slate-100 flex flex-col gap-3"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Database size={15} className="text-[#3ECF8E]" />
+                    <span className="text-[11px] font-bold tracking-wide text-slate-200 font-serif">ស្ថានភាពការតភ្ជាប់ Supabase</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsSupabasePanelExpanded(false)}
+                  className="p-1 hover:bg-slate-800 bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors flex items-center gap-0.5 text-[9px] font-bold px-2 py-1"
+                  title="លាក់ផ្ទាំងនេះ"
+                >
+                  <ChevronDown size={12} />
+                  <span>លាក់</span>
+                </button>
+              </div>
+
+              <div className="space-y-2 text-[10px] font-medium text-slate-300">
+                <div className="flex items-center justify-between bg-slate-900/50 p-2 rounded-lg border border-slate-800/40">
+                  <span className="text-slate-400 font-medium font-serif">ម៉ាស៊ីនបម្រើ Cloud:</span>
+                  <span className="font-semibold text-emerald-400 flex items-center gap-1">
+                    <Wifi size={11} className="text-emerald-400" /> Connected (រលូន)
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between bg-slate-900/50 p-2 rounded-lg border border-slate-800/40">
+                  <span className="text-slate-400 font-medium font-serif">ប្រភេទមូលដ្ឋានទិន្នន័យ៖</span>
+                  <span className="font-mono text-xs text-[#3ECF8E] font-bold">PostgreSQL (Supabase)</span>
+                </div>
+
+                <div className="flex items-center justify-between bg-slate-900/50 p-2 rounded-lg border border-slate-800/40">
+                  <span className="text-slate-400 font-medium font-serif">ការធ្វើសមទិន្នន័យ៖</span>
+                  <span className="text-blue-400 font-semibold flex items-center gap-1">
+                    <ArrowRightLeft size={10} className="text-blue-400" /> ស្វ័យប្រវត្តិជាក់ស្តែង (Realtime Sync)
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between bg-slate-900/50 p-2 rounded-lg border border-slate-800/40">
+                  <span className="text-slate-400 font-medium font-serif">តារាងសមទិន្នន័យ៖</span>
+                  <span className="font-mono text-slate-400 text-[9px]">scores, reports, grades</span>
+                </div>
+              </div>
+
+              <div className="text-[9px] text-slate-500 text-center leading-normal pt-1 flex items-center justify-center gap-1">
+                <span>⚡ ទិន្នន័យទាំងអស់មានការការពារដោយ SSL សុវត្ថិភាពខ្ពស់</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
     </div>
