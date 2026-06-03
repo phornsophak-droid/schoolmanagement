@@ -508,22 +508,46 @@ export default function ClassStudentMgmt({
         if (isCsv) {
           const text = event.target?.result as string;
           // Clean BOM (\uFEFF) and zero-width spaces (\u200B) if present at start
-          const cleanText = text.replace(/[\uFEFF\u200B]/g, '');
+          const cleanText = text.replace(/[\uFEFF\u200B\u200D]/g, '');
           
+          let isSheetJSValid = false;
           try {
             const workbook = XLSX.read(cleanText, { type: 'string' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
             if (worksheet) {
-              rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+              const parsed = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+              if (parsed && parsed.length > 0 && parsed.some(r => r && r.length > 1)) {
+                rows = parsed;
+                isSheetJSValid = true;
+              }
             }
           } catch (err) {
             console.warn("SheetJS failed to parse CSV string, falling back to manual delimiter split.", err);
           }
 
-          // Fallback if SheetJS did not return rows
-          if (!rows || rows.length <= 1) {
-            const lines = cleanText.split(/\r?\n/);
+          // Fallback manual parser if SheetJS did not parse multiple columns or rows properly
+          if (!isSheetJSValid || !rows || rows.length <= 1) {
+            const lines = cleanText.split(/\r?\n/).filter(line => line.trim().length > 0);
+            
+            // Auto-detect localized Excel delimiters: comma, semicolon, or tab character
+            let delimiter = ',';
+            const sampleLines = lines.slice(0, 5);
+            let commaCount = 0;
+            let semicolonCount = 0;
+            let tabCount = 0;
+            sampleLines.forEach(l => {
+              commaCount += (l.match(/,/g) || []).length;
+              semicolonCount += (l.match(/;/g) || []).length;
+              tabCount += (l.match(/\t/g) || []).length;
+            });
+            
+            if (semicolonCount > commaCount && semicolonCount > tabCount) {
+              delimiter = ';';
+            } else if (tabCount > commaCount && tabCount > semicolonCount) {
+              delimiter = '\t';
+            }
+
             rows = lines.map(line => {
               const result = [];
               let current = '';
@@ -532,7 +556,7 @@ export default function ClassStudentMgmt({
                 const char = line[i];
                 if (char === '"') {
                   inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
+                } else if (char === delimiter && !inQuotes) {
                   result.push(current);
                   current = '';
                 } else {
@@ -564,7 +588,8 @@ export default function ClassStudentMgmt({
         let duplicateCount = 0;
         let rejectedTeacherCount = 0;
 
-        // Identify header index and column indices dynamically
+        // Identify header index and column indices dynamically with a high-durability scoring system
+        // This avoids false positives from top-positioned document title/banner text!
         let startIndex = 0;
         let nameIndex = -1;
         let genderIndex = -1;
@@ -572,48 +597,84 @@ export default function ClassStudentMgmt({
         let serialIndex = -1;
         let statusIndex = -1;
 
-        for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        let bestHeaderRowIndex = -1;
+        let bestHeaderScore = 0;
+        let bestNameIdx = -1;
+        let bestGenderIdx = -1;
+        let bestGradeIdx = -1;
+        let bestSerialIdx = -1;
+        let bestStatusIdx = -1;
+
+        for (let i = 0; i < Math.min(rows.length, 15); i++) {
           const rowVals = rows[i];
           if (!rowVals || !Array.isArray(rowVals)) continue;
           
-          let hasHeaderKeyword = false;
           let tempNameIdx = -1;
           let tempGenderIdx = -1;
           let tempGradeIdx = -1;
           let tempSerialIdx = -1;
           let tempStatusIdx = -1;
+          let score = 0;
 
           for (let c = 0; c < rowVals.length; c++) {
-            const val = String(rowVals[c] ?? '').replace(/[\uFEFF\u200B]/g, '').trim();
+            const val = String(rowVals[c] ?? '')
+              .replace(/[\uFEFF\u200B\u200D]/g, '')
+              .replace(/\s+/g, ' ')
+              .trim();
             const valLower = val.toLowerCase();
             
-            if (val.includes("ឈ្មោះ") || valLower.includes("name") || val.includes("គោត្តនាម") || val.includes("នាមខ្លួន") || val.includes("ឈ្មោះសិស្ស")) {
-              tempNameIdx = c;
-              hasHeaderKeyword = true;
-            } else if (val.includes("ភេទ") || valLower.includes("gender") || valLower.includes("sex") || valLower === "g" || valLower === "sex") {
-              tempGenderIdx = c;
-              hasHeaderKeyword = true;
-            } else if (val.includes("ថ្នាក់") || valLower.includes("grade") || valLower.includes("class") || valLower === "c" || valLower === "g") {
-              tempGradeIdx = c;
-              hasHeaderKeyword = true;
-            } else if (val.includes("ល.រ") || val.includes("លរ") || valLower === "no" || valLower === "n°" || valLower === "id") {
-              tempSerialIdx = c;
-              hasHeaderKeyword = true;
-            } else if (val.includes("ស្ថានភាព") || valLower.includes("status")) {
-              tempStatusIdx = c;
-              hasHeaderKeyword = true;
+            // Cells in title banners are typically very long sentences. Real headers are short labels.
+            if (val.length > 30) continue;
+
+            if (val === "ឈ្មោះ" || valLower === "name" || valLower === "fullname" || val === "ឈ្មោះសិស្ស" || val === "គោត្តនាម" || val === "នាមខ្លួន" || val.includes("ឈ្មោះសិស្ស")) {
+              if (tempNameIdx === -1) {
+                tempNameIdx = c;
+                score += 2; // high-weight factor for student name column
+              }
+            } else if (val === "ភេទ" || valLower === "gender" || valLower === "sex" || valLower === "g") {
+              if (tempGenderIdx === -1) {
+                tempGenderIdx = c;
+                score += 1;
+              }
+            } else if (val.includes("ថ្នាក់") || valLower === "grade" || valLower === "class" || valLower === "c") {
+              if (tempGradeIdx === -1) {
+                tempGradeIdx = c;
+                score += 1;
+              }
+            } else if (val === "ល.រ" || val === "លរ" || valLower === "no" || valLower === "n°" || valLower === "id") {
+              if (tempSerialIdx === -1) {
+                tempSerialIdx = c;
+                score += 1;
+              }
+            } else if (val === "ស្ថានភាព" || valLower === "status") {
+              if (tempStatusIdx === -1) {
+                tempStatusIdx = c;
+                score += 1;
+              }
             }
           }
 
-          if (hasHeaderKeyword) {
-            startIndex = i + 1;
-            if (tempNameIdx !== -1) nameIndex = tempNameIdx;
-            if (tempGenderIdx !== -1) genderIndex = tempGenderIdx;
-            if (tempGradeIdx !== -1) gradeIndex = tempGradeIdx;
-            if (tempSerialIdx !== -1) serialIndex = tempSerialIdx;
-            if (tempStatusIdx !== -1) statusIndex = tempStatusIdx;
-            break;
+          if (score > bestHeaderScore) {
+            bestHeaderScore = score;
+            bestHeaderRowIndex = i;
+            bestNameIdx = tempNameIdx;
+            bestGenderIdx = tempGenderIdx;
+            bestGradeIdx = tempGradeIdx;
+            bestSerialIdx = tempSerialIdx;
+            bestStatusIdx = tempStatusIdx;
           }
+        }
+
+        if (bestHeaderRowIndex !== -1 && bestHeaderScore >= 2) {
+          startIndex = bestHeaderRowIndex + 1;
+          if (bestNameIdx !== -1) nameIndex = bestNameIdx;
+          if (bestGenderIdx !== -1) genderIndex = bestGenderIdx;
+          if (bestGradeIdx !== -1) gradeIndex = bestGradeIdx;
+          if (bestSerialIdx !== -1) serialIndex = bestSerialIdx;
+          if (bestStatusIdx !== -1) statusIndex = bestStatusIdx;
+        } else {
+          // If no row scored a match, default to index 0 and rely on statistical column-classification helper below
+          startIndex = 0;
         }
 
         // Gather statistical counts for each column in the rows to auto-detect if indices are missing
@@ -873,7 +934,20 @@ export default function ClassStudentMgmt({
           onSaveStudents([...students, ...newStudentsList]);
           alert(`បាននាំចូលសិស្សចំនួន ${importCount} នាក់ ពីក្នុងកុំព្យូទ័រដោយជោគជ័យ!\n\nថ្នាក់ដែលបានបញ្ចូលទៅក្នុង៖\n${summaryStr}${duplicateCount > 0 ? `\n\n(សិស្សជាន់គ្នាសម្រេចរំលងចំនួន ${duplicateCount} នាក់)` : ""}`);
         } else {
-          alert("មិនឃើញមានទិន្នន័យសិស្សថ្មីទេ។ សូមប្រាកដថាឯកសារ CSV ឬ Excel format របស់អ្នកមានរចនាសម្ព័ន្ធត្រឹមត្រូវ (ល.រ, ឈ្មោះសិស្ស, ភេទ, ថ្នាក់)។");
+          // Beautiful diagnostic info for the user so they can instantly see why it failed!
+          const diagnostics = [
+            `📊 របាយការណ៍វិភាគបច្ចេកទេសនៃឯកសាររបស់លោកអ្នក៖`,
+            `--------------------------------------------------`,
+            `• ចំនួនជួរដេកសរុបក្នុងឯកសារ ៖ ${rows.length} ជួរ`,
+            `• ជួរដេកចាប់ផ្ដើមអានទិន្នន័យសិស្ស (startIndex) ៖ ជួរទី ${startIndex + 1}`,
+            `• ជួរឈរឈ្មោះសិស្ស (Name Column) ៖ ${nameIndex === -1 ? 'រកមិនឃើញ' : 'ជួរឈរទី ' + (nameIndex + 1)}`,
+            `• ជួរឈរភេទ (Gender Column) ៖ ${genderIndex === -1 ? 'រកមិនឃើញ' : 'ជួរឈរទី ' + (genderIndex + 1)}`,
+            `• ជួរឈរថ្នាក់រៀន (Grade Column) ៖ ${gradeIndex === -1 ? 'រកមិនឃើញ' : 'ជួរឈរទី ' + (gradeIndex + 1)}`,
+            `• ចំនួនសិស្សជាន់គ្នាដែលប្រព័ន្ធសម្រេចរំលង (Is Duplicate) ៖ ${duplicateCount} នាក់`,
+            `• ចំនួនសិស្សខុសថ្នាក់ដែលប្រព័ន្ធច្រានចោល (Wrong class for teachers) ៖ ${rejectedTeacherCount} នាក់`
+          ].join("\n");
+
+          alert(`មិនឃើញមានទិន្នន័យសិស្សថ្មីត្រូវបាននាំចូលទេ!\n\n${diagnostics}\n\n💡 ដំណោះស្រាយ៖ សូមប្រាកដថាឯកសាររបស់អ្នកមានឈ្មោះជួរឈរច្បាស់លាស់ (ល.រ, ឈ្មោះសិស្ស, ភេទ, ថ្នាក់, ស្ថានភាព) ហើយឈ្មោះសិស្សថ្មីទាំងនោះមិនទាន់មាននៅក្នុងប្រព័ន្ធនៅឡើយទេ។`);
         }
       } catch (err) {
         console.error(err);
