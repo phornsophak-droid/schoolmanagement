@@ -25,6 +25,20 @@ import { StudentScore, SchoolUser } from '../types';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
 import * as XLSX from 'xlsx';
 
+// Helper to normalize grade names by stripping whitespace and converting digits to standard Khmer
+function normalizeGradeName(g: string | undefined | null): string {
+  if (!g) return '';
+  return String(g)
+    .replace(/[\s\u00A0\uFEFF\u200B]/g, '') // remove all spaces and zero-width characters
+    .replace(/1/g, '១')
+    .replace(/2/g, '២')
+    .replace(/3/g, '៣')
+    .replace(/4/g, '៤')
+    .replace(/5/g, '៥')
+    .replace(/6/g, '៦')
+    .trim();
+}
+
 interface ClassStudentMgmtProps {
   students: StudentScore[];
   grades: string[];
@@ -485,24 +499,63 @@ export default function ClassStudentMgmt({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const isCsv = file.name.toLowerCase().endsWith('.csv');
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const arrayBuffer = event.target?.result as ArrayBuffer;
-        const data = new Uint8Array(arrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        if (!worksheet) {
-          alert("សន្លឹកកិច្ចការគ្មានទិន្នន័យឡើយ!");
-          return;
+        let rows: any[][] = [];
+
+        if (isCsv) {
+          const text = event.target?.result as string;
+          // Clean BOM (\uFEFF) and zero-width spaces (\u200B) if present at start
+          const cleanText = text.replace(/[\uFEFF\u200B]/g, '');
+          
+          try {
+            const workbook = XLSX.read(cleanText, { type: 'string' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            if (worksheet) {
+              rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+            }
+          } catch (err) {
+            console.warn("SheetJS failed to parse CSV string, falling back to manual delimiter split.", err);
+          }
+
+          // Fallback if SheetJS did not return rows
+          if (!rows || rows.length <= 1) {
+            const lines = cleanText.split(/\r?\n/);
+            rows = lines.map(line => {
+              const result = [];
+              let current = '';
+              let inQuotes = false;
+              for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                  inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                  result.push(current);
+                  current = '';
+                } else {
+                  current += char;
+                }
+              }
+              result.push(current);
+              return result;
+            }).filter(r => r.some(cell => cell.trim().length > 0));
+          }
+        } else {
+          const arrayBuffer = event.target?.result as ArrayBuffer;
+          const data = new Uint8Array(arrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          if (worksheet) {
+            rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+          }
         }
 
-        // Convert worksheet to grid arrays
-        const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
         if (!rows || rows.length <= 1) {
-          alert("ឯកសារគ្មានទិន្នន័យឡើយ!");
+          alert("សន្លឹកកិច្ចការគ្មានទិន្នន័យឡើយ!");
           return;
         }
 
@@ -531,16 +584,16 @@ export default function ClassStudentMgmt({
           let tempStatusIdx = -1;
 
           for (let c = 0; c < rowVals.length; c++) {
-            const val = String(rowVals[c] ?? '').trim();
+            const val = String(rowVals[c] ?? '').replace(/[\uFEFF\u200B]/g, '').trim();
             const valLower = val.toLowerCase();
             
-            if (val.includes("ឈ្មោះ") || valLower.includes("name") || val.includes("គោត្តនាម") || val.includes("នាមខ្លួន")) {
+            if (val.includes("ឈ្មោះ") || valLower.includes("name") || val.includes("គោត្តនាម") || val.includes("នាមខ្លួន") || val.includes("ឈ្មោះសិស្ស")) {
               tempNameIdx = c;
               hasHeaderKeyword = true;
-            } else if (val.includes("ភេទ") || valLower.includes("gender") || valLower.includes("sex")) {
+            } else if (val.includes("ភេទ") || valLower.includes("gender") || valLower.includes("sex") || valLower === "g" || valLower === "sex") {
               tempGenderIdx = c;
               hasHeaderKeyword = true;
-            } else if (val.includes("ថ្នាក់") || valLower.includes("grade") || valLower.includes("class")) {
+            } else if (val.includes("ថ្នាក់") || valLower.includes("grade") || valLower.includes("class") || valLower === "c" || valLower === "g") {
               tempGradeIdx = c;
               hasHeaderKeyword = true;
             } else if (val.includes("ល.រ") || val.includes("លរ") || valLower === "no" || valLower === "n°" || valLower === "id") {
@@ -578,7 +631,7 @@ export default function ClassStudentMgmt({
           const rowVals = rows[i];
           if (!rowVals || !Array.isArray(rowVals)) continue;
           for (let c = 0; c < rowVals.length; c++) {
-            const cellVal = String(rowVals[c] ?? '').trim();
+            const cellVal = String(rowVals[c] ?? '').replace(/[\uFEFF\u200B]/g, '').trim();
             if (!cellVal) continue;
 
             if (!colStats[c]) {
@@ -716,7 +769,10 @@ export default function ClassStudentMgmt({
           const row = rows[i];
           if (!row || !Array.isArray(row) || row.length === 0) continue;
 
-          const rawName = String(row[nameIndex] ?? '').trim();
+          const rawName = String(row[nameIndex] ?? '')
+            .replace(/[\uFEFF\u200B]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
           if (!rawName) continue;
 
           // Skip if the parsed name is actually a header leftover or blank noise
@@ -724,8 +780,14 @@ export default function ClassStudentMgmt({
             continue;
           }
 
-          const rawGender = String(row[genderIndex] ?? '').trim();
-          let rawGrade = String(row[gradeIndex] ?? '').trim() || selectedRosterGrade;
+          const rawGender = String(row[genderIndex] ?? '')
+            .replace(/[\uFEFF\u200B]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+          let rawGrade = String(row[gradeIndex] ?? '')
+            .replace(/[\uFEFF\u200B]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim() || selectedRosterGrade;
 
           // Standardize gender string
           let gender: 'ប្រុស' | 'ស្រី' = 'ប្រុស';
@@ -733,10 +795,16 @@ export default function ClassStudentMgmt({
             gender = 'ស្រី';
           }
 
-          // Validate grade setting
+          // Validate grade setting with smart normalization (Khmer digits / spaces)
           let gradeVal = rawGrade;
           if (gradeVal === 'ទាំងអស់' || !grades.includes(gradeVal)) {
-            gradeVal = selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦');
+            const normRaw = normalizeGradeName(rawGrade);
+            const matchedGrade = grades.find(g => normalizeGradeName(g) === normRaw);
+            if (matchedGrade) {
+              gradeVal = matchedGrade;
+            } else {
+              gradeVal = selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦');
+            }
           }
 
           // Role check: Teachers can only import into their own grade!
@@ -757,7 +825,7 @@ export default function ClassStudentMgmt({
           // Parse status if present
           let statusVal: 'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់' = 'ធម្មតា';
           if (statusIndex !== -1) {
-            const rawStatus = String(row[statusIndex] ?? '').trim();
+            const rawStatus = String(row[statusIndex] ?? '').replace(/[\uFEFF\u200B]/g, '').trim();
             const rawStatusLower = rawStatus.toLowerCase();
             if (rawStatus.includes('យឺត') || rawStatusLower.includes('slow')) {
               statusVal = 'រៀនយឺត';
@@ -793,8 +861,17 @@ export default function ClassStudentMgmt({
         }
 
         if (importCount > 0) {
+          // Compute summary breakdown by class to notify the user
+          const classCounts: Record<string, number> = {};
+          newStudentsList.forEach(s => {
+            classCounts[s.grade] = (classCounts[s.grade] || 0) + 1;
+          });
+          const summaryStr = Object.entries(classCounts)
+            .map(([cl, count]) => `👉 ${cl} ៖ ចំនួន ${count} នាក់`)
+            .join("\n");
+
           onSaveStudents([...students, ...newStudentsList]);
-          alert(`បាននាំចូលសិស្សចំនួន ${importCount} នាក់ ពីក្នុងកុំព្យូទ័រដោយជោគជ័យ!${duplicateCount > 0 ? ` (ឈ្មោះជាន់គ្នា ${duplicateCount} នាក់ត្រូវបានរំលង)` : ""}`);
+          alert(`បាននាំចូលសិស្សចំនួន ${importCount} នាក់ ពីក្នុងកុំព្យូទ័រដោយជោគជ័យ!\n\nថ្នាក់ដែលបានបញ្ចូលទៅក្នុង៖\n${summaryStr}${duplicateCount > 0 ? `\n\n(សិស្សជាន់គ្នាសម្រេចរំលងចំនួន ${duplicateCount} នាក់)` : ""}`);
         } else {
           alert("មិនឃើញមានទិន្នន័យសិស្សថ្មីទេ។ សូមប្រាកដថាឯកសារ CSV ឬ Excel format របស់អ្នកមានរចនាសម្ព័ន្ធត្រឹមត្រូវ (ល.រ, ឈ្មោះសិស្ស, ភេទ, ថ្នាក់)។");
         }
@@ -803,7 +880,12 @@ export default function ClassStudentMgmt({
         alert("ការនាំចូលបានបរាជ័យ! សូមពិនិត្យមើលថាឯកសារនោះពិតជាប្រភេទ Excel (.xlsx) ឬ CSV ត្រឹមត្រូវ។");
       }
     };
-    reader.readAsArrayBuffer(file);
+
+    if (isCsv) {
+      reader.readAsText(file, 'UTF-8');
+    } else {
+      reader.readAsArrayBuffer(file);
+    }
     e.target.value = '';
   };
 
