@@ -112,6 +112,7 @@ export default function ClassStudentMgmt({
   const [studentFormName, setStudentFormName] = useState('');
   const [studentFormGender, setStudentFormGender] = useState<'ប្រុស' | 'ស្រី'>('ប្រុស');
   const [studentFormGrade, setStudentFormGrade] = useState<string>(grades[0] || 'ថ្នាក់ទី៦');
+  const [studentFormStatus, setStudentFormStatus] = useState<'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់'>('ធម្មតា');
 
   // Stats calculation
   const totalStudents = students.length;
@@ -202,6 +203,7 @@ export default function ClassStudentMgmt({
     setStudentFormName('');
     setStudentFormGender('ប្រុស');
     setStudentFormGrade(selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦'));
+    setStudentFormStatus('ធម្មតា');
     setIsStudentFormOpen(true);
   };
 
@@ -210,6 +212,7 @@ export default function ClassStudentMgmt({
     setStudentFormName(profile.name);
     setStudentFormGender(profile.gender);
     setStudentFormGrade(profile.grade);
+    setStudentFormStatus(profile.status || 'ធម្មតា');
     setIsStudentFormOpen(true);
   };
 
@@ -239,7 +242,8 @@ export default function ClassStudentMgmt({
               ...s,
               name: name,
               gender: studentFormGender,
-              grade: studentFormGrade
+              grade: studentFormGrade,
+              status: studentFormStatus
             };
             return calculateStudentFields(payload);
           }
@@ -263,6 +267,7 @@ export default function ClassStudentMgmt({
         name,
         gender: studentFormGender,
         grade: studentFormGrade,
+        status: studentFormStatus,
         month: 'មេសា',
         khmer: { listening: 0, writing: 0, reading: 0, speaking: 0 },
         math: { numbers: 0, measurement: 0, geometry: 0, algebra: 0, statistics: 0 },
@@ -449,14 +454,15 @@ export default function ClassStudentMgmt({
     
     if (exportTemplate) {
       listToExport = [
-        { id: '1', name: 'សុខ ម៉ារីហ្សា', gender: 'ស្រី', grade: selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦') } as any,
-        { id: '2', name: 'លី ម៉េងហួរ', gender: 'ប្រុស', grade: selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦') } as any
+        { id: '1', name: 'សុខ ម៉ារីហ្សា', gender: 'ស្រី', grade: selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦'), status: 'ធម្មតា' } as any,
+        { id: '2', name: 'លី ម៉េងហួរ', gender: 'ប្រុស', grade: selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦'), status: 'ធម្មតា' } as any
       ];
     }
 
-    const headers = "ល.រ,ឈ្មោះសិស្ស,ភេទ,ថ្នាក់";
+    const headers = "ល.រ,ឈ្មោះសិស្ស,ភេទ,ថ្នាក់,ស្ថានភាព";
     const rows = listToExport.map((s, idx) => {
-      return `${idx + 1},"${s.name}","${s.gender}","${s.grade}"`;
+      const statusStr = s.status || 'ធម្មតា';
+      return `${idx + 1},"${s.name}","${s.gender}","${s.grade}","${statusStr}"`;
     });
     
     // We prepend the UTF-8 Byte Order Mark (BOM) so Microsoft Excel on Windows/macOS correctly parses Khmer font!
@@ -511,6 +517,7 @@ export default function ClassStudentMgmt({
         let genderIndex = -1;
         let gradeIndex = -1;
         let serialIndex = -1;
+        let statusIndex = -1;
 
         for (let i = 0; i < Math.min(rows.length, 10); i++) {
           const rowVals = rows[i];
@@ -521,6 +528,7 @@ export default function ClassStudentMgmt({
           let tempGenderIdx = -1;
           let tempGradeIdx = -1;
           let tempSerialIdx = -1;
+          let tempStatusIdx = -1;
 
           for (let c = 0; c < rowVals.length; c++) {
             const val = String(rowVals[c] ?? '').trim();
@@ -538,6 +546,9 @@ export default function ClassStudentMgmt({
             } else if (val.includes("ល.រ") || val.includes("លរ") || valLower === "no" || valLower === "n°" || valLower === "id") {
               tempSerialIdx = c;
               hasHeaderKeyword = true;
+            } else if (val.includes("ស្ថានភាព") || valLower.includes("status")) {
+              tempStatusIdx = c;
+              hasHeaderKeyword = true;
             }
           }
 
@@ -547,6 +558,7 @@ export default function ClassStudentMgmt({
             if (tempGenderIdx !== -1) genderIndex = tempGenderIdx;
             if (tempGradeIdx !== -1) gradeIndex = tempGradeIdx;
             if (tempSerialIdx !== -1) serialIndex = tempSerialIdx;
+            if (tempStatusIdx !== -1) statusIndex = tempStatusIdx;
             break;
           }
         }
@@ -556,6 +568,7 @@ export default function ClassStudentMgmt({
           isNumeric: number;
           isGender: number;
           isGrade: number;
+          isStatus: number;
           isText: number;
           totalValid: number;
         }> = {};
@@ -569,7 +582,7 @@ export default function ClassStudentMgmt({
             if (!cellVal) continue;
 
             if (!colStats[c]) {
-              colStats[c] = { isNumeric: 0, isGender: 0, isGrade: 0, isText: 0, totalValid: 0 };
+              colStats[c] = { isNumeric: 0, isGender: 0, isGrade: 0, isStatus: 0, isText: 0, totalValid: 0 };
             }
 
             colStats[c].totalValid++;
@@ -583,6 +596,11 @@ export default function ClassStudentMgmt({
             const cellLower = cellVal.toLowerCase();
             if (cellVal === 'ប្រុស' || cellVal === 'ស្រី' || cellVal === 'm' || cellVal === 'f' || cellLower === 'male' || cellLower === 'female' || cellVal.includes('ស្រី') || cellVal === 'M' || cellVal === 'F') {
               colStats[c].isGender++;
+            }
+
+            // If it is a status indicator
+            if (cellVal === 'ធម្មតា' || cellVal === 'រៀនយឺត' || cellVal === 'បោះបង់' || cellLower === 'normal' || cellLower === 'slow' || cellLower === 'dropout') {
+              colStats[c].isStatus++;
             }
 
             // If it is grade
@@ -651,12 +669,28 @@ export default function ClassStudentMgmt({
           }
         }
 
-        // 4. Assign Name column
+        // 4. Assign Status column
+        if (statusIndex === -1) {
+          let maxStatusCount = 0;
+          let bestStatusCol = -1;
+          for (const c of allColumns) {
+            if (c === genderIndex || c === gradeIndex || c === serialIndex) continue;
+            if (colStats[c].isStatus > maxStatusCount) {
+              maxStatusCount = colStats[c].isStatus;
+              bestStatusCol = c;
+            }
+          }
+          if (maxStatusCount > 0) {
+            statusIndex = bestStatusCol;
+          }
+        }
+
+        // 5. Assign Name column
         if (nameIndex === -1) {
           let maxTextCount = 0;
           let bestNameCol = -1;
           for (const c of allColumns) {
-            if (c === genderIndex || c === gradeIndex || c === serialIndex) continue;
+            if (c === genderIndex || c === gradeIndex || c === serialIndex || c === statusIndex) continue;
             if (colStats[c].isText > maxTextCount) {
               maxTextCount = colStats[c].isText;
               bestNameCol = c;
@@ -720,12 +754,25 @@ export default function ClassStudentMgmt({
             continue;
           }
 
+          // Parse status if present
+          let statusVal: 'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់' = 'ធម្មតា';
+          if (statusIndex !== -1) {
+            const rawStatus = String(row[statusIndex] ?? '').trim();
+            const rawStatusLower = rawStatus.toLowerCase();
+            if (rawStatus.includes('យឺត') || rawStatusLower.includes('slow')) {
+              statusVal = 'រៀនយឺត';
+            } else if (rawStatus.includes('បោះ') || rawStatus.includes('បង់') || rawStatusLower.includes('drop') || rawStatusLower.includes('leave') || rawStatusLower.includes('left')) {
+              statusVal = 'បោះបង់';
+            }
+          }
+
           // Add clean record with default score template
           const payload = {
             id: generateUniqueId(),
             name: rawName,
             gender: gender,
             grade: gradeVal,
+            status: statusVal,
             month: 'មេសា', // default fallback
             khmer: { listening: 0, writing: 0, reading: 0, speaking: 0 },
             math: { numbers: 0, measurement: 0, geometry: 0, algebra: 0, statistics: 0 },
@@ -1127,7 +1174,7 @@ export default function ClassStudentMgmt({
 
                   {/* Helper option to export sample blank Excel/CSV template */}
                   <div className="flex items-center justify-between px-3 text-[11px] text-slate-400 bg-slate-50/50 py-1.5 rounded-lg border border-slate-100 leading-none">
-                    <span>💡 គន្លឹះ៖ ដើម្បីនាំចូលបានត្រឹមត្រូវ សូមប្រាកដថាជួរឈរមានទម្រង់ (ល.រ, ឈ្មោះសិស្ស, ភេទ, ថ្នាក់)។</span>
+                    <span>💡 គន្លឹះ៖ ដើម្បីនាំចូលបានត្រឹមត្រូវ សូមប្រាកដថាជួរឈរមានទម្រង់ (ល.រ, ឈ្មោះសិស្ស, ភេទ, ថ្នាក់, ស្ថានភាព)។</span>
                     <button
                       onClick={() => handleExportCSV(true)}
                       className="text-blue-600 hover:underline font-bold"
@@ -1176,7 +1223,7 @@ export default function ClassStudentMgmt({
                         </div>
                       )}
 
-                      <form onSubmit={handleSaveStudentSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium">
+                      <form onSubmit={handleSaveStudentSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-medium">
                         <div>
                           <label className="block text-slate-500 mb-1">ឈ្មោះសិស្ស</label>
                           <input
@@ -1215,7 +1262,20 @@ export default function ClassStudentMgmt({
                           </select>
                         </div>
 
-                        <div className="sm:col-span-3 pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                        <div>
+                          <label className="block text-slate-500 mb-1">ស្ថានភាព</label>
+                          <select
+                            value={studentFormStatus}
+                            onChange={(e) => setStudentFormStatus(e.target.value as 'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់')}
+                            className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+                          >
+                            <option value="ធម្មតា">ធម្មតា</option>
+                            <option value="រៀនយឺត">រៀនយឺត</option>
+                            <option value="បោះបង់">បោះបង់</option>
+                          </select>
+                        </div>
+
+                        <div className="sm:col-span-4 pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
                           <button
                             type="button"
                             onClick={() => setIsStudentFormOpen(false)}
@@ -1268,9 +1328,19 @@ export default function ClassStudentMgmt({
                                 </td>
                                 <td className="px-4 py-3 text-center font-sans font-bold text-slate-500">{p.grade}</td>
                                 <td className="px-4 py-3 text-center">
-                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 border border-emerald-100 text-emerald-700">
-                                    ធម្មតា / កំពុងរៀន
-                                  </span>
+                                  {p.status === 'រៀនយឺត' ? (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 border border-amber-105 text-amber-700">
+                                      រៀនយឺត
+                                    </span>
+                                  ) : p.status === 'បោះបង់' ? (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 border border-rose-105 text-rose-700">
+                                      បោះបង់
+                                    </span>
+                                  ) : (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 border border-emerald-105 text-emerald-700">
+                                      ធម្មតា
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-4 py-3 text-right">
                                   {currentUser?.role === 'principal' || (currentUser?.role === 'teacher' && p.grade === currentUser.grade) ? (

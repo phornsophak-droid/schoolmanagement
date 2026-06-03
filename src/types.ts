@@ -40,6 +40,7 @@ export interface StudentScore {
   gradeLetter: string; // A - F
   result: 'ជាប់' | 'ធ្លាក់';
   ranking?: number;
+  status?: 'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់';
 }
 
 // ជំហានទី ១: ព័ត៌មានទូទៅ
