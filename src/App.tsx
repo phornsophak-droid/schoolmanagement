@@ -1168,6 +1168,7 @@ export default function App() {
                       onDeleteReport={handleDeleteReport}
                       onCreateReportClick={handleCreateReportInit}
                       onOpenGradebookClick={() => setActiveView('gradebook')}
+                      onOpenAttendanceClick={() => setActiveView('attendance')}
                       grades={grades}
                       currentUser={currentUser}
                     />

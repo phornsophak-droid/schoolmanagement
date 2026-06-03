@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FileText, 
   Users, 
@@ -14,9 +14,24 @@ import {
   Plus, 
   Trash2, 
   Eye, 
-  GraduationCap 
+  GraduationCap,
+  ClipboardCheck,
+  ArrowRight,
+  UserCheck,
+  CheckCircle,
+  Clock
 } from 'lucide-react';
 import { SchoolReport, StudentScore, SchoolUser } from '../types';
+
+interface AttendanceRecord {
+  id: string;
+  date: string;
+  grade: string;
+  presentCount: number;
+  permissionCount: number;
+  absentCount: number;
+  studentStates: { [studentId: string]: 'present' | 'permission' | 'absent' };
+}
 
 interface DashboardProps {
   reports: SchoolReport[];
@@ -29,6 +44,7 @@ interface DashboardProps {
   onDeleteReport: (id: string) => void;
   onCreateReportClick: () => void;
   onOpenGradebookClick: () => void;
+  onOpenAttendanceClick?: () => void;
   grades?: string[];
   currentUser?: SchoolUser | null;
 }
@@ -55,6 +71,7 @@ export default function Dashboard({
   onDeleteReport,
   onCreateReportClick,
   onOpenGradebookClick,
+  onOpenAttendanceClick,
   grades,
   currentUser
 }: DashboardProps) {
@@ -62,6 +79,52 @@ export default function Dashboard({
   const gradesList = useMemo(() => {
     return ['ទាំងអស់', ...(grades || ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦'])];
   }, [grades]);
+
+  // Load Saved Attendance Records
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('school_daily_attendance');
+    if (saved) {
+      try {
+        setAttendanceRecords(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load attendance records in Dashboard', e);
+      }
+    }
+  }, []);
+
+  const filteredAttendance = useMemo(() => {
+    return attendanceRecords.filter(rec => {
+      const matchGrade = selectedGrade === 'boldsymbol' || selectedGrade === 'ទាំងអស់' ? true : rec.grade === selectedGrade;
+      return matchGrade;
+    });
+  }, [attendanceRecords, selectedGrade]);
+
+  const attendanceAggregates = useMemo(() => {
+    let totalPresent = 0;
+    let totalPermission = 0;
+    let totalAbsent = 0;
+
+    filteredAttendance.forEach(rec => {
+      totalPresent += rec.presentCount;
+      totalPermission += rec.permissionCount;
+      totalAbsent += rec.absentCount;
+    });
+
+    const totalStudentsScheduled = totalPresent + totalPermission + totalAbsent;
+    const overallRate = totalStudentsScheduled > 0 
+      ? Math.round((totalPresent / totalStudentsScheduled) * 100) 
+      : 0;
+
+    return {
+      totalPresent,
+      totalPermission,
+      totalAbsent,
+      overallRate,
+      activeDaysCount: filteredAttendance.length
+    };
+  }, [filteredAttendance]);
 
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
@@ -388,6 +451,158 @@ export default function Dashboard({
               >
                 ចុចទីនេះដើម្បីសរសេររបាយការណ៍ឥឡូវនេះ
               </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Daily Attendance Summary Executive Report Panel */}
+      <div id="panel_attendance_summary" className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2 text-blue-600 font-bold mb-1">
+              <ClipboardCheck className="w-5 h-5 text-blue-500" />
+              <span className="text-xs uppercase tracking-wider font-bold">របាយការណ៍សង្ខេបវត្តមាន</span>
+            </div>
+            <h3 className="font-bold text-slate-800 text-base font-serif">វត្តមានសិស្សប្រចាំថ្ងៃសរុប</h3>
+            <p className="text-xs text-slate-400 mt-1">ផ្អែកលើទិន្នន័យដែលបានកត់ត្រា និងរក្សាទុកក្នុងប្រព័ន្ធ</p>
+          </div>
+
+          {onOpenAttendanceClick && (
+            <button
+              onClick={onOpenAttendanceClick}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition duration-250 cursor-pointer border border-blue-200/40 shadow-3xs"
+            >
+              <span>គ្រប់គ្រងវត្តមានឥឡូវនេះ</span>
+              <ArrowRight size={13} />
+            </button>
+          )}
+        </div>
+
+        {/* Aggregated Indicators and Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">អត្រាវត្តមានសរុប</p>
+              <h4 className="text-xl font-black text-slate-800 mt-1 font-mono">
+                {attendanceAggregates.activeDaysCount > 0 ? `${attendanceAggregates.overallRate}%` : '0%'}
+              </h4>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold font-mono text-sm">
+              %
+            </div>
+          </div>
+
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">សិស្សមានវត្តមានសរុប</p>
+              <h4 className="text-xl font-black text-emerald-600 mt-1 font-mono">
+                {attendanceAggregates.totalPresent} <span className="text-xs font-normal text-slate-500">នាក់-ដង</span>
+              </h4>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold font-mono text-xs">
+              P
+            </div>
+          </div>
+
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">សិស្សមានច្បាប់សរុប</p>
+              <h4 className="text-xl font-black text-amber-600 mt-1 font-mono">
+                {attendanceAggregates.totalPermission} <span className="text-xs font-normal text-slate-500">នាក់-ដង</span>
+              </h4>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 font-bold font-mono text-xs">
+              L
+            </div>
+          </div>
+
+          <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-[#EA4335] font-bold uppercase tracking-wider">អវត្តមានគ្មានច្បាប់</p>
+              <h4 className="text-xl font-black text-rose-600 mt-1 font-mono">
+                {attendanceAggregates.totalAbsent} <span className="text-xs font-normal text-slate-500">នាក់-ដង</span>
+              </h4>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 font-bold font-mono text-xs">
+              A
+            </div>
+          </div>
+        </div>
+
+        {/* Detailed Records Tracker */}
+        <div className="border border-slate-100 rounded-xl overflow-hidden">
+          <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+            <span className="text-xs font-bold text-slate-700">📜 កំណត់ត្រាវត្តមានចុងក្រោយសិក្សា</span>
+            <span className="text-[10.5px] text-slate-400 font-bold font-mono">សរុប {filteredAttendance.length} ថ្ងៃ</span>
+          </div>
+
+          {filteredAttendance.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-600">
+                <thead>
+                  <tr className="bg-slate-50/40 border-b border-slate-150 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                    <th className="px-4 py-2.5">កាលបរិច្ឆេទ</th>
+                    <th className="px-4 py-2.5">ថ្នាក់រៀន</th>
+                    <th className="px-4 py-2.5 text-center">វត្តមាន</th>
+                    <th className="px-4 py-2.5 text-center">ច្បាប់</th>
+                    <th className="px-4 py-2.5 text-center">អវត្តមាន</th>
+                    <th className="px-4 py-2.5 text-center">អត្រាវត្តមាន</th>
+                    <th className="px-4 py-2.5 text-right">សកម្មភាព</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredAttendance.slice(0, 8).map((rec) => {
+                    const totalTracked = rec.presentCount + rec.permissionCount + rec.absentCount;
+                    const r = totalTracked > 0 ? Math.round((rec.presentCount / totalTracked) * 100) : 100;
+                    return (
+                      <tr key={rec.id} className="hover:bg-slate-50/50 transition-all">
+                        <td className="px-4 py-3 font-semibold text-slate-705">
+                          <div className="flex items-center gap-1.5 font-mono text-slate-600">
+                            <Clock size={12} className="text-slate-400" />
+                            {rec.date}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-bold text-slate-800">{rec.grade}</td>
+                        <td className="px-4 py-3 text-center text-emerald-600 font-bold font-mono">{rec.presentCount}</td>
+                        <td className="px-4 py-3 text-center text-amber-600 font-bold font-mono">{rec.permissionCount}</td>
+                        <td className="px-4 py-3 text-center text-rose-600 font-bold font-mono">{rec.absentCount}</td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="inline-flex items-center gap-1.5">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+                              r >= 90 ? 'bg-emerald-50 text-emerald-700' : r >= 75 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
+                            }`}>
+                              {r}%
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={onOpenAttendanceClick}
+                            className="text-blue-600 hover:text-blue-800 text-[11px] font-bold transition-all cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <span>ពិនិត្យឡើងវិញ</span>
+                            <ArrowRight size={11} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-12 flex flex-col items-center justify-center text-slate-400 text-xs">
+              <ClipboardCheck size={36} className="text-slate-350 mb-2" />
+              <p className="font-semibold text-slate-605">មិនទាន់មានទិន្នន័យវត្តមានប្រចាំថ្ងៃត្រូវបានកត់ត្រានៅឡើយទេ</p>
+              {onOpenAttendanceClick && (
+                <button
+                  onClick={onOpenAttendanceClick}
+                  className="mt-3.5 px-4.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-[10.5px] transition duration-200 cursor-pointer shadow-3xs"
+                >
+                  ➕ ចុចទីនេះដើម្បីចាប់ផ្តើមកត់វត្តមានដំបូង
+                </button>
+              )}
             </div>
           )}
         </div>
