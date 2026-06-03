@@ -143,22 +143,81 @@ export default function Gradebook({
 
   // Filter students based on top filter selections
   const filteredStudents = useMemo(() => {
-    // 1. Month / Grade filter
-    let list = students.filter(student => {
+    // If selectedMonth is 'ទាំងអស់' or selectedGrade is 'ទាំងអស់', fall back to standard filtering
+    if (selectedGrade === 'ទាំងអស់') {
+      let list = students.filter(student => {
+        if (student.month === 'ប្រឡងឆមាសទី១' || student.month === 'ប្រឡងឆមាសទី២') {
+          return false;
+        }
+        const matchMonth = selectedMonth === 'ទាំងអស់' ? true : student.month === selectedMonth;
+        return matchMonth;
+      });
+
+      if (searchTerm.trim() !== '') {
+        list = list.filter(student => student.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      }
+
+      return rankStudents(list);
+    }
+
+    // 1. Get the list of all unique student profiles in the selected grade across ANY month
+    const rosterMap = new Map<string, StudentScore>();
+    students.forEach(s => {
+      if (s.grade === selectedGrade && s.month !== 'ប្រឡងឆមាសទី១' && s.month !== 'ប្រឡងឆមាសទី២') {
+        const key = s.name.trim().toLowerCase();
+        if (!rosterMap.has(key)) {
+          rosterMap.set(key, s);
+        }
+      }
+    });
+
+    const rosterProfiles = Array.from(rosterMap.values());
+
+    // 2. Filter students matching the active grade and active month
+    const monthlyRecords = students.filter(student => {
       if (student.month === 'ប្រឡងឆមាសទី១' || student.month === 'ប្រឡងឆមាសទី២') {
         return false;
       }
       const matchMonth = selectedMonth === 'ទាំងអស់' ? true : student.month === selectedMonth;
-      const matchGrade = selectedGrade === 'ទាំងអស់' ? true : student.grade === selectedGrade;
+      const matchGrade = student.grade === selectedGrade;
       return matchMonth && matchGrade;
     });
 
-    // 2. Search query filter
+    // 3. For any student in the grade roster who doesn't have a record for the selected month, synthesize an empty grid row
+    const synthesizedRecords: StudentScore[] = [];
+    if (selectedMonth !== 'ទាំងអស់') {
+      rosterProfiles.forEach(p => {
+        const hasExistingRecord = monthlyRecords.some(r => r.name.trim().toLowerCase() === p.name.trim().toLowerCase());
+        if (!hasExistingRecord) {
+          const payload = {
+            id: `synth-${p.id}-${selectedMonth}`, // synthesized temporary ID starting with 'synth-'
+            name: p.name,
+            gender: p.gender,
+            grade: p.grade,
+            status: p.status || 'ធម្មតា',
+            month: selectedMonth,
+            khmer: { listening: 0, writing: 0, reading: 0, speaking: 0 },
+            math: { numbers: 0, measurement: 0, geometry: 0, algebra: 0, statistics: 0 },
+            science: 0,
+            socialStudies: 0,
+            physicalEducation: 0,
+            health: 0,
+            lifeSkills: 0,
+            foreignLanguage: 0
+          };
+          synthesizedRecords.push(calculateStudentFields(payload));
+        }
+      });
+    }
+
+    let list = [...monthlyRecords, ...synthesizedRecords];
+
+    // 4. Search query filter
     if (searchTerm.trim() !== '') {
       list = list.filter(student => student.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
 
-    // 3. Compute rankings inside the filtered group
+    // 5. Compute rankings inside the filtered group
     return rankStudents(list);
   }, [students, selectedMonth, selectedGrade, searchTerm]);
 
@@ -455,12 +514,14 @@ export default function Gradebook({
     const calculatedPayload = calculateStudentFields(payload);
 
     let updatedList: StudentScore[];
-    if (editingStudentId) {
-      // Edit
+    const isSynth = editingStudentId && editingStudentId.startsWith('synth-');
+    if (editingStudentId && !isSynth) {
+      // Edit standard record
       updatedList = students.map(s => s.id === editingStudentId ? calculatedPayload : s);
     } else {
-      // Add
-      updatedList = [...students, calculatedPayload];
+      // Add standard record, or save a synthesized record (treat as append with custom unique ID)
+      const finalPayload = isSynth ? { ...calculatedPayload, id: generateUniqueId() } : calculatedPayload;
+      updatedList = [...students, finalPayload];
     }
 
     onSaveStudents(updatedList);
@@ -472,6 +533,10 @@ export default function Gradebook({
   const handleDeleteClick = (id: string, name: string) => {
     if (currentUser?.role === 'teacher') {
       alert('គណនីគ្រូមិនមានសិទ្ធិលុបពិន្ទុរបស់សិស្សឡើយ!');
+      return;
+    }
+    if (id.startsWith('synth-')) {
+      alert('សិស្សនេះមិនទាន់មានកំណត់ត្រាពិន្ទុក្នុងខែនេះទេ ទើបមិនអាចលុបបានឡើយ!');
       return;
     }
     if (window.confirm(`តើអ្នកពិតជាចង់លុបពិន្ទុរបស់សិស្សឈ្មោះ «${name}» ឬទេ?`)) {
