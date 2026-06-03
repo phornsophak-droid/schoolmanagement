@@ -47,6 +47,8 @@ import {
   CUSTOM_URL_KEY,
   CUSTOM_ANON_KEY
 } from './lib/supabase';
+// @ts-ignore
+import schemaSql from './schema.sql?raw';
 import Dashboard from './components/Dashboard';
 import Gradebook from './components/Gradebook';
 import ReportWizard from './components/ReportWizard';
@@ -1289,18 +1291,51 @@ export default function App() {
 
               {supabaseStatus === 'error' && (
                 <div className="p-2.5 bg-rose-500/10 border border-rose-500/25 rounded-xl text-[9.5px] text-rose-300">
-                  <p className="font-bold mb-0.5 flex items-center gap-1">
+                  <p className="font-bold mb-1.5 flex items-center gap-1">
                     <AlertTriangle size={11} />
-                    <span>បញ្ហាតភ្ជាប់៖</span>
+                    <span>បញ្ហាតភ្ជាប់ Supabase៖</span>
                   </p>
-                  <p className="text-[9px] text-slate-300 mb-1.5 leading-snug break-words">
-                    {supabaseErrorMsg || 'ព័ត៌មាន Keys មិនត្រឹមត្រូវ ឬគ្មានប្រព័ន្ធអ៊ីនធឺណិត។'}
-                  </p>
+                  
+                  <div className="text-[9px] text-slate-300 mb-2.5 leading-relaxed text-left space-y-1 bg-rose-950/20 p-2 rounded-lg border border-rose-900/30">
+                    {supabaseErrorMsg.toLowerCase().includes('failed to fetch') ? (
+                      <div className="space-y-1">
+                        <span className="font-bold text-rose-300 block text-[9.5px]">⚠️ មិនអាចទាក់ទងម៉ាស៊ីនបម្រើបានទេ (TypeError: Failed to fetch)</span>
+                        <span className="text-slate-400">មូលហេតុ និងដំណោះស្រាយដែលអាចកើតមាន៖</span>
+                        <ul className="list-decimal pl-4.5 space-y-1 mt-0.5 text-slate-300 text-[8.5px]">
+                          <li>
+                            <strong className="text-slate-200">កម្មវិធី Ad-Blocker / Brave Shield៖</strong> កម្មវិធីទប់ស្កាត់ការផ្សាយពាណិជ្ជកម្មច្រើនតែប្លុកការតភ្ជាប់ទៅកាន់ Supabase។ <strong className="text-[#3ECF8E]">សូមសាកល្បងបិទ Brave Shield ឬ Ad-blocker របស់អ្នក</strong> សម្រាប់គេហទំព័រនេះ រួចព្យាយាមម្តងទៀត។
+                          </li>
+                          <li>
+                            <strong className="text-slate-200">ការបំពេញ URL និង Keys៖</strong> ពិនិត្យមើលថាតើអាសយដ្ឋាន URL និង Key ពិតជាត្រូវ និងមិនមែនជា URL គំរូ និងគ្មានចន្លោះទទេ (space)។
+                          </li>
+                          <li>
+                            <strong className="text-slate-200">គម្រោង Supabase ត្រូវបានផ្អាក៖</strong> ប្រសិនបើទុកចោលយូរ គម្រោងអាចត្រូវបានផ្អាក (Paused)។ សូមចូលទៅ <a href="https://supabase.com" target="_blank" rel="noreferrer" className="underline text-blue-400 hover:text-blue-300 font-bold">Supabase.com</a> ដើម្បី Resume គម្រោងឡើងវិញ។
+                          </li>
+                        </ul>
+                      </div>
+                    ) : (supabaseErrorMsg.toLowerCase().includes('relation') || supabaseErrorMsg.toLowerCase().includes('does not exist') || supabaseErrorMsg.toLowerCase().includes('relation "public.')) ? (
+                      <div className="space-y-1">
+                        <span className="font-bold text-rose-300 block text-[9.5px]">⚠️ ខ្វះតារាងទិន្នន័យ (Database Tables Missing)</span>
+                        <span className="text-slate-400">មូលហេតុ និងដំណោះស្រាយ៖</span>
+                        <p className="text-slate-300 text-[8.5px] leading-normal">
+                          គម្រោង Supabase របស់លោកអ្នកមិនទាន់មានតារាងទិន្នន័យសម្រាប់ផ្ទុកឡើយ។
+                          <br />
+                          <strong className="text-[#3ECF8E]">ដំណោះស្រាយ៖</strong> សូមចុចប៊ូតុង <strong className="text-slate-200">⚙️ ការកំណត់</strong> ខាងលើ រួចចុចប៊ូតុង <strong className="text-[#3ECF8E]">ចម្លងកូដ SQL បង្កើតតារាង (Copy Schema)</strong> រួចយកទៅដំណើរការ (Run) ក្នុង SQL Editor របស់ Supabase។
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <span className="font-bold text-rose-300 block text-[9.5px]">⚠️ បញ្ហាតភ្ជាប់ផ្សេងៗ៖</span>
+                        <span className="block break-words font-mono text-[8px] text-rose-200 bg-rose-950/40 p-1.5 rounded border border-rose-800/20">{supabaseErrorMsg}</span>
+                      </div>
+                    )}
+                  </div>
+                  
                   <button
                     onClick={() => pullFromSupabase(false)}
-                    className="w-full py-1 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-md text-[9px] transition-all cursor-pointer"
+                    className="w-full py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-[9px] transition-all cursor-pointer flex items-center justify-center gap-1"
                   >
-                    🔄 ព្យាយាមតភ្ជាប់ម្តងទៀត
+                    🔄 ព្យាយាមតភ្ជាប់ឡើងវិញ
                   </button>
                 </div>
               )}
@@ -1401,6 +1436,30 @@ export default function App() {
                 <span>១. ចូលទៅកាន់តំបន់គ្រប់គ្រង Supabase Dashboard (supabase.com)</span>
                 <span>២. ចូលទៅកាន់ <strong className="text-slate-300">Project Settings</strong> → <strong className="text-slate-300">API Documentation</strong></span>
                 <span>៣. ចម្លងយក URL និង Keys ដែលមានឈ្មោះថា <strong className="text-[#3ECF8E]">anon public key</strong> មកបំពេញខាងលើ។</span>
+              </div>
+
+              {/* Database Schema Setup Instruction */}
+              <div className="mt-3 p-2.5 bg-emerald-950/20 border border-emerald-500/20 rounded-xl text-[9.5px] text-emerald-300 leading-relaxed flex flex-col gap-1 text-left font-sans">
+                <span className="font-bold flex items-center gap-1">
+                  <span>🛠️ តើលោកអ្នកបានបង្កើតតារាងទិន្នន័យ (Tables) ហើយឬនៅ?</span>
+                </span>
+                <span>
+                  ដើម្បីឱ្យ Supabase អាចរក្សាទុកទិន្នន័យបាន លោកអ្នកត្រូវតែបង្កើតតារាងទិន្នន័យជាមុនសិន ដោយចុចយក <strong className="text-emerald-200">SQL Editor</strong> ក្នុង Supabase រួច Paste កូដ SQL ដើម្បីបង្កើតតារាង។
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(schemaSql);
+                      alert('📋 បានចម្លងកូដ SQL បង្កើតតារាង (Database Schema SQL) ទៅក្នុង Clipboard របស់អ្នករួចរាល់ហើយ!\n\nសូមយកទៅ Paste ក្នុង "SQL Editor" របស់ Supabase រួចចុច "Run" ដើម្បីបង្កើតតារាង។');
+                    } catch (e) {
+                      alert('មិនអាចចម្លងដោយស្វ័យប្រវត្តបានទេ! លោកអ្នកអាចបើកមើលឯកសារ "src/schema.sql" នៅក្នុងកូដប្រភពដើម្បីចម្លងដោយផ្ទាល់។');
+                    }
+                  }}
+                  className="w-full mt-1.5 py-1.5 bg-[#3ECF8E] hover:bg-[#34b279] text-slate-950 font-bold rounded-lg text-[9.5px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  📥 ចម្លងកូដបង្កើតតារាង SQL (Copy Schema)
+                </button>
               </div>
 
               {/* Actions button */}

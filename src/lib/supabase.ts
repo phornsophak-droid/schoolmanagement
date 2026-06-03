@@ -69,10 +69,43 @@ export function getSupabaseClient(): SupabaseClient | null {
   }
 }
 
+// Helper to safely convert/hash any arbitrary string ID format to a valid, standard Postgres-compatible UUID v4 shape deterministically
+export function toUUID(id: string): string {
+  if (!id) return id;
+  // If it's already a valid UUID format, return it
+  const kUuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (kUuidRegex.test(id)) {
+    return id.toLowerCase();
+  }
+
+  // Create deterministic 32 hex chars from any input string using a hash algorithm (similar to cyrb128/fnv)
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57, h3 = 0xfae12345, h4 = 0x12345678;
+  for (let i = 0, char; i < id.length; i++) {
+    char = id.charCodeAt(i);
+    h1 = Math.imul(h1 ^ char, 2654435761);
+    h2 = Math.imul(h2 ^ char, 1597334977);
+    h3 = Math.imul(h3 ^ char, 2246822519);
+    h4 = Math.imul(h4 ^ char, 3266489917);
+  }
+  
+  const toHex = (h: number) => {
+    return (h >>> 0).toString(16).padStart(8, '0');
+  };
+
+  const hex32 = toHex(h1) + toHex(h2) + toHex(h3) + toHex(h4);
+  const part1 = hex32.substring(0, 8);
+  const part2 = hex32.substring(8, 12);
+  const part3 = '4' + hex32.substring(13, 16);
+  const part4 = '8' + hex32.substring(17, 20);
+  const part5 = hex32.substring(20, 32);
+
+  return `${part1}-${part2}-${part3}-${part4}-${part5}`.toLowerCase();
+}
+
 // 3. Score Mapper functions
 export function mapScoreToDB(score: StudentScore) {
   return {
-    id: score.id,
+    id: toUUID(score.id),
     name: score.name,
     gender: score.gender,
     grade: score.grade,
@@ -142,7 +175,7 @@ export function mapDBToScore(db: any): StudentScore {
 // 4. Report Mapper functions
 export function mapReportToDB(report: SchoolReport) {
   return {
-    id: report.id,
+    id: toUUID(report.id),
     teacher_name: report.generalInfo.teacherName,
     grade: report.generalInfo.grade,
     month: report.generalInfo.month,
@@ -339,7 +372,7 @@ export async function syncDeleteStudent(id: string) {
   const { error } = await supabase
     .from('student_scores')
     .delete()
-    .eq('id', id);
+    .eq('id', toUUID(id));
   if (error) {
     console.error(`Failed to delete student score ${id} from Supabase`, error);
     throw error;
@@ -351,6 +384,8 @@ export async function syncUpsertReport(report: SchoolReport) {
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
+  const reportIdUuid = toUUID(report.id);
+
   // 1. Upsert General and Stats inside `school_reports` table
   const rowReport = mapReportToDB(report);
   const { error: repErr } = await supabase
@@ -359,20 +394,20 @@ export async function syncUpsertReport(report: SchoolReport) {
   if (repErr) throw repErr;
 
   // 2. Clean out old sub-items
-  await supabase.from('report_activities').delete().eq('report_id', report.id);
-  await supabase.from('struggling_students').delete().eq('report_id', report.id);
-  await supabase.from('challenges_solutions').delete().eq('report_id', report.id);
+  await supabase.from('report_activities').delete().eq('report_id', reportIdUuid);
+  await supabase.from('struggling_students').delete().eq('report_id', reportIdUuid);
+  await supabase.from('challenges_solutions').delete().eq('report_id', reportIdUuid);
 
   // 3. Insert current month activities
   const batchActivities = [
     ...report.activities.currentMonthActivities.map(act => ({
-      report_id: report.id,
+      report_id: reportIdUuid,
       lesson_title: act.lessonTitle,
       percentage_completed: act.percentageCompleted,
       activity_type: 'current_month'
     })),
     ...report.activities.nextMonthPlan.map(act => ({
-      report_id: report.id,
+      report_id: reportIdUuid,
       lesson_title: act.lessonTitle,
       percentage_completed: act.percentageCompleted,
       activity_type: 'next_month'
@@ -388,7 +423,7 @@ export async function syncUpsertReport(report: SchoolReport) {
 
   // 4. Insert struggling list
   const batchStruggling = report.specialStudents.strugglingList.map(st => ({
-    report_id: report.id,
+    report_id: reportIdUuid,
     name: st.name,
     gender: st.gender,
     issue: st.issue,
@@ -404,7 +439,7 @@ export async function syncUpsertReport(report: SchoolReport) {
 
   // 5. Insert challenges list
   const batchChallenges = report.challenges.map(ch => ({
-    report_id: report.id,
+    report_id: reportIdUuid,
     challenge: ch.challenge,
     solution: ch.solution
   }));
@@ -432,7 +467,7 @@ export async function syncDeleteReport(id: string) {
   const { error } = await supabase
     .from('school_reports')
     .delete()
-    .eq('id', id);
+    .eq('id', toUUID(id));
   if (error) {
     console.error(`Failed to delete report ${id} from Supabase`, error);
     throw error;
