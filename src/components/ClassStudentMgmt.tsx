@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { StudentScore, SchoolUser } from '../types';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
+import * as XLSX from 'xlsx';
 
 interface ClassStudentMgmtProps {
   students: StudentScore[];
@@ -455,59 +456,89 @@ export default function ClassStudentMgmt({
     document.body.removeChild(link);
   };
 
-  // Local Excel/CSV parser from computer
+  // Local Excel/CSV parser from computer supporting XLS, XLSX and CSV
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (!text) return;
-
-      const lines = text.split(/\r?\n/);
-      if (lines.length <= 1) {
-        alert("ឯកសារគ្មានទិន្នន័យឡើយ!");
-        return;
-      }
-
-      const newStudentsList: StudentScore[] = [];
-      let importCount = 0;
-      let duplicateCount = 0;
-      let rejectedTeacherCount = 0;
-
-      // Identify header index
-      const startIdx = (lines[0].includes("ឈ្មោះ") || lines[0].includes("Name") || lines[0].includes("ភេទ") || lines[0].includes("ល.រ")) ? 1 : 0;
-
-      for (let i = startIdx; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        let cols = line.split(',');
-        if (cols.length < 2) {
-          cols = line.split(';');
-        }
-        if (cols.length < 2) {
-          cols = line.split('\t');
+      try {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        const data = new Uint8Array(arrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) {
+          alert("សន្លឹកកិច្ចការគ្មានទិន្នន័យឡើយ!");
+          return;
         }
 
-        if (cols.length >= 2) {
-          let nameIndex = 0;
-          let genderIndex = 1;
-          let gradeIndex = 2;
+        // Convert worksheet to grid arrays
+        const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+        if (!rows || rows.length <= 1) {
+          alert("ឯកសារគ្មានទិន្នន័យឡើយ!");
+          return;
+        }
 
-          // If first column is just a number (like sequence row sequence No.)
-          if (/^\d+$/.test(cols[0].trim()) && cols.length >= 3) {
+        const newStudentsList: StudentScore[] = [];
+        let importCount = 0;
+        let duplicateCount = 0;
+        let rejectedTeacherCount = 0;
+
+        // Identify header index and column indices dynamically
+        let startIndex = 0;
+        let nameIndex = 0;
+        let genderIndex = 1;
+        let gradeIndex = 2;
+
+        for (let i = 0; i < Math.min(rows.length, 5); i++) {
+          const rowVals = rows[i];
+          if (!rowVals || !Array.isArray(rowVals)) continue;
+          
+          const rowStr = rowVals.map(cell => String(cell ?? '')).join(' ');
+          if (rowStr.includes("ឈ្មោះ") || rowStr.toLowerCase().includes("name") || rowStr.includes("ភេទ") || rowStr.includes("ល.រ") || rowStr.includes("ថ្នាក់")) {
+            startIndex = i + 1;
+            // Let's find columns dynamically
+            for (let c = 0; c < rowVals.length; c++) {
+              const val = String(rowVals[c] ?? '').trim();
+              if (val.includes("ឈ្មោះ") || val.toLowerCase().includes("name")) {
+                nameIndex = c;
+              } else if (val.includes("ភេទ") || val.toLowerCase().includes("gender") || val.toLowerCase().includes("sex")) {
+                genderIndex = c;
+              } else if (val.includes("ថ្នាក់") || val.toLowerCase().includes("grade") || val.toLowerCase().includes("class")) {
+                gradeIndex = c;
+              }
+            }
+            break;
+          }
+        }
+
+        // Guess based on first row columns if no header matches
+        if (startIndex === 0 && rows[0] && rows[0].length >= 3) {
+          const firstCell = String(rows[0][0] ?? '').trim();
+          if (/^\d+$/.test(firstCell)) {
             nameIndex = 1;
             genderIndex = 2;
             gradeIndex = 3;
           }
+        }
 
-          const rawName = cols[nameIndex]?.trim().replace(/^["']|["']$/g, '');
-          const rawGender = cols[genderIndex]?.trim().replace(/^["']|["']$/g, '');
-          let rawGrade = cols[gradeIndex]?.trim().replace(/^["']|["']$/g, '') || selectedRosterGrade;
+        for (let i = startIndex; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || !Array.isArray(row) || row.length === 0) continue;
 
+          const rawName = String(row[nameIndex] ?? '').trim();
           if (!rawName) continue;
+
+          // Skip if the parsed name is actually a header leftover or blank noise
+          if (rawName === "ឈ្មោះ" || rawName === "ឈ្មោះសិស្ស" || rawName.toLowerCase() === "name" || rawName.includes("បឋមសិក្សា") || rawName.includes("បញ្ជីរាយនាម") || rawName === "ល.រ" || rawName === "លរ") {
+            continue;
+          }
+
+          const rawGender = String(row[genderIndex] ?? '').trim();
+          let rawGrade = String(row[gradeIndex] ?? '').trim() || selectedRosterGrade;
 
           // Standardize gender string
           let gender: 'ប្រុស' | 'ស្រី' = 'ប្រុស';
@@ -536,7 +567,7 @@ export default function ClassStudentMgmt({
             continue;
           }
 
-          // Add clean record
+          // Add clean record with default score template
           const payload = {
             id: generateUniqueId(),
             name: rawName,
@@ -556,20 +587,23 @@ export default function ClassStudentMgmt({
           newStudentsList.push(calculateStudentFields(payload));
           importCount++;
         }
-      }
 
-      if (rejectedTeacherCount > 0) {
-        alert(`លោកអ្នកគឺជាគ្រូបន្ទុកថ្នាក់ ដូច្នេះប្រព័ន្ធបានច្រានចោលសិស្សចំនួន ${rejectedTeacherCount} នាក់ដែលមិនស្ថិតក្នុង ${currentUser.grade} របស់លោកអ្នក!`);
-      }
+        if (rejectedTeacherCount > 0) {
+          alert(`លោកអ្នកគឺជាគ្រូបន្ទុកថ្នាក់ ដូច្នេះប្រព័ន្ធបានច្រានចោលសិស្សចំនួន ${rejectedTeacherCount} នាក់ដែលមិនស្ថិតក្នុង ${currentUser?.grade} របស់លោកអ្នក!`);
+        }
 
-      if (importCount > 0) {
-        onSaveStudents([...students, ...newStudentsList]);
-        alert(`បាននាំចូលសិស្សចំនួន ${importCount} នាក់ ពីក្នុងកុំព្យូទ័រដោយជោគជ័យ!${duplicateCount > 0 ? ` (ឈ្មោះជាន់គ្នា ${duplicateCount} នាក់ត្រូវបានរំលង)` : ""}`);
-      } else {
-        alert("មិនឃើញមានទិន្នន័យសិស្សថ្មីទេ។ សូមប្រាកដថាឯកសារ CSV ឬ Excel format របស់អ្នកមានរចនាសម្ព័ន្ធត្រឹមត្រូវ (ល.រ, ឈ្មោះសិស្ស, ភេទ, ថ្នាក់)។");
+        if (importCount > 0) {
+          onSaveStudents([...students, ...newStudentsList]);
+          alert(`បាននាំចូលសិស្សចំនួន ${importCount} នាក់ ពីក្នុងកុំព្យូទ័រដោយជោគជ័យ!${duplicateCount > 0 ? ` (ឈ្មោះជាន់គ្នា ${duplicateCount} នាក់ត្រូវបានរំលង)` : ""}`);
+        } else {
+          alert("មិនឃើញមានទិន្នន័យសិស្សថ្មីទេ។ សូមប្រាកដថាឯកសារ CSV ឬ Excel format របស់អ្នកមានរចនាសម្ព័ន្ធត្រឹមត្រូវ (ល.រ, ឈ្មោះសិស្ស, ភេទ, ថ្នាក់)។");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("ការនាំចូលបានបរាជ័យ! សូមពិនិត្យមើលថាឯកសារនោះពិតជាប្រភេទ Excel (.xlsx) ឬ CSV ត្រឹមត្រូវ។");
       }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
     e.target.value = '';
   };
 
@@ -870,12 +904,12 @@ export default function ClassStudentMgmt({
                         នាំចូលពីកុំព្យូទ័រ
                       </button>
 
-                      {/* Hidden CSV File input selector */}
+                      {/* Hidden File input selector */}
                       <input
                         type="file"
                         ref={fileInputRef}
                         onChange={handleImportCSV}
-                        accept=".csv"
+                        accept=".csv, .xlsx, .xls"
                         className="hidden"
                       />
                     </div>
