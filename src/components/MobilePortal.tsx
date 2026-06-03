@@ -40,6 +40,16 @@ import ClassStudentMgmt from './ClassStudentMgmt';
 import ReportsHub from './ReportsHub';
 import Gradebook from './Gradebook';
 
+interface AttendanceRecord {
+  id: string;
+  date: string;
+  grade: string;
+  presentCount: number;
+  permissionCount: number;
+  absentCount: number;
+  studentStates: { [studentId: string]: 'present' | 'permission' | 'absent' };
+}
+
 interface MobilePortalProps {
   students: StudentScore[];
   currentUser: SchoolUser | null;
@@ -69,6 +79,119 @@ export default function MobilePortal({
   const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat'>('home');
   const [showMenuOverlay, setShowMenuOverlay] = useState(false);
   const [showAiHelper, setShowAiHelper] = useState(false);
+
+  // Toast notifications for iframe bypass
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Daily Attendance States
+  const [attendanceTab, setAttendanceTab] = useState<'roll-call' | 'qr' | 'history'>('roll-call');
+  const [selectedAttendanceDate, setSelectedAttendanceDate] = useState('2026-06-03');
+  const [selectedAttendanceGrade, setSelectedAttendanceGrade] = useState(() => {
+    return currentUser?.grade !== 'ទាំងអស់' ? currentUser?.grade || 'ថ្នាក់ទី១' : 'ថ្នាក់ទី១';
+  });
+  const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('');
+  const [activeAttendanceMap, setActiveAttendanceMap] = useState<{ [studentId: string]: 'present' | 'permission' | 'absent' }>({});
+
+  const [savedAttendanceRecords, setSavedAttendanceRecords] = useState<AttendanceRecord[]>(() => {
+    const saved = localStorage.getItem('school_daily_attendance');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // Fallback
+      }
+    }
+    return [
+      {
+        id: 'att-mock-1',
+        date: '2026-06-02',
+        grade: 'ថ្នាក់ទី១',
+        presentCount: 22,
+        permissionCount: 1,
+        absentCount: 1,
+        studentStates: {}
+      },
+      {
+        id: 'att-mock-2',
+        date: '2026-06-01',
+        grade: 'ថ្នាក់ទី១',
+        presentCount: 24,
+        permissionCount: 0,
+        absentCount: 0,
+        studentStates: {}
+      }
+    ];
+  });
+
+  // Track state changes to sync grade selection with current user's grade
+  useEffect(() => {
+    if (currentUser?.grade && currentUser.grade !== 'ទាំងអស់') {
+      setSelectedAttendanceGrade(currentUser.grade);
+    }
+  }, [currentUser]);
+
+  // Load saved states for selected date & grade, or initialize to 'present' for every student
+  useEffect(() => {
+    const existing = savedAttendanceRecords.find(
+      r => r.date === selectedAttendanceDate && r.grade === selectedAttendanceGrade
+    );
+    if (existing && existing.studentStates && Object.keys(existing.studentStates).length > 0) {
+      setActiveAttendanceMap(existing.studentStates);
+    } else {
+      const gradeStudents = students.filter(s => s.grade === selectedAttendanceGrade);
+      const initialMap: { [studentId: string]: 'present' | 'permission' | 'absent' } = {};
+      gradeStudents.forEach(s => {
+        initialMap[s.id] = 'present';
+      });
+      setActiveAttendanceMap(initialMap);
+    }
+  }, [selectedAttendanceDate, selectedAttendanceGrade, savedAttendanceRecords, students]);
+
+  // Save the current roll call state to savedAttendanceRecords
+  const handleSaveAttendance = () => {
+    const gradeStudents = students.filter(s => s.grade === selectedAttendanceGrade);
+    if (gradeStudents.length === 0) {
+      showToast('⚠️ គ្មានសិស្សនៅក្នុងថ្នាក់ដែលបានជ្រើសរើសទេ។');
+      return;
+    }
+
+    let present = 0;
+    let permission = 0;
+    let absent = 0;
+
+    const finalStates: { [studentId: string]: 'present' | 'permission' | 'absent' } = {};
+    gradeStudents.forEach(s => {
+      const state = activeAttendanceMap[s.id] || 'present';
+      finalStates[s.id] = state;
+      if (state === 'present') present++;
+      else if (state === 'permission') permission++;
+      else if (state === 'absent') absent++;
+    });
+
+    const recordId = `att-${selectedAttendanceDate}-${selectedAttendanceGrade}`;
+    const newRecord: AttendanceRecord = {
+      id: recordId,
+      date: selectedAttendanceDate,
+      grade: selectedAttendanceGrade,
+      presentCount: present,
+      permissionCount: permission,
+      absentCount: absent,
+      studentStates: finalStates
+    };
+
+    const updated = [
+      newRecord,
+      ...savedAttendanceRecords.filter(r => !(r.date === selectedAttendanceDate && r.grade === selectedAttendanceGrade))
+    ];
+
+    setSavedAttendanceRecords(updated);
+    localStorage.setItem('school_daily_attendance', JSON.stringify(updated));
+    showToast(`✅ បានរក្សាទុកវត្តមាន! (វត្តមាន: ${present}, ច្បាប់: ${permission}, អវត្តមាន: ${absent})`);
+  };
 
   // States for sub-apps
   // 1. Chat logs
@@ -259,6 +382,21 @@ export default function MobilePortal({
       {/* Smartphone Device Wrapper Mockup */}
       <div className="w-[390px] h-[780px] bg-[#111E38] rounded-[48px] border-8 border-slate-800 shadow-2xl relative flex flex-col overflow-hidden max-w-[100vw] text-slate-100">
         
+        {/* Elegant Mobile-Friendly Toast Notification */}
+        <AnimatePresence>
+          {toastMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className="absolute top-10 left-4 right-4 bg-slate-900/95 backdrop-blur-md rounded-xl p-3 border border-[#E2C785]/30 text-[9px] text-[#E2C785] shadow-2xl z-55 flex items-center gap-2.5 font-bold"
+            >
+              <span className="text-sm shrink-0">🔔</span>
+              <p className="flex-1 leading-normal text-slate-100">{toastMessage}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Phone Notch/Island */}
         <div className="absolute top-0 left-0 right-0 h-7 flex justify-between items-center px-6 z-50 text-[10.5px] font-semibold text-white/90">
           <span>8:55</span>
@@ -397,7 +535,7 @@ export default function MobilePortal({
                       <QrCode className="w-7 h-7 stroke-[#E2C785] stroke-[1.2] fill-none drop-shadow-[0_0_4px_rgba(226,199,133,0.35)]" />
                     </div>
                     <span className="text-[9.5px] font-semibold text-center text-slate-300 mt-2 hover:text-[#E2C785]">
-                      ពិនិត្យវត្តមាន (QR)
+                      វត្តមានសិស្សប្រចាំថ្ងៃ
                     </span>
                   </button>
 
@@ -640,55 +778,315 @@ export default function MobilePortal({
               </motion.div>
             )}
 
-            {/* 5. ATTENDANCE SCAN QR */}
-            {innerView === 'attendance-qr' && (
-              <motion.div
-                key="attendance-qr"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-4 text-center"
-              >
-                <div className="flex items-center gap-2 border-b border-blue-900/50 pb-2 mb-2 text-left">
-                  <button onClick={() => setInnerView('home')} className="p-1 hover:bg-blue-900/55 rounded text-[#E2C785]">
-                    <ArrowLeft size={16} />
-                  </button>
-                  <h3 className="text-xs font-bold text-white">📷 ពិនិត្យវត្តមានសិស្សតាម QR</h3>
-                </div>
+            {/* 5. ATTENDANCE SCAN QR & DAILY ROLL CALL */}
+            {innerView === 'attendance-qr' && (() => {
+              const activeGradeStudents = students.filter(s => s.grade === selectedAttendanceGrade);
+              const filteredStudents = activeGradeStudents.filter(s => 
+                s.name.toLowerCase().includes(attendanceSearchQuery.toLowerCase())
+              );
+              
+              const totalGradeCount = activeGradeStudents.length;
+              const presentCount = activeGradeStudents.filter(s => (activeAttendanceMap[s.id] || 'present') === 'present').length;
+              const permissionCount = activeGradeStudents.filter(s => activeAttendanceMap[s.id] === 'permission').length;
+              const absentCount = activeGradeStudents.filter(s => activeAttendanceMap[s.id] === 'absent').length;
+              const attendancePercent = totalGradeCount > 0 
+                ? Math.round((presentCount / totalGradeCount) * 100) 
+                : 100;
 
-                <div className="bg-[#111E38]/90 rounded-2xl border border-blue-900/35 p-5 flex flex-col items-center">
-                  <p className="text-[10px] text-slate-350 leading-normal mb-4">
-                    ប្រើកាមេរ៉ាទូរស័ព្ទរបស់អ្នក ដើម្បីស្កេនកាតសិស្ស (Student Identification Card) ដើម្បីពិនិត្យ ឬចុះឈ្មោះវត្តមានលើប្រព័ន្ធ Cloud ស្វ័យប្រវត្ត។
-                  </p>
-
-                  {/* QR SCAN FRAME MOCKUP WITH ACTIVE LASER EFFECT */}
-                  <div className="w-44 h-44 bg-slate-900/60 rounded-xl relative border border-blue-800 flex items-center justify-center overflow-hidden shadow-inner">
-                    <span className="text-4xl">🪪</span>
-                    {qrScanning && (
-                      <div className="absolute left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_10px_#ef4444] animate-[bounce_2s_infinite] top-0" />
-                    )}
-                    <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[#E2C785]" />
-                    <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#E2C785]" />
-                    <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[#E2C785]" />
-                    <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#E2C785]" />
+              return (
+                <motion.div
+                  key="attendance-qr"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-3 text-left"
+                >
+                  {/* Header */}
+                  <div className="flex items-center gap-2 border-b border-blue-900/50 pb-2 mb-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-blue-900/55 rounded text-[#E2C785]">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-white">📅 ប្រព័ន្ធគ្រប់គ្រងវត្តមានប្រចាំថ្ងៃ</h3>
                   </div>
 
-                  <button
-                    onClick={handleQrScan}
-                    disabled={qrScanning}
-                    className="mt-5 px-3.5 py-1.5 w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-[10px] font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>{qrScanning ? '🔄 កំពុងពិនិត្យជម្រៅ...' : '📸 ស្កេនកាតសិស្សគំរូ'}</span>
-                  </button>
+                  {/* High Fidelity Tabs */}
+                  <div className="grid grid-cols-3 gap-1 bg-blue-950/45 p-1 rounded-xl border border-blue-900/20 shrink-0">
+                    <button
+                      onClick={() => setAttendanceTab('roll-call')}
+                      className={`py-1.5 text-center text-[8px] font-black rounded-lg transition-all cursor-pointer ${
+                        attendanceTab === 'roll-call'
+                          ? 'bg-[#E2C785] text-blue-955 shadow-md font-bold'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      📝 កត់វត្តមាន
+                    </button>
+                    <button
+                      onClick={() => setAttendanceTab('qr')}
+                      className={`py-1.5 text-center text-[8px] font-black rounded-lg transition-all cursor-pointer ${
+                        attendanceTab === 'qr'
+                          ? 'bg-[#E2C785] text-blue-955 shadow-md font-bold'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      📸 ស្កេនកូដ QR
+                    </button>
+                    <button
+                      onClick={() => setAttendanceTab('history')}
+                      className={`py-1.5 text-center text-[8px] font-black rounded-lg transition-all cursor-pointer ${
+                        attendanceTab === 'history'
+                          ? 'bg-[#E2C785] text-blue-955 shadow-md font-bold'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      📜 ប្រវត្តវត្តមាន
+                    </button>
+                  </div>
 
-                  {qrMessage && (
-                    <div className="p-2.5 mt-4 bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/25 text-[9px] rounded-lg leading-relaxed text-left">
-                      {qrMessage}
+                  {/* TAB 1: DAILY ROLL CALL */}
+                  {attendanceTab === 'roll-call' && (
+                    <div className="space-y-3">
+                      {/* Configuration Controls */}
+                      <div className="bg-[#111E38]/90 rounded-xl border border-blue-900/35 p-2.5 space-y-2 text-[9px]">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[7.5px] text-slate-400 mb-0.5 font-bold">ជ្រើសរើសថ្ងៃខែ</label>
+                            <input
+                              type="date"
+                              value={selectedAttendanceDate}
+                              onChange={e => setSelectedAttendanceDate(e.target.value)}
+                              className="w-full bg-blue-950/70 border border-blue-900/40 text-slate-200 rounded px-1.5 py-1 text-[8.5px] outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[7.5px] text-slate-400 mb-0.5 font-bold">ថ្នាក់រៀន</label>
+                            <select
+                              value={selectedAttendanceGrade}
+                              onChange={e => setSelectedAttendanceGrade(e.target.value)}
+                              className="w-full bg-blue-950/70 border border-blue-900/40 text-slate-200 rounded px-1.5 py-1 text-[8.5px] outline-none font-bold"
+                            >
+                              {grades.map(g => (
+                                <option key={g} value={g}>{g}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Search keyword */}
+                        <div className="relative flex items-center bg-blue-950/70 border border-blue-900/40 rounded px-2 py-0.5 text-[8.5px]">
+                          <Search size={10} className="text-slate-500 mr-1.5 shrink-0" />
+                          <input
+                            type="text"
+                            placeholder="ស្វែងរកឈ្មោះសិស្ស..."
+                            value={attendanceSearchQuery}
+                            onChange={e => setAttendanceSearchQuery(e.target.value)}
+                            className="bg-transparent border-none text-slate-100 flex-1 outline-none py-1 placeholder-slate-500 text-[8.5px]"
+                          />
+                          {attendanceSearchQuery && (
+                            <button onClick={() => setAttendanceSearchQuery('')} className="text-slate-500 text-[9px] hover:text-white ml-1">✕</button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Dynamic Dashboard Statistics Badge */}
+                      <div className="bg-gradient-to-r from-blue-900/20 to-indigo-950/30 rounded-xl border border-blue-800/20 p-2.5 flex items-center justify-between text-[8px]">
+                        <div>
+                          <p className="text-slate-400 font-bold">ស្ថិតិវត្តមានថ្នាក់ ({selectedAttendanceGrade})</p>
+                          <p className="text-[12px] font-black text-[#E2C785] mt-1">អត្រា حاضرة: {attendancePercent}%</p>
+                        </div>
+                        <div className="flex gap-1.5 font-bold text-center">
+                          <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-1 rounded">
+                            <span className="block text-[9px] font-black">{presentCount}</span>វត្តមាន
+                          </span>
+                          <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-1 rounded">
+                            <span className="block text-[9px] font-black">{permissionCount}</span>ច្បាប់
+                          </span>
+                          <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-1 rounded">
+                            <span className="block text-[9px] font-black">{absentCount}</span>អវវត្តមាន
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Student Roll Call List */}
+                      <div className="bg-[#111E38]/80 rounded-xl border border-blue-900/20 max-h-[240px] overflow-y-auto divide-y divide-blue-950/40 p-1">
+                        {filteredStudents.length > 0 ? (
+                          filteredStudents.map((std, idx) => {
+                            const currentStatus = activeAttendanceMap[std.id] || 'present';
+                            return (
+                              <div key={std.id} className="p-2 flex items-center justify-between text-[9px] hover:bg-blue-950/20 transition-all">
+                                <div className="flex items-center gap-2">
+                                  {/* Letter Circle Avatar */}
+                                  <div className="w-6 h-6 rounded-full bg-blue-800/40 text-[#E2C785] border border-blue-700/20 flex items-center justify-center font-bold text-[8.5px]">
+                                    {std.name.charAt(std.name.startsWith('ស') ? 3 : 0) || 'ស'}
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-slate-100">{std.name}</p>
+                                    <p className="text-[7.5px] text-slate-400 mt-0.5">{std.gender} | ថ្នាក់ទី {std.grade}</p>
+                                  </div>
+                                </div>
+
+                                {/* P, L, A selector buttons */}
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'present' }))}
+                                    className={`w-7 py-1 text-[8px] font-black rounded-md transition-all border shrink-0 cursor-pointer ${
+                                      currentStatus === 'present'
+                                        ? 'bg-emerald-600 text-slate-100 border-emerald-500 shadow-sm shadow-emerald-600/20 font-black scale-105'
+                                        : 'bg-blue-950/40 text-slate-400 border-blue-900/10'
+                                    }`}
+                                    title="វត្តមាន (Present)"
+                                  >
+                                    P
+                                  </button>
+                                  <button
+                                    onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'permission' }))}
+                                    className={`w-7 py-1 text-[8px] font-black rounded-md transition-all border shrink-0 cursor-pointer ${
+                                      currentStatus === 'permission'
+                                        ? 'bg-amber-600 text-slate-100 border-amber-500 shadow-sm shadow-amber-600/20 font-black scale-105'
+                                        : 'bg-blue-950/40 text-slate-400 border-blue-900/10'
+                                    }`}
+                                    title="មានច្បាប់ (Excused)"
+                                  >
+                                    L
+                                  </button>
+                                  <button
+                                    onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'absent' }))}
+                                    className={`w-7 py-1 text-[8px] font-black rounded-md transition-all border shrink-0 cursor-pointer ${
+                                      currentStatus === 'absent'
+                                        ? 'bg-rose-600 text-slate-105 border-rose-500 shadow-sm shadow-rose-600/20 font-black scale-105'
+                                        : 'bg-blue-950/40 text-slate-400 border-blue-900/10'
+                                    }`}
+                                    title="អវត្តមាន (Absent)"
+                                  >
+                                    A
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="py-6 text-center text-[9px] text-slate-500">
+                            📭 ពុំមានសិស្សសមស្របនឹងការស្វែងរកនេះឡើយ។
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Primary Save Button */}
+                      <button
+                        onClick={handleSaveAttendance}
+                        className="w-full py-2 bg-[#E2C785] text-slate-950 hover:brightness-105 active:scale-[0.99] rounded-xl font-bold text-[9.5px] shadow-lg transition-all flex items-center justify-center gap-1 cursor-pointer font-sans shrink-0 uppercase tracking-wider"
+                      >
+                        💾 រក្សាទុកវត្តមានថ្ងៃនេះ
+                      </button>
                     </div>
                   )}
-                </div>
-              </motion.div>
-            )}
+
+                  {/* TAB 2: ACTIVE SCAN QR */}
+                  {attendanceTab === 'qr' && (
+                    <div className="bg-[#111E38]/90 rounded-2xl border border-blue-900/35 p-5 flex flex-col items-center">
+                      <p className="text-[10px] text-slate-350 leading-normal mb-4 text-center">
+                        ប្រើកាមេរ៉ាទូរស័ព្ទរបស់អ្នក ដើម្បីស្កេនកាតសិស្ស (Student Identification Card) ដើម្បីពិនិត្យ ឬចុះឈ្មោះវត្តមានលើប្រព័ន្ធ Cloud ស្វ័យប្រវត្ត។
+                      </p>
+
+                      {/* QR SCAN FRAME MOCKUP WITH ACTIVE LASER EFFECT */}
+                      <div className="w-44 h-44 bg-slate-900/60 rounded-xl relative border border-blue-800 flex items-center justify-center overflow-hidden shadow-inner shrink-0">
+                        <span className="text-4xl">🪪</span>
+                        {qrScanning && (
+                          <div className="absolute left-0 right-0 h-0.5 bg-red-500 shadow-[0_0_10px_#ef4444] animate-[bounce_2s_infinite] top-0" />
+                        )}
+                        <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[#E2C785]" />
+                        <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#E2C785]" />
+                        <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[#E2C785]" />
+                        <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#E2C785]" />
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setQrScanning(true);
+                          setQrMessage(null);
+                          setTimeout(() => {
+                            if (activeGradeStudents.length > 0) {
+                              const rand = activeGradeStudents[Math.floor(Math.random() * activeGradeStudents.length)];
+                              
+                              // Check in dynamic roll call state map
+                              setActiveAttendanceMap(prev => ({ ...prev, [rand.id]: 'present' }));
+                              
+                              setQrMessage(`📍 ពិនិត្យវត្តមានជោគជ័យ! សិស្ស៖ ${rand.name} ភេទ៖ ${rand.gender} ថ្នាក់ទី៖ ${rand.grade}`);
+                              showToast(`✅ ចុះវត្តមានស្កេន៖ ${rand.name}`);
+                            } else {
+                              setQrMessage(`📍 ពិនិត្យវត្តមានជោគជ័យ! សិស្ស៖ សុខ លីណា (គំរូសាកល្បង)`);
+                              showToast(`✅ ចុះវត្តមានស្កេន៖ សុខ លីណា`);
+                            }
+                            setQrScanning(false);
+                          }, 1600);
+                        }}
+                        disabled={qrScanning}
+                        className="mt-5 px-3.5 py-1.5 w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-[10px] font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span>{qrScanning ? '🔄 កំពុងស្កេនកាតសិស្ស...' : '📸 ស្កេនស្វ័យប្រវត្ត'}</span>
+                      </button>
+
+                      {qrMessage && (
+                        <div className="p-2 mt-4 bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/25 text-[8.5px] rounded-lg leading-relaxed text-left">
+                          {qrMessage}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* TAB 3: ATTENDANCE HISTORY LOG */}
+                  {attendanceTab === 'history' && (
+                    <div className="space-y-3">
+                      <p className="text-[8.5px] text-slate-400 font-bold leading-normal">
+                        បញ្ជីប្រវត្តិវត្តមានដែលបានរក្សាទុកក្នុងប្រព័ន្ធកន្លងមក៖
+                      </p>
+
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                        {savedAttendanceRecords.map((rec) => {
+                          const total = rec.presentCount + rec.permissionCount + rec.absentCount;
+                          const percent = total > 0 ? Math.round((rec.presentCount / total) * 100) : 100;
+                          return (
+                            <div
+                              key={rec.id}
+                              onClick={() => {
+                                setSelectedAttendanceDate(rec.date);
+                                setSelectedAttendanceGrade(rec.grade);
+                                setAttendanceTab('roll-call');
+                                showToast(`📂 បានទាញយកវត្តមាន៖ ${rec.date} (${rec.grade})`);
+                              }}
+                              className="p-2.5 bg-[#111E38]/85 border border-slate-700/20 hover:border-[#E2C785]/40 hover:bg-blue-950/40 rounded-xl transition-all cursor-pointer text-[9px] flex items-center justify-between"
+                            >
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5 font-bold">
+                                  <span className="text-[#E2C785]">📅 {rec.date}</span>
+                                  <span className="text-slate-400 bg-blue-950/80 px-1 py-0.2 rounded text-[7.5px]">{rec.grade}</span>
+                                </div>
+                                <div className="text-[8px] text-slate-400 flex items-center gap-2">
+                                  <span>វត្តមាន៖ <b className="text-emerald-400">{rec.presentCount}</b></span>
+                                  <span>ច្បាប់៖ <b className="text-amber-400">{rec.permissionCount}</b></span>
+                                  <span>អវត្តមាន៖ <b className="text-rose-400">{rec.absentCount}</b></span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded-md ${
+                                  percent >= 90
+                                    ? 'bg-[#10B981]/25 text-[#10B981]'
+                                    : percent >= 75
+                                      ? 'bg-amber-500/20 text-amber-400'
+                                      : 'bg-rose-500/20 text-rose-400'
+                                }`}>
+                                  {percent}%
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })()}
 
             {/* 6. DIGITAL LIBRARY CATALOG */}
             {innerView === 'library' && (
@@ -1145,7 +1543,7 @@ export default function MobilePortal({
                     <button
                       onClick={() => {
                         setShowMenuOverlay(false);
-                        alert('លោកគ្រូ អ្នកគ្រូ កំពុងស្ថិតនៅក្នុងមុខងារ Mockup ទូរស័ព្ទ។ សូមបន្តប្រើប្រាស់ដើម្បីតំណាងឧបករណ៍ពិតបាទ!');
+                        showToast('ℹ️ លោកគ្រូ-អ្នកគ្រូ កំពុងសាកល្បងមុខងារទូរស័ព្ទដៃគំរូនៃប្រព័ន្ធគ្រប់គ្រងសាលារៀន។');
                       }}
                       className="w-full p-2.5 rounded-lg bg-blue-950/40 hover:bg-blue-900/40 border border-blue-900/20 flex items-center justify-between text-[9.5px] font-bold"
                     >
