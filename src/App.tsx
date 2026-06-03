@@ -56,11 +56,18 @@ import ReportDetail from './components/ReportDetail';
 import ReportsHub from './components/ReportsHub';
 import LoginPortal from './components/LoginPortal';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
+import MobilePortal from './components/MobilePortal';
 
 
 export default function App() {
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal'>(() => {
+    const isMobile = typeof window !== 'undefined' && (
+      window.innerWidth < 768 || 
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    );
+    return isMobile ? 'mobile-portal' : 'dashboard';
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Supabase connection panel active states
@@ -121,7 +128,12 @@ export default function App() {
         const parsed = JSON.parse(cachedUser);
         setCurrentUser(parsed);
         if (parsed.role === 'teacher') {
-          setActiveView('gradebook');
+          const isMobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          if (isMobile) {
+            setActiveView('mobile-portal');
+          } else {
+            setActiveView('gradebook');
+          }
           setSelectedGrade(parsed.grade);
         }
       } catch (e) {
@@ -407,8 +419,14 @@ export default function App() {
     setCurrentUser(user);
     localStorage.setItem('school_current_user_v2', JSON.stringify(user));
     
-    // Auto-routes based on role
-    if (user.role === 'teacher') {
+    // Auto-routes based on role and screen size
+    const isMobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      setActiveView('mobile-portal');
+      if (user.role === 'teacher') {
+        setSelectedGrade(user.grade);
+      }
+    } else if (user.role === 'teacher') {
       setActiveView('gradebook');
       setSelectedGrade(user.grade);
     } else {
@@ -770,6 +788,22 @@ export default function App() {
           </button>
 
           <button
+            id="nav_mobile_portal_tab"
+            onClick={() => setActiveView('mobile-portal')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'mobile-portal'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-amber-400 hover:bg-slate-800/50 hover:text-amber-200 font-bold'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Smartphone size={16} className={activeView === 'mobile-portal' ? 'text-blue-400' : 'text-amber-400'} />
+              <span>📱 ទិដ្ឋភាពទូរស័ព្ទ VIP (Mobile UI)</span>
+            </div>
+            <span className="px-1.5 py-0.5 bg-amber-500 text-slate-900 text-[8.5px] font-extrabold rounded-md shadow-xs animate-pulse">NEW</span>
+          </button>
+
+          <button
             id="nav_report_wizard_tab"
             onClick={currentUser?.role === 'teacher' ? () => setActiveView('wizard') : handleCreateReportInit}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -939,6 +973,24 @@ export default function App() {
                     <Users size={16} />
                     <span>គ្រប់គ្រងថ្នាក់ និងសិស្ស</span>
                   </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveView('mobile-portal');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
+                    activeView === 'mobile-portal'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
+                      : 'text-amber-400 hover:bg-slate-800/40 hover:text-amber-200 font-bold'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Smartphone size={16} className={activeView === 'mobile-portal' ? 'text-blue-400' : 'text-amber-400'} />
+                    <span>📱 ផ្ទាំងទូរស័ព្ទ VIP (Mobile UI)</span>
+                  </div>
+                  <span className="px-1 bg-amber-500 text-slate-900 text-[8px] font-black rounded">NEW</span>
                 </button>
 
                 <button
@@ -1166,6 +1218,30 @@ export default function App() {
                       onDeleteGrade={handleDeleteGrade}
                       onRenameGrade={handleRenameGrade}
                       currentUser={currentUser}
+                    />
+                  </motion.div>
+                )}
+
+                {activeView === 'mobile-portal' && (
+                  <motion.div
+                    key="mobile-portal"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                    className="w-full flex justify-center"
+                  >
+                    <MobilePortal
+                      students={students}
+                      currentUser={currentUser}
+                      reports={reports}
+                      grades={grades}
+                      onSaveStudents={handleSaveStudents}
+                      onSaveReport={handleSaveReport}
+                      onLogoutClick={handleLogout}
+                      onAddGrade={handleAddGrade}
+                      onDeleteGrade={handleDeleteGrade}
+                      onRenameGrade={handleRenameGrade}
                     />
                   </motion.div>
                 )}
