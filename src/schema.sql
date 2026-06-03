@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS public.student_scores (
     math_avg NUMERIC(4,2) DEFAULT 0.00,
     overall_avg NUMERIC(4,2) DEFAULT 0.00,
     grade_letter VARCHAR(5) DEFAULT 'F',
+    status VARCHAR(20) DEFAULT 'ធម្មតា',
     result VARCHAR(10) NOT NULL CHECK (result IN ('ជាប់', 'ធ្លាក់')),
     ranking INTEGER DEFAULT NULL,
     
@@ -55,6 +56,20 @@ CREATE TABLE IF NOT EXISTS public.student_scores (
 CREATE INDEX IF NOT EXISTS idx_student_scores_grade_month ON public.student_scores(grade, month);
 CREATE INDEX IF NOT EXISTS idx_student_scores_overall_avg ON public.student_scores(overall_avg DESC);
 CREATE INDEX IF NOT EXISTS idx_student_scores_name ON public.student_scores(name);
+
+-- ------------------------------------------------------------------------------
+-- 1b. TABLE FOR SCHOOL GRADES (បញ្ជីឈ្មោះថ្នាក់រៀន)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.school_grades (
+    name VARCHAR(100) PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.school_grades ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access to school_grades" 
+    ON public.school_grades FOR SELECT USING (true);
+CREATE POLICY "Allow instructors to insert/update school_grades" 
+    ON public.school_grades FOR ALL TO authenticated USING (true);
 
 -- ------------------------------------------------------------------------------
 -- 2. TABLE FOR SCHOOL REPORTS (របាយការណ៍សរុបប្រចាំខែរបស់សាលា)
