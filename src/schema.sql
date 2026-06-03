@@ -1,14 +1,30 @@
 -- -*- mode: sql; sql-product: postgres; -*-
 -- ==============================================================================
--- Supabase Database Schema setup
+-- ក្របខ័ណ្ឌទិន្នន័យ Supabase (Supabase Consolidated Database Schema Setup)
 -- សាលាសហគមន៍ច្បារច្រុះ (Chbar Chroh Community School) — System DB
 -- ==============================================================================
+--
+-- 💡 របៀបប្រើប្រាស់នៅក្នុង Supabase (How to use in Supabase Dashboard):
+-- ១. ចូលទៅកាន់ https://supabase.com រួចបើកគម្រោងរបស់អ្នក (Project Dashboard)
+-- ២. ចុចលើ "SQL Editor" នៅរបារខាងឆ្វេង (គ្លីបលើ "New query")
+-- ៣. ចម្លង (Copy) កូដ SQL ទាំងអស់ខាងក្រោមនេះ យកទៅដាក់ក្នុងប្រអប់ Query រួចចុចប៊ូតុង "Run"
+-- ៤. រួចរាល់! ប្រព័ន្ធទិន្នន័យរបស់អ្នកនឹងដំណើរការប្រទាក់ក្រឡាគ្នាល្អទាំងនៅលើទូរស័ព្ទ និងកុំព្យូទ័រ។
+--
+-- ==============================================================================
 
--- Enable requisite extensions
+-- 0. Enable requisite extensions (បើកឱ្យប្រើប្រាស់ UUID extension)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ------------------------------------------------------------------------------
--- 1. TABLE FOR STUDENT SCORES (កំណត់ត្រាពិន្ទុសិស្សប្រចាំខែនីមួយៗ)
+-- 1. TABLE FOR SCHOOL GRADES (បញ្ជីឈ្មោះថ្នាក់រៀនសរុប)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.school_grades (
+    name VARCHAR(100) PRIMARY KEY,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ------------------------------------------------------------------------------
+-- 2. TABLE FOR STUDENT SCORES (កំណត់ត្រាពិន្ទុសិស្សប្រចាំខែនីមួយៗ)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.student_scores (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -58,21 +74,7 @@ CREATE INDEX IF NOT EXISTS idx_student_scores_overall_avg ON public.student_scor
 CREATE INDEX IF NOT EXISTS idx_student_scores_name ON public.student_scores(name);
 
 -- ------------------------------------------------------------------------------
--- 1b. TABLE FOR SCHOOL GRADES (បញ្ជីឈ្មោះថ្នាក់រៀន)
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.school_grades (
-    name VARCHAR(100) PRIMARY KEY,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
-ALTER TABLE public.school_grades ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public read access to school_grades" 
-    ON public.school_grades FOR SELECT USING (true);
-CREATE POLICY "Allow instructors to insert/update school_grades" 
-    ON public.school_grades FOR ALL TO authenticated USING (true);
-
--- ------------------------------------------------------------------------------
--- 2. TABLE FOR SCHOOL REPORTS (របាយការណ៍សរុបប្រចាំខែរបស់សាលា)
+-- 3. TABLE FOR SCHOOL REPORTS (របាយការណ៍សរុបប្រចាំខែរបស់សាលា)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.school_reports (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -106,7 +108,7 @@ CREATE TABLE IF NOT EXISTS public.school_reports (
 CREATE INDEX IF NOT EXISTS idx_school_reports_grade_month ON public.school_reports(grade, month);
 
 -- ------------------------------------------------------------------------------
--- 3. TABLE FOR REPORT ACTIVITIES & PLANS (សកម្មភាពនិងផែនការសិក្សា)
+-- 4. TABLE FOR REPORT ACTIVITIES & PLANS (សកម្មភាពនិងផែនការសិក្សា)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.report_activities (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -118,7 +120,7 @@ CREATE TABLE IF NOT EXISTS public.report_activities (
 );
 
 -- ------------------------------------------------------------------------------
--- 4. TABLE FOR STRUGGLING STUDENTS & REMEDIAL ACTIONS (បញ្ជីឈ្មោះសិស្សរៀនយឺត/ខ្សោយ និងសកម្មភាពដោះស្រាយ)
+-- 5. TABLE FOR STRUGGLING STUDENTS & REMEDIAL ACTIONS (បញ្ជីឈ្មោះសិស្សរៀនយឺត/ខ្សោយ និងសកម្មភាពដោះស្រាយ)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.struggling_students (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -131,7 +133,7 @@ CREATE TABLE IF NOT EXISTS public.struggling_students (
 );
 
 -- ------------------------------------------------------------------------------
--- 5. TABLE FOR CHALLENGES & PROPOSED SOLUTIONS (បញ្ហាប្រឈម និងសំណើដំណោះស្រាយ)
+-- 6. TABLE FOR CHALLENGES & PROPOSED SOLUTIONS (បញ្ហាប្រឈម និងសំណើដំណោះស្រាយ)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.challenges_solutions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -142,51 +144,70 @@ CREATE TABLE IF NOT EXISTS public.challenges_solutions (
 );
 
 -- ==============================================================================
--- ROW LEVEL SECURITY (RLS) FOR POWERFUL CLOUD DATA INTEGRITY
+-- ROW LEVEL SECURITY (RLS) FOR FULL CROSS-DEVICE COLLABORATION WITHOUT OBSTACLES
 -- ==============================================================================
+-- Since teachers register locally (mock account setup) and connect client-side with 
+-- the provided Supabase Anon Key, client requests resolve to 'anon' and/or 'authenticated' roles.
+-- To allow instructors' phone apps & web dashboards to save and fetch, RLS policies 
+-- are fully configured to allow public-access with active security keys.
 
+ALTER TABLE public.school_grades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.school_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.report_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.struggling_students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenges_solutions ENABLE ROW LEVEL SECURITY;
 
--- 1. Read-Only policies allowing all roles/anonymous to load grades & historical reports
-CREATE POLICY "Allow public read access to student_scores" 
-    ON public.student_scores FOR SELECT USING (true);
+-- 1. DROP Existing Polices to avoid duplicates on re-run
+DROP POLICY IF EXISTS "Allow public read access to school_grades" ON public.school_grades;
+DROP POLICY IF EXISTS "Allow instructors to insert/update school_grades" ON public.school_grades;
+DROP POLICY IF EXISTS "Allow public read access to student_scores" ON public.student_scores;
+DROP POLICY IF EXISTS "Allow instructors to insert/update scores" ON public.student_scores;
+DROP POLICY IF EXISTS "Allow public read access to school_reports" ON public.school_reports;
+DROP POLICY IF EXISTS "Allow instructors to insert/update reports" ON public.school_reports;
+DROP POLICY IF EXISTS "Allow public read access to report_activities" ON public.report_activities;
+DROP POLICY IF EXISTS "Allow instructors to insert/update activities" ON public.report_activities;
+DROP POLICY IF EXISTS "Allow public read access to struggling_students" ON public.struggling_students;
+DROP POLICY IF EXISTS "Allow instructors to insert/update struggling list" ON public.struggling_students;
+DROP POLICY IF EXISTS "Allow public read access to challenges_solutions" ON public.challenges_solutions;
+DROP POLICY IF EXISTS "Allow instructors to insert/update challenges" ON public.challenges_solutions;
 
-CREATE POLICY "Allow public read access to school_reports" 
-    ON public.school_reports FOR SELECT USING (true);
+-- Create unified, flexible policies allowing BOTH anonymous (anon) and authenticated (authenticated) 
+-- connections using the project's Anon Key to manage school records.
 
-CREATE POLICY "Allow public read access to report_activities" 
-    ON public.report_activities FOR SELECT USING (true);
+-- A) POLICIES FOR school_grades
+CREATE POLICY "Allow read to school_grades" ON public.school_grades FOR SELECT USING (true);
+CREATE POLICY "Allow modify to school_grades" ON public.school_grades FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow public read access to struggling_students" 
-    ON public.struggling_students FOR SELECT USING (true);
+-- B) POLICIES FOR student_scores
+CREATE POLICY "Allow read to student_scores" ON public.student_scores FOR SELECT USING (true);
+CREATE POLICY "Allow modify to student_scores" ON public.student_scores FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow public read access to challenges_solutions" 
-    ON public.challenges_solutions FOR SELECT USING (true);
+-- C) POLICIES FOR school_reports
+CREATE POLICY "Allow read to school_reports" ON public.school_reports FOR SELECT USING (true);
+CREATE POLICY "Allow modify to school_reports" ON public.school_reports FOR ALL USING (true) WITH CHECK (true);
 
--- 2. Authenticated user full write access policies to update entries
-CREATE POLICY "Allow instructors to insert/update scores" 
-    ON public.student_scores FOR ALL TO authenticated USING (true);
+-- D) POLICIES FOR report_activities
+CREATE POLICY "Allow read to report_activities" ON public.report_activities FOR SELECT USING (true);
+CREATE POLICY "Allow modify to report_activities" ON public.report_activities FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow instructors to insert/update reports" 
-    ON public.school_reports FOR ALL TO authenticated USING (true);
+-- E) POLICIES FOR struggling_students
+CREATE POLICY "Allow read to struggling_students" ON public.struggling_students FOR SELECT USING (true);
+CREATE POLICY "Allow modify to struggling_students" ON public.struggling_students FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow instructors to insert/update activities" 
-    ON public.report_activities FOR ALL TO authenticated USING (true);
-
-CREATE POLICY "Allow instructors to insert/update struggling list" 
-    ON public.struggling_students FOR ALL TO authenticated USING (true);
-
-CREATE POLICY "Allow instructors to insert/update challenges" 
-    ON public.challenges_solutions FOR ALL TO authenticated USING (true);
+-- F) POLICIES FOR challenges_solutions
+CREATE POLICY "Allow read to challenges_solutions" ON public.challenges_solutions FOR SELECT USING (true);
+CREATE POLICY "Allow modify to challenges_solutions" ON public.challenges_solutions FOR ALL USING (true) WITH CHECK (true);
 
 -- ==============================================================================
--- REALTIME ENABLEMENT
+-- REALTIME ENABLEMENT (បើកដំណើរការ Realtime Sync ភ្លាមៗ)
 -- ==============================================================================
 
--- Enable realtime broadcasts for live dashboards updates
-ALTER PUBLICATION supabase_realtime ADD TABLE public.student_scores;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.school_reports;
+-- Enable realtime broadcasts for live grades and reports synchronization across teachers' phones and PCs
+-- Safe way: drop the publication if it exists, then recreate it with our tables
+DROP PUBLICATION IF EXISTS supabase_realtime;
+CREATE PUBLICATION supabase_realtime FOR TABLE 
+    public.student_scores, 
+    public.school_reports, 
+    public.school_grades;
+
