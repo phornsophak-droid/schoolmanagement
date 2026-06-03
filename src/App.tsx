@@ -56,18 +56,11 @@ import ReportDetail from './components/ReportDetail';
 import ReportsHub from './components/ReportsHub';
 import LoginPortal from './components/LoginPortal';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
-import MobilePortal from './components/MobilePortal';
 
 
 export default function App() {
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal'>(() => {
-    const isMobile = typeof window !== 'undefined' && (
-      window.innerWidth < 768 || 
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    );
-    return isMobile ? 'mobile-portal' : 'dashboard';
-  });
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt'>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Supabase connection panel active states
@@ -128,12 +121,7 @@ export default function App() {
         const parsed = JSON.parse(cachedUser);
         setCurrentUser(parsed);
         if (parsed.role === 'teacher') {
-          const isMobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-          if (!isMobile) {
-            setActiveView('gradebook');
-          } else {
-            setActiveView('mobile-portal');
-          }
+          setActiveView('gradebook');
           setSelectedGrade(parsed.grade);
         }
       } catch (e) {
@@ -796,22 +784,6 @@ export default function App() {
             </div>
             {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
           </button>
-
-          <button
-            id="nav_mobile_portal_tab"
-            onClick={() => setActiveView('mobile-portal')}
-            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-bold ${
-              activeView === 'mobile-portal'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-550/30'
-                : 'text-amber-400 hover:bg-slate-800/50 hover:text-amber-300'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Smartphone size={16} className={activeView === 'mobile-portal' ? 'text-amber-300' : 'text-amber-450'} />
-              <span>📱 ផ្ទាំងទូរស័ព្ទ VIP (Mobile UI)</span>
-            </div>
-            <span className="px-1.5 py-0.5 bg-amber-500 text-slate-900 text-[8.5px] font-extrabold rounded-md shadow-xs animate-pulse">NEW</span>
-          </button>
         </nav>
 
         {/* Info Box */}
@@ -989,24 +961,6 @@ export default function App() {
                     <span>ផ្ទាំងរបាយការណ៍សាលា</span>
                   </div>
                   {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setActiveView('mobile-portal');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-bold ${
-                    activeView === 'mobile-portal'
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/20'
-                      : 'text-amber-400 hover:bg-slate-800/40 hover:text-amber-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Smartphone size={16} />
-                    <span>📱 ផ្ទាំងទូរស័ព្ទ VIP (Mobile UI)</span>
-                  </div>
-                  <span className="px-1.5 py-0.5 bg-amber-500 text-slate-800 text-[8px] font-extrabold rounded">MOCKUP</span>
                 </button>
               </nav>
 
@@ -1212,23 +1166,6 @@ export default function App() {
                       onDeleteGrade={handleDeleteGrade}
                       onRenameGrade={handleRenameGrade}
                       currentUser={currentUser}
-                    />
-                  </motion.div>
-                )}
-
-                {activeView === 'mobile-portal' && (
-                  <motion.div
-                    key="mobile-portal"
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -15 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    <MobilePortal
-                      students={students}
-                      currentUser={currentUser}
-                      onLogoutClick={handleLogout}
-                      grades={grades}
                     />
                   </motion.div>
                 )}
