@@ -1248,12 +1248,12 @@ export default function ClassStudentMgmt({
                       </thead>
                       <tbody className="divide-y divide-slate-50 text-slate-700">
                         {filteredProfiles.length > 0 ? (
-                          filteredProfiles.map((p) => {
+                          filteredProfiles.map((p, index) => {
                             return (
                               <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                                 <td className="px-4 py-3 font-bold text-slate-800 flex items-center gap-2">
                                   <span className="w-7 h-7 bg-indigo-50 text-indigo-650 rounded-full flex items-center justify-center font-sans font-black text-[11px] border border-indigo-100">
-                                    {p.name[0]}
+                                    {index + 1}
                                   </span>
                                   {p.name}
                                 </td>
