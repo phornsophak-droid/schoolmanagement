@@ -332,6 +332,17 @@ export default function ClassStudentMgmt({
     }
   };
 
+  const handleClearAllStudentsGlobally = () => {
+    if (currentUser?.role === 'teacher') {
+      alert('លោកអ្នកមានសិទ្ធិលុបសិស្សបានតែក្នុងថ្នាក់របស់លោកអ្នកប៉ុណ្ណោះ! សូមជ្រើសរើសថ្នាក់ជាក់លាក់របស់លោកអ្នកដើម្បីលុប។');
+      return;
+    }
+    if (window.confirm('🚨 ព្រមាន៖ តើលោកអ្នកពិតជាចង់លុបឈ្មោះសិស្សទាំងអស់គ្នាក្នុងសាលា (គ្រប់ថ្នាក់រៀនទាំងអស់) មែនទេ? ទិន្នន័យព័ត៌មាន និងពិន្ទុសិស្សទាំងអស់ក្នុងគ្រប់ខែនឹងត្រូវលុបចោលទាំងស្រុងពីក្នុងឧបករណ៍នេះ!')) {
+      onSaveStudents([]);
+      alert('បានលុបឈ្មោះសិស្សទាំងអស់គ្នាក្នុងសាលារួចរាល់ហើយ!');
+    }
+  };
+
   const handleAddSampleStudents = () => {
     if (currentUser?.role === 'teacher') {
       if (selectedRosterGrade !== currentUser.grade) {
@@ -1299,7 +1310,7 @@ export default function ClassStudentMgmt({
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {selectedRosterGrade !== 'ទាំងអស់' && (
+                      {selectedRosterGrade !== 'ទាំងអស់' ? (
                         <>
                           <button
                             onClick={handleAddSampleStudents}
@@ -1316,6 +1327,16 @@ export default function ClassStudentMgmt({
                             🗑️ លុបសិស្សទាំងអស់
                           </button>
                         </>
+                      ) : (
+                        currentUser?.role !== 'teacher' && (
+                          <button
+                            onClick={handleClearAllStudentsGlobally}
+                            className="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/50 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
+                            title="លុបឈ្មោះសិស្សទាំងអស់គ្នាក្នុងសាលា"
+                          >
+                            🗑️ លុបសិស្សទាំងអស់គ្នាក្នុងសាលា
+                          </button>
+                        )
                       )}
 
                       <button

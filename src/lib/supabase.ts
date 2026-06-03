@@ -69,37 +69,10 @@ export function getSupabaseClient(): SupabaseClient | null {
   }
 }
 
-// Helper to safely convert/hash any arbitrary string ID format to a valid, standard Postgres-compatible UUID v4 shape deterministically
+// Helper to safely clean/format any arbitrary string ID format for table keys
 export function toUUID(id: string): string {
-  if (!id) return id;
-  // If it's already a valid UUID format, return it
-  const kUuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (kUuidRegex.test(id)) {
-    return id.toLowerCase();
-  }
-
-  // Create deterministic 32 hex chars from any input string using a hash algorithm (similar to cyrb128/fnv)
-  let h1 = 0xdeadbeef, h2 = 0x41c6ce57, h3 = 0xfae12345, h4 = 0x12345678;
-  for (let i = 0, char; i < id.length; i++) {
-    char = id.charCodeAt(i);
-    h1 = Math.imul(h1 ^ char, 2654435761);
-    h2 = Math.imul(h2 ^ char, 1597334977);
-    h3 = Math.imul(h3 ^ char, 2246822519);
-    h4 = Math.imul(h4 ^ char, 3266489917);
-  }
-  
-  const toHex = (h: number) => {
-    return (h >>> 0).toString(16).padStart(8, '0');
-  };
-
-  const hex32 = toHex(h1) + toHex(h2) + toHex(h3) + toHex(h4);
-  const part1 = hex32.substring(0, 8);
-  const part2 = hex32.substring(8, 12);
-  const part3 = '4' + hex32.substring(13, 16);
-  const part4 = '8' + hex32.substring(17, 20);
-  const part5 = hex32.substring(20, 32);
-
-  return `${part1}-${part2}-${part3}-${part4}-${part5}`.toLowerCase();
+  if (!id) return '';
+  return String(id).trim().replace(/^["']|["']$/g, '').trim();
 }
 
 // 3. Score Mapper functions

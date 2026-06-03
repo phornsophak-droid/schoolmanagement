@@ -12,6 +12,14 @@
 --
 -- ==============================================================================
 
+-- 00. Drop existing tables if recreating to prevent UUID constraint errors (បោសសម្អាតតារាងចាស់ទូទៅ)
+DROP TABLE IF EXISTS public.challenges_solutions CASCADE;
+DROP TABLE IF EXISTS public.struggling_students CASCADE;
+DROP TABLE IF EXISTS public.report_activities CASCADE;
+DROP TABLE IF EXISTS public.school_reports CASCADE;
+DROP TABLE IF EXISTS public.student_scores CASCADE;
+DROP TABLE IF EXISTS public.school_grades CASCADE;
+
 -- 0. Enable requisite extensions (បើកឱ្យប្រើប្រាស់ UUID extension)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -27,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.school_grades (
 -- 2. TABLE FOR STUDENT SCORES (កំណត់ត្រាពិន្ទុសិស្សប្រចាំខែនីមួយៗ)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.student_scores (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     name VARCHAR(255) NOT NULL,
     gender VARCHAR(10) NOT NULL CHECK (gender IN ('ប្រុស', 'ស្រី')),
     grade VARCHAR(50) NOT NULL,       -- ថ្នាក់ទី១ ដល់ ថ្នាក់ទី៦
@@ -77,7 +85,7 @@ CREATE INDEX IF NOT EXISTS idx_student_scores_name ON public.student_scores(name
 -- 3. TABLE FOR SCHOOL REPORTS (របាយការណ៍សរុបប្រចាំខែរបស់សាលា)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.school_reports (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(100) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     teacher_name VARCHAR(255) NOT NULL,
     grade VARCHAR(50) NOT NULL,
     month VARCHAR(50) NOT NULL,
@@ -111,8 +119,8 @@ CREATE INDEX IF NOT EXISTS idx_school_reports_grade_month ON public.school_repor
 -- 4. TABLE FOR REPORT ACTIVITIES & PLANS (សកម្មភាពនិងផែនការសិក្សា)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.report_activities (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    report_id UUID REFERENCES public.school_reports(id) ON DELETE CASCADE,
+    id VARCHAR(100) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    report_id VARCHAR(100) REFERENCES public.school_reports(id) ON DELETE CASCADE,
     lesson_title VARCHAR(255) NOT NULL,
     percentage_completed INTEGER NOT NULL CHECK (percentage_completed BETWEEN 0 AND 100),
     activity_type VARCHAR(20) NOT NULL CHECK (activity_type IN ('current_month', 'next_month')),
@@ -123,8 +131,8 @@ CREATE TABLE IF NOT EXISTS public.report_activities (
 -- 5. TABLE FOR STRUGGLING STUDENTS & REMEDIAL ACTIONS (បញ្ជីឈ្មោះសិស្សរៀនយឺត/ខ្សោយ និងសកម្មភាពដោះស្រាយ)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.struggling_students (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    report_id UUID REFERENCES public.school_reports(id) ON DELETE CASCADE,
+    id VARCHAR(100) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    report_id VARCHAR(100) REFERENCES public.school_reports(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     gender VARCHAR(10) NOT NULL CHECK (gender IN ('ប្រុស', 'ស្រី')),
     issue TEXT NOT NULL,
@@ -136,8 +144,8 @@ CREATE TABLE IF NOT EXISTS public.struggling_students (
 -- 6. TABLE FOR CHALLENGES & PROPOSED SOLUTIONS (បញ្ហាប្រឈម និងសំណើដំណោះស្រាយ)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.challenges_solutions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    report_id UUID REFERENCES public.school_reports(id) ON DELETE CASCADE,
+    id VARCHAR(100) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    report_id VARCHAR(100) REFERENCES public.school_reports(id) ON DELETE CASCADE,
     challenge TEXT NOT NULL,
     solution TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL

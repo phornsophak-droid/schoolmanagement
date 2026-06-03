@@ -56,11 +56,12 @@ import ReportDetail from './components/ReportDetail';
 import ReportsHub from './components/ReportsHub';
 import LoginPortal from './components/LoginPortal';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
+import MobilePortal from './components/MobilePortal';
 
 
 export default function App() {
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal'>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Supabase connection panel active states
@@ -174,18 +175,18 @@ export default function App() {
         const parsed = JSON.parse(cachedScores);
         const hasOldGrades = parsed.some((s: any) => s.grade === 'ថ្នាក់ទី៦');
         if (hasOldGrades) {
-          setStudents(initialStudents);
-          localStorage.setItem('school_student_scores_v2', JSON.stringify(initialStudents));
+          setStudents([]);
+          localStorage.setItem('school_student_scores_v2', JSON.stringify([]));
         } else {
           setStudents(parsed);
         }
       } catch (e) {
         console.error('Failed to parse students list', e);
-        setStudents(initialStudents);
+        setStudents([]);
       }
     } else {
-      setStudents(initialStudents);
-      localStorage.setItem('school_student_scores_v2', JSON.stringify(initialStudents));
+      setStudents([]);
+      localStorage.setItem('school_student_scores_v2', JSON.stringify([]));
     }
 
     // Reports Hydration
@@ -195,18 +196,18 @@ export default function App() {
         const parsed = JSON.parse(cachedReports);
         const hasOldGrades = parsed.some((r: any) => r.generalInfo?.grade === 'ថ្នាក់ទី៦');
         if (hasOldGrades) {
-          setReports(initialReports);
-          localStorage.setItem('school_reports_v2', JSON.stringify(initialReports));
+          setReports([]);
+          localStorage.setItem('school_reports_v2', JSON.stringify([]));
         } else {
           setReports(parsed);
         }
       } catch (e) {
         console.error('Failed to parse reports list', e);
-        setReports(initialReports);
+        setReports([]);
       }
     } else {
-      setReports(initialReports);
-      localStorage.setItem('school_reports_v2', JSON.stringify(initialReports));
+      setReports([]);
+      localStorage.setItem('school_reports_v2', JSON.stringify([]));
     }
 
     // Auto-sync from Supabase cloud database if connection keys are active
@@ -241,9 +242,6 @@ export default function App() {
       }
     }, 150);
   }, []);
-
-
-  // 1b. Supabase Interactive Actions
   const pullFromSupabase = async (quiet = false) => {
     const client = getSupabaseClient();
     if (!client) {
@@ -256,6 +254,37 @@ export default function App() {
       setSupabaseStatus('syncing');
       const data = await syncFetchAll();
       
+      const hasCloudData = (data.students && data.students.length > 0) || (data.reports && data.reports.length > 0);
+      
+      if (!hasCloudData) {
+        setSupabaseStatus('connected');
+        setSupabaseErrorMsg('');
+        
+        if (!quiet) {
+          const currentLocalStudentsCount = students.length;
+          const currentLocalReportsCount = reports.length;
+          
+          if (currentLocalStudentsCount > 0 || currentLocalReportsCount > 0) {
+            const wantPush = window.confirm(
+              `ទិន្នន័យនៅលើ Cloud Supabase របស់អ្នកបច្ចុប្បន្នគឺទទេ (០ សិស្ស, ០ របាយការណ៍)។\n\n` +
+              `តើលោកអ្នកចង់យកទិន្នន័យដែលមានស្រាប់នៅលើឧបករណ៍នេះ (${currentLocalStudentsCount} សិស្ស, ${currentLocalReportsCount} របាយការណ៍) "បញ្ជូនឡើង (Push)" ទៅកាន់ Supabase ដែរឬទេ? \n\n` +
+              `👉 ចុច OK ដើម្បី "បញ្ជូនឡើង (Push)" ភ្លាមៗ\n` +
+              `👉 ចុច Cancel ដើម្បីរក្សាទុកលើឧបករណ៍ដដែល`
+            );
+            
+            if (wantPush) {
+              await pushToSupabase(true);
+              return true;
+            } else {
+              return false;
+            }
+          } else {
+            alert('ទាញទិន្នន័យពី Supabase បានជោគជ័យ! ប៉ុន្តែទាំងលើ Cloud និងលើឧបករណ៍បច្ចុប្បន្នគ្មានទិន្នន័យសិស្ស ឬរបាយការណ៍ឡើយ។');
+          }
+        }
+        return true;
+      }
+
       let msg = 'ទាញទិន្នន័យពី Supabase បានជោគជ័យ!';
       let parts = [];
 
@@ -291,15 +320,15 @@ export default function App() {
     }
   };
 
-  const pushToSupabase = async () => {
+  const pushToSupabase = async (force = false) => {
     const client = getSupabaseClient();
     if (!client) {
       alert('សូមកំណត់អាសយដ្ឋាន URL និង Anon Key របស់ Supabase ជាមុនសិន!');
-      return;
+      return false;
     }
 
-    if (!window.confirm('តើអ្នកពិតជាចង់សរសេរជាន់លើទិន្នន័យលើ Cloud មែនទេ? ទិន្នន័យចាស់ៗលើ Supabase នឹងត្រូវជំនួសដោយទិន្នន័យបច្ចុប្បន្នលើឧបករណ៍នេះ។')) {
-      return;
+    if (!force && !window.confirm('តើអ្នកពិតជាចង់សរសេរជាន់លើទិន្នន័យលើ Cloud មែនទេ? ទិន្នន័យចាស់ៗលើ Supabase នឹងត្រូវជំនួសដោយទិន្នន័យបច្ចុប្បន្នលើឧបករណ៍នេះ។')) {
+      return false;
     }
 
     try {
@@ -322,11 +351,55 @@ export default function App() {
 
       setSupabaseStatus('connected');
       alert('បានបញ្ជូន និងរក្សាទុកទិន្នន័យទៅកាន់ Supabase Consolidated Database ដោយជោគជ័យ!');
+      return true;
     } catch (err: any) {
       console.error('Supabase write all failed', err);
       setSupabaseStatus('error');
       setSupabaseErrorMsg(err?.message || 'Error saving records');
       alert('បរាជ័យក្នុងការបញ្ជូនទិន្នន័យ៖ ' + (err?.message || 'សូមពិនិត្យការកំណត់ ឬសិទ្ធិរបស់ RLS របស់អ្នកឡើងវិញ!'));
+      return false;
+    }
+  };
+
+  const restoreDemoData = () => {
+    if (window.confirm("តើលោកអ្នកចង់ដាក់បញ្ចូលទិន្នន័យសិស្សគំរូទាំង 37 នាក់ និងរបាយការណ៍គំរូឡើងវិញនៅលើកម្មវិធីនេះដែរឬទេ?")) {
+      const defaultGradesList = [
+        'មត្តេយ្យ ១',
+        'មត្តេយ្យ ២',
+        'ថ្នាក់ទី ១ក',
+        'ថ្នាក់ទី ១ខ',
+        'ថ្នាក់ទី ២ក',
+        'ថ្នាក់ទី ២ខ',
+        'ថ្នាក់ទី ៣ក',
+        'ថ្នាក់ទី ៣ខ',
+        'ថ្នាក់ទី ៤ក',
+        'ថ្នាក់ទី ៤ខ',
+        'ថ្នាក់ទី ៥ក',
+        'ថ្នាក់ទី ៥ខ',
+        'ថ្នាក់ភាសាអង់គ្លេស',
+        'ថ្នាក់គំនូរ',
+        'ថ្នាក់កីឡា និងអប់រំកាយ',
+        'ថ្នាក់អប់រំសុខភាព'
+      ];
+      setStudents(initialStudents);
+      localStorage.setItem('school_student_scores_v2', JSON.stringify(initialStudents));
+      setReports(initialReports);
+      localStorage.setItem('school_reports_v2', JSON.stringify(initialReports));
+      setGrades(defaultGradesList);
+      localStorage.setItem('school_grades_v2', JSON.stringify(defaultGradesList));
+      alert("បានដាក់ទិន្នន័យសិស្ស និងរបាយការណ៍គំរូឡើងវិញរួចរាល់ហើយ! លោកអ្នកអាចចុចប៊ូតុង \"📤 បញ្ជូនឡើង (Push)\" ដើម្បីរក្សាទុកពួកវាទៅកាន់ Supabase។");
+      window.location.reload();
+    }
+  };
+
+  const clearLocalStudentsAndReports = () => {
+    if (window.confirm("⚠️ ព្រមាន៖ តើលោកអ្នកពិតជាចង់លុបទិន្នន័យសិស្ស និងរបាយការណ៍ទាំងអស់ចេញពីឧបករណ៍នេះមែនទេ? (ទិន្នន័យនឹងត្រូវជម្រះទៅជា 0)")) {
+      setStudents([]);
+      localStorage.setItem('school_student_scores_v2', JSON.stringify([]));
+      setReports([]);
+      localStorage.setItem('school_reports_v2', JSON.stringify([]));
+      alert("បានលុបទិន្នន័យសិស្ស និងរបាយការណ៍ទាំងអស់ចេញពីឧបករណ៍នេះរួចរាល់ហើយ! លោកអ្នកអាចចុចប៊ូតុង \"📤 បញ្ជូនឡើង (Push)\" ដើម្បីសរសេរជាន់លើទិន្នន័យលើ Cloud Supabase ឱ្យទៅជាទទេដូចគ្នា។");
+      window.location.reload();
     }
   };
 
@@ -712,6 +785,22 @@ export default function App() {
             </div>
             {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
           </button>
+
+          <button
+            id="nav_mobile_portal_tab"
+            onClick={() => setActiveView('mobile-portal')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-bold ${
+              activeView === 'mobile-portal'
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-550/30'
+                : 'text-amber-400 hover:bg-slate-800/50 hover:text-amber-300'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Smartphone size={16} className={activeView === 'mobile-portal' ? 'text-amber-300' : 'text-amber-450'} />
+              <span>📱 ផ្ទាំងទូរស័ព្ទ VIP (Mobile UI)</span>
+            </div>
+            <span className="px-1.5 py-0.5 bg-amber-500 text-slate-900 text-[8.5px] font-extrabold rounded-md shadow-xs animate-pulse">NEW</span>
+          </button>
         </nav>
 
         {/* Info Box */}
@@ -890,6 +979,24 @@ export default function App() {
                   </div>
                   {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
                 </button>
+
+                <button
+                  onClick={() => {
+                    setActiveView('mobile-portal');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-bold ${
+                    activeView === 'mobile-portal'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/20'
+                      : 'text-amber-400 hover:bg-slate-800/40 hover:text-amber-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Smartphone size={16} />
+                    <span>📱 ផ្ទាំងទូរស័ព្ទ VIP (Mobile UI)</span>
+                  </div>
+                  <span className="px-1.5 py-0.5 bg-amber-500 text-slate-800 text-[8px] font-extrabold rounded">MOCKUP</span>
+                </button>
               </nav>
 
               {/* Mobile Backup / Restore Transfer widget */}
@@ -987,7 +1094,7 @@ export default function App() {
         </header>
 
         {/* 4. Scrollable Component Canvas Container */}
-        <main className="flex-1 overflow-y-auto bg-[#F4F7FA] p-4 md:p-8 print:p-0 print:m-0 print:overflow-visible print:bg-white min-h-0">
+        <main className="flex-1 overflow-y-auto bg-[#F4F7FA] p-4 pb-24 md:p-8 print:p-0 print:m-0 print:overflow-visible print:bg-white min-h-0">
           <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
             <AnimatePresence mode="wait">
               <>
@@ -1097,6 +1204,23 @@ export default function App() {
                     />
                   </motion.div>
                 )}
+
+                {activeView === 'mobile-portal' && (
+                  <motion.div
+                    key="mobile-portal"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <MobilePortal
+                      students={students}
+                      currentUser={currentUser}
+                      onLogoutClick={handleLogout}
+                      grades={grades}
+                    />
+                  </motion.div>
+                )}
               </>
             </AnimatePresence>
 
@@ -1138,7 +1262,7 @@ export default function App() {
       </div>
 
       {/* 5. Supabase Connection Status Panel / Toggler */}
-      <div id="supabase_status_panel" className="fixed bottom-4 right-4 z-50 print:hidden font-sans">
+      <div id="supabase_status_panel" className="fixed max-md:bottom-20 bottom-4 right-4 z-40 print:hidden font-sans">
         <AnimatePresence mode="wait">
           {!isSupabasePanelExpanded ? (
             <motion.button
@@ -1341,22 +1465,42 @@ export default function App() {
               )}
 
               {supabaseStatus === 'connected' && (
-                <div className="grid grid-cols-2 gap-2 mt-0.5">
-                  <button
-                    onClick={() => pullFromSupabase(false)}
-                    className="py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/20 active:scale-95 text-blue-400 font-bold rounded-xl text-[10px] transition-all flex items-center justify-center gap-1 cursor-pointer"
-                    title="ទាញទិន្នន័យថ្មីៗមកជំនួស"
-                  >
-                    <RefreshCw size={11} className="animate-spin-slow" />
-                    <span>📥 ទាញទិន្នន័យ (Pull)</span>
-                  </button>
-                  <button
-                    onClick={pushToSupabase}
-                    className="py-2 bg-[#10B981]/20 hover:bg-[#10B981]/30 border border-[#10B981]/20 active:scale-95 text-emerald-400 font-bold rounded-xl text-[10px] transition-all flex items-center justify-center gap-1 cursor-pointer"
-                    title="រុញទិន្នន័យជំនួសលើ Cloud"
-                  >
-                    <span>📤 បញ្ជូនឡើង (Push)</span>
-                  </button>
+                <div className="space-y-2 mt-0.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => pullFromSupabase(false)}
+                      className="py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/20 active:scale-95 text-blue-400 font-bold rounded-xl text-[10px] transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      title="ទាញទិន្នន័យថ្មីៗមកជំនួស"
+                    >
+                      <RefreshCw size={11} className="animate-spin-slow" />
+                      <span>📥 ទាញទិន្នន័យ (Pull)</span>
+                    </button>
+                    <button
+                      onClick={() => pushToSupabase()}
+                      className="py-2 bg-[#10B981]/20 hover:bg-[#10B981]/30 border border-[#10B981]/20 active:scale-95 text-emerald-400 font-bold rounded-xl text-[10px] transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      title="រុញទិន្នន័យជំនួសលើ Cloud"
+                    >
+                      <span>📤 បញ្ជូនឡើង (Push)</span>
+                    </button>
+                  </div>
+
+                  {students.length > 0 ? (
+                    <button
+                      onClick={clearLocalStudentsAndReports}
+                      className="w-full py-1.5 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 font-bold rounded-xl text-[10px] transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      title="លុបទិន្នន័យទាំងអស់លើឧបករណ៍នេះ"
+                    >
+                      🗑️ ជម្រះទិន្នន័យ (ទៅជា 0 សិស្ស)
+                    </button>
+                  ) : (
+                    <button
+                      onClick={restoreDemoData}
+                      className="w-full py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 font-bold rounded-xl text-[10px] transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      title="ផ្ទុកឡើងវិញនូវទិន្នន័យគំរូដើមរបស់កម្មវិធី"
+                    >
+                      ✨ ផ្ទុកទិន្នន័យគំរូឡើងវិញ (Demo Data)
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1532,6 +1676,65 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* 6. Premium Sticky Mobile Bottom Navigation Bar (Visible only on mobile screen sizes) */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-2 flex justify-around items-center z-40 md:hidden pb-safe print:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+        <button
+          onClick={() => setActiveView('dashboard')}
+          className={`flex flex-col items-center gap-1.5 py-1 px-3 rounded-xl transition-all duration-300 active:scale-95 ${
+            activeView === 'dashboard'
+              ? 'text-blue-600 font-bold scale-102'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-colors duration-300 ${activeView === 'dashboard' ? 'bg-blue-50 text-blue-600' : 'text-slate-400'}`}>
+            <LayoutDashboard size={18} />
+          </div>
+          <span className="text-[9.5px] tracking-wide font-sans">ផ្ទាំងគ្រប់គ្រង</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('gradebook')}
+          className={`flex flex-col items-center gap-1.5 py-1 px-3 rounded-xl transition-all duration-300 active:scale-95 ${
+            activeView === 'gradebook'
+              ? 'text-blue-600 font-bold scale-102'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-colors duration-300 ${activeView === 'gradebook' ? 'bg-blue-50 text-blue-600' : 'text-slate-400'}`}>
+            <GraduationCap size={18} />
+          </div>
+          <span className="text-[9.5px] tracking-wide font-sans">តារាងពិន្ទុ</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView('class-mgmt')}
+          className={`flex flex-col items-center gap-1.5 py-1 px-3 rounded-xl transition-all duration-300 active:scale-95 ${
+            activeView === 'class-mgmt'
+              ? 'text-blue-600 font-bold scale-102'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-colors duration-300 ${activeView === 'class-mgmt' ? 'bg-blue-50 text-blue-600' : 'text-slate-400'}`}>
+            <Users size={18} />
+          </div>
+          <span className="text-[9.5px] tracking-wide font-sans">គ្រប់គ្រងថ្នាក់</span>
+        </button>
+
+        <button
+          onClick={currentUser?.role === 'teacher' ? () => setActiveView('wizard') : handleCreateReportInit}
+          className={`flex flex-col items-center gap-1.5 py-1 px-3 rounded-xl transition-all duration-300 active:scale-95 ${
+            activeView === 'wizard'
+              ? 'text-blue-600 font-bold scale-102'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-colors duration-300 ${activeView === 'wizard' ? 'bg-blue-50 text-blue-600' : 'text-slate-400'}`}>
+            <FileText size={18} />
+          </div>
+          <span className="text-[9.5px] tracking-wide font-sans">របាយការណ៍</span>
+        </button>
+      </div>
 
     </div>
   );
