@@ -1262,14 +1262,14 @@ export default function App() {
       </div>
 
       {/* 5. Supabase Connection Status Panel / Toggler */}
-      <div id="supabase_status_panel" className="fixed max-md:bottom-20 bottom-4 right-4 z-40 print:hidden font-sans">
+      <div id="supabase_status_panel" className="fixed top-[72px] right-4 z-40 print:hidden font-sans">
         <AnimatePresence mode="wait">
           {!isSupabasePanelExpanded ? (
             <motion.button
               key="collapsed_supabase"
-              initial={{ scale: 0.9, opacity: 0, y: 10 }}
+              initial={{ scale: 0.9, opacity: 0, y: -10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 10 }}
+              exit={{ scale: 0.9, opacity: 0, y: -10 }}
               onClick={() => setIsSupabasePanelExpanded(true)}
               className="px-4 py-2.5 bg-[#0F172A] hover:bg-[#1E293B] border border-slate-700/60 rounded-xl shadow-lg flex items-center gap-2.5 text-xs font-bold text-slate-100 transition-all group cursor-pointer"
             >
@@ -1308,9 +1308,9 @@ export default function App() {
           ) : (
             <motion.div
               key="expanded_supabase"
-              initial={{ y: 20, opacity: 0, scale: 0.95 }}
+              initial={{ y: -20, opacity: 0, scale: 0.95 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: 20, opacity: 0, scale: 0.95 }}
+              exit={{ y: -20, opacity: 0, scale: 0.95 }}
               className="w-80 bg-[#0F172A] border border-slate-700/80 rounded-2xl shadow-2xl p-4 text-slate-100 flex flex-col gap-3"
             >
               <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
