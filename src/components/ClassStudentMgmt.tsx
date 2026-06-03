@@ -295,6 +295,24 @@ export default function ClassStudentMgmt({
     }
   };
 
+  const handleClearAllStudentsInActiveGrade = () => {
+    if (currentUser?.role === 'teacher') {
+      if (selectedRosterGrade !== currentUser.grade) {
+        alert(`លោកអ្នកមានសិទ្ធិលុបសិស្សបានតែក្នុងថ្នាក់ ${currentUser.grade} របស់លោកអ្នកប៉ុណ្ណោះ!`);
+        return;
+      }
+    }
+    if (selectedRosterGrade === 'ទាំងអស់') {
+      alert('សូមជ្រើសរើសថ្នាក់ជាក់លាក់មួយជាមុនសិន ដើម្បីលុបសិស្សទាំងអស់!');
+      return;
+    }
+    if (window.confirm(`តើលោកអ្នកពិតជាចង់លុបសិស្សទាំងអស់ក្នុងថ្នាក់ «${selectedRosterGrade}» មែនទេ? ទិន្នន័យពិន្ទុ និងគណនីទាំងអស់របស់ពួកគេនៅក្នុងថ្នាក់នេះនឹងត្រូវលុបចោលទាំងស្រុង!`)) {
+      const remainingStudents = students.filter(s => s.grade !== selectedRosterGrade);
+      onSaveStudents(remainingStudents);
+      alert(`បានលុបសិស្សទាំងអស់ក្នុងថ្នាក់ «${selectedRosterGrade}» រួចរាល់ហើយ។`);
+    }
+  };
+
   const handleAddSampleStudents = () => {
     if (currentUser?.role === 'teacher') {
       if (selectedRosterGrade !== currentUser.grade) {
@@ -489,40 +507,175 @@ export default function ClassStudentMgmt({
 
         // Identify header index and column indices dynamically
         let startIndex = 0;
-        let nameIndex = 0;
-        let genderIndex = 1;
-        let gradeIndex = 2;
+        let nameIndex = -1;
+        let genderIndex = -1;
+        let gradeIndex = -1;
+        let serialIndex = -1;
 
-        for (let i = 0; i < Math.min(rows.length, 5); i++) {
+        for (let i = 0; i < Math.min(rows.length, 10); i++) {
           const rowVals = rows[i];
           if (!rowVals || !Array.isArray(rowVals)) continue;
           
-          const rowStr = rowVals.map(cell => String(cell ?? '')).join(' ');
-          if (rowStr.includes("ឈ្មោះ") || rowStr.toLowerCase().includes("name") || rowStr.includes("ភេទ") || rowStr.includes("ល.រ") || rowStr.includes("ថ្នាក់")) {
-            startIndex = i + 1;
-            // Let's find columns dynamically
-            for (let c = 0; c < rowVals.length; c++) {
-              const val = String(rowVals[c] ?? '').trim();
-              if (val.includes("ឈ្មោះ") || val.toLowerCase().includes("name")) {
-                nameIndex = c;
-              } else if (val.includes("ភេទ") || val.toLowerCase().includes("gender") || val.toLowerCase().includes("sex")) {
-                genderIndex = c;
-              } else if (val.includes("ថ្នាក់") || val.toLowerCase().includes("grade") || val.toLowerCase().includes("class")) {
-                gradeIndex = c;
-              }
+          let hasHeaderKeyword = false;
+          let tempNameIdx = -1;
+          let tempGenderIdx = -1;
+          let tempGradeIdx = -1;
+          let tempSerialIdx = -1;
+
+          for (let c = 0; c < rowVals.length; c++) {
+            const val = String(rowVals[c] ?? '').trim();
+            const valLower = val.toLowerCase();
+            
+            if (val.includes("ឈ្មោះ") || valLower.includes("name") || val.includes("គោត្តនាម") || val.includes("នាមខ្លួន")) {
+              tempNameIdx = c;
+              hasHeaderKeyword = true;
+            } else if (val.includes("ភេទ") || valLower.includes("gender") || valLower.includes("sex")) {
+              tempGenderIdx = c;
+              hasHeaderKeyword = true;
+            } else if (val.includes("ថ្នាក់") || valLower.includes("grade") || valLower.includes("class")) {
+              tempGradeIdx = c;
+              hasHeaderKeyword = true;
+            } else if (val.includes("ល.រ") || val.includes("លរ") || valLower === "no" || valLower === "n°" || valLower === "id") {
+              tempSerialIdx = c;
+              hasHeaderKeyword = true;
             }
+          }
+
+          if (hasHeaderKeyword) {
+            startIndex = i + 1;
+            if (tempNameIdx !== -1) nameIndex = tempNameIdx;
+            if (tempGenderIdx !== -1) genderIndex = tempGenderIdx;
+            if (tempGradeIdx !== -1) gradeIndex = tempGradeIdx;
+            if (tempSerialIdx !== -1) serialIndex = tempSerialIdx;
             break;
           }
         }
 
-        // Guess based on first row columns if no header matches
-        if (startIndex === 0 && rows[0] && rows[0].length >= 3) {
-          const firstCell = String(rows[0][0] ?? '').trim();
-          if (/^\d+$/.test(firstCell)) {
-            nameIndex = 1;
-            genderIndex = 2;
-            gradeIndex = 3;
+        // Gather statistical counts for each column in the rows to auto-detect if indices are missing
+        const colStats: Record<number, {
+          isNumeric: number;
+          isGender: number;
+          isGrade: number;
+          isText: number;
+          totalValid: number;
+        }> = {};
+
+        const testRowsLimit = Math.min(rows.length, startIndex + 15);
+        for (let i = startIndex; i < testRowsLimit; i++) {
+          const rowVals = rows[i];
+          if (!rowVals || !Array.isArray(rowVals)) continue;
+          for (let c = 0; c < rowVals.length; c++) {
+            const cellVal = String(rowVals[c] ?? '').trim();
+            if (!cellVal) continue;
+
+            if (!colStats[c]) {
+              colStats[c] = { isNumeric: 0, isGender: 0, isGrade: 0, isText: 0, totalValid: 0 };
+            }
+
+            colStats[c].totalValid++;
+
+            // If it is simple digits (Serial No / Index No), count it
+            if (/^\d+$/.test(cellVal) && parseInt(cellVal, 10) < 150) {
+              colStats[c].isNumeric++;
+            }
+
+            // If it is a gender indicator
+            const cellLower = cellVal.toLowerCase();
+            if (cellVal === 'ប្រុស' || cellVal === 'ស្រី' || cellVal === 'm' || cellVal === 'f' || cellLower === 'male' || cellLower === 'female' || cellVal.includes('ស្រី') || cellVal === 'M' || cellVal === 'F') {
+              colStats[c].isGender++;
+            }
+
+            // If it is grade
+            if (cellVal.includes('ថ្នាក់') || cellVal.includes('មត្តេយ្យ') || grades.includes(cellVal)) {
+              colStats[c].isGrade++;
+            }
+
+            // General text (names are usually text greater than 1 char without numbers)
+            if (cellVal.length >= 2 && !/^\d+$/.test(cellVal)) {
+              colStats[c].isText++;
+            }
           }
+        }
+
+        const allColumns = Object.keys(colStats).map(Number);
+
+        // If the matched name index is actually a numeric serial column, reset it to inspect other columns
+        if (nameIndex !== -1 && colStats[nameIndex] && colStats[nameIndex].isNumeric > colStats[nameIndex].isText) {
+          nameIndex = -1;
+        }
+
+        // 1. Assign Gender column
+        if (genderIndex === -1) {
+          let maxGenderCount = 0;
+          let bestGenderCol = -1;
+          for (const c of allColumns) {
+            if (colStats[c].isGender > maxGenderCount) {
+              maxGenderCount = colStats[c].isGender;
+              bestGenderCol = c;
+            }
+          }
+          if (maxGenderCount > 0) {
+            genderIndex = bestGenderCol;
+          }
+        }
+
+        // 2. Assign Grade column
+        if (gradeIndex === -1) {
+          let maxGradeCount = 0;
+          let bestGradeCol = -1;
+          for (const c of allColumns) {
+            if (c === genderIndex) continue;
+            if (colStats[c].isGrade > maxGradeCount) {
+              maxGradeCount = colStats[c].isGrade;
+              bestGradeCol = c;
+            }
+          }
+          if (maxGradeCount > 0) {
+            gradeIndex = bestGradeCol;
+          }
+        }
+
+        // 3. Assign Serial column
+        if (serialIndex === -1) {
+          let maxNumericCount = 0;
+          let bestNumericCol = -1;
+          for (const c of allColumns) {
+            if (c === genderIndex || c === gradeIndex) continue;
+            if (colStats[c].isNumeric > maxNumericCount) {
+              maxNumericCount = colStats[c].isNumeric;
+              bestNumericCol = c;
+            }
+          }
+          if (maxNumericCount > 0) {
+            serialIndex = bestNumericCol;
+          }
+        }
+
+        // 4. Assign Name column
+        if (nameIndex === -1) {
+          let maxTextCount = 0;
+          let bestNameCol = -1;
+          for (const c of allColumns) {
+            if (c === genderIndex || c === gradeIndex || c === serialIndex) continue;
+            if (colStats[c].isText > maxTextCount) {
+              maxTextCount = colStats[c].isText;
+              bestNameCol = c;
+            }
+          }
+          if (maxTextCount > 0) {
+            nameIndex = bestNameCol;
+          }
+        }
+
+        // Fallbacks if columns are completely empty / unresolved
+        if (nameIndex === -1) {
+          nameIndex = (serialIndex === 0) ? 1 : 0;
+        }
+        if (genderIndex === -1) {
+          genderIndex = (nameIndex === 0) ? 1 : 2;
+        }
+        if (gradeIndex === -1) {
+          gradeIndex = 3;
         }
 
         for (let i = startIndex; i < rows.length; i++) {
@@ -942,14 +1095,24 @@ export default function ClassStudentMgmt({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       {selectedRosterGrade !== 'ទាំងអស់' && (
-                        <button
-                          onClick={handleAddSampleStudents}
-                          className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/50 rounded-lg text-xs font-semibold transition-all"
-                        >
-                          💡 បន្ថែមសិស្សគំរូ
-                        </button>
+                        <>
+                          <button
+                            onClick={handleAddSampleStudents}
+                            className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/50 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
+                          >
+                            💡 បន្ថែមសិស្សគំរូ
+                          </button>
+
+                          <button
+                            onClick={handleClearAllStudentsInActiveGrade}
+                            className="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/50 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
+                            title="លុបសិស្សទាំងអស់ក្នុងថ្នាក់រៀននេះ"
+                          >
+                            🗑️ លុបសិស្សទាំងអស់
+                          </button>
+                        </>
                       )}
 
                       <button
