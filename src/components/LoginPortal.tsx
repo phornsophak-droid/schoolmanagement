@@ -18,59 +18,139 @@ interface LoginPortalProps {
 export const AVAILABLE_USERS: SchoolUser[] = [
   {
     id: 'principal',
-    name: 'លោកនាយក ឃឹម សុភ័ក្ត្រ',
+    name: 'លោកនាយក ផន សុភាក់',
     role: 'principal',
     grade: 'ទាំងអស់',
-    photoCode: 'ឃស',
-    avatarBg: 'bg-gradient-to-tr from-amber-600 to-yellow-500'
+    photoCode: 'ផស',
+    avatarBg: 'bg-gradient-to-tr from-emerald-600 to-teal-500'
   },
   {
-    id: 'teacher_g1',
-    name: 'អ្នកគ្រូ អ៊ឹម ចាន់ថន',
+    id: 'teacher_preschool1',
+    name: 'អ្នកគ្រូ យាប់ សុខ',
     role: 'teacher',
-    grade: 'ថ្នាក់ទី១',
-    photoCode: 'អច',
-    avatarBg: 'bg-gradient-to-tr from-teal-600 to-emerald-500'
+    grade: 'មត្តេយ្យ ១',
+    photoCode: 'យស',
+    avatarBg: 'bg-gradient-to-tr from-violet-600 to-pink-500'
   },
   {
-    id: 'teacher_g2',
-    name: 'លោកគ្រូ ហេង សំណាង',
+    id: 'teacher_preschool2',
+    name: 'អ្នកគ្រូ ច្រឹល កែវ',
     role: 'teacher',
-    grade: 'ថ្នាក់ទី២',
-    photoCode: 'ហស',
+    grade: 'មត្តេយ្យ ២',
+    photoCode: 'ចក',
+    avatarBg: 'bg-gradient-to-tr from-pink-600 to-rose-500'
+  },
+  {
+    id: 'teacher_g1a',
+    name: 'លោកគ្រូ ជឹម អ៊ន',
+    role: 'teacher',
+    grade: 'ថ្នាក់ទី ១ក',
+    photoCode: 'ជអ',
     avatarBg: 'bg-gradient-to-tr from-blue-600 to-sky-500'
   },
   {
-    id: 'teacher_g3',
-    name: 'អ្នកគ្រូ ស៊ីន ស្រីមុំ',
+    id: 'teacher_g1b',
+    name: 'អ្នកគ្រូ រ៉ន គឹមលៀង',
     role: 'teacher',
-    grade: 'ថ្នាក់ទី៣',
-    photoCode: 'សស',
+    grade: 'ថ្នាក់ទី ១ខ',
+    photoCode: 'រក',
     avatarBg: 'bg-gradient-to-tr from-purple-600 to-pink-500'
   },
   {
-    id: 'teacher_g4',
-    name: 'លោកគ្រូ លី មិនា',
+    id: 'teacher_g2a',
+    name: 'លោកគ្រូ ហុង ហ៊ីម',
     role: 'teacher',
-    grade: 'ថ្នាក់ទី៤',
-    photoCode: 'លម',
+    grade: 'ថ្នាក់ទី ២ក',
+    photoCode: 'ហហ',
     avatarBg: 'bg-gradient-to-tr from-rose-600 to-orange-500'
   },
   {
-    id: 'teacher_g5',
-    name: 'អ្នកគ្រូ កែវ កល្យាណ',
+    id: 'teacher_g2b',
+    name: 'លោកគ្រូ ហុង ហ៊ីម',
     role: 'teacher',
-    grade: 'ថ្នាក់ទី៥',
-    photoCode: 'កក',
-    avatarBg: 'bg-gradient-to-tr from-violet-600 to-fuchsia-500'
+    grade: 'ថ្នាក់ទី ២ខ',
+    photoCode: 'ហហ',
+    avatarBg: 'bg-gradient-to-tr from-rose-600 to-orange-500'
   },
   {
-    id: 'teacher_g6',
-    name: 'លោកគ្រូ សុខ វិបុល',
+    id: 'teacher_g3a',
+    name: 'លោកគ្រូ ឆន ក្រឹម',
     role: 'teacher',
-    grade: 'ថ្នាក់ទី៦',
-    photoCode: 'សវ',
-    avatarBg: 'bg-gradient-to-tr from-indigo-600 to-violet-500'
+    grade: 'ថ្នាក់ទី ៣ក',
+    photoCode: 'ឆក',
+    avatarBg: 'bg-gradient-to-tr from-amber-600 to-yellow-500'
+  },
+  {
+    id: 'teacher_g3b',
+    name: 'លោកគ្រូ ឆន ក្រឹម',
+    role: 'teacher',
+    grade: 'ថ្នាក់ទី ៣ខ',
+    photoCode: 'ឆក',
+    avatarBg: 'bg-gradient-to-tr from-amber-600 to-yellow-500'
+  },
+  {
+    id: 'teacher_g4a',
+    name: 'លោកគ្រូ សាត គ្រី',
+    role: 'teacher',
+    grade: 'ថ្នាក់ទី ៤ក',
+    photoCode: 'សគ',
+    avatarBg: 'bg-gradient-to-tr from-teal-600 to-emerald-500'
+  },
+  {
+    id: 'teacher_g4b',
+    name: 'លោកគ្រូ ថាវ សុផាត',
+    role: 'teacher',
+    grade: 'ថ្នាក់ទី ៤ខ',
+    photoCode: 'ថស',
+    avatarBg: 'bg-gradient-to-tr from-sky-600 to-indigo-500'
+  },
+  {
+    id: 'teacher_g5a',
+    name: 'លោកគ្រូ គឺ អ៊ុនតាក់',
+    role: 'teacher',
+    grade: 'ថ្នាក់ទី ៥ក',
+    photoCode: 'គអ',
+    avatarBg: 'bg-gradient-to-tr from-violet-600 to-indigo-500'
+  },
+  {
+    id: 'teacher_g5b',
+    name: 'លោកគ្រូ ចែម ណាក់',
+    role: 'teacher',
+    grade: 'ថ្នាក់ទី ៥ខ',
+    photoCode: 'ចណ',
+    avatarBg: 'bg-gradient-to-tr from-pink-600 to-red-500'
+  },
+  {
+    id: 'teacher_english',
+    name: 'លោកគ្រូ យ៉ន យ៉ាវ',
+    role: 'teacher',
+    grade: 'ថ្នាក់ភាសាអង់គ្លេស',
+    photoCode: 'យយ',
+    avatarBg: 'bg-gradient-to-tr from-cyan-600 to-teal-500'
+  },
+  {
+    id: 'teacher_drawing',
+    name: 'អ្នកគ្រូ នី ចន្ទី',
+    role: 'teacher',
+    grade: 'ថ្នាក់គំនូរ',
+    photoCode: 'នជ',
+    avatarBg: 'bg-gradient-to-tr from-fuchsia-600 to-pink-500'
+  },
+  {
+    id: 'teacher_sports',
+    name: 'លោកគ្រូ គឺ អ៊ុនតាក់',
+    role: 'teacher',
+    grade: 'ថ្នាក់កីឡា និងអប់រំកាយ',
+    photoCode: 'គអ',
+    avatarBg: 'bg-gradient-to-tr from-emerald-600 to-emerald-400'
+  },
+  {
+    id: 'teacher_health',
+    name: 'អ្នកគ្រូ ហេង គីមឡាង',
+    role: 'teacher',
+    grade: 'ថ្នាក់អប់រំសុខភាព',
+    photoCode: 'ហគ',
+    avatarBg: 'bg-gradient-to-tr from-sky-600 to-sky-300'
   }
 ];
 

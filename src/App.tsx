@@ -55,7 +55,24 @@ export default function App() {
   // Data Persistence states
   const [students, setStudents] = useState<StudentScore[]>([]);
   const [reports, setReports] = useState<SchoolReport[]>([]);
-  const [grades, setGrades] = useState<string[]>(['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦']);
+  const [grades, setGrades] = useState<string[]>([
+    'មត្តេយ្យ ១',
+    'មត្តេយ្យ ២',
+    'ថ្នាក់ទី ១ក',
+    'ថ្នាក់ទី ១ខ',
+    'ថ្នាក់ទី ២ក',
+    'ថ្នាក់ទី ២ខ',
+    'ថ្នាក់ទី ៣ក',
+    'ថ្នាក់ទី ៣ខ',
+    'ថ្នាក់ទី ៤ក',
+    'ថ្នាក់ទី ៤ខ',
+    'ថ្នាក់ទី ៥ក',
+    'ថ្នាក់ទី ៥ខ',
+    'ថ្នាក់ភាសាអង់គ្លេស',
+    'ថ្នាក់គំនូរ',
+    'ថ្នាក់កីឡា និងអប់រំកាយ',
+    'ថ្នាក់អប់រំសុខភាព'
+  ]);
   
   // Specific Report details/edit state
   const [selectedReport, setSelectedReport] = useState<SchoolReport | null>(null);
@@ -83,19 +100,54 @@ export default function App() {
 
     // Grades Hydration
     const cachedGrades = localStorage.getItem('school_grades_v2');
+    const defaultGradesList = [
+      'មត្តេយ្យ ១',
+      'មត្តេយ្យ ២',
+      'ថ្នាក់ទី ១ក',
+      'ថ្នាក់ទី ១ខ',
+      'ថ្នាក់ទី ២ក',
+      'ថ្នាក់ទី ២ខ',
+      'ថ្នាក់ទី ៣ក',
+      'ថ្នាក់ទី ៣ខ',
+      'ថ្នាក់ទី ៤ក',
+      'ថ្នាក់ទី ៤ខ',
+      'ថ្នាក់ទី ៥ក',
+      'ថ្នាក់ទី ៥ខ',
+      'ថ្នាក់ភាសាអង់គ្លេស',
+      'ថ្នាក់គំនូរ',
+      'ថ្នាក់កីឡា និងអប់រំកាយ',
+      'ថ្នាក់អប់រំសុខភាព'
+    ];
     if (cachedGrades) {
       try {
-        setGrades(JSON.parse(cachedGrades));
+        const parsed = JSON.parse(cachedGrades);
+        if (!parsed.includes('មត្តេយ្យ ១')) {
+          setGrades(defaultGradesList);
+          localStorage.setItem('school_grades_v2', JSON.stringify(defaultGradesList));
+        } else {
+          setGrades(parsed);
+        }
       } catch (e) {
         console.error('Failed to parse grades', e);
+        setGrades(defaultGradesList);
       }
+    } else {
+      setGrades(defaultGradesList);
+      localStorage.setItem('school_grades_v2', JSON.stringify(defaultGradesList));
     }
 
     // Student Scores Hydration
     const cachedScores = localStorage.getItem('school_student_scores_v2');
     if (cachedScores) {
       try {
-        setStudents(JSON.parse(cachedScores));
+        const parsed = JSON.parse(cachedScores);
+        const hasOldGrades = parsed.some((s: any) => s.grade === 'ថ្នាក់ទី៦');
+        if (hasOldGrades) {
+          setStudents(initialStudents);
+          localStorage.setItem('school_student_scores_v2', JSON.stringify(initialStudents));
+        } else {
+          setStudents(parsed);
+        }
       } catch (e) {
         console.error('Failed to parse students list', e);
         setStudents(initialStudents);
@@ -109,7 +161,14 @@ export default function App() {
     const cachedReports = localStorage.getItem('school_reports_v2');
     if (cachedReports) {
       try {
-        setReports(JSON.parse(cachedReports));
+        const parsed = JSON.parse(cachedReports);
+        const hasOldGrades = parsed.some((r: any) => r.generalInfo?.grade === 'ថ្នាក់ទី៦');
+        if (hasOldGrades) {
+          setReports(initialReports);
+          localStorage.setItem('school_reports_v2', JSON.stringify(initialReports));
+        } else {
+          setReports(parsed);
+        }
       } catch (e) {
         console.error('Failed to parse reports list', e);
         setReports(initialReports);

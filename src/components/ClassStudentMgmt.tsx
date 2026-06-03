@@ -46,6 +46,50 @@ export default function ClassStudentMgmt({
   // Tabs
   const [activeTab, setActiveTab] = useState<'classes' | 'students'>('students');
 
+  // Load initial teacher mappings, save in state
+  const [customTeachers, setCustomTeachers] = useState<Record<string, { name: string; bg: string; text: string; desc: string }>>(() => {
+    const defaultTeachers = {
+      'មត្តេយ្យ ១': { name: 'អ្នកគ្រូ យាប់ សុខ', bg: 'bg-gradient-to-tr from-violet-600 to-pink-500', text: 'យ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់មត្តេយ្យ ១' },
+      'មត្តេយ្យ ២': { name: 'អ្នកគ្រូ ច្រឹល កែវ', bg: 'bg-gradient-to-tr from-pink-600 to-rose-500', text: 'ច', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់មត្តេយ្យ ២' },
+      'ថ្នាក់ទី ១ក': { name: 'លោកគ្រូ ជឹម អ៊ន', bg: 'bg-gradient-to-tr from-blue-600 to-sky-500', text: 'ជ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ១ក' },
+      'ថ្នាក់ទី ១ខ': { name: 'អ្នកគ្រូ រ៉ន គឹមលៀង', bg: 'bg-gradient-to-tr from-purple-600 to-pink-500', text: 'រ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ១ខ' },
+      'ថ្នាក់ទី ២ក': { name: 'លោកគ្រូ ហុង ហ៊ីម', bg: 'bg-gradient-to-tr from-rose-600 to-orange-500', text: 'ហ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ២ក' },
+      'ថ្នាក់ទី ២ខ': { name: 'លោកគ្រូ ហុង ហ៊ីម', bg: 'bg-gradient-to-tr from-rose-600 to-orange-500', text: 'ហ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ២ខ' },
+      'ថ្នាក់ទី ៣ក': { name: 'លោកគ្រូ ឆន ក្រឹម', bg: 'bg-gradient-to-tr from-amber-600 to-yellow-500', text: 'ឆ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ៣ក' },
+      'ថ្នាក់ទី ៣ខ': { name: 'លោកគ្រូ ឆន ក្រឹម', bg: 'bg-gradient-to-tr from-amber-600 to-yellow-500', text: 'ឆ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ៣ខ' },
+      'ថ្នាក់ទី ៤ក': { name: 'លោកគ្រូ សាត គ្រី', bg: 'bg-gradient-to-tr from-teal-600 to-emerald-500', text: 'ស', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ៤ក' },
+      'ថ្នាក់ទី ៤ខ': { name: 'លោកគ្រូ ថាវ សុផាត', bg: 'bg-gradient-to-tr from-sky-600 to-indigo-500', text: 'ថ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ៤ខ' },
+      'ថ្នាក់ទី ៥ក': { name: 'លោកគ្រូ គឺ អ៊ុនតាក់', bg: 'bg-gradient-to-tr from-violet-600 to-indigo-500', text: 'គ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ៥ក' },
+      'ថ្នាក់ទី ៥ខ': { name: 'លោកគ្រូ ចែម ណាក់', bg: 'bg-gradient-to-tr from-pink-600 to-red-500', text: 'ច', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ៥ខ' },
+      'ថ្នាក់ភាសាអង់គ្លេស': { name: 'លោកគ្រូ យ៉ន យ៉ាវ', bg: 'bg-gradient-to-tr from-cyan-600 to-teal-500', text: 'យ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀនភាសាអង់គ្លេស' },
+      'ថ្នាក់គំនូរ': { name: 'អ្នកគ្រូ នី ចន្ទី', bg: 'bg-gradient-to-tr from-fuchsia-600 to-pink-500', text: 'ន', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀនជំនាញគំនូរ' },
+      'ថ្នាក់កីឡា និងអប់រំកាយ': { name: 'លោកគ្រូ គឺ អ៊ុនតាក់', bg: 'bg-gradient-to-tr from-emerald-600 to-emerald-400', text: 'គ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀនកីឡា និងអប់រំកាយ' },
+      'ថ្នាក់អប់រំសុខភាព': { name: 'អ្នកគ្រូ ហេង គីមឡាង', bg: 'bg-gradient-to-tr from-sky-600 to-sky-300', text: 'ហ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀនអប់រំសុខភាព' }
+    };
+
+    try {
+      const saved = localStorage.getItem('school_custom_teachers_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // If it doesn't contain 'មត្តេយ្យ ១', reset cache to new default list
+        if (!parsed['មត្តេយ្យ ១']) {
+          localStorage.setItem('school_custom_teachers_v2', JSON.stringify(defaultTeachers));
+          return defaultTeachers;
+        }
+        return parsed;
+      }
+    } catch (e) {}
+    
+    localStorage.setItem('school_custom_teachers_v2', JSON.stringify(defaultTeachers));
+    return defaultTeachers;
+  });
+
+  // State for customizing teacher profile
+  const [isEditingTeacher, setIsEditingTeacher] = useState(false);
+  const [teacherEditName, setTeacherEditName] = useState('');
+  const [teacherEditDesc, setTeacherEditDesc] = useState('');
+  const [teacherEditGrade, setTeacherEditGrade] = useState('');
+
   // Search/Filters states
   const [classSearch, setClassSearch] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
@@ -171,8 +215,10 @@ export default function ClassStudentMgmt({
   const handleSaveStudentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (currentUser?.role === 'teacher') {
-      alert('គណនីគ្រូមិនមានសិទ្ធិកែប្រែព័ត៌មានឈ្មោះសិស្ស ឬថ្នាក់សិក្សាឡើយ!');
-      return;
+      if (studentFormGrade !== currentUser.grade) {
+        alert(`លោកអ្នកមានសិទ្ធិចុះឈ្មោះ ឬកែប្រែព័ត៌មានសិស្សបានតែក្នុងថ្នាក់ ${currentUser.grade} របស់លោកអ្នកប៉ុណ្ណោះ!`);
+        return;
+      }
     }
     const name = studentFormName.trim();
     if (!name) {
@@ -237,8 +283,10 @@ export default function ClassStudentMgmt({
 
   const handleDeleteStudentProfile = (profile: StudentScore) => {
     if (currentUser?.role === 'teacher') {
-      alert('គណនីគ្រូមិនមានសិទ្ធិកែប្រែព័ត៌មានសិស្សឡើយ!');
-      return;
+      if (profile.grade !== currentUser.grade) {
+        alert(`លោកអ្នកមានសិទ្ធិលុបសិស្សបានតែក្នុងថ្នាក់ ${currentUser.grade} របស់លោកអ្នកប៉ុណ្ណោះ!`);
+        return;
+      }
     }
     if (window.confirm(`តើអ្នកពិតជាចង់លុបសិស្សឈ្មោះ «${profile.name}» ពីក្នុងគណនីថ្នាក់ ${profile.grade} នេះមែនទេ? រាល់ពិន្ទុគ្រប់ខែនឹងត្រូវលុបចោលទាំងអស់!`)) {
       const updated = students.filter(s => !(s.name.trim() === profile.name.trim() && s.grade === profile.grade));
@@ -248,8 +296,10 @@ export default function ClassStudentMgmt({
 
   const handleAddSampleStudents = () => {
     if (currentUser?.role === 'teacher') {
-      alert('គណនីគ្រូមិនមានសិទ្ធិកែប្រែព័ត៌មានឡើយ!');
-      return;
+      if (selectedRosterGrade !== currentUser.grade) {
+        alert(`លោកអ្នកមានសិទ្ធិបន្ថែមសិស្សគំរូបានតែក្នុងថ្នាក់ ${currentUser.grade} របស់លោកអ្នកប៉ុណ្ណោះ!`);
+        return;
+      }
     }
     if (selectedRosterGrade === 'ទាំងអស់') {
       alert('សូមជ្រើសរើសថ្នាក់ជាក់លាក់មួយជាមុនសិន ដើម្បីបន្ថែមសិស្សគំរូ!');
@@ -296,38 +346,76 @@ export default function ClassStudentMgmt({
     }
   };
 
+  // Helper to open teacher editor
+  const handleOpenEditTeacher = () => {
+    const info = getTeacherForGrade(selectedRosterGrade);
+    setTeacherEditName(info.name);
+    setTeacherEditDesc(info.desc);
+    setTeacherEditGrade(selectedRosterGrade);
+    setIsEditingTeacher(true);
+  };
+
+  // Helper to save customized teacher info
+  const handleSaveTeacherLocal = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated = {
+      ...customTeachers,
+      [teacherEditGrade]: {
+        name: teacherEditName.trim() || 'លោកគ្រូ/អ្នកគ្រូ គ្រូបន្ទុកថ្នាក់',
+        desc: teacherEditDesc.trim() || 'គ្រូទទួលបន្ទុកផ្ដល់ការអប់រំ និងតាមដានការអភិវឌ្ឍន៍សិស្ស។',
+        bg: customTeachers[teacherEditGrade]?.bg || 'bg-gradient-to-tr from-sky-600 to-indigo-500',
+        text: (teacherEditName.trim() ? teacherEditName.trim()[0] : 'គ')
+      }
+    };
+    setCustomTeachers(updated);
+    try {
+      localStorage.setItem('school_custom_teachers_v2', JSON.stringify(updated));
+    } catch (err) {}
+    setIsEditingTeacher(false);
+    alert('បានកែប្រែព័ត៌មានគ្រូថ្នាក់រៀននេះដោយជោគជ័យ!');
+  };
+
   // Helper to resolve teacher name based on selected grade
   const getTeacherForGrade = (g: string) => {
     if (g === 'ទាំងអស់') {
-      return {
+      const pInfo = customTeachers['principal'] || {
         name: 'លោកនាយក ឃឹម សុភ័ក្ត្រ',
-        role: 'នាយកសាលាបឋមសិក្សា',
-        avatarBg: 'bg-emerald-600',
-        avatarText: 'ន',
+        bg: 'bg-gradient-to-tr from-emerald-600 to-yellow-500',
+        text: 'ន',
         desc: 'គ្រប់គ្រងដឹកនាំសាលារៀនទាំងមូល និងតាមដានរបាយការណ៍សាលាជាប្រចាំខែ'
+      };
+      return {
+        name: pInfo.name,
+        role: 'នាយកសាលាបឋមសិក្សា',
+        avatarBg: pInfo.bg,
+        avatarText: pInfo.text,
+        desc: pInfo.desc
       };
     }
 
     if (currentUser && currentUser.role === 'teacher' && currentUser.grade === g) {
+      const customT = customTeachers[g];
       return {
-        name: currentUser.name,
+        name: customT ? customT.name : currentUser.name,
         role: 'គ្រូបន្ទុកថ្នាក់ (គណនីបច្ចុប្បន្ន)',
         avatarBg: currentUser.avatarBg || 'bg-indigo-600',
-        avatarText: currentUser.name[0],
-        desc: `អ្នកគ្រប់គ្រង និងកត់ត្រាពិន្ទុសិស្សថ្នាក់ ${g} នេះផ្ទាល់។`
+        avatarText: customT ? customT.text : currentUser.name[0],
+        desc: customT ? customT.desc : `អ្នកគ្រប់គ្រង និងកត់ត្រាពិន្ទុសិស្សថ្នាក់ ${g} នេះផ្ទាល់។`
       };
     }
 
-    const teacherMap: Record<string, { name: string; bg: string; text: string; desc: string }> = {
-      'ថ្នាក់ទី១': { name: 'អ្នកគ្រូ អ៊ឹម ចាន់ថន', bg: 'bg-violet-600', text: 'ច', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី១' },
-      'ថ្នាក់ទី២': { name: 'លោកគ្រូ ហេង សំណាង', bg: 'bg-blue-600', text: 'ស', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី២' },
-      'ថ្នាក់ទី៣': { name: 'អ្នកគ្រូ ស៊ិន ស្រីម៉ុំ', bg: 'bg-pink-600', text: 'ស្រ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី៣' },
-      'ថ្នាក់ទី៤': { name: 'លោកគ្រូ លី មីនា', bg: 'bg-amber-600', text: 'ម', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី៤' },
-      'ថ្នាក់ទី៥': { name: 'អ្នកគ្រូ កែវ កល្យាណ', bg: 'bg-teal-600', text: 'ក', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី៥' },
-      'ថ្នាក់ទី៦': { name: 'លោកគ្រូ សុខ វិបុល', bg: 'bg-sky-600', text: 'វ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី៦' }
-    };
+    const customT = customTeachers[g];
+    if (customT) {
+      return {
+        name: customT.name,
+        role: 'គ្រូបន្ទុកថ្នាក់',
+        avatarBg: customT.bg,
+        avatarText: customT.text,
+        desc: customT.desc
+      };
+    }
 
-    return teacherMap[g] || {
+    return {
       name: 'លោកគ្រូ/អ្នកគ្រូ គ្រូបន្ទុកថ្នាក់',
       role: 'គ្រូបន្ទុកថ្នាក់រៀន',
       avatarBg: 'bg-slate-600',
@@ -369,10 +457,6 @@ export default function ClassStudentMgmt({
 
   // Local Excel/CSV parser from computer
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (currentUser?.role === 'teacher') {
-      alert('គណនីគ្រូមិនមានសិទ្ធិនាំចូលបញ្ជីឈ្មោះសិស្សឡើយ!');
-      return;
-    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -390,6 +474,7 @@ export default function ClassStudentMgmt({
       const newStudentsList: StudentScore[] = [];
       let importCount = 0;
       let duplicateCount = 0;
+      let rejectedTeacherCount = 0;
 
       // Identify header index
       const startIdx = (lines[0].includes("ឈ្មោះ") || lines[0].includes("Name") || lines[0].includes("ភេទ") || lines[0].includes("ល.រ")) ? 1 : 0;
@@ -436,6 +521,12 @@ export default function ClassStudentMgmt({
             gradeVal = selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦');
           }
 
+          // Role check: Teachers can only import into their own grade!
+          if (currentUser?.role === 'teacher' && gradeVal !== currentUser.grade) {
+            rejectedTeacherCount++;
+            continue;
+          }
+
           // Check for duplication
           const isDuplicate = uniqueStudentProfiles.some(s => s.name.toLowerCase() === rawName.toLowerCase() && s.grade === gradeVal) 
             || newStudentsList.some(s => s.name.toLowerCase() === rawName.toLowerCase() && s.grade === gradeVal);
@@ -465,6 +556,10 @@ export default function ClassStudentMgmt({
           newStudentsList.push(calculateStudentFields(payload));
           importCount++;
         }
+      }
+
+      if (rejectedTeacherCount > 0) {
+        alert(`លោកអ្នកគឺជាគ្រូបន្ទុកថ្នាក់ ដូច្នេះប្រព័ន្ធបានច្រានចោលសិស្សចំនួន ${rejectedTeacherCount} នាក់ដែលមិនស្ថិតក្នុង ${currentUser.grade} របស់លោកអ្នក!`);
       }
 
       if (importCount > 0) {
@@ -727,12 +822,12 @@ export default function ClassStudentMgmt({
           {activeTab === 'students' && (
             <div className="space-y-6">
               {currentUser?.role === 'teacher' && (
-                <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 text-xs text-amber-700">
-                  <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3 text-xs text-blue-700 animate-fadeIn">
+                  <Info className="text-blue-500 shrink-0 mt-0.5" size={16} />
                   <div className="space-y-1">
-                    <p className="font-extrabold flex items-center gap-1">សិទ្ធិមើលបញ្ជីឈ្មោះតែប៉ុណ្ណោះ (Read-Only Mode)</p>
+                    <p className="font-extrabold flex items-center gap-1">សិទ្ធិគ្រប់គ្រងសិស្សថ្នាក់រៀនផ្ទាល់ខ្លួន (Classroom Management Mode)</p>
                     <p className="leading-relaxed text-[11px] font-medium">
-                      លោកអ្នកកំពុងតភ្ជាប់ជា <span className="font-bold">«គ្រូបន្ទុកថ្នាក់»</span>។ លោកអ្នកអាចត្រឹមតែពិនិត្យមើល និងទាញយកបញ្ជីឈ្មោះសិស្សតាមថ្នាក់ ឬបំពេញពិន្ទុសិស្សក្នុងបណ្ណពិន្ទុប៉ុណ្ណោះ។ រាល់សកម្មភាពចុះឈ្មោះសិស្សថ្មី កែសម្រួល ឬលុបឈ្មោះសិស្សផ្ទាល់ គឺជាសិទ្ធិផ្តាច់មុខរបស់ <span className="font-bold">«នាយកសាលា»</span>។
+                      លោកអ្នកកំពុងតភ្ជាប់ជា <span className="font-bold">«គ្រូបន្ទុកថ្នាក់ {currentUser.grade}»</span>។ លោកអ្នកមានសិទ្ធពេញលេញក្នុងការចុះឈ្មោះសិស្សថ្មី កែសម្រួល និងលុបឈ្មោះសិស្សានុសិស្ស ក៏ដូចជាកែប្រែព័ត៌មានគ្រូ និងសិស្សនៅក្នុង <span className="font-bold">{currentUser.grade}</span> របស់លោកអ្នកផ្ទាល់។
                     </p>
                   </div>
                 </div>
@@ -766,33 +861,29 @@ export default function ClassStudentMgmt({
                         ទាញយកតារាងឈ្មោះ
                       </button>
 
-                      {currentUser?.role !== 'teacher' && (
-                        <>
-                          <button
-                            onClick={handleTriggerFileInput}
-                            className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200/80 rounded-lg font-semibold transition-all inline-flex items-center gap-1 shadow-3xs"
-                            title="បញ្ចូលបញ្ជីឈ្មោះពីកុំព្យូទ័ររបស់អ្នក"
-                          >
-                            <Upload size={13} />
-                            នាំចូលពីកុំព្យូទ័រ
-                          </button>
+                      <button
+                        onClick={handleTriggerFileInput}
+                        className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200/80 rounded-lg font-semibold transition-all inline-flex items-center gap-1 shadow-3xs"
+                        title="បញ្ចូលបញ្ជីឈ្មោះពីកុំព្យូទ័ររបស់អ្នក"
+                      >
+                        <Upload size={13} />
+                        នាំចូលពីកុំព្យូទ័រ
+                      </button>
 
-                          {/* Hidden CSV File input selector */}
-                          <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleImportCSV}
-                            accept=".csv"
-                            className="hidden"
-                          />
-                        </>
-                      )}
+                      {/* Hidden CSV File input selector */}
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImportCSV}
+                        accept=".csv"
+                        className="hidden"
+                      />
                     </div>
                   </div>
 
                   {/* Filter and dynamic roster count controls */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-150">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap text-slate-700">
                       <span className="text-xs font-bold text-slate-600">ថ្នាក់៖</span>
                       <select
                         value={selectedRosterGrade}
@@ -829,7 +920,7 @@ export default function ClassStudentMgmt({
 
                       <button
                         onClick={handleOpenAddStudent}
-                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1"
+                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-2xs"
                       >
                         <UserPlus size={12} />
                         ចុះឈ្មោះសិស្ស
@@ -850,7 +941,7 @@ export default function ClassStudentMgmt({
 
                   {/* Student registration form (pop over modal-like) */}
                   {isStudentFormOpen && (
-                    <div className="p-4 border border-blue-50 bg-blue-50/10 rounded-xl space-y-3">
+                    <div className="p-4 border border-blue-50 bg-blue-50/10 rounded-xl space-y-3 animate-fadeIn">
                       <div className="flex items-center justify-between pb-1.5 border-b border-blue-100/50">
                         <h4 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
                           <UserPlus size={14} className="text-blue-600" />
@@ -860,6 +951,33 @@ export default function ClassStudentMgmt({
                           <X size={14} />
                         </button>
                       </div>
+
+                      {/* Import/Download Excel template helpers inside student registration */}
+                      {!editingStudentId && (
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-white rounded-lg border border-blue-100 text-[11px] text-slate-500">
+                          <span className="flex items-center gap-1 text-slate-650 font-medium">
+                            <FileSpreadsheet size={13} className="text-emerald-600 animate-pulse" /> 
+                            ទាញយកគំរូ ឬចុចនាំចូលបញ្ជីសិស្សពី Excel (.csv) ៖
+                          </span>
+                          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleExportCSV(true)}
+                              className="text-indigo-600 hover:underline font-bold flex items-center gap-0.5"
+                            >
+                              <Download size={11} /> ទាញយកគំរូ Excel (.csv)
+                            </button>
+                            <span className="text-slate-350">|</span>
+                            <button
+                              type="button"
+                              onClick={handleTriggerFileInput}
+                              className="text-emerald-700 hover:underline font-bold flex items-center gap-0.5"
+                            >
+                              <Upload size={11} /> នាំចូលពី Excel
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       <form onSubmit={handleSaveStudentSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium">
                         <div>
@@ -892,7 +1010,7 @@ export default function ClassStudentMgmt({
                             disabled={currentUser?.role === 'teacher'}
                             value={studentFormGrade}
                             onChange={(e) => setStudentFormGrade(e.target.value)}
-                            className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+                            className="w-full px-3 py-1.5 bg-white disabled:bg-slate-50 disabled:text-slate-400 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
                           >
                             {grades.map(g => (
                               <option key={g} value={g}>{g}</option>
@@ -958,17 +1076,13 @@ export default function ClassStudentMgmt({
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                  {currentUser?.role === 'teacher' ? (
-                                    <span className="text-[10px] text-slate-400 bg-slate-50 border border-slate-100 rounded px-2 py-1">
-                                      មើលតែប៉ុណ្ណោះ
-                                    </span>
-                                  ) : (
-                                    <div className="flex items-center justify-end gap-1.5">
+                                  {currentUser?.role === 'principal' || (currentUser?.role === 'teacher' && p.grade === currentUser.grade) ? (
+                                    <div className="flex items-center justify-end gap-1.5 animate-fadeIn">
                                       <button
                                         onClick={() => handleOpenEditStudent(p)}
-                                        className="p-1 px-2 border border-slate-200 rounded hover:bg-indigo-50/10 text-slate-600 hover:text-indigo-650 hover:border-indigo-100 transition-colors font-semibold inline-flex items-center gap-1 text-[10px]"
+                                        className="p-1 px-2 border border-slate-200 rounded hover:bg-indigo-50/20 text-indigo-750 hover:text-indigo-850 hover:border-indigo-120 transition-colors font-semibold inline-flex items-center gap-1 text-[10px]"
                                       >
-                                        <Edit3 size={11} /> កែប្រែ
+                                        <Edit3 size={11} className="text-indigo-650" /> កែប្រែ
                                       </button>
                                       <button
                                         onClick={() => handleDeleteStudentProfile(p)}
@@ -978,6 +1092,10 @@ export default function ClassStudentMgmt({
                                         <Trash2 size={12} />
                                       </button>
                                     </div>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400 bg-slate-50 border border-slate-100 rounded px-2 py-1 select-none">
+                                      មើលតែប៉ុណ្ណោះ
+                                    </span>
                                   )}
                                 </td>
                               </tr>
@@ -1035,12 +1153,27 @@ export default function ClassStudentMgmt({
 
                     {/* Active educator login indicator details if available */}
                     {currentUser && (
-                      <div className="text-[10px] bg-indigo-50/50 border border-indigo-100/30 p-2.5 rounded-lg flex items-center gap-1.5">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                        </span>
-                        <span className="text-slate-500 font-medium">អ្នកកំពុងភ្ជាប់ក្នុងប្រព័ន្ធជា៖ <strong>{currentUser.name}</strong> ({currentUser.role === 'principal' ? 'នាយក' : 'គ្រូ'}) </span>
+                      <div className="text-[10px] bg-indigo-50/50 border border-indigo-100/30 p-2.5 rounded-lg flex flex-col gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                          <span className="text-slate-500 font-medium">អ្នកកំពុងភ្ជាប់ក្នុងប្រព័ន្ធជា៖ <strong>{currentUser.name}</strong> ({currentUser.role === 'principal' ? 'នាយក' : 'គ្រូ'}) </span>
+                        </div>
+                        
+                        {/* Edit teacher button if principal or if current user is the teacher of this class */}
+                        {(currentUser?.role === 'principal' || (currentUser?.role === 'teacher' && currentUser.grade === selectedRosterGrade)) && (
+                          <button
+                            onClick={handleOpenEditTeacher}
+                            className="w-full mt-1.5 py-1.5 px-3 bg-white hover:bg-slate-50 text-indigo-750 hover:text-indigo-850 border border-slate-200 hover:border-slate-300 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                            title="កែសម្រួលប្រវត្តិរូប និងព័ត៌មានរបស់លោកគ្រូ-អ្នកគ្រូ"
+                            type="button"
+                          >
+                            <Edit3 size={11} className="text-indigo-600" />
+                            កែប្រែព័ត៌មានគ្រូ
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1132,6 +1265,68 @@ export default function ClassStudentMgmt({
 
               </div>
 
+            </div>
+          )}
+
+          {/* Teacher Editor Modal overlay */}
+          {isEditingTeacher && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-fadeIn">
+              <div className="bg-white border border-slate-150 rounded-2xl p-6 shadow-2xl w-full max-w-md space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <span className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
+                    📝 កែប្រែព័ត៌មានគ្រូ ({teacherEditGrade === 'principal' ? 'នាយកសាលា' : teacherEditGrade})
+                  </span>
+                  <button 
+                    type="button"
+                    onClick={() => setIsEditingTeacher(false)} 
+                    className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-650 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveTeacherLocal} className="space-y-4 text-xs font-semibold">
+                  <div>
+                    <label className="block text-slate-500 mb-1">ឈ្មោះគ្រូបន្ទុកថ្នាក់</label>
+                    <input
+                      type="text"
+                      required
+                      value={teacherEditName}
+                      onChange={(e) => setTeacherEditName(e.target.value)}
+                      placeholder="ឧ. លោកគ្រូ សុខ វិបុល"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-slate-800 font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-500 mb-1">ជីវប្រវត្តិសង្ខេប / ព័ត៌មានលម្អិត</label>
+                    <textarea
+                      required
+                      rows={3}
+                      value={teacherEditDesc}
+                      onChange={(e) => setTeacherEditDesc(e.target.value)}
+                      placeholder="ឧ. គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្ស..."
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-slate-800 font-medium leading-relaxed"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingTeacher(false)}
+                      className="px-3 py-2 bg-slate-100 text-slate-500 hover:bg-slate-200 rounded-lg"
+                    >
+                      បោះបង់
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                    >
+                      រក្សាទុកព័ត៌មាន
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
         </div>

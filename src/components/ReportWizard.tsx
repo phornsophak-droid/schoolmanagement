@@ -71,7 +71,24 @@ export default function ReportWizard({
   grades,
   currentUser
 }: ReportWizardProps) {
-  const gradesList = grades || ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦'];
+  const gradesList = grades || [
+    'មត្តេយ្យ ១',
+    'មត្តេយ្យ ២',
+    'ថ្នាក់ទី ១ក',
+    'ថ្នាក់ទី ១ខ',
+    'ថ្នាក់ទី ២ក',
+    'ថ្នាក់ទី ២ខ',
+    'ថ្នាក់ទី ៣ក',
+    'ថ្នាក់ទី ៣ខ',
+    'ថ្នាក់ទី ៤ក',
+    'ថ្នាក់ទី ៤ខ',
+    'ថ្នាក់ទី ៥ក',
+    'ថ្នាក់ទី ៥ខ',
+    'ថ្នាក់ភាសាអង់គ្លេស',
+    'ថ្នាក់គំនូរ',
+    'ថ្នាក់កីឡា និងអប់រំកាយ',
+    'ថ្នាក់អប់រំសុខភាព'
+  ];
   const [currentStep, setCurrentStep] = useState(1);
 
   // --- Step 1: General Info states ---
