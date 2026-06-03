@@ -61,7 +61,13 @@ import MobilePortal from './components/MobilePortal';
 
 export default function App() {
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal'>(() => {
+    const isMobile = typeof window !== 'undefined' && (
+      window.innerWidth < 768 || 
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    );
+    return isMobile ? 'mobile-portal' : 'dashboard';
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Supabase connection panel active states
@@ -122,7 +128,12 @@ export default function App() {
         const parsed = JSON.parse(cachedUser);
         setCurrentUser(parsed);
         if (parsed.role === 'teacher') {
-          setActiveView('gradebook');
+          const isMobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          if (!isMobile) {
+            setActiveView('gradebook');
+          } else {
+            setActiveView('mobile-portal');
+          }
           setSelectedGrade(parsed.grade);
         }
       } catch (e) {
