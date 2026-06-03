@@ -1518,8 +1518,8 @@ export default function ClassStudentMgmt({
                               <span className="text-slate-800">២០២៥ - ២០២៦</span>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span>រដ្ឋបាលខេត្ត៖</span>
-                              <span className="text-slate-800">ខេត្តកណ្ដាល</span>
+                              <span>អង្គការ / ស្ថាប័ន៖</span>
+                              <span className="text-slate-800">អង្គការមូលនិធិដើម្បីកុមារកម្ពុជា (ខេមឃីត)</span>
                             </div>
                           </div>
                         </div>
