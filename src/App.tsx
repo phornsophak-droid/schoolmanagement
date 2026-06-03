@@ -27,7 +27,8 @@ import {
   Settings,
   RefreshCw,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  ClipboardCheck
 } from 'lucide-react';
 
 import { StudentScore, SchoolReport, SchoolUser } from './types';
@@ -57,11 +58,12 @@ import ReportsHub from './components/ReportsHub';
 import LoginPortal from './components/LoginPortal';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
 import MobilePortal from './components/MobilePortal';
+import DailyAttendance from './components/DailyAttendance';
 
 
 export default function App() {
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal'>(() => {
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance'>(() => {
     const isMobile = typeof window !== 'undefined' && (
       window.innerWidth < 768 || 
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -773,6 +775,21 @@ export default function App() {
           </button>
 
           <button
+            id="nav_attendance_tab"
+            onClick={() => setActiveView('attendance')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'attendance'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <ClipboardCheck size={16} className={activeView === 'attendance' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>វត្តមានសិស្សប្រចាំថ្ងៃ</span>
+            </div>
+          </button>
+
+          <button
             id="nav_class_mgmt_tab"
             onClick={() => setActiveView('class-mgmt')}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -955,6 +972,23 @@ export default function App() {
                   <div className="flex items-center gap-3">
                     <GraduationCap size={16} />
                     <span>តារាងពិន្ទុសិស្ស</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveView('attendance');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
+                    activeView === 'attendance'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
+                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck size={16} />
+                    <span>វត្តមានសិស្សប្រចាំថ្ងៃ</span>
                   </div>
                 </button>
 
@@ -1218,6 +1252,22 @@ export default function App() {
                       onDeleteGrade={handleDeleteGrade}
                       onRenameGrade={handleRenameGrade}
                       currentUser={currentUser}
+                    />
+                  </motion.div>
+                )}
+
+                {activeView === 'attendance' && (
+                  <motion.div
+                    key="attendance"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <DailyAttendance
+                      students={students}
+                      currentUser={currentUser}
+                      grades={grades}
                     />
                   </motion.div>
                 )}
