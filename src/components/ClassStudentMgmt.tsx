@@ -277,6 +277,11 @@ export default function ClassStudentMgmt({
         alert('បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានសិស្សដោយជោគជ័យ ចំពោះគ្រប់ខែសិក្សាទាំងអស់!');
       }
     } else {
+      if (currentUser?.role !== 'principal') {
+         alert('មានតែនាយកសាលាប៉ុណ្ណោះ ដែលមានសិទ្ធិចុះឈ្មោះសិស្សថ្មី។');
+         return;
+      }
+      
       // Create new student profile
       // Check if student with same name/grade already exists
       const exists = uniqueStudentProfiles.some(s => s.name.toLowerCase() === name.toLowerCase() && s.grade === studentFormGrade);
@@ -518,6 +523,10 @@ export default function ClassStudentMgmt({
 
   // Local Excel/CSV parser from computer supporting XLS, XLSX and CSV
   const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (currentUser?.role !== 'principal') {
+      alert('មានតែនាយកសាលាប៉ុណ្ណោះ ដែលមានសិទ្ធិនាំចូលបញ្ជីឈ្មោះសិស្សថ្មីពីរុក្ខកាសែត (Excel) បាន។');
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -1239,7 +1248,7 @@ export default function ClassStudentMgmt({
                   <div className="space-y-1">
                     <p className="font-extrabold flex items-center gap-1">សិទ្ធិគ្រប់គ្រងសិស្សថ្នាក់រៀនផ្ទាល់ខ្លួន (Classroom Management Mode)</p>
                     <p className="leading-relaxed text-[11px] font-medium">
-                      លោកអ្នកកំពុងតភ្ជាប់ជា <span className="font-bold">«គ្រូបន្ទុកថ្នាក់ {currentUser.grade}»</span>។ លោកអ្នកមានសិទ្ធពេញលេញក្នុងការចុះឈ្មោះសិស្សថ្មី កែសម្រួល និងលុបឈ្មោះសិស្សានុសិស្ស ក៏ដូចជាកែប្រែព័ត៌មានគ្រូ និងសិស្សនៅក្នុង <span className="font-bold">{currentUser.grade}</span> របស់លោកអ្នកផ្ទាល់។
+                      លោកអ្នកកំពុងតភ្ជាប់ជា <span className="font-bold">«គ្រូបន្ទុកថ្នាក់ {currentUser.grade}»</span>។ លោកអ្នកមានសិទ្ធពេញលេញក្នុងការកែសម្រួល និងលុបឈ្មោះសិស្សានុសិស្ស ក៏ដូចជាកែប្រែព័ត៌មានគ្រូ និងសិស្សនៅក្នុង <span className="font-bold">{currentUser.grade}</span> របស់លោកអ្នកផ្ទាល់។ (ការចុះឈ្មោះសិស្សថ្មី តម្រូវឱ្យនាយកជាអ្នកបញ្ចូល)
                     </p>
                   </div>
                 </div>
@@ -1259,7 +1268,7 @@ export default function ClassStudentMgmt({
                         ការទាញយក និង បញ្ចូលបញ្ជីឈ្មោះសិស្ស (Excel .csv)
                       </span>
                       <p className="text-slate-400 text-[10px] leading-relaxed">
-                        អ្នកអាចទាញយកឈ្មោះសិស្សបច្ចុប្បន្នទុកជាឯកសារ Excel ឬបញ្ចូលឯកសារសិស្សថ្មីពីកុំព្យូទ័ររបស់អ្នក។
+                        អ្នកអាចទាញយកឈ្មោះសិស្សបច្ចុប្បន្នទុកជាឯកសារ Excel {currentUser?.role === 'principal' ? 'ឬបញ្ចូលឯកសារសិស្សថ្មីពីកុំព្យូទ័ររបស់អ្នក។' : '។'}
                       </p>
                     </div>
 
@@ -1273,14 +1282,16 @@ export default function ClassStudentMgmt({
                         ទាញយកតារាងឈ្មោះ
                       </button>
 
-                      <button
-                        onClick={handleTriggerFileInput}
-                        className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200/80 rounded-lg font-semibold transition-all inline-flex items-center gap-1 shadow-3xs"
-                        title="បញ្ចូលបញ្ជីឈ្មោះពីកុំព្យូទ័ររបស់អ្នក"
-                      >
-                        <Upload size={13} />
-                        នាំចូលពីកុំព្យូទ័រ
-                      </button>
+                      {currentUser?.role === 'principal' && (
+                        <button
+                          onClick={handleTriggerFileInput}
+                          className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200/80 rounded-lg font-semibold transition-all inline-flex items-center gap-1 shadow-3xs"
+                          title="បញ្ចូលបញ្ជីឈ្មោះពីកុំព្យូទ័ររបស់អ្នក"
+                        >
+                          <Upload size={13} />
+                          នាំចូលពីកុំព្យូទ័រ
+                        </button>
+                      )}
 
                       {/* Hidden File input selector */}
                       <input
@@ -1415,14 +1426,18 @@ export default function ClassStudentMgmt({
                             >
                               <Download size={11} /> ទាញយកគំរូ Excel (.csv)
                             </button>
-                            <span className="text-slate-350">|</span>
-                            <button
-                              type="button"
-                              onClick={handleTriggerFileInput}
-                              className="text-emerald-700 hover:underline font-bold flex items-center gap-0.5"
-                            >
-                              <Upload size={11} /> នាំចូលពី Excel
-                            </button>
+                            {currentUser?.role === 'principal' && (
+                              <>
+                                <span className="text-slate-350">|</span>
+                                <button
+                                  type="button"
+                                  onClick={handleTriggerFileInput}
+                                  className="text-emerald-700 hover:underline font-bold flex items-center gap-0.5"
+                                >
+                                  <Upload size={11} /> នាំចូលពី Excel
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}

@@ -197,17 +197,32 @@ export default function App() {
       localStorage.setItem('school_grades_v2', JSON.stringify(defaultGradesList));
     }
 
+    // Helper to remove duplicate names in Grade 6
+    const deduplicateStudents = (students: StudentScore[]) => {
+      const seen = new Set<string>();
+      return students.filter(s => {
+        if (s.grade === 'ថ្នាក់ទី ៦' || s.grade === 'ថ្នាក់ទី៦') {
+          const key = `${s.name}_${s.gender}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+        }
+        return true;
+      });
+    };
+
     // Student Scores Hydration
     const cachedScores = localStorage.getItem('school_student_scores_v2');
+    let memoryStudents: StudentScore[] = [];
     if (cachedScores) {
       try {
         const parsed = JSON.parse(cachedScores);
-        const hasOldGrades = parsed.some((s: any) => s.grade === 'ថ្នាក់ទី៦');
-        if (hasOldGrades) {
-          setStudents([]);
-          localStorage.setItem('school_student_scores_v2', JSON.stringify([]));
-        } else {
-          setStudents(parsed);
+        const deduped = deduplicateStudents(parsed);
+        memoryStudents = deduped;
+        setStudents(deduped);
+        localStorage.setItem('school_student_scores_v2', JSON.stringify(deduped));
+        if (deduped.length !== parsed.length) {
+           syncGradesBulk(grades); // sync fallback maybe, wait we need to sync students.
+           // actually we will do bulk sync below if there's supabase
         }
       } catch (e) {
         console.error('Failed to parse students list', e);
@@ -247,8 +262,12 @@ export default function App() {
         syncFetchAll()
           .then(data => {
             if (data.students && data.students.length > 0) {
-              setStudents(data.students);
-              localStorage.setItem('school_student_scores_v2', JSON.stringify(data.students));
+              const dedupedStuds = deduplicateStudents(data.students);
+              setStudents(dedupedStuds);
+              localStorage.setItem('school_student_scores_v2', JSON.stringify(dedupedStuds));
+              if (dedupedStuds.length !== data.students.length) {
+                syncUpsertStudentsBulk(dedupedStuds).catch(console.error);
+              }
             }
             if (data.reports && data.reports.length > 0) {
               setReports(data.reports);
@@ -273,8 +292,9 @@ export default function App() {
               const refreshData = () => {
                 syncFetchAll().then(newData => {
                   if (newData.students) {
-                    setStudents(newData.students);
-                    localStorage.setItem('school_student_scores_v2', JSON.stringify(newData.students));
+                    const dedupedStuds = deduplicateStudents(newData.students);
+                    setStudents(dedupedStuds);
+                    localStorage.setItem('school_student_scores_v2', JSON.stringify(dedupedStuds));
                   }
                   if (newData.reports) {
                     setReports(newData.reports);
