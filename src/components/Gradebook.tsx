@@ -1265,25 +1265,9 @@ export default function Gradebook({
                   <th className="px-3 py-3">ឈ្មោះសិស្ស</th>
                   <th className="px-3 py-3 text-center">ភេទ</th>
                   <th className="px-3 py-3 text-center">ថ្នាក់សិក្សា</th>
-                  {selectedSemester === '1' ? (
-                    <>
-                      <th className="px-2 py-3 text-center font-normal">មករា</th>
-                      <th className="px-2 py-3 text-center font-normal">កុម្ភៈ</th>
-                      <th className="px-2 py-3 text-center font-normal">មីនា</th>
-                      <th className="px-2 py-3 text-center font-normal">មេសា</th>
-                      <th className="px-2 py-3 text-center font-normal">ឧសភា</th>
-                      <th className="px-2 py-3 text-center font-normal">មិថុនា</th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="px-2 py-3 text-center font-normal">កក្កដា</th>
-                      <th className="px-2 py-3 text-center font-normal">សីហា</th>
-                      <th className="px-2 py-3 text-center font-normal">កញ្ញា</th>
-                      <th className="px-2 py-3 text-center font-normal">តុលា</th>
-                      <th className="px-2 py-3 text-center font-normal">វិច្ឆិកា</th>
-                      <th className="px-2 py-3 text-center font-normal">ធ្នូ</th>
-                    </>
-                  )}
+                  {(selectedSemester === '1' ? SEMESTER_1_MONTHS : SEMESTER_2_MONTHS).map(m => (
+                    <th key={m} className="px-2 py-3 text-center font-normal">{m}</th>
+                  ))}
                   <th className="px-3 py-3 text-center bg-indigo-50/30 text-indigo-700">មធ្យមភាគប្រចាំខែ</th>
                   <th className="px-3 py-3 text-center bg-blue-50/30 text-blue-700">ពិន្ទុប្រឡងឆមាស</th>
                   <th className="px-3 py-3 text-center bg-indigo-600 text-white font-extrabold">មធ្យមភាគឆមាស</th>
