@@ -168,17 +168,16 @@ export default function Dashboard({
     let totalScoreSum = 0;
     let failCount = 0;
     
-    // For overall passing, we might still want to count every exam/month instance in the dataset.
-    // We will use the raw filtered group for fail metrics or score sums.
-    filteredStudents.forEach(s => {
+    // We will use uniqueProfiles for all metrics to ensure Total = Pass + Fail
+    uniqueProfiles.forEach(s => {
       totalScoreSum += s.overallAvg;
       if (s.result === 'ធ្លាក់') {
         failCount++;
       }
     });
 
-    const averageScore = filteredStudents.length > 0 ? parseFloat((totalScoreSum / filteredStudents.length).toFixed(2)) : 0;
-    const passCount = filteredStudents.length - failCount;
+    const averageScore = uniqueProfiles.length > 0 ? parseFloat((totalScoreSum / uniqueProfiles.length).toFixed(2)) : 0;
+    const passCount = uniqueProfiles.length - failCount;
 
     return {
       totalCount,
@@ -186,7 +185,7 @@ export default function Dashboard({
       averageScore,
       failCount,
       passCount,
-      totalRecordCount: filteredStudents.length // Keep track of the total number of records evaluated
+      totalRecordCount: uniqueProfiles.length
     };
   }, [filteredStudents]);
 
@@ -301,9 +300,9 @@ export default function Dashboard({
             <Award size={24} />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-400">មធ្យមភាគពិន្ទុរួម</p>
+            <p className="text-xs font-medium text-slate-400">សិស្សជាប់មធ្យមភាគ</p>
             <h3 className="text-2xl font-bold text-amber-600 mt-1 font-mono">
-              {stats.averageScore} <span className="text-sm font-normal text-slate-500">/១០</span>
+              {stats.passCount} <span className="text-sm font-normal text-slate-500">នាក់</span>
             </h3>
             <p className="text-[10px] text-slate-400 mt-1.5">ផ្អែកលើការវាយតម្លៃគ្រប់មុខវិជ្ជា</p>
           </div>
