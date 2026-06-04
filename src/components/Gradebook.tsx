@@ -798,7 +798,6 @@ export default function Gradebook({
                       min="0"
                       max="10"
                       step="0.1"
-                      required
                       value={khmerListening}
                       onChange={(e) => setKhmerListening(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 font-mono text-center"
@@ -811,7 +810,6 @@ export default function Gradebook({
                       min="0"
                       max="10"
                       step="0.1"
-                      required
                       value={khmerSpeaking}
                       onChange={(e) => setKhmerSpeaking(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 font-mono text-center"
@@ -824,7 +822,6 @@ export default function Gradebook({
                       min="0"
                       max="10"
                       step="0.1"
-                      required
                       value={khmerReading}
                       onChange={(e) => setKhmerReading(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 font-mono text-center"
@@ -837,7 +834,6 @@ export default function Gradebook({
                       min="0"
                       max="10"
                       step="0.1"
-                      required
                       value={khmerWriting}
                       onChange={(e) => setKhmerWriting(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 font-mono text-center"
@@ -857,7 +853,6 @@ export default function Gradebook({
                       min="0"
                       max="10"
                       step="0.1"
-                      required
                       value={mathNumbers}
                       onChange={(e) => setMathNumbers(e.target.value)}
                       className="w-full px-2 py-1.25 border border-slate-200 rounded-md outline-none focus:border-blue-500 font-mono text-center"
@@ -870,7 +865,6 @@ export default function Gradebook({
                       min="0"
                       max="10"
                       step="0.1"
-                      required
                       value={mathMeasurement}
                       onChange={(e) => setMathMeasurement(e.target.value)}
                       className="w-full px-2 py-1.25 border border-slate-200 rounded-md outline-none focus:border-blue-500 font-mono text-center"
@@ -883,7 +877,6 @@ export default function Gradebook({
                       min="0"
                       max="10"
                       step="0.1"
-                      required
                       value={mathGeometry}
                       onChange={(e) => setMathGeometry(e.target.value)}
                       className="w-full px-2 py-1.25 border border-slate-200 rounded-md outline-none focus:border-blue-500 font-mono text-center"
@@ -896,7 +889,6 @@ export default function Gradebook({
                       min="0"
                       max="10"
                       step="0.1"
-                      required
                       value={mathAlgebra}
                       onChange={(e) => setMathAlgebra(e.target.value)}
                       className="w-full px-2 py-1.25 border border-slate-200 rounded-md outline-none focus:border-blue-500 font-mono text-center"
@@ -909,7 +901,6 @@ export default function Gradebook({
                       min="0"
                       max="10"
                       step="0.1"
-                      required
                       value={mathStatistics}
                       onChange={(e) => setMathStatistics(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-slate-200 rounded-md outline-none focus:border-blue-500 font-mono text-center"
@@ -931,7 +922,6 @@ export default function Gradebook({
                     min="0"
                     max="10"
                     step="0.1"
-                    required
                     value={science}
                     onChange={(e) => setScience(e.target.value)}
                     className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-center"
@@ -945,7 +935,6 @@ export default function Gradebook({
                     min="0"
                     max="10"
                     step="0.1"
-                    required
                     value={socialStudies}
                     onChange={(e) => setSocialStudies(e.target.value)}
                     className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-center"
@@ -959,7 +948,6 @@ export default function Gradebook({
                     min="0"
                     max="10"
                     step="0.1"
-                    required
                     value={physicalEducation}
                     onChange={(e) => setPhysicalEducation(e.target.value)}
                     className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-center"
@@ -973,7 +961,6 @@ export default function Gradebook({
                     min="0"
                     max="10"
                     step="0.1"
-                    required
                     value={health}
                     onChange={(e) => setHealth(e.target.value)}
                     className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-center"
@@ -987,7 +974,6 @@ export default function Gradebook({
                     min="0"
                     max="10"
                     step="0.1"
-                    required
                     value={lifeSkills}
                     onChange={(e) => setLifeSkills(e.target.value)}
                     className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-center"
@@ -1001,7 +987,6 @@ export default function Gradebook({
                     min="0"
                     max="10"
                     step="0.1"
-                    required
                     value={foreignLanguage}
                     onChange={(e) => setForeignLanguage(e.target.value)}
                     className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-center"
@@ -1491,7 +1476,6 @@ export default function Gradebook({
                   min="0"
                   max="10"
                   step="0.01"
-                  required
                   value={examScoreInput}
                   onChange={(e) => setExamScoreInput(e.target.value)}
                   className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-slate-800 font-mono font-bold"
