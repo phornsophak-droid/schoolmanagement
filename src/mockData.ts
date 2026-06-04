@@ -28,31 +28,38 @@ export function generateUniqueId(): string {
 export function calculateStudentFields(
   student: Omit<StudentScore, 'khmerAvg' | 'mathAvg' | 'overallAvg' | 'totalScore' | 'gradeLetter' | 'result'>
 ): StudentScore {
-  const khmerScores = [student.khmer.listening, student.khmer.writing, student.khmer.reading, student.khmer.speaking].filter(s => s !== null) as number[];
-  const khmerAvg = khmerScores.length > 0 ? clampScore(khmerScores.reduce((a, b) => a + b, 0) / khmerScores.length) : 0;
+  const khmerScores = [student.khmer.listening, student.khmer.writing, student.khmer.reading, student.khmer.speaking].filter(s => s !== null && s !== undefined) as number[];
+  const khmerAvg = khmerScores.length > 0 ? clampScore(khmerScores.reduce((a, b) => a + b, 0) / khmerScores.length) : null;
   
-  const mathScores = [student.math.numbers, student.math.measurement, student.math.geometry, student.math.algebra, student.math.statistics].filter(s => s !== null) as number[];
-  const mathAvg = mathScores.length > 0 ? clampScore(mathScores.reduce((a, b) => a + b, 0) / mathScores.length) : 0;
+  const mathScores = [student.math.numbers, student.math.measurement, student.math.geometry, student.math.algebra, student.math.statistics].filter(s => s !== null && s !== undefined) as number[];
+  const mathAvg = mathScores.length > 0 ? clampScore(mathScores.reduce((a, b) => a + b, 0) / mathScores.length) : null;
 
   const validSubjects: (number | null)[] = [];
-  if (khmerScores.length > 0) validSubjects.push(khmerAvg);
-  if (mathScores.length > 0) validSubjects.push(mathAvg);
+  if (khmerAvg !== null) validSubjects.push(khmerAvg);
+  else validSubjects.push(null);
+  if (mathAvg !== null) validSubjects.push(mathAvg);
+  else validSubjects.push(null);
   validSubjects.push(student.science, student.socialStudies, student.physicalEducation, student.health, student.lifeSkills, student.foreignLanguage);
 
-  const subjects = validSubjects.filter(s => s !== null) as number[];
+  const subjects = validSubjects.filter(s => s !== null && s !== undefined) as number[];
 
   const sumScore = subjects.reduce((sum, s) => sum + s, 0);
-  const overallAvg = subjects.length > 0 ? clampScore(sumScore / subjects.length) : 0;
+  const overallAvg = subjects.length > 0 ? clampScore(sumScore / subjects.length) : null;
   const totalScore = subjects.length > 0 ? parseFloat(sumScore.toFixed(2)) : undefined;
 
-  let gradeLetter = 'F';
-  if (overallAvg >= 9.0) gradeLetter = 'A';
-  else if (overallAvg >= 8.0) gradeLetter = 'B';
-  else if (overallAvg >= 7.0) gradeLetter = 'C';
-  else if (overallAvg >= 6.0) gradeLetter = 'D';
-  else if (overallAvg >= 5.0) gradeLetter = 'E';
+  let gradeLetter = '-';
+  let result: 'ជាប់' | 'ធ្លាក់' | '-' = '-';
+  
+  if (overallAvg !== null) {
+    if (overallAvg >= 9.0) gradeLetter = 'A';
+    else if (overallAvg >= 8.0) gradeLetter = 'B';
+    else if (overallAvg >= 7.0) gradeLetter = 'C';
+    else if (overallAvg >= 6.0) gradeLetter = 'D';
+    else if (overallAvg >= 5.0) gradeLetter = 'E';
+    else gradeLetter = 'F';
 
-  const result = overallAvg >= 5.0 ? 'ជាប់' : 'ធ្លាក់';
+    result = overallAvg >= 5.0 ? 'ជាប់' : 'ធ្លាក់';
+  }
 
   return {
     ...student,

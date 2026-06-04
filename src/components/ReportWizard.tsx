@@ -246,7 +246,7 @@ export default function ReportWizard({
       let poor = 0;
 
       list.forEach(st => {
-        let score = 0;
+        let score: number | null = null;
         if (subj === 'ភាសាខ្មែរ') score = st.khmerAvg;
         else if (subj === 'គណិតវិទ្យា') score = st.mathAvg;
         else if (subj === 'វិទ្យាសាស្ត្រ') score = st.science;
@@ -256,11 +256,13 @@ export default function ReportWizard({
         else if (subj === 'សុខភាព') score = st.health;
         else if (subj === 'បំណិនជីវិត') score = st.lifeSkills;
 
-        if (score >= 9.0) excellent++;
-        else if (score >= 8.0) good++;
-        else if (score >= 6.5) fair++;
-        else if (score >= 5.0) average++;
-        else poor++;
+        if (score !== null && score !== undefined) {
+          if (score >= 9.0) excellent++;
+          else if (score >= 8.0) good++;
+          else if (score >= 6.5) fair++;
+          else if (score >= 5.0) average++;
+          else poor++;
+        }
       });
 
       return {

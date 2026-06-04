@@ -34,12 +34,12 @@ export interface StudentScore {
   foreignLanguage: number | null; // ភាសាបរទេស (0-10)
   
   // Computed values
-  khmerAvg: number;
-  mathAvg: number;
-  overallAvg: number;
+  khmerAvg: number | null;
+  mathAvg: number | null;
+  overallAvg: number | null;
   totalScore?: number;
   gradeLetter: string; // A - F
-  result: 'ជាប់' | 'ធ្លាក់';
+  result: 'ជាប់' | 'ធ្លាក់' | '-';
   ranking?: number;
   status?: 'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់';
 }
