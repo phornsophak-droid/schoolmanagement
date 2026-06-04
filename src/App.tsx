@@ -175,15 +175,22 @@ export default function App() {
     if (cachedGrades) {
       try {
         const parsed = JSON.parse(cachedGrades);
-        if (!parsed.includes('មត្តេយ្យ ១')) {
-          setGrades(defaultGradesList);
-          localStorage.setItem('school_grades_v2', JSON.stringify(defaultGradesList));
-        } else {
-          setGrades(parsed);
+        const merged = [...parsed];
+        let hasChanges = false;
+        defaultGradesList.forEach(g => {
+          if (!merged.includes(g)) {
+            merged.push(g);
+            hasChanges = true;
+          }
+        });
+        setGrades(merged);
+        if (hasChanges) {
+          localStorage.setItem('school_grades_v2', JSON.stringify(merged));
         }
       } catch (e) {
         console.error('Failed to parse grades', e);
         setGrades(defaultGradesList);
+        localStorage.setItem('school_grades_v2', JSON.stringify(defaultGradesList));
       }
     } else {
       setGrades(defaultGradesList);
