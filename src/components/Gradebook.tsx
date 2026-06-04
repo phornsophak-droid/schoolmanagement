@@ -1183,23 +1183,23 @@ export default function Gradebook({
                         <td className="px-4 py-3 text-center text-slate-500">{st.grade}</td>
                         <td className="px-4 py-3 text-center text-slate-500 font-medium">{st.month}</td>
                         <td className="px-4 py-3 text-center font-mono">
-                          {[st.khmer.listening, st.khmer.writing, st.khmer.reading, st.khmer.speaking].some(s => s !== null) ? st.khmerAvg : '-'} 
+                          {[st.khmer.listening, st.khmer.writing, st.khmer.reading, st.khmer.speaking].some(s => s !== null && s !== undefined) ? st.khmerAvg : '-'} 
                           <span className="text-[9px] text-slate-400 block font-normal">
-                            ({st.khmer.listening !== null ? st.khmer.listening : '-'}/{st.khmer.writing !== null ? st.khmer.writing : '-'}/{st.khmer.reading !== null ? st.khmer.reading : '-'}/{st.khmer.speaking !== null ? st.khmer.speaking : '-'})
+                            ({st.khmer.listening !== null && st.khmer.listening !== undefined ? st.khmer.listening : '-'}/{st.khmer.writing !== null && st.khmer.writing !== undefined ? st.khmer.writing : '-'}/{st.khmer.reading !== null && st.khmer.reading !== undefined ? st.khmer.reading : '-'}/{st.khmer.speaking !== null && st.khmer.speaking !== undefined ? st.khmer.speaking : '-'})
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center font-mono">
-                          {[st.math.numbers, st.math.measurement, st.math.geometry, st.math.algebra, st.math.statistics].some(s => s !== null) ? st.mathAvg : '-'}
+                          {[st.math.numbers, st.math.measurement, st.math.geometry, st.math.algebra, st.math.statistics].some(s => s !== null && s !== undefined) ? st.mathAvg : '-'}
                           <span className="text-[9px] text-slate-400 block font-normal">
-                            ({st.math.numbers !== null ? st.math.numbers : '-'}/{st.math.measurement !== null ? st.math.measurement : '-'}/{st.math.geometry !== null ? st.math.geometry : '-'}/{st.math.algebra !== null ? st.math.algebra : '-'}/{st.math.statistics !== null ? st.math.statistics : '-'})
+                            ({st.math.numbers !== null && st.math.numbers !== undefined ? st.math.numbers : '-'}/{st.math.measurement !== null && st.math.measurement !== undefined ? st.math.measurement : '-'}/{st.math.geometry !== null && st.math.geometry !== undefined ? st.math.geometry : '-'}/{st.math.algebra !== null && st.math.algebra !== undefined ? st.math.algebra : '-'}/{st.math.statistics !== null && st.math.statistics !== undefined ? st.math.statistics : '-'})
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.science !== null ? st.science : '-'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.socialStudies !== null ? st.socialStudies : '-'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.physicalEducation !== null ? st.physicalEducation : '-'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.health !== null ? st.health : '-'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.lifeSkills !== null ? st.lifeSkills : '-'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.foreignLanguage !== null ? st.foreignLanguage : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.science !== null && st.science !== undefined ? st.science : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.socialStudies !== null && st.socialStudies !== undefined ? st.socialStudies : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.physicalEducation !== null && st.physicalEducation !== undefined ? st.physicalEducation : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.health !== null && st.health !== undefined ? st.health : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.lifeSkills !== null && st.lifeSkills !== undefined ? st.lifeSkills : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.foreignLanguage !== null && st.foreignLanguage !== undefined ? st.foreignLanguage : '-'}</td>
                         <td className="px-4 py-3 text-center font-mono font-bold text-blue-600 bg-blue-50/30">
                           {st.totalScore !== undefined ? st.totalScore : '-'}
                         </td>
