@@ -1312,24 +1312,26 @@ export default function ClassStudentMgmt({
 
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {selectedRosterGrade !== 'ទាំងអស់' ? (
-                        <>
-                          <button
-                            onClick={handleAddSampleStudents}
-                            className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/50 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
-                          >
-                            💡 បន្ថែមសិស្សគំរូ
-                          </button>
+                        currentUser?.role === 'principal' && (
+                          <>
+                            <button
+                              onClick={handleAddSampleStudents}
+                              className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/50 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
+                            >
+                              💡 បន្ថែមសិស្សគំរូ
+                            </button>
 
-                          <button
-                            onClick={handleClearAllStudentsInActiveGrade}
-                            className="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/50 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
-                            title="លុបសិស្សទាំងអស់ក្នុងថ្នាក់រៀននេះ"
-                          >
-                            🗑️ លុបសិស្សទាំងអស់
-                          </button>
-                        </>
+                            <button
+                              onClick={handleClearAllStudentsInActiveGrade}
+                              className="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/50 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
+                              title="លុបសិស្សទាំងអស់ក្នុងថ្នាក់រៀននេះ"
+                            >
+                              🗑️ លុបសិស្សទាំងអស់
+                            </button>
+                          </>
+                        )
                       ) : (
-                        currentUser?.role !== 'teacher' && (
+                        currentUser?.role === 'principal' && (
                           <button
                             onClick={handleClearAllStudentsGlobally}
                             className="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/50 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
@@ -1340,13 +1342,15 @@ export default function ClassStudentMgmt({
                         )
                       )}
 
-                      <button
-                        onClick={handleOpenAddStudent}
-                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-2xs"
-                      >
-                        <UserPlus size={12} />
-                        ចុះឈ្មោះសិស្ស
-                      </button>
+                      {currentUser?.role === 'principal' && (
+                        <button
+                          onClick={handleOpenAddStudent}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-2xs"
+                        >
+                          <UserPlus size={12} />
+                          ចុះឈ្មោះសិស្ស
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1521,7 +1525,7 @@ export default function ClassStudentMgmt({
                                   )}
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                  {currentUser?.role === 'principal' || (currentUser?.role === 'teacher' && p.grade === currentUser.grade) ? (
+                                  {currentUser?.role === 'principal' ? (
                                     <div className="flex items-center justify-end gap-1.5 animate-fadeIn">
                                       <button
                                         onClick={() => handleOpenEditStudent(p)}
@@ -1607,8 +1611,8 @@ export default function ClassStudentMgmt({
                           <span className="text-slate-500 font-medium">អ្នកកំពុងភ្ជាប់ក្នុងប្រព័ន្ធជា៖ <strong>{currentUser.name}</strong> ({currentUser.role === 'principal' ? 'នាយក' : 'គ្រូ'}) </span>
                         </div>
                         
-                        {/* Edit teacher button if principal or if current user is the teacher of this class */}
-                        {(currentUser?.role === 'principal' || (currentUser?.role === 'teacher' && currentUser.grade === selectedRosterGrade)) && (
+                        {/* Edit teacher button if principal */}
+                        {currentUser?.role === 'principal' && (
                           <button
                             onClick={handleOpenEditTeacher}
                             className="w-full mt-1.5 py-1.5 px-3 bg-white hover:bg-slate-50 text-indigo-750 hover:text-indigo-850 border border-slate-200 hover:border-slate-300 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"

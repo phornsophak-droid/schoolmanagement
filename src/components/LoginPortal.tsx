@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SchoolUser } from '../types';
+import { getPinForUser } from '../utils/auth';
 import { 
   KeyRound, 
   ShieldAlert, 
@@ -178,13 +179,12 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
     e.preventDefault();
     if (!selectedUser) return;
 
-    // Security Rules: Principal has code '1111', Teachers have code '1234'
-    const correctPin = selectedUser.role === 'principal' ? '1111' : '1234';
+    const correctPin = getPinForUser(selectedUser.id, selectedUser.role);
 
     if (pinCode === correctPin) {
       onLoginSuccess(selectedUser);
     } else {
-      setErrorMsg('លេខកូដសម្ងាត់មិនត្រឹមត្រូវទេ! (នាយក: 1111, លោកគ្រូ-អ្នកគ្រូ: 1234)');
+      setErrorMsg('លេខកូដសម្ងាត់មិនត្រឹមត្រូវទេ!');
     }
   };
 

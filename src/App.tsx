@@ -59,6 +59,7 @@ import LoginPortal from './components/LoginPortal';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
 import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
+import { getPinForUser, setPinForUser } from './utils/auth';
 
 
 export default function App() {
@@ -121,6 +122,12 @@ export default function App() {
   const [isSupabaseConfigOpen, setIsSupabaseConfigOpen] = useState<boolean>(false);
   const [customSupaUrl, setCustomSupaUrl] = useState<string>(localStorage.getItem(CUSTOM_URL_KEY) || '');
   const [customSupaAnon, setCustomSupaAnon] = useState<string>(localStorage.getItem(CUSTOM_ANON_KEY) || '');
+
+  // Change PIN states
+  const [isChangePinOpen, setIsChangePinOpen] = useState(false);
+  const [pinChangeOld, setPinChangeOld] = useState('');
+  const [pinChangeNew, setPinChangeNew] = useState('');
+  const [pinChangeError, setPinChangeError] = useState('');
 
   // 1. Initial State Hydration with safety fallback (LocalStorage)
   useEffect(() => {
@@ -441,6 +448,28 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('school_current_user_v2');
+  };
+
+  const handleChangePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    
+    setPinChangeError('');
+    const currentPin = getPinForUser(currentUser.id, currentUser.role);
+    if (pinChangeOld !== currentPin) {
+      setPinChangeError('លេខកូដចាស់មិនត្រឹមត្រូវទេ!');
+      return;
+    }
+    if (pinChangeNew.length < 4) {
+      setPinChangeError('លេខកូដថ្មីត្រូវមានយ៉ាងហោចណាស់ ៤ ខ្ទង់');
+      return;
+    }
+    
+    setPinForUser(currentUser.id, pinChangeNew);
+    setIsChangePinOpen(false);
+    setPinChangeOld('');
+    setPinChangeNew('');
+    alert('ផ្លាស់ប្តូរលេខកូដសម្ងាត់ (PIN) បានជោគជ័យ!');
   };
 
   // 4. Sync Mutated States to LocalStorage & Supabase Cloud
@@ -893,13 +922,22 @@ export default function App() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              className="p-1.5 hover:bg-slate-800 hover:text-rose-450 text-slate-400 hover:text-rose-400 rounded-lg transition-colors flex-shrink-0"
-              title="ប្តូរគណនី / ចាកចេញ"
-            >
-              <LogOut size={13} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setIsChangePinOpen(true)}
+                className="p-1.5 hover:bg-slate-800 hover:text-amber-400 text-slate-400 rounded-lg transition-colors flex-shrink-0"
+                title="ផ្លាស់ប្តូរលេខកូដ (PIN)"
+              >
+                <Lock size={13} />
+              </button>
+              <button
+                onClick={handleLogout}
+                className="p-1.5 hover:bg-slate-800 hover:text-rose-450 text-slate-400 hover:text-rose-400 rounded-lg transition-colors flex-shrink-0"
+                title="ប្តូរគណនី / ចាកចេញ"
+              >
+                <LogOut size={13} />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
@@ -1084,15 +1122,26 @@ export default function App() {
                       {currentUser?.role === 'principal' ? 'នាយកសាលា' : `${currentUser?.grade}`}
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="p-1 px-2.5 bg-slate-800/80 rounded border border-slate-700 hover:text-rose-400 text-slate-400 text-[10px] font-medium transition-colors flex items-center gap-1"
-                  >
-                    <LogOut size={10} /> ចាកចេញ
-                  </button>
+                  <div className="flex flex-col gap-1.5 ml-2">
+                    <button
+                      onClick={() => {
+                        setIsChangePinOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="p-1 px-2.5 bg-slate-800/80 rounded border border-slate-700 hover:text-amber-400 text-slate-400 text-[10px] font-medium transition-colors flex items-center gap-1 justify-center"
+                    >
+                      <Lock size={10} /> ប្តូរ PIN
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="p-1 px-2.5 bg-slate-800/80 rounded border border-slate-700 hover:text-rose-400 text-slate-400 text-[10px] font-medium transition-colors flex items-center gap-1 justify-center"
+                    >
+                      <LogOut size={10} /> ចាកចេញ
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.aside>
@@ -1811,6 +1860,76 @@ export default function App() {
           <span className="text-[9.5px] tracking-wide font-sans">របាយការណ៍</span>
         </button>
       </div>
+
+      {isChangePinOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+          >
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <Lock size={16} className="text-amber-500" />
+                ផ្លាស់ប្តូរលេខកូដសម្ងាត់ (PIN)
+              </h3>
+              <button 
+                onClick={() => setIsChangePinOpen(false)}
+                className="p-1 hover:bg-slate-200 text-slate-400 rounded-lg transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleChangePinSubmit} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">លេខកូដចាស់</label>
+                <input
+                  type="password"
+                  value={pinChangeOld}
+                  onChange={(e) => setPinChangeOld(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg font-mono text-center tracking-[0.5em] text-sm font-bold outline-none focus:border-blue-500 transition-all text-slate-800"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">លេខកូដថ្មី</label>
+                <input
+                  type="password"
+                  value={pinChangeNew}
+                  onChange={(e) => setPinChangeNew(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg font-mono text-center tracking-[0.5em] text-sm font-bold outline-none focus:border-blue-500 transition-all text-slate-800"
+                  required
+                />
+              </div>
+
+              {pinChangeError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-100 rounded-lg flex items-start gap-2 text-[11px] text-rose-700 font-medium">
+                  <AlertTriangle size={14} className="text-rose-500 flex-shrink-0 mt-0.5" />
+                  <span>{pinChangeError}</span>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsChangePinOpen(false)}
+                  className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-colors"
+                >
+                  បោះបង់
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition-colors shadow-md flex items-center justify-center gap-1"
+                >
+                  <CheckCircle size={14} /> រក្សាទុក
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
     </div>
   );
