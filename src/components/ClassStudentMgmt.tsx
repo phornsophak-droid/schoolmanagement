@@ -19,7 +19,8 @@ import {
   Download,
   Upload,
   FileSpreadsheet,
-  School
+  School,
+  ArrowUpDown
 } from 'lucide-react';
 import { StudentScore, SchoolUser } from '../types';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
@@ -110,6 +111,7 @@ export default function ClassStudentMgmt({
   // Search/Filters states
   const [classSearch, setClassSearch] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
+  const [sortOrder, setSortOrder] = useState<'default' | 'asc' | 'desc'>('default');
   const [selectedRosterGrade, setSelectedRosterGrade] = useState<string>(
     currentUser?.role === 'teacher' ? currentUser.grade : (grades[0] || 'ថ្នាក់ទី៦')
   );
@@ -176,8 +178,14 @@ export default function ClassStudentMgmt({
       list = list.filter(s => s.name.toLowerCase().includes(query));
     }
     
+    if (sortOrder === 'asc') {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'km'));
+    } else if (sortOrder === 'desc') {
+      list = [...list].sort((a, b) => b.name.localeCompare(a.name, 'km'));
+    }
+    
     return list;
-  }, [uniqueStudentProfiles, selectedRosterGrade, studentSearch]);
+  }, [uniqueStudentProfiles, selectedRosterGrade, studentSearch, sortOrder]);
 
   const handleAddClassLocal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1310,6 +1318,18 @@ export default function ClassStudentMgmt({
                         />
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
                       </div>
+                      <button
+                        onClick={() => setSortOrder(prev => prev === 'default' ? 'asc' : prev === 'asc' ? 'desc' : 'default')}
+                        className={`px-2.5 py-1 flex items-center justify-center gap-1 border rounded-lg text-xs font-semibold transition-all ${
+                          sortOrder !== 'default' 
+                            ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                        title="រៀបតាមលំដាប់អក្សរឈ្មោះ"
+                      >
+                        <ArrowUpDown size={12} />
+                        {sortOrder === 'asc' ? 'ក-អ' : sortOrder === 'desc' ? 'អ-ក' : 'លំដាប់លេខ'}
+                      </button>
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-wrap">

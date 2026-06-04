@@ -127,19 +127,26 @@ export default function Gradebook({
 
   // Filter registered students in the active grade to select from when creating scores
   const registeredStudentsInFormGrade = useMemo(() => {
-    const roster: string[] = [];
     const uniqueNames = new Set<string>();
-    // Get unique student profiles in the current formGrade
+    
+    // 1. Get all unique students in this grade (from any month)
     students.forEach(s => {
-      if (s.month !== 'ប្រឡងឆមាសទី១' && s.month !== 'ប្រឡងឆមាសទី២') {
-        if (s.grade === formGrade && !uniqueNames.has(s.name.trim())) {
-          uniqueNames.add(s.name.trim());
-          roster.push(s.name.trim());
-        }
+      if (s.grade === formGrade) {
+        uniqueNames.add(s.name.trim());
       }
     });
-    return roster;
-  }, [students, formGrade]);
+
+    // 2. Remove students who already have a score entry for the currently selected formMonth
+    students.forEach(s => {
+      // If we are currently editing their record, do not remove them from the dropdown!
+      if (s.grade === formGrade && s.month === formMonth && s.id !== editingStudentId) {
+        uniqueNames.delete(s.name.trim());
+      }
+    });
+
+    // Return the sorted list alphabetically
+    return Array.from(uniqueNames).sort((a, b) => a.localeCompare(b, 'km'));
+  }, [students, formGrade, formMonth, editingStudentId]);
 
   // Filter students based on top filter selections
   const filteredStudents = useMemo(() => {
