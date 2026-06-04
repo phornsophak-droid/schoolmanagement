@@ -414,44 +414,45 @@ export default function MobilePortal({
         </div>
 
         {/* 1. Header (Replica of mockup) */}
-        <header className="px-4 pt-9 pb-3.5 bg-[#F0FDF4] flex items-center justify-between border-b border-emerald-100 shrink-0">
-          <div>
-            <h1 className="text-xl font-black font-serif tracking-tight text-emerald-950">
+        <header className="px-4 pt-9 pb-3.5 bg-[#ECFDF5] flex items-center justify-between border-b border-emerald-100 shrink-0">
+          <div className="flex-1">
+            <h1 className="text-2xl font-black tracking-tight text-[#064E3B] font-sans">
               សាលាសហគមន៍ច្បារច្រុះ
             </h1>
-            <p className="text-[11.5px] text-emerald-600 mt-0.5 font-extrabold font-sans">
+            <p className="text-[12.5px] text-[#059669] mt-0.5 font-bold font-sans">
               Chbar Chros Community School
             </p>
           </div>
 
           {/* Right Action Icons in the Header */}
           <div className="flex items-center gap-2">
+            {/* Cambodian Traditional School Emblem Logo */}
+            <div className="w-[45px] h-[34px] overflow-hidden flex items-center justify-center p-0.5 border border-[#34D399]/40 rounded-lg bg-white shadow-2xs">
+              <svg viewBox="0 0 100 100" className="w-full h-full text-emerald-700">
+                <path d="M50 5 L90 35 L50 42 L10 35 Z" fill="#D1FAE5" stroke="#10B981" strokeWidth="2.5" />
+                <rect x="25" y="42" width="50" height="35" fill="#FFFFFF" stroke="#10B981" strokeWidth="2" />
+                <path d="M50 45 L50 77 M35 55 L65 55" stroke="#F59E0B" strokeWidth="2" />
+                <circle cx="50" cy="55" r="8" fill="#FEF3C7" stroke="#D97706" strokeWidth="2" />
+                <text x="50" y="58" fontSize="10" textAnchor="middle" fill="#B45309" fontWeight="bold">ឧ</text>
+                <path d="M15 65 C10 85 45 95 50 90 C55 95 90 85 85 65" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            </div>
+
             {/* Bell/Notification Icon */}
-            <div className="relative p-1.5 rounded-lg bg-emerald-50 border border-emerald-200/60 hover:bg-emerald-100 transition-all cursor-pointer">
-              <span className="w-5 h-5 absolute -top-1.5 -right-1.5 bg-rose-500 rounded-full text-[10px] font-black text-white flex items-center justify-center shadow-xs animate-bounce border-2 border-[#F0FDF4]">
-                S
+            <div className="relative p-1.5 rounded-full bg-emerald-50 border border-emerald-200/50 hover:bg-emerald-100 transition-all cursor-pointer">
+              <span className="w-4.5 h-4.5 absolute -top-1 -right-1 bg-red-500 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs border-2 border-white">
+                3
               </span>
               <span className="text-emerald-800 text-xs">🔔</span>
             </div>
-
-            {/* Dashboard / Mini LayoutGrid Selector Icon */}
-            <button 
-              onClick={() => {
-                setInnerView('home');
-                setShowMenuOverlay(true);
-              }}
-              className="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200/60 text-emerald-700 hover:text-emerald-900 transition-all cursor-pointer"
-            >
-              <Users size={16} className="text-emerald-700" />
-            </button>
           </div>
         </header>
 
         {/* 2. Main Scrollable Container Inside the Phone Body */}
-        <div className="flex-1 overflow-y-auto bg-[#EAF6ED] p-4 pb-20 relative select-none">
+        <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_20%_20%,#E9FDF0,transparent_50%),radial-gradient(circle_at_80%_40%,#FEF9E7,transparent_60%),radial-gradient(circle_at_30%_80%,#ECFDF5,transparent_50%),#E4F4E9] p-4 pb-20 relative select-none">
           <AnimatePresence mode="wait">
             
-            {/* HOME VIEW: 12 Premium Bento-style Light Green Buttons */}
+            {/* HOME VIEW: 10 Premium Bento-style Light Green Buttons */}
             {innerView === 'home' && (
               <motion.div
                 key="home_grid"
@@ -461,28 +462,57 @@ export default function MobilePortal({
                 className="flex flex-col h-full justify-between"
               >
                 {/* School Welcome Card Banner */}
-                <div className="mb-4 bg-gradient-to-r from-emerald-100 to-green-50 p-3.5 border border-emerald-200 rounded-2xl flex items-center gap-3 shadow-3xs">
-                  <span className="text-2xl">🏫</span>
+                <div className="mb-4 bg-[#FAE5D3]/90 p-3.5 border border-[#ECC7A1] rounded-2xl flex items-center gap-3 shadow-3xs">
+                  <div className="w-10 h-10 shrink-0 bg-[#E2AD7E]/20 rounded-xl flex items-center justify-center border border-[#E0A060]/30 shadow-3xs">
+                    <svg viewBox="0 0 64 64" className="w-8 h-8 text-[#A06030]">
+                      <rect x="12" y="28" width="40" height="26" rx="4" fill="#ECC7A1" stroke="#A55A26" strokeWidth="2" />
+                      <polygon points="32,8 6,28 58,28" fill="#F07860" stroke="#C0392B" strokeWidth="2" />
+                      <rect x="25" y="38" width="14" height="16" fill="#5DADE2" stroke="#2E4053" strokeWidth="2" />
+                      <circle cx="32" cy="18" r="4" fill="#F4D03F" stroke="#9A7D0A" strokeWidth="1.5" />
+                    </svg>
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-[13.5px] font-black text-emerald-950 leading-tight">ស្វាគមន៍មកកាន់ប្រព័ន្ធគ្រប់គ្រងសាលា</p>
-                    <p className="text-[11.5px] text-emerald-850 leading-normal mt-0.5">
-                      គណនីបច្ចុប្បន្ន៖ <span className="text-[#E2C785] font-black bg-emerald-950 px-1.5 py-0.5 rounded text-[10px] text-emerald-300 mr-1">{currentUser?.name}</span> 
-                      ({currentUser?.role === 'principal' ? 'នាយកសាលា' : `គ្រូ ${currentUser?.grade}`})
+                    <p className="text-[13px] font-extrabold text-[#7E5109] leading-snug">
+                      គណនីបច្ចុប្បន្ន៖ <span className="font-black">{currentUser?.name || "អ្នកគ្រូ យ៉ាប់ សុខ"}</span>
+                    </p>
+                    <p className="text-[11.5px] text-[#A06D28] leading-normal font-bold">
+                      ({currentUser?.role === 'principal' ? 'នាយកសាលា' : `គ្រូ ${currentUser?.grade || "មតេ្តយ្យ ១"}`})
                     </p>
                   </div>
                 </div>
 
-                {/* 12 Custom-styled Grid buttons requested by user */}
-                <div className="grid grid-cols-2 gap-2.5 pb-4">
+                {/* 10 Custom-styled Grid buttons matching mockup screenshot */}
+                <div className="grid grid-cols-2 gap-3.5 pb-4">
                   {/* Button 1: គ្រប់គ្រងព័ត៌មានទូទៅ */}
                   <button
                     onClick={() => setInnerView('notices')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <Settings className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+                        <Settings className="w-4.5 h-4.5 text-teal-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Gears & Folder */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <path d="M15,35 L45,35 L55,47 L105,47 L105,95 L15,95 Z" fill="#FDE047" stroke="#A16207" strokeWidth="1.5" strokeLinejoin="round" />
+                        <path d="M15,41 L105,41 L105,95 L15,95 Z" fill="#FEF08A" stroke="#A16207" strokeWidth="1.5" strokeLinejoin="round" />
+                        <g transform="translate(68, 55) scale(0.65)">
+                          <circle cx="20" cy="20" r="12" fill="#3B82F6" stroke="#1E3A8A" strokeWidth="2" />
+                          {Array.from({ length: 8 }).map((_, i) => (
+                            <rect key={i} x="16" y="2" width="8" height="12" rx="2" transform={`rotate(${i * 45} 20 20)`} fill="#3B82F6" stroke="#1E3A8A" strokeWidth="2" />
+                          ))}
+                          <circle cx="20" cy="20" r="6" fill="#EFF6FF" />
+                        </g>
+                        <g transform="translate(35, 60) scale(0.7)">
+                          <circle cx="20" cy="20" r="15" fill="#34D399" stroke="#065E3A" strokeWidth="2" />
+                          {Array.from({ length: 10 }).map((_, i) => (
+                            <rect key={i} x="17" y="0" width="6" height="10" rx="1.5" transform={`rotate(${i * 36} 20 20)`} fill="#10B981" stroke="#065E3A" strokeWidth="2" />
+                          ))}
+                          <circle cx="20" cy="20" r="7" fill="#ECFDF5" />
+                        </g>
+                      </svg>
                     </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                    <span className="text-[13px] font-extrabold text-left text-teal-950 leading-tight">
                       គ្រប់គ្រងព័ត៌មានទូទៅ
                     </span>
                   </button>
@@ -490,12 +520,29 @@ export default function MobilePortal({
                   {/* Button 2: តារាងពិន្ទុ */}
                   <button
                     onClick={() => setInnerView('records')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <Award className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <Award className="w-4.5 h-4.5 text-blue-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Trophy & Chart */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="75" y="65" width="10" height="30" fill="#34D399" stroke="#065E3A" strokeWidth="1.5" />
+                        <rect x="90" y="50" width="10" height="45" fill="#10B981" stroke="#065E3A" strokeWidth="1.5" />
+                        <rect x="105" y="32" width="10" height="63" fill="#047857" stroke="#065E3A" strokeWidth="1.5" />
+                        <g transform="translate(25, 25)">
+                          <rect x="15" y="48" width="20" height="8" rx="2" fill="#94A3B8" stroke="#334155" strokeWidth="1.5" />
+                          <polygon points="20,48 30,48 28,38 22,38" fill="#F1F5F9" stroke="#334155" strokeWidth="1.5" />
+                          <path d="M10,12 C10,32 40,32 40,12 Z" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="2" />
+                          <path d="M10,15 L3,15 C-1,15 -1,25 3,25 L10,23" fill="none" stroke="#1D4ED8" strokeWidth="2" strokeLinecap="round" />
+                          <path d="M40,15 L47,15 C51,15 51,25 47,25 L40,23" fill="none" stroke="#1D4ED8" strokeWidth="2" strokeLinecap="round" />
+                          <polygon points="25,12 28,18 35,19 30,23 32,30 25,26 18,30 20,23 15,19 22,18" fill="#FBBF24" />
+                        </g>
+                        <path d="M68,48 L114,30 M114,30 L102,30 M114,30 L114,42" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                     </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                    <span className="text-[13px] font-extrabold text-left text-blue-950 leading-tight">
                       តារាងពិន្ទុ
                     </span>
                   </button>
@@ -503,12 +550,34 @@ export default function MobilePortal({
                   {/* Button 3: វត្តមានប្រចាំថ្ងៃ */}
                   <button
                     onClick={() => setInnerView('attendance-qr')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <QrCode className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                        <QrCode className="w-4.5 h-4.5 text-orange-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Calendar check list */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="25" y="32" width="70" height="63" rx="8" fill="#FFFFFF" stroke="#D97706" strokeWidth="2" />
+                        <path d="M25,40 C25,36 29,32 33,32 L87,32 C91,32 95,36 95,40 L95,48 L25,48 Z" fill="#F97316" stroke="#D97706" strokeWidth="2" />
+                        <circle cx="38" cy="28" r="4" fill="#64748B" />
+                        <circle cx="60" cy="28" r="4" fill="#64748B" />
+                        <circle cx="82" cy="28" r="4" fill="#64748B" />
+                        <circle cx="40" cy="58" r="2.5" fill="#CBD5E1" />
+                        <circle cx="40" cy="70" r="2.5" fill="#CBD5E1" />
+                        <circle cx="40" cy="82" r="2.5" fill="#CBD5E1" />
+                        <circle cx="60" cy="58" r="2.5" fill="#CBD5E1" />
+                        <circle cx="60" cy="70" r="2.5" fill="#F59E0B" />
+                        <circle cx="60" cy="82" r="2.5" fill="#CBD5E1" />
+                        <circle cx="80" cy="58" r="2.5" fill="#CBD5E1" />
+                        <circle cx="80" cy="70" r="2.5" fill="#CBD5E1" />
+                        <circle cx="80" cy="82" r="2.5" fill="#CBD5E1" />
+                        <path d="M36,58 L39,61 L45,55" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M76,58 L79,61 L85,55" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M76,70 L79,73 L85,67" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
                     </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                    <span className="text-[13px] font-extrabold text-left text-orange-950 leading-tight">
                       វត្តមានប្រចាំថ្ងៃ
                     </span>
                   </button>
@@ -516,12 +585,30 @@ export default function MobilePortal({
                   {/* Button 4: គ្រប់គ្រងថ្នាក់ */}
                   <button
                     onClick={() => setInnerView('class-mgmt')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <Users className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                        <Users className="w-4.5 h-4.5 text-purple-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Teacher and Class */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="40" y="25" width="65" height="42" rx="4" fill="#065E3A" stroke="#78350F" strokeWidth="3" />
+                        <path d="M50,38 L55,38 M62,38 L68,44 M50,52 L74,52" fill="none" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" />
+                        <circle cx="85" cy="45" r="5" fill="none" stroke="#FDE047" strokeWidth="1.5" />
+                        <circle cx="48" cy="88" r="9" fill="#1E293B" />
+                        <circle cx="68" cy="92" r="9" fill="#1E293B" />
+                        <circle cx="88" cy="88" r="9" fill="#475569" />
+                        <circle cx="104" cy="94" r="8" fill="#334155" />
+                        <g transform="translate(12, 40)">
+                          <path d="M5,50 C5,40 25,40 25,50 Z" fill="#EC4899" stroke="#9D174D" strokeWidth="1.5" />
+                          <circle cx="15" cy="28" r="10" fill="#FDBA74" stroke="#9D174D" strokeWidth="1.5" />
+                          <path d="M5,26 C5,16 25,16 25,26 C25,20 5,20 5,26 Z" fill="#1E293B" />
+                          <line x1="25" y1="36" x2="42" y2="20" stroke="#78350F" strokeWidth="2" strokeLinecap="round" />
+                        </g>
+                      </svg>
                     </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                    <span className="text-[13px] font-extrabold text-left text-purple-950 leading-tight">
                       គ្រប់គ្រងថ្នាក់
                     </span>
                   </button>
@@ -529,12 +616,34 @@ export default function MobilePortal({
                   {/* Button 5: គ្រប់គ្រងសិស្ស */}
                   <button
                     onClick={() => setInnerView('students-info')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <Contact className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                        <Contact className="w-4.5 h-4.5 text-indigo-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Student Profile folder */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="25" y="32" width="70" height="60" rx="6" fill="#F8FAFC" stroke="#94A3B8" strokeWidth="1.5" />
+                        <path d="M25,38 C25,35 28,32 31,32 L89,32 C92,32 95,35 95,38 L95,42 L25,42 Z" fill="#3B82F6" />
+                        <circle cx="32" cy="37" r="2" fill="#EF4444" />
+                        <circle cx="38" cy="37" r="2" fill="#FBBF24" />
+                        <circle cx="44" cy="37" r="2" fill="#22C55E" />
+                        <g transform="translate(30, 48)">
+                          <circle cx="10" cy="10" r="7" fill="#FDBA74" />
+                          <path d="M5,17 C5,14 15,14 15,17 Z" fill="#1E293B" />
+                          <rect x="24" y="5" width="30" height="4" rx="2" fill="#3B82F6" />
+                          <rect x="24" y="12" width="20" height="3" rx="1.5" fill="#E2E8F0" />
+                        </g>
+                        <g transform="translate(30, 68)">
+                          <circle cx="10" cy="10" r="7" fill="#F3A3A3" />
+                          <path d="M5,17 C5,14 15,14 15,17 Z" fill="#4B5563" />
+                          <rect x="24" y="5" width="25" height="4" rx="2" fill="#EC4899" />
+                          <rect x="24" y="12" width="32" height="3" rx="1.5" fill="#E2E8F0" />
+                        </g>
+                      </svg>
                     </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                    <span className="text-[13px] font-extrabold text-left text-indigo-950 leading-tight">
                       គ្រប់គ្រងសិស្ស
                     </span>
                   </button>
@@ -542,12 +651,29 @@ export default function MobilePortal({
                   {/* Button 6: លទ្ធផលសិក្សា */}
                   <button
                     onClick={() => setInnerView('pdf-reports')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <BookOpen className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                        <BookOpen className="w-4.5 h-4.5 text-amber-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Certificate diploma */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="25" y="32" width="70" height="53" rx="4" fill="#FFFBEB" stroke="#D97706" strokeWidth="2.5" />
+                        <rect x="29" y="36" width="62" height="45" fill="none" stroke="#F59E0B" strokeWidth="1" />
+                        <line x1="45" y1="44" x2="75" y2="44" stroke="#B45309" strokeWidth="2.5" />
+                        <line x1="38" y1="52" x2="82" y2="52" stroke="#D97706" strokeWidth="1" />
+                        <line x1="38" y1="59" x2="82" y2="59" stroke="#CBD5E1" strokeWidth="1" />
+                        <line x1="48" y1="66" x2="72" y2="66" stroke="#CBD5E1" strokeWidth="1" />
+                        <g transform="translate(72, 62)">
+                          <path d="M5,10 L0,25 L5,22 L10,25 Z" fill="#EF4444" />
+                          <path d="M12,10 L7,25 L12,22 L17,25 Z" fill="#EF4444" />
+                          <circle cx="8" cy="8" r="8" fill="#F59E0B" stroke="#D97706" strokeWidth="1" />
+                          <polygon points="8,4 10,7 13,8 10,10 11,13 8,11 5,13 6,10 3,8 6,7" fill="#FEF3C7" />
+                        </g>
+                      </svg>
                     </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                    <span className="text-[13px] font-extrabold text-left text-amber-950 leading-tight">
                       លទ្ធផលសិក្សា
                     </span>
                   </button>
@@ -555,12 +681,27 @@ export default function MobilePortal({
                   {/* Button 7: របាយការណ៍ */}
                   <button
                     onClick={() => setInnerView('pdf-reports')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <Award className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                        <Award className="w-4.5 h-4.5 text-emerald-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Analytical Board */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="25" y="32" width="70" height="56" rx="6" fill="#FFFFFF" stroke="#0284C7" strokeWidth="1.5" />
+                        <circle cx="45" cy="52" r="14" fill="#E2E8F0" />
+                        <path d="M45,52 L45,38 A14,14 0 0,1 59,52 Z" fill="#3B82F6" />
+                        <path d="M45,52 L59,52 A14,14 0 0,1 45,66 Z" fill="#EC4899" />
+                        <rect x="66" y="40" width="22" height="10" rx="2" fill="#34D399" opacity="0.3" />
+                        <line x1="68" y1="45" x2="86" y2="45" stroke="#059669" strokeWidth="2" />
+                        <rect x="66" y="55" width="22" height="26" rx="2" fill="#EFF6FF" stroke="#3B82F6" strokeWidth="1" />
+                        <path d="M68,76 L73,70 L78,73 L85,62" fill="none" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" />
+                        <rect x="32" y="73" width="26" height="4" rx="1.5" fill="#E2E8F0" />
+                        <rect x="32" y="80" width="18" height="4" rx="1.5" fill="#3B82F6" />
+                      </svg>
                     </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                    <span className="text-[13px] font-extrabold text-left text-emerald-950 leading-tight">
                       របាយការណ៍
                     </span>
                   </button>
@@ -568,65 +709,102 @@ export default function MobilePortal({
                   {/* Button 8: តេស្ត និងប្រឡង */}
                   <button
                     onClick={() => setInnerView('timetable')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <Sparkles className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                        <Sparkles className="w-4.5 h-4.5 text-rose-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Exam Sheet & Pencil */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="30" y="28" width="60" height="66" rx="4" fill="#FFFFFF" stroke="#475569" strokeWidth="1.5" />
+                        <text x="36" y="41" fontSize="6.5" fill="#1E293B" fontWeight="black" fontFamily="sans-serif">EXAM</text>
+                        <line x1="36" y1="48" x2="84" y2="48" stroke="#94A3B8" strokeWidth="1.5" />
+                        <line x1="36" y1="56" x2="84" y2="56" stroke="#94A3B8" strokeWidth="1.5" />
+                        <line x1="36" y1="64" x2="70" y2="64" stroke="#94A3B8" strokeWidth="1.5" />
+                        <line x1="36" y1="72" x2="84" y2="72" stroke="#E2E8F0" strokeWidth="1.5" />
+                        <line x1="36" y1="80" x2="60" y2="80" stroke="#E2E8F0" strokeWidth="1.5" />
+                        <g transform="translate(62, 32)">
+                          <circle cx="15" cy="15" r="11" fill="none" stroke="#EF4444" strokeWidth="1.5" strokeDasharray="3, 1" />
+                          <circle cx="15" cy="15" r="10" fill="none" stroke="#EF4444" strokeWidth="1.5" />
+                          <text x="15" y="18" fontSize="8" textAnchor="middle" fill="#EF4444" fontWeight="black" fontFamily="sans-serif">A+</text>
+                        </g>
+                        <g transform="rotate(32 75 75)">
+                          <rect x="68" y="55" width="6" height="36" rx="1" fill="#FBBF24" stroke="#78350F" strokeWidth="1" />
+                          <polygon points="68,91 74,91 71,98" fill="#FDBA74" stroke="#78350F" strokeWidth="1" />
+                          <polygon points="70,96 72,96 71,98" fill="#1E293B" />
+                          <rect x="68" y="52" width="6" height="4" fill="#EF4444" />
+                        </g>
+                      </svg>
                     </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                    <span className="text-[13px] font-extrabold text-left text-rose-950 leading-tight">
                       តេស្ត និងប្រឡង
                     </span>
                   </button>
 
-                  {/* Button 9: កម្មវិធីសិក្សា */}
+                  {/* Button 9: កម្រងវិធីសិក្សា */}
                   <button
                     onClick={() => setInnerView('timetable')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <Book className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-amber-700/10 border border-amber-700/20 flex items-center justify-center">
+                        <Book className="w-4.5 h-4.5 text-amber-700 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Magical glowing educational book */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <path d="M60,15 L62,25 L72,27 L62,29 L60,39 L58,29 L48,27 L58,25 Z" fill="#FBBF24" />
+                        <circle cx="34" cy="24" r="3" fill="#EC4899" />
+                        <circle cx="86" cy="20" r="2.5" fill="#3B82F6" />
+                        <circle cx="48" cy="35" r="2" fill="#10B981" />
+                        <circle cx="74" cy="32" r="3" fill="#A855F7" />
+                        <path d="M50,15 Q55,20 45,30" fill="none" stroke="#F43F5E" strokeWidth="1" />
+                        <path d="M70,12 Q65,18 78,28" fill="none" stroke="#3B82F6" strokeWidth="1" />
+                        <g transform="translate(25, 45)">
+                          <path d="M5,25 C15,20 30,30 35,28 C40,30 55,20 65,25 L65,5 L50,0 C40,5 30,0 25,5 L5,5 Z" fill="#FFFFFF" stroke="#1E293B" strokeWidth="1.5" />
+                          <path d="M35,5 L35,28" stroke="#1E293B" strokeWidth="1.5" />
+                          <path d="M3,26 C13,21 30,31 35,29 C40,31 57,21 67,26 L67,6 L65,6 C55,1 40,6 35,4 C30,6 15,1 5,6 L3,6 Z" fill="#F59E0B" stroke="#78350F" strokeWidth="1" />
+                          <circle cx="16" cy="12" r="4.5" fill="none" stroke="#2563EB" strokeWidth="1" />
+                          <line x1="24" y1="10" x2="30" y2="10" stroke="#64748B" strokeWidth="1" />
+                          <line x1="24" y1="14" x2="30" y2="14" stroke="#64748B" strokeWidth="1" />
+                          <path d="M42,10 L52,10 M42,14 L55,14 M42,18 L50,18" stroke="#64748B" strokeWidth="1" />
+                        </g>
+                      </svg>
                     </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
-                      កម្មវិធីសិក្សា
+                    <span className="text-[13px] font-extrabold text-left text-amber-950 leading-tight">
+                      កម្រងវិធីសិក្សា
                     </span>
                   </button>
 
                   {/* Button 10: កិច្ចការផ្ទះ */}
                   <button
                     onClick={() => setInnerView('library')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <LibraryIcon className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                        <LibraryIcon className="w-4.5 h-4.5 text-cyan-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Computer Study Desk */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <polygon points="32,28 12,94 52,94" fill="#FEF08A" opacity="0.3" />
+                        <rect x="25" y="62" width="70" height="24" fill="#D97706" stroke="#78350F" strokeWidth="1.5" />
+                        <rect x="75" y="66" width="16" height="16" fill="#B45309" stroke="#78350F" strokeWidth="1.5" />
+                        <circle cx="83" cy="74" r="2" fill="#FBBF24" />
+                        <rect x="28" y="86" width="4" height="8" fill="#78350F" />
+                        <rect x="86" y="86" width="4" height="8" fill="#78350F" />
+                        <g transform="translate(38, 44)">
+                          <rect x="5" y="10" width="22" height="14" rx="1.5" fill="#334155" />
+                          <rect x="7" y="12" width="18" height="10" fill="#60A5FA" />
+                          <polygon points="0,24 32,24 30,28 2,28" fill="#64748B" />
+                        </g>
+                        <path d="M28,62 Q28,45 34,42 Q30,30 35,28 L30,26" fill="none" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="28" cy="62" r="3" fill="#EF4444" />
+                        <path d="M30,26 L38,30 L36,34 L28,30 Z" fill="#EF4444" />
+                      </svg>
                     </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                    <span className="text-[13px] font-extrabold text-left text-cyan-950 leading-tight">
                       កិច្ចការផ្ទះ
-                    </span>
-                  </button>
-
-                  {/* Button 11: តាមដាន */}
-                  <button
-                    onClick={() => setInnerView('transport')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <Bus className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
-                    </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
-                      តាមដាន
-                    </span>
-                  </button>
-
-                  {/* Button 12: កម្មវិធីសិក្សា */}
-                  <button
-                    onClick={() => setInnerView('timetable')}
-                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
-                      <Calendar className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
-                    </div>
-                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
-                      កម្មវិធីសិក្សា
                     </span>
                   </button>
                 </div>
@@ -1523,63 +1701,86 @@ export default function MobilePortal({
 
         {/* 3. Bottom Capsule Navigation Tabbar (Inspired from mockup) */}
         {/* White background, elegant floating rounded container */}
-        <div className="absolute bottom-3 left-3 right-3 h-14 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl flex items-center justify-between px-3 shrink-0 z-40 border border-slate-250/25">
+        <div className="absolute bottom-3 left-3 right-3 h-14 bg-white/95 backdrop-blur-md rounded-2xl shadow-xl flex items-center justify-between px-3 shrink-0 z-40 border border-[#A7F3D0]/20">
           
           {/* Tab 1: Home/ទំព័រដើម */}
           <button
             onClick={() => handleTabClick('home')}
-            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1 flex-1 rounded-xl transition-all cursor-pointer ${
               innerView === 'home' || !['records', 'chat'].includes(innerView)
-                ? 'bg-amber-100/50 text-[#b58e2d]'
-                : 'text-slate-450 hover:bg-slate-50 hover:text-slate-900'
+                ? 'text-[#EA580C] font-black'
+                : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <Home size={16} className={innerView === 'home' || !['records', 'chat'].includes(innerView) ? 'text-[#b58e2d]' : 'text-slate-400'} />
-            <span className="text-[7.5px] font-black mt-1">ទំព័រដើម</span>
+            <Home size={17} className={innerView === 'home' || !['records', 'chat'].includes(innerView) ? 'text-[#EA580C]' : 'text-slate-400'} />
+            <span className="text-[8.5px] font-bold mt-0.5">ទំព័រដើម</span>
           </button>
 
-          {/* Tab 2: Logs/កំណត់ត្រា */}
+          {/* Tab 2: Favorites/ចំណាំ */}
           <button
             onClick={() => handleTabClick('records')}
-            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1 flex-1 rounded-xl transition-all cursor-pointer ${
               innerView === 'records'
-                ? 'bg-amber-100/50 text-[#b58e2d]'
-                : 'text-slate-450 hover:bg-slate-50'
+                ? 'text-[#EA580C] font-black'
+                : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <Heart size={16} className={innerView === 'records' ? 'text-[#b58e2d]' : 'text-slate-400'} />
-            <span className="text-[7.5px] font-black mt-1">កំណត់ត្រា</span>
+            <Heart size={17} className={innerView === 'records' ? 'text-[#EA580C]' : 'text-slate-400'} />
+            <span className="text-[8.5px] font-bold mt-0.5">ចំណាំ</span>
           </button>
 
           {/* Tab 3: Messages/សារ */}
           <button
             onClick={() => handleTabClick('chat')}
-            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1 flex-1 rounded-xl transition-all cursor-pointer ${
               innerView === 'chat'
-                ? 'bg-amber-100/50 text-[#b58e2d]'
-                : 'text-slate-450 hover:bg-slate-50'
+                ? 'text-[#EA580C] font-black'
+                : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <MessageSquare size={16} className={innerView === 'chat' ? 'text-[#b58e2d]' : 'text-slate-400'} />
-            <span className="text-[7.5px] font-black mt-1">សារ</span>
+            <MessageSquare size={17} className={innerView === 'chat' ? 'text-[#EA580C]' : 'text-slate-400'} />
+            <span className="text-[8.5px] font-bold mt-0.5">សារ</span>
           </button>
 
-          {/* Tab 4: System menu */}
+          {/* Tab 4: System menu/ម៉ឺនុយ */}
           <button
             onClick={() => setShowMenuOverlay(true)}
-            className="flex flex-col items-center justify-center py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all text-slate-450 cursor-pointer"
+            className="flex flex-col items-center justify-center py-1 flex-1 rounded-xl hover:text-slate-600 transition-all text-slate-400 cursor-pointer"
           >
-            <MenuIcon size={16} className="text-slate-400" />
-            <span className="text-[7.5px] font-black mt-1">មឺនុយ</span>
+            <MenuIcon size={17} className="text-slate-400" />
+            <span className="text-[8.5px] font-bold mt-0.5">ម៉ឺនុយ</span>
           </button>
 
-          {/* Bottom Right Floating Helper / Dynamic Circle */}
+          {/* Bottom Right Floating Helper / Mascot Robot Icon as seen in mockup */}
           <button
             onClick={() => setShowAiHelper(true)}
-            className="w-10 h-10 rounded-full bg-slate-900 border-2 border-amber-400 shadow-md flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            className="w-12 h-12 rounded-full p-0.5 shadow-md flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0 ml-1.5 overflow-hidden"
+            style={{ background: 'radial-gradient(circle at 35% 35%, #ffffff, #dcfce7, #86efac)' }}
             title="ជំនួយការសាលារៀន AI"
           >
-            <span className="text-xs">🤖</span>
+            <svg viewBox="0 0 64 64" className="w-[36px] h-[36px]">
+              {/* Head Base */}
+              <circle cx="32" cy="34" r="16" fill="#F8FAFC" stroke="#64748B" strokeWidth="1" />
+              <circle cx="32" cy="34" r="16" fill="url(#glossHead)" stroke="#475569" strokeWidth="0.5" />
+              {/* Visor Area */}
+              <rect x="20" y="27" width="24" height="11" rx="5" fill="#0F172A" />
+              {/* Light Up Blue Eyes */}
+              <circle cx="26" cy="32.5" r="3" fill="#38BDF8" className="animate-pulse" />
+              <circle cx="38" cy="32.5" r="3" fill="#38BDF8" className="animate-pulse" />
+              {/* Ears/Side pads */}
+              <rect x="13" y="29" width="3" height="10" rx="1.5" fill="#38BDF8" />
+              <rect x="48" y="29" width="3" height="10" rx="1.5" fill="#38BDF8" />
+              {/* Core Antenna structure */}
+              <line x1="32" y1="18" x2="32" y2="10" stroke="#475569" strokeWidth="1.5" />
+              <circle cx="32" cy="9" r="2.5" fill="#EF4444" className="animate-pulse" />
+              <defs>
+                <radialGradient id="glossHead" cx="30%" cy="30%" r="70%">
+                  <stop offset="0%" stopColor="#FFFFFF" />
+                  <stop offset="70%" stopColor="#FFFFFB" />
+                  <stop offset="100%" stopColor="#CBD5E1" />
+                </radialGradient>
+              </defs>
+            </svg>
           </button>
 
         </div>
