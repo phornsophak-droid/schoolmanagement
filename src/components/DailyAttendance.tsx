@@ -21,6 +21,11 @@ import {
 } from 'lucide-react';
 import { StudentScore, SchoolUser } from '../types';
 import { AVAILABLE_USERS } from './LoginPortal';
+import { 
+  getSupabaseClient, 
+  syncUpsertStudentAttendance, 
+  syncUpsertTeacherAttendance 
+} from '../lib/supabase';
 
 interface AttendanceRecord {
   id: string;
@@ -121,6 +126,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
   // Track the current student-level state mapping
   const [activeAttendanceMap, setActiveAttendanceMap] = useState<{ [studentId: string]: 'present' | 'late' | 'permission' | 'absent' }>({});
+  const [studentReasonsMap, setStudentReasonsMap] = useState<{ [studentId: string]: string }>({});
 
   // Track the current teacher-level state mapping
   const [teacherAttendanceMap, setTeacherAttendanceMap] = useState<{ [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' }>({});
@@ -153,17 +159,23 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     if (existing && existing.studentStates && Object.keys(existing.studentStates).length > 0) {
       // Re-hydrate existing states, but ensure new students get designated as present
       const map: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
+      const reasons: { [studentId: string]: string } = {};
       gradeStudents.forEach(s => {
         map[s.id] = existing.studentStates[s.id] || 'present';
+        reasons[s.id] = (existing.studentStates as any)[s.id + '_reason'] || '';
       });
       setActiveAttendanceMap(map);
+      setStudentReasonsMap(reasons);
     } else {
       // Setup default (every student present)
       const map: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
+      const reasons: { [studentId: string]: string } = {};
       gradeStudents.forEach(s => {
         map[s.id] = 'present';
+        reasons[s.id] = '';
       });
       setActiveAttendanceMap(map);
+      setStudentReasonsMap(reasons);
     }
   }, [selectedDate, selectedGrade, records, uniqueStudentsList]);
 
@@ -256,6 +268,9 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     gradeStudents.forEach(s => {
       const status = activeAttendanceMap[s.id] || 'present';
       finalStates[s.id] = status;
+      if (status !== 'present' && studentReasonsMap[s.id]) {
+        (finalStates as any)[s.id + '_reason'] = studentReasonsMap[s.id];
+      }
       if (status === 'present') p++;
       else if (status === 'late') y++;
       else if (status === 'permission') l++;
@@ -281,6 +296,15 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
     setRecords(updated);
     localStorage.setItem('school_daily_attendance', JSON.stringify(updated));
+
+    // Live background cloud sync
+    const client = getSupabaseClient();
+    if (client) {
+      syncUpsertStudentAttendance(newRecord).catch(err => {
+        console.warn('Supabase student attendance save failed', err);
+      });
+    }
+
     triggerToast(`💾 រក្សាទុកវត្តមានជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់`, 'success');
   };
 
@@ -350,6 +374,15 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
     setTeacherRecords(updated);
     localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(updated));
+
+    // Live background cloud sync
+    const client = getSupabaseClient();
+    if (client) {
+      syncUpsertTeacherAttendance(newRecord).catch(err => {
+        console.warn('Supabase teacher attendance save failed', err);
+      });
+    }
+
     triggerToast(`💾 រក្សាទុកវត្តមានគ្រូជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់`, 'success');
   };
 
@@ -733,9 +766,6 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                             {/* Profile & Name */}
                             <td className="px-5 py-3.5">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 text-blue-600 flex items-center justify-center font-bold text-xs">
-                                  {std.name.charAt(std.name.startsWith('ស') ? 3 : 0) || 'ស'}
-                                </div>
                                 <div>
                                   <p className="font-bold text-slate-800">{std.name}</p>
                                   <p className="text-[9.5px] text-slate-400 font-medium">ភេទ៖ {std.gender} | ID: {std.id.substring(0, 5)}</p>
@@ -748,58 +778,96 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
                             {/* P, L, A Radio Selectors */}
                             <td className="px-5 py-3.5 text-center">
-                              <div className="inline-flex gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
-                                <button
-                                  onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'present' }))}
-                                  title="វត្តមាន (វ)"
-                                  className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
-                                    currentStatus === 'present'
-                                      ? 'bg-emerald-600 text-white shadow-sm font-bold scale-[1.03]'
-                                      : 'text-slate-400 hover:text-slate-705'
-                                  }`}
-                                >
-                                  {currentStatus === 'present' && <Check size={10} strokeWidth={3} />}
-                                  <span>វ</span>
-                                </button>
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="inline-flex gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                                  <button
+                                    onClick={() => {
+                                      setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'present' }));
+                                      setStudentReasonsMap(prev => ({ ...prev, [std.id]: '' }));
+                                    }}
+                                    title="វត្តមាន (វ)"
+                                    className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
+                                      currentStatus === 'present'
+                                        ? 'bg-emerald-600 text-white shadow-sm font-bold scale-[1.03]'
+                                        : 'text-slate-400 hover:text-slate-705'
+                                    }`}
+                                  >
+                                    {currentStatus === 'present' && <Check size={10} strokeWidth={3} />}
+                                    <span>វ</span>
+                                  </button>
 
-                                <button
-                                  onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'late' }))}
-                                  title="យឺត (យ)"
-                                  className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
-                                    currentStatus === 'late'
-                                      ? 'bg-blue-600 text-white shadow-sm font-bold scale-[1.03]'
-                                      : 'text-slate-400 hover:text-slate-705'
-                                  }`}
-                                >
-                                  {currentStatus === 'late' && <Check size={10} strokeWidth={3} />}
-                                  <span>យ</span>
-                                </button>
-                                
-                                <button
-                                  onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'permission' }))}
-                                  title="ច្បាប់ (ច្ប)"
-                                  className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
-                                    currentStatus === 'permission'
-                                      ? 'bg-amber-500 text-white shadow-sm font-bold scale-[1.03]'
-                                      : 'text-slate-400 hover:text-slate-705'
-                                  }`}
-                                >
-                                  {currentStatus === 'permission' && <Check size={10} strokeWidth={3} />}
-                                  <span>ច្ប</span>
-                                </button>
+                                  <button
+                                    onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'late' }))}
+                                    title="យឺត (យ)"
+                                    className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
+                                      currentStatus === 'late'
+                                        ? 'bg-blue-600 text-white shadow-sm font-bold scale-[1.03]'
+                                        : 'text-slate-400 hover:text-slate-705'
+                                    }`}
+                                  >
+                                    {currentStatus === 'late' && <Check size={10} strokeWidth={3} />}
+                                    <span>យ</span>
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'permission' }))}
+                                    title="ច្បាប់ (ច្ប)"
+                                    className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
+                                      currentStatus === 'permission'
+                                        ? 'bg-amber-500 text-white shadow-sm font-bold scale-[1.03]'
+                                        : 'text-slate-400 hover:text-slate-705'
+                                    }`}
+                                  >
+                                    {currentStatus === 'permission' && <Check size={10} strokeWidth={3} />}
+                                    <span>ច្ប</span>
+                                  </button>
 
-                                <button
-                                  onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'absent' }))}
-                                  title="អត់ច្បាប់ (អច្ប)"
-                                  className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
-                                    currentStatus === 'absent'
-                                      ? 'bg-rose-500 text-white shadow-sm font-bold scale-[1.03]'
-                                      : 'text-slate-400 hover:text-slate-705'
-                                  }`}
-                                >
-                                  {currentStatus === 'absent' && <Check size={10} strokeWidth={3} />}
-                                  <span>អច្ប</span>
-                                </button>
+                                  <button
+                                    onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'absent' }))}
+                                    title="អត់ច្បាប់ (អច្ប)"
+                                    className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
+                                      currentStatus === 'absent'
+                                        ? 'bg-rose-500 text-white shadow-sm font-bold scale-[1.03]'
+                                        : 'text-slate-400 hover:text-slate-705'
+                                    }`}
+                                  >
+                                    {currentStatus === 'absent' && <Check size={10} strokeWidth={3} />}
+                                    <span>អច្ប</span>
+                                  </button>
+                                </div>
+
+                                {/* Reason Selector if not present */}
+                                {currentStatus !== 'present' && (
+                                  <div className="w-full max-w-[190px] flex flex-col gap-1 items-start">
+                                    <select
+                                      value={['', 'បញ្ហាសុខភាព', 'មានធុរៈក្នុងគ្រួសារ', 'ខ្ជិល'].includes(studentReasonsMap[std.id] || '') ? (studentReasonsMap[std.id] || '') : 'ផ្សេងៗ'}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setStudentReasonsMap(prev => ({ ...prev, [std.id]: val }));
+                                      }}
+                                      className="w-full bg-slate-55 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                    >
+                                      <option value="">-- ជ្រើសរើសមូលហេតុ --</option>
+                                      <option value="បញ្ហាសុខភាព">១. បញ្ហាសុខភាព</option>
+                                      <option value="មានធុរៈក្នុងគ្រួសារ">២. មានធុរៈក្នុងគ្រួសារ</option>
+                                      <option value="ខ្ជិល">៣. ខ្ជិល</option>
+                                      <option value="ផ្សេងៗ">៤. ផ្សេងៗ (សរសេរ)..........</option>
+                                    </select>
+                                    
+                                    {!['', 'បញ្ហាសុខភាព', 'មានធុរៈក្នុងគ្រួសារ', 'ខ្ជិល'].includes(studentReasonsMap[std.id] || '') && (
+                                      <input
+                                        type="text"
+                                        placeholder="សរសេរមូលហេតុផ្សេងៗ..."
+                                        value={studentReasonsMap[std.id] === 'ផ្សេងៗ' ? '' : (studentReasonsMap[std.id] || '')}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setStudentReasonsMap(prev => ({ ...prev, [std.id]: val }));
+                                        }}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1 text-[10.5px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                      />
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -822,10 +890,13 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                 <button
                   onClick={() => {
                     const map: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
+                    const reasons: { [studentId: string]: string } = {};
                     uniqueStudentsList.filter(s => s.grade === selectedGrade).forEach(s => {
                       map[s.id] = 'present';
+                      reasons[s.id] = '';
                     });
                     setActiveAttendanceMap(map);
+                    setStudentReasonsMap(reasons);
                     triggerToast('🔄 បានធ្វើឱ្យវត្តមានត្រលប់មកដើមវិញ (វត្តមានទាំងអស់)', 'info');
                   }}
                   className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-slate-605 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"

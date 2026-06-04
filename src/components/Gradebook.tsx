@@ -403,7 +403,12 @@ export default function Gradebook({
     setFormName('');
     setFormGender('ប្រុស');
     setFormGrade(currentUser && currentUser.role === 'teacher' ? currentUser.grade : (selectedGrade === 'ទាំងអស់' ? (gradesList[0] || 'ថ្នាក់ទី៦') : selectedGrade));
-    setFormMonth(selectedMonth === 'ទាំងអស់' ? 'មេសា' : selectedMonth);
+    
+    if (activeMode === 'semester') {
+      setFormMonth(selectedSemester === '1' ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២');
+    } else {
+      setFormMonth(selectedMonth === 'ទាំងអស់' ? 'មេសា' : selectedMonth);
+    }
     
     // reset scores
     setKhmerListening('');
@@ -772,17 +777,33 @@ export default function Gradebook({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">សម្រាប់ខែ</label>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">សម្រាប់ខែ / ឆមាស</label>
                 <select
                   value={formMonth}
                   onChange={(e) => setFormMonth(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-800"
+                  className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-800 font-sans"
                 >
-                  {MONTHS_LIST.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
+                  <optgroup label="ពិន្ទុប្រចាំខែ (Monthly Scores)">
+                    {MONTHS_LIST.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="ពិន្ទុប្រឡងឆមាស (Semester Exams)">
+                    <option value="ប្រឡងឆមាសទី១">ប្រឡងឆមាសទី១ (Semester 1 Exam)</option>
+                    <option value="ប្រឡងឆមាសទី២">ប្រឡងឆមាសទី២ (Semester 2 Exam)</option>
+                  </optgroup>
                 </select>
               </div>
+
+              {(formMonth === 'ប្រឡងឆមាសទី១' || formMonth === 'ប្រឡងឆមាសទី២') && (
+                <div className="p-3 bg-amber-50 border border-amber-200/60 rounded-xl flex items-start gap-2.5 text-xs text-amber-800 leading-relaxed shadow-3xs">
+                  <HelpCircle size={18} className="flex-shrink-0 text-amber-500 mt-0.5" />
+                  <div>
+                    <span className="font-bold block mb-0.5">💡 ការបញ្ចូលពិន្ទុឆមាស៖</span>
+                    អ្នកកំពុងរៀបចំបញ្ចូលពិន្ទុសម្រាប់ «{formMonth}»។ អ្នកអាចបញ្ចូលពិន្ទុជាក់ស្តែងតាមមុខវិជ្ជានីមួយៗជារង្វាស់លម្អិត ឬបញ្ចូលតម្លៃស្មើៗគ្នាក៏បាន។
+                  </div>
+                </div>
+              )}
 
               <div className="pt-2">
                 <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-2.5 text-xs text-blue-700/90 leading-relaxed">

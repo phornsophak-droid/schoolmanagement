@@ -45,6 +45,10 @@ import {
   syncDeleteReport, 
   syncGradesBulk, 
   syncDeleteGrade,
+  syncUpsertStudentAttendance,
+  syncUpsertTeacherAttendance,
+  syncUpsertStudentAttendanceBulk,
+  syncUpsertTeacherAttendanceBulk,
   CUSTOM_URL_KEY,
   CUSTOM_ANON_KEY
 } from './lib/supabase';
@@ -277,6 +281,12 @@ export default function App() {
               setGrades(data.grades);
               localStorage.setItem('school_grades_v2', JSON.stringify(data.grades));
             }
+            if (data.studentAttendance && data.studentAttendance.length > 0) {
+              localStorage.setItem('school_daily_attendance', JSON.stringify(data.studentAttendance));
+            }
+            if (data.teacherAttendance && data.teacherAttendance.length > 0) {
+              localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(data.teacherAttendance));
+            }
             if (data.settings && Object.keys(data.settings).length > 0) {
               if (data.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(data.settings['school_custom_users']));
               if (data.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(data.settings['school_custom_pins']));
@@ -304,6 +314,12 @@ export default function App() {
                     setGrades(newData.grades);
                     localStorage.setItem('school_grades_v2', JSON.stringify(newData.grades));
                   }
+                  if (newData.studentAttendance && newData.studentAttendance.length > 0) {
+                    localStorage.setItem('school_daily_attendance', JSON.stringify(newData.studentAttendance));
+                  }
+                  if (newData.teacherAttendance && newData.teacherAttendance.length > 0) {
+                    localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(newData.teacherAttendance));
+                  }
                   if (newData.settings && Object.keys(newData.settings).length > 0) {
                     if (newData.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(newData.settings['school_custom_users']));
                     if (newData.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(newData.settings['school_custom_pins']));
@@ -316,6 +332,8 @@ export default function App() {
               channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_reports' }, refreshData);
               channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_grades' }, refreshData);
               channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_settings' }, refreshData);
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'student_attendance' }, refreshData);
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'teacher_attendance' }, refreshData);
               
               channel.subscribe();
             } catch (err) {
@@ -392,6 +410,14 @@ export default function App() {
         setGrades(data.grades);
         localStorage.setItem('school_grades_v2', JSON.stringify(data.grades));
       }
+      if (data.studentAttendance && data.studentAttendance.length > 0) {
+        localStorage.setItem('school_daily_attendance', JSON.stringify(data.studentAttendance));
+        parts.push(`${data.studentAttendance.length} វត្តមានសិស្ស`);
+      }
+      if (data.teacherAttendance && data.teacherAttendance.length > 0) {
+        localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(data.teacherAttendance));
+        parts.push(`${data.teacherAttendance.length} វត្តមានគ្រូ`);
+      }
       
       if (data.settings && Object.keys(data.settings).length > 0) {
         if (data.settings['school_custom_users']) {
@@ -457,6 +483,32 @@ export default function App() {
       // 3. Bulk push reports
       if (reports.length > 0) {
         await syncUpsertReportsBulk(reports);
+      }
+
+      // 4. Bulk push student attendance records
+      const localStudentAtt = localStorage.getItem('school_daily_attendance');
+      if (localStudentAtt) {
+        try {
+          const parsed = JSON.parse(localStudentAtt);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            await syncUpsertStudentAttendanceBulk(parsed);
+          }
+        } catch (e) {
+          console.error('Failed to sync student attendance during pushToSupabase', e);
+        }
+      }
+
+      // 5. Bulk push teacher attendance records
+      const localTeacherAtt = localStorage.getItem('school_teachers_daily_attendance');
+      if (localTeacherAtt) {
+        try {
+          const parsed = JSON.parse(localTeacherAtt);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            await syncUpsertTeacherAttendanceBulk(parsed);
+          }
+        } catch (e) {
+          console.error('Failed to sync teacher attendance during pushToSupabase', e);
+        }
       }
 
       setSupabaseStatus('connected');
@@ -564,6 +616,10 @@ export default function App() {
 
   // 4. Sync Mutated States to LocalStorage & Supabase Cloud
   const handleSaveStudents = async (updatedList: StudentScore[]) => {
+    const deletedStudentIds = students
+      .filter(prevS => !updatedList.some(currS => currS.id === prevS.id))
+      .map(prevS => prevS.id);
+
     setStudents(updatedList);
     localStorage.setItem('school_student_scores_v2', JSON.stringify(updatedList));
 
@@ -571,7 +627,12 @@ export default function App() {
     const client = getSupabaseClient();
     if (client) {
       try {
-        await syncUpsertStudentsBulk(updatedList);
+        for (const id of deletedStudentIds) {
+          await syncDeleteStudent(id);
+        }
+        if (updatedList.length > 0) {
+          await syncUpsertStudentsBulk(updatedList);
+        }
       } catch (err) {
         console.warn('Supabase students backup sync failed', err);
       }

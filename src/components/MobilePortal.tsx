@@ -923,10 +923,6 @@ export default function MobilePortal({
                             return (
                               <div key={std.id} className="p-2 flex items-center justify-between text-[9px] hover:bg-blue-950/20 transition-all">
                                 <div className="flex items-center gap-2">
-                                  {/* Letter Circle Avatar */}
-                                  <div className="w-6 h-6 rounded-full bg-blue-800/40 text-[#E2C785] border border-blue-700/20 flex items-center justify-center font-bold text-[8.5px]">
-                                    {std.name.charAt(std.name.startsWith('ស') ? 3 : 0) || 'ស'}
-                                  </div>
                                   <div>
                                     <p className="font-bold text-slate-100">{std.name}</p>
                                     <p className="text-[7.5px] text-slate-400 mt-0.5">{std.gender} | ថ្នាក់ទី {std.grade}</p>

@@ -19,6 +19,8 @@ DROP TABLE IF EXISTS public.report_activities CASCADE;
 DROP TABLE IF EXISTS public.school_reports CASCADE;
 DROP TABLE IF EXISTS public.student_scores CASCADE;
 DROP TABLE IF EXISTS public.school_grades CASCADE;
+DROP TABLE IF EXISTS public.student_attendance CASCADE;
+DROP TABLE IF EXISTS public.teacher_attendance CASCADE;
 
 -- 0. Enable requisite extensions (បើកឱ្យប្រើប្រាស់ UUID extension)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -68,7 +70,7 @@ CREATE TABLE IF NOT EXISTS public.student_scores (
     overall_avg NUMERIC(4,2) DEFAULT 0.00,
     grade_letter VARCHAR(5) DEFAULT 'F',
     status VARCHAR(20) DEFAULT 'ធម្មតា',
-    result VARCHAR(10) NOT NULL CHECK (result IN ('ជាប់', 'ធ្លាក់')),
+    result VARCHAR(10) NOT NULL CHECK (result IN ('ជាប់', 'ធ្លាក់', '-')),
     ranking INTEGER DEFAULT NULL,
     
     -- Meta audit timelines
@@ -151,6 +153,44 @@ CREATE TABLE IF NOT EXISTS public.challenges_solutions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- ------------------------------------------------------------------------------
+-- 7. TABLE FOR SCHOOL SYSTEM SETTINGS (ការកំណត់ទូទៅរបស់ប្រព័ន្ធសាលា)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.school_settings (
+    setting_key VARCHAR(100) PRIMARY KEY,
+    setting_value JSONB DEFAULT '{}'::jsonb NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ------------------------------------------------------------------------------
+-- 8. TABLE FOR STUDENT ATTENDANCE (កំណត់ត្រាវត្តមានសិស្សប្រចាំថ្ងៃ)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.student_attendance (
+    id VARCHAR(100) PRIMARY KEY,
+    date VARCHAR(50) NOT NULL,
+    grade VARCHAR(50) NOT NULL,
+    present_count INTEGER NOT NULL DEFAULT 0,
+    late_count INTEGER DEFAULT 0,
+    permission_count INTEGER NOT NULL DEFAULT 0,
+    absent_count INTEGER NOT NULL DEFAULT 0,
+    student_states JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- ----------------------------------------------
+-- 9. TABLE FOR TEACHER ATTENDANCE (កំណត់ត្រាវត្តមានគ្រូបង្រៀនប្រចាំថ្ងៃ)
+-- ----------------------------------------------
+CREATE TABLE IF NOT EXISTS public.teacher_attendance (
+    id VARCHAR(100) PRIMARY KEY,
+    date VARCHAR(50) NOT NULL,
+    present_count INTEGER NOT NULL DEFAULT 0,
+    late_count INTEGER DEFAULT 0,
+    permission_count INTEGER NOT NULL DEFAULT 0,
+    absent_count INTEGER NOT NULL DEFAULT 0,
+    teacher_states JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- ==============================================================================
 -- ROW LEVEL SECURITY (RLS) FOR FULL CROSS-DEVICE COLLABORATION WITHOUT OBSTACLES
 -- ==============================================================================
@@ -165,20 +205,29 @@ ALTER TABLE public.school_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.report_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.struggling_students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenges_solutions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.school_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teacher_attendance ENABLE ROW LEVEL SECURITY;
 
 -- 1. DROP Existing Polices to avoid duplicates on re-run
-DROP POLICY IF EXISTS "Allow public read access to school_grades" ON public.school_grades;
-DROP POLICY IF EXISTS "Allow instructors to insert/update school_grades" ON public.school_grades;
-DROP POLICY IF EXISTS "Allow public read access to student_scores" ON public.student_scores;
-DROP POLICY IF EXISTS "Allow instructors to insert/update scores" ON public.student_scores;
-DROP POLICY IF EXISTS "Allow public read access to school_reports" ON public.school_reports;
-DROP POLICY IF EXISTS "Allow instructors to insert/update reports" ON public.school_reports;
-DROP POLICY IF EXISTS "Allow public read access to report_activities" ON public.report_activities;
-DROP POLICY IF EXISTS "Allow instructors to insert/update activities" ON public.report_activities;
-DROP POLICY IF EXISTS "Allow public read access to struggling_students" ON public.struggling_students;
-DROP POLICY IF EXISTS "Allow instructors to insert/update struggling list" ON public.struggling_students;
-DROP POLICY IF EXISTS "Allow public read access to challenges_solutions" ON public.challenges_solutions;
-DROP POLICY IF EXISTS "Allow instructors to insert/update challenges" ON public.challenges_solutions;
+DROP POLICY IF EXISTS "Allow read to school_grades" ON public.school_grades;
+DROP POLICY IF EXISTS "Allow modify to school_grades" ON public.school_grades;
+DROP POLICY IF EXISTS "Allow read to student_scores" ON public.student_scores;
+DROP POLICY IF EXISTS "Allow modify to student_scores" ON public.student_scores;
+DROP POLICY IF EXISTS "Allow read to school_reports" ON public.school_reports;
+DROP POLICY IF EXISTS "Allow modify to school_reports" ON public.school_reports;
+DROP POLICY IF EXISTS "Allow read to report_activities" ON public.report_activities;
+DROP POLICY IF EXISTS "Allow modify to report_activities" ON public.report_activities;
+DROP POLICY IF EXISTS "Allow read to struggling_students" ON public.struggling_students;
+DROP POLICY IF EXISTS "Allow modify to struggling_students" ON public.struggling_students;
+DROP POLICY IF EXISTS "Allow read to challenges_solutions" ON public.challenges_solutions;
+DROP POLICY IF EXISTS "Allow modify to challenges_solutions" ON public.challenges_solutions;
+DROP POLICY IF EXISTS "Allow read to school_settings" ON public.school_settings;
+DROP POLICY IF EXISTS "Allow modify to school_settings" ON public.school_settings;
+DROP POLICY IF EXISTS "Allow read to student_attendance" ON public.student_attendance;
+DROP POLICY IF EXISTS "Allow modify to student_attendance" ON public.student_attendance;
+DROP POLICY IF EXISTS "Allow read to teacher_attendance" ON public.teacher_attendance;
+DROP POLICY IF EXISTS "Allow modify to teacher_attendance" ON public.teacher_attendance;
 
 -- Create unified, flexible policies allowing BOTH anonymous (anon) and authenticated (authenticated) 
 -- connections using the project's Anon Key to manage school records.
@@ -207,18 +256,17 @@ CREATE POLICY "Allow modify to struggling_students" ON public.struggling_student
 CREATE POLICY "Allow read to challenges_solutions" ON public.challenges_solutions FOR SELECT USING (true);
 CREATE POLICY "Allow modify to challenges_solutions" ON public.challenges_solutions FOR ALL USING (true) WITH CHECK (true);
 
--- ------------------------------------------------------------------------------
--- 7. TABLE FOR SCHOOL SYSTEM SETTINGS (ការកំណត់ទូទៅរបស់ប្រព័ន្ធសាលា)
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.school_settings (
-    setting_key VARCHAR(100) PRIMARY KEY,
-    setting_value JSONB DEFAULT '{}'::jsonb NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
-ALTER TABLE public.school_settings ENABLE ROW LEVEL SECURITY;
+-- G) POLICIES FOR school_settings
 CREATE POLICY "Allow read to school_settings" ON public.school_settings FOR SELECT USING (true);
 CREATE POLICY "Allow modify to school_settings" ON public.school_settings FOR ALL USING (true) WITH CHECK (true);
+
+-- H) POLICIES FOR student_attendance
+CREATE POLICY "Allow read to student_attendance" ON public.student_attendance FOR SELECT USING (true);
+CREATE POLICY "Allow modify to student_attendance" ON public.student_attendance FOR ALL USING (true) WITH CHECK (true);
+
+-- I) POLICIES FOR teacher_attendance
+CREATE POLICY "Allow read to teacher_attendance" ON public.teacher_attendance FOR SELECT USING (true);
+CREATE POLICY "Allow modify to teacher_attendance" ON public.teacher_attendance FOR ALL USING (true) WITH CHECK (true);
 
 -- ==============================================================================
 -- REALTIME ENABLEMENT (បើកដំណើរការ Realtime Sync ភ្លាមៗ)
@@ -231,6 +279,8 @@ CREATE PUBLICATION supabase_realtime FOR TABLE
     public.student_scores, 
     public.school_reports, 
     public.school_grades,
-    public.school_settings;
+    public.school_settings,
+    public.student_attendance,
+    public.teacher_attendance;
 
 

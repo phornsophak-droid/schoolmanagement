@@ -241,7 +241,60 @@ export function mapDBToReport(
       challenge: ch.challenge,
       solution: ch.solution
     })),
-    createdAt: dbReport.created_at
+    createdAt: dbReport.createdAt
+  };
+}
+
+// 4.5. Attendance Mapper functions
+export function mapStudentAttendanceToDB(r: any) {
+  return {
+    id: r.id,
+    date: r.date,
+    grade: r.grade,
+    present_count: r.presentCount,
+    late_count: r.lateCount ?? 0,
+    permission_count: r.permissionCount,
+    absent_count: r.absentCount,
+    student_states: r.studentStates,
+    created_at: new Date().toISOString()
+  };
+}
+
+export function mapDBToStudentAttendance(db: any): any {
+  return {
+    id: db.id,
+    date: db.date,
+    grade: db.grade,
+    presentCount: Number(db.present_count ?? 0),
+    lateCount: Number(db.late_count ?? 0),
+    permissionCount: Number(db.permission_count ?? 0),
+    absentCount: Number(db.absent_count ?? 0),
+    studentStates: db.student_states || {}
+  };
+}
+
+export function mapTeacherAttendanceToDB(r: any) {
+  return {
+    id: r.id,
+    date: r.date,
+    present_count: r.presentCount,
+    late_count: r.lateCount ?? 0,
+    permission_count: r.permissionCount,
+    absent_count: r.absentCount,
+    teacher_states: r.teacherStates,
+    created_at: new Date().toISOString()
+  };
+}
+
+export function mapDBToTeacherAttendance(db: any): any {
+  return {
+    id: db.id,
+    date: db.date,
+    presentCount: Number(db.present_count ?? 0),
+    lateCount: Number(db.late_count ?? 0),
+    permissionCount: Number(db.permission_count ?? 0),
+    absentCount: Number(db.absent_count ?? 0),
+    teacherStates: db.teacher_states || {}
   };
 }
 
@@ -300,6 +353,24 @@ export async function syncFetchAll() {
     });
   }
 
+  // Fetch student attendance safely
+  let rawStudentAtt: any[] | null = null;
+  try {
+    const { data } = await supabase.from('student_attendance').select('*');
+    rawStudentAtt = data;
+  } catch (err) {
+    console.warn("Could not fetch student_attendance", err);
+  }
+
+  // Fetch teacher attendance safely
+  let rawTeacherAtt: any[] | null = null;
+  try {
+    const { data } = await supabase.from('teacher_attendance').select('*');
+    rawTeacherAtt = data;
+  } catch (err) {
+    console.warn("Could not fetch teacher_attendance", err);
+  }
+
   // Combine and map
   const mappedScores = (rawScores || []).map(mapDBToScore);
   
@@ -314,8 +385,113 @@ export async function syncFetchAll() {
     students: mappedScores,
     reports: mappedReports,
     grades: fetchedGrades,
-    settings: fetchedSettings
+    settings: fetchedSettings,
+    studentAttendance: (rawStudentAtt || []).map(mapDBToStudentAttendance),
+    teacherAttendance: (rawTeacherAtt || []).map(mapDBToTeacherAttendance)
   };
+}
+
+// 5.5. Attendance Sync Functions
+export async function syncUpsertStudentAttendance(record: any) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const row = mapStudentAttendanceToDB(record);
+  const { error } = await supabase
+    .from('student_attendance')
+    .upsert(row);
+  if (error) {
+    console.error(`Failed to upsert student attendance ${record.id} to Supabase`, error);
+    throw error;
+  }
+}
+
+export async function syncUpsertTeacherAttendance(record: any) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const row = mapTeacherAttendanceToDB(record);
+  const { error } = await supabase
+    .from('teacher_attendance')
+    .upsert(row);
+  if (error) {
+    console.error(`Failed to upsert teacher attendance ${record.id} to Supabase`, error);
+    throw error;
+  }
+}
+
+export async function syncUpsertStudentAttendanceBulk(records: any[]) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  if (records.length === 0) return;
+
+  const chunks = [];
+  const chunkSize = 50;
+  for (let i = 0; i < records.length; i += chunkSize) {
+    chunks.push(records.slice(i, i + chunkSize));
+  }
+
+  for (const chunk of chunks) {
+    const rows = chunk.map(mapStudentAttendanceToDB);
+    const { error } = await supabase
+      .from('student_attendance')
+      .upsert(rows);
+    if (error) {
+      console.error('Failed to upsert student attendance bulk to Supabase', error);
+      throw error;
+    }
+  }
+}
+
+export async function syncUpsertTeacherAttendanceBulk(records: any[]) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  if (records.length === 0) return;
+
+  const chunks = [];
+  const chunkSize = 50;
+  for (let i = 0; i < records.length; i += chunkSize) {
+    chunks.push(records.slice(i, i + chunkSize));
+  }
+
+  for (const chunk of chunks) {
+    const rows = chunk.map(mapTeacherAttendanceToDB);
+    const { error } = await supabase
+      .from('teacher_attendance')
+      .upsert(rows);
+    if (error) {
+      console.error('Failed to upsert teacher attendance bulk to Supabase', error);
+      throw error;
+    }
+  }
+}
+
+export async function syncDeleteStudentAttendance(id: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from('student_attendance')
+    .delete()
+    .eq('id', id);
+  if (error) {
+    console.error(`Failed to delete student attendance ${id} from Supabase`, error);
+    throw error;
+  }
+}
+
+export async function syncDeleteTeacherAttendance(id: string) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from('teacher_attendance')
+    .delete()
+    .eq('id', id);
+  if (error) {
+    console.error(`Failed to delete teacher attendance ${id} from Supabase`, error);
+    throw error;
+  }
 }
 
 // 6. Push single student score directly
