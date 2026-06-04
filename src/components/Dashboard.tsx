@@ -149,12 +149,27 @@ export default function Dashboard({
 
   // Calculate statistics based on filtered students
   const stats = useMemo(() => {
-    const totalCount = filteredStudents.length;
-    const femaleCount = filteredStudents.filter(s => s.gender === 'ស្រី').length;
+    const uniqueStudentsMap = new Map<string, StudentScore>();
+    
+    filteredStudents.forEach(s => {
+      // Group by name and grade to ensure we don't count a student multiple times across months
+      const key = `${s.name.trim()}_${s.grade}`;
+      // For averages/results, we might need a more complex aggregate if 'ទាំងអស់' is selected, 
+      // but to keep it simple and accurate for "total counts", we just take the latest or any record.
+      if (!uniqueStudentsMap.has(key)) {
+        uniqueStudentsMap.set(key, s);
+      }
+    });
+
+    const uniqueProfiles = Array.from(uniqueStudentsMap.values());
+    const totalCount = uniqueProfiles.length;
+    const femaleCount = uniqueProfiles.filter(s => s.gender === 'ស្រី').length;
     
     let totalScoreSum = 0;
     let failCount = 0;
     
+    // For overall passing, we might still want to count every exam/month instance in the dataset.
+    // We will use the raw filtered group for fail metrics or score sums.
     filteredStudents.forEach(s => {
       totalScoreSum += s.overallAvg;
       if (s.result === 'ធ្លាក់') {
@@ -162,21 +177,22 @@ export default function Dashboard({
       }
     });
 
-    const averageScore = totalCount > 0 ? parseFloat((totalScoreSum / totalCount).toFixed(2)) : 0;
-    const passCount = totalCount - failCount;
+    const averageScore = filteredStudents.length > 0 ? parseFloat((totalScoreSum / filteredStudents.length).toFixed(2)) : 0;
+    const passCount = filteredStudents.length - failCount;
 
     return {
       totalCount,
       femaleCount,
       averageScore,
       failCount,
-      passCount
+      passCount,
+      totalRecordCount: filteredStudents.length // Keep track of the total number of records evaluated
     };
   }, [filteredStudents]);
 
   // Donut chart calculations
   const donutData = useMemo(() => {
-    const total = stats.totalCount;
+    const total = stats.totalRecordCount;
     if (total === 0) return null;
 
     const r = 50;
