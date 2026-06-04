@@ -121,6 +121,14 @@ export const AVAILABLE_USERS: SchoolUser[] = [
     avatarBg: 'bg-gradient-to-tr from-pink-600 to-red-500'
   },
   {
+    id: 'teacher_g6',
+    name: 'លោកគ្រូ ស៊ុំ សំណាង',
+    role: 'teacher',
+    grade: 'ថ្នាក់ទី ៦',
+    photoCode: 'សស',
+    avatarBg: 'bg-gradient-to-tr from-pink-600 to-red-500'
+  },
+  {
     id: 'teacher_english',
     name: 'លោកគ្រូ យ៉ន យ៉ាវ',
     role: 'teacher',
