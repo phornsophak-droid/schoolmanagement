@@ -28,10 +28,10 @@ export function generateUniqueId(): string {
 export function calculateStudentFields(
   student: Omit<StudentScore, 'khmerAvg' | 'mathAvg' | 'overallAvg' | 'totalScore' | 'gradeLetter' | 'result'>
 ): StudentScore {
-  const khmerScores = [student.khmer.listening, student.khmer.writing, student.khmer.reading, student.khmer.speaking].filter(s => s !== null) as number[];
+  const khmerScores = [student.khmer.listening, student.khmer.writing, student.khmer.reading, student.khmer.speaking].filter(s => s !== null && s > 0) as number[];
   const khmerAvg = khmerScores.length > 0 ? clampScore(khmerScores.reduce((a, b) => a + b, 0) / khmerScores.length) : 0;
   
-  const mathScores = [student.math.numbers, student.math.measurement, student.math.geometry, student.math.algebra, student.math.statistics].filter(s => s !== null) as number[];
+  const mathScores = [student.math.numbers, student.math.measurement, student.math.geometry, student.math.algebra, student.math.statistics].filter(s => s !== null && s > 0) as number[];
   const mathAvg = mathScores.length > 0 ? clampScore(mathScores.reduce((a, b) => a + b, 0) / mathScores.length) : 0;
 
   const validSubjects: (number | null)[] = [];
@@ -39,7 +39,7 @@ export function calculateStudentFields(
   if (mathScores.length > 0) validSubjects.push(mathAvg);
   validSubjects.push(student.science, student.socialStudies, student.physicalEducation, student.health, student.lifeSkills, student.foreignLanguage);
 
-  const subjects = validSubjects.filter(s => s !== null) as number[];
+  const subjects = validSubjects.filter(s => s !== null && s > 0) as number[];
 
   const sumScore = subjects.reduce((sum, s) => sum + s, 0);
   const overallAvg = subjects.length > 0 ? clampScore(sumScore / subjects.length) : 0;

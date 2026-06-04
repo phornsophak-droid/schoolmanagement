@@ -228,17 +228,18 @@ export default function ReportsHub({
           const records = students.filter(s => s.name.trim() === student.name && s.grade === student.grade);
           if (records.length === 0) return 0;
           let sum = 0;
+          let count = 0;
           records.forEach(r => {
-            if (subj === 'khmer') sum += r.khmerAvg;
-            else if (subj === 'math') sum += r.mathAvg;
-            else if (subj === 'science') sum += r.science;
-            else if (subj === 'socialStudies') sum += r.socialStudies;
-            else if (subj === 'physicalEducation') sum += r.physicalEducation;
-            else if (subj === 'health') sum += r.health;
-            else if (subj === 'lifeSkills') sum += r.lifeSkills;
-            else if (subj === 'foreignLanguage') sum += r.foreignLanguage;
+            if (subj === 'khmer' && r.khmerAvg > 0) { sum += r.khmerAvg; count++; }
+            else if (subj === 'math' && r.mathAvg > 0) { sum += r.mathAvg; count++; }
+            else if (subj === 'science' && r.science !== null && r.science > 0) { sum += r.science; count++; }
+            else if (subj === 'socialStudies' && r.socialStudies !== null && r.socialStudies > 0) { sum += r.socialStudies; count++; }
+            else if (subj === 'physicalEducation' && r.physicalEducation !== null && r.physicalEducation > 0) { sum += r.physicalEducation; count++; }
+            else if (subj === 'health' && r.health !== null && r.health > 0) { sum += r.health; count++; }
+            else if (subj === 'lifeSkills' && r.lifeSkills !== null && r.lifeSkills > 0) { sum += r.lifeSkills; count++; }
+            else if (subj === 'foreignLanguage' && r.foreignLanguage !== null && r.foreignLanguage > 0) { sum += r.foreignLanguage; count++; }
           });
-          return clampScore(sum / records.length);
+          return count > 0 ? clampScore(sum / count) : 0;
         };
 
         return {
