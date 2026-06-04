@@ -43,7 +43,7 @@ export function calculateStudentFields(
 
   const sumScore = subjects.reduce((sum, s) => sum + s, 0);
   const overallAvg = subjects.length > 0 ? clampScore(sumScore / subjects.length) : 0;
-  const totalScore = parseFloat(sumScore.toFixed(2));
+  const totalScore = subjects.length > 0 ? parseFloat(sumScore.toFixed(2)) : undefined;
 
   let gradeLetter = 'F';
   if (overallAvg >= 9.0) gradeLetter = 'A';

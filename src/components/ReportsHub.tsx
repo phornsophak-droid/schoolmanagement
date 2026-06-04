@@ -163,7 +163,7 @@ export default function ReportsHub({
         let count1 = 0;
         SEMESTER_1_MONTHS.forEach(m => {
           const record = mRecords1.find(r => r.month === m);
-          if (record) {
+          if (record && record.totalScore !== undefined) {
             sumMonthlyAvgs1 += record.overallAvg;
             count1++;
           }
@@ -187,7 +187,7 @@ export default function ReportsHub({
         let count2 = 0;
         SEMESTER_2_MONTHS.forEach(m => {
           const record = mRecords2.find(r => r.month === m);
-          if (record) {
+          if (record && record.totalScore !== undefined) {
             sumMonthlyAvgs2 += record.overallAvg;
             count2++;
           }
@@ -914,7 +914,7 @@ export default function ReportsHub({
                           <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full block text-center mb-1">
                             {badgeIcon}
                           </span>
-                          <span className="text-xs font-extrabold font-mono text-blue-600">{st.overallAvg.toFixed(2)}</span>
+                          <span className="text-xs font-extrabold font-mono text-blue-600">{st.totalScore !== undefined ? st.overallAvg.toFixed(2) : '-'}</span>
                         </div>
                       </div>
                     );
@@ -1006,7 +1006,7 @@ export default function ReportsHub({
                                 {st.totalScore !== undefined ? st.totalScore : '-'}
                               </td>
                               <td className="px-4 py-4 text-center font-extrabold font-mono text-blue-700 bg-blue-50/10">
-                                {st.overallAvg.toFixed(2)}
+                                {st.totalScore !== undefined ? st.overallAvg.toFixed(2) : '-'}
                               </td>
                               <td className={`px-4 py-4 text-center font-extrabold font-sans ${gradeColor}`}>{st.gradeLetter}</td>
                               <td className="px-4 py-4 text-center">

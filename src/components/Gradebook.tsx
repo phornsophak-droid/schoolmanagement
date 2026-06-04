@@ -219,7 +219,7 @@ export default function Gradebook({
 
       targetMonths.forEach(m => {
         const record = monthlyRecords.find(r => r.month === m);
-        if (record) {
+        if (record && record.totalScore !== undefined) {
           monthAveragesMap[m] = record.overallAvg;
           sumMonthlyAvgs += record.overallAvg;
           activeMonthsCount++;
@@ -301,7 +301,7 @@ export default function Gradebook({
       let count1 = 0;
       SEMESTER_1_MONTHS.forEach(m => {
         const record = mRecords1.find(r => r.month === m);
-        if (record) {
+        if (record && record.totalScore !== undefined) {
           sumMonthlyAvgs1 += record.overallAvg;
           count1++;
         }
@@ -325,7 +325,7 @@ export default function Gradebook({
       let count2 = 0;
       SEMESTER_2_MONTHS.forEach(m => {
         const record = mRecords2.find(r => r.month === m);
-        if (record) {
+        if (record && record.totalScore !== undefined) {
           sumMonthlyAvgs2 += record.overallAvg;
           count2++;
         }
@@ -1183,13 +1183,13 @@ export default function Gradebook({
                         <td className="px-4 py-3 text-center text-slate-500">{st.grade}</td>
                         <td className="px-4 py-3 text-center text-slate-500 font-medium">{st.month}</td>
                         <td className="px-4 py-3 text-center font-mono">
-                          {st.khmerAvg} 
+                          {[st.khmer.listening, st.khmer.writing, st.khmer.reading, st.khmer.speaking].some(s => s !== null) ? st.khmerAvg : '-'} 
                           <span className="text-[9px] text-slate-400 block font-normal">
                             ({st.khmer.listening !== null ? st.khmer.listening : '-'}/{st.khmer.writing !== null ? st.khmer.writing : '-'}/{st.khmer.reading !== null ? st.khmer.reading : '-'}/{st.khmer.speaking !== null ? st.khmer.speaking : '-'})
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center font-mono">
-                          {st.mathAvg}
+                          {[st.math.numbers, st.math.measurement, st.math.geometry, st.math.algebra, st.math.statistics].some(s => s !== null) ? st.mathAvg : '-'}
                           <span className="text-[9px] text-slate-400 block font-normal">
                             ({st.math.numbers !== null ? st.math.numbers : '-'}/{st.math.measurement !== null ? st.math.measurement : '-'}/{st.math.geometry !== null ? st.math.geometry : '-'}/{st.math.algebra !== null ? st.math.algebra : '-'}/{st.math.statistics !== null ? st.math.statistics : '-'})
                           </span>
@@ -1204,7 +1204,7 @@ export default function Gradebook({
                           {st.totalScore !== undefined ? st.totalScore : '-'}
                         </td>
                         <td className="px-4 py-3 text-center font-mono font-bold text-blue-600 bg-blue-50/10">
-                          {st.overallAvg}
+                          {st.totalScore !== undefined ? st.overallAvg : '-'}
                         </td>
                         <td className={`px-4 py-3 text-center ${gradeColor}`}>{st.gradeLetter}</td>
                         <td className="px-4 py-3 text-center">
