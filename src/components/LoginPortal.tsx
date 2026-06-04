@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SchoolUser } from '../types';
 import { getPinForUser, setPinForUser } from '../utils/auth';
+import { syncUpsertSetting } from '../lib/supabase';
 import { 
   KeyRound, 
   ShieldAlert, 
@@ -235,6 +236,7 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
     if (!Array.isArray(savedUsers)) savedUsers = [];
     savedUsers.push(newUser);
     localStorage.setItem('school_custom_users', JSON.stringify(savedUsers));
+    syncUpsertSetting('school_custom_users', savedUsers).catch(console.error);
 
     // Save custom PIN if provided
     if (newPinCode && newPinCode !== '1234') {

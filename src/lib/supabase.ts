@@ -282,6 +282,18 @@ export async function syncFetchAll() {
     fetchedGrades = rawGrades.map((g: any) => g.name);
   }
 
+  // Fetch settings
+  const { data: rawSettings } = await supabase
+    .from('school_settings')
+    .select('*');
+
+  let fetchedSettings: any = {};
+  if (rawSettings) {
+    rawSettings.forEach((row: any) => {
+      fetchedSettings[row.setting_key] = row.setting_value;
+    });
+  }
+
   // Combine and map
   const mappedScores = (rawScores || []).map(mapDBToScore);
   
@@ -295,7 +307,8 @@ export async function syncFetchAll() {
   return {
     students: mappedScores,
     reports: mappedReports,
-    grades: fetchedGrades
+    grades: fetchedGrades,
+    settings: fetchedSettings
   };
 }
 
@@ -475,3 +488,17 @@ export async function syncDeleteGrade(gradeName: string) {
     console.error(`Failed to delete grade ${gradeName} from Supabase`, error);
   }
 }
+
+// 9. Push setting
+export async function syncUpsertSetting(key: string, value: any) {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from('school_settings')
+    .upsert({ setting_key: key, setting_value: value });
+  if (error) {
+    console.error(`Failed to upsert setting ${key} to Supabase`, error);
+  }
+}
+

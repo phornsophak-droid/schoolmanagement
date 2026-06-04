@@ -207,6 +207,19 @@ CREATE POLICY "Allow modify to struggling_students" ON public.struggling_student
 CREATE POLICY "Allow read to challenges_solutions" ON public.challenges_solutions FOR SELECT USING (true);
 CREATE POLICY "Allow modify to challenges_solutions" ON public.challenges_solutions FOR ALL USING (true) WITH CHECK (true);
 
+-- ------------------------------------------------------------------------------
+-- 7. TABLE FOR SCHOOL SYSTEM SETTINGS (ការកំណត់ទូទៅរបស់ប្រព័ន្ធសាលា)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.school_settings (
+    setting_key VARCHAR(100) PRIMARY KEY,
+    setting_value JSONB DEFAULT '{}'::jsonb NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.school_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow read to school_settings" ON public.school_settings FOR SELECT USING (true);
+CREATE POLICY "Allow modify to school_settings" ON public.school_settings FOR ALL USING (true) WITH CHECK (true);
+
 -- ==============================================================================
 -- REALTIME ENABLEMENT (បើកដំណើរការ Realtime Sync ភ្លាមៗ)
 -- ==============================================================================
@@ -217,5 +230,7 @@ DROP PUBLICATION IF EXISTS supabase_realtime;
 CREATE PUBLICATION supabase_realtime FOR TABLE 
     public.student_scores, 
     public.school_reports, 
-    public.school_grades;
+    public.school_grades,
+    public.school_settings;
+
 

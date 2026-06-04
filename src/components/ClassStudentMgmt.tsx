@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { StudentScore, SchoolUser } from '../types';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
+import { syncUpsertSetting } from '../lib/supabase';
 import * as XLSX from 'xlsx';
 
 // Helper to normalize grade names by stripping whitespace and converting digits to standard Khmer
@@ -420,6 +421,7 @@ export default function ClassStudentMgmt({
     setCustomTeachers(updated);
     try {
       localStorage.setItem('school_custom_teachers_v2', JSON.stringify(updated));
+      syncUpsertSetting('school_custom_teachers_v2', updated).catch(console.error);
     } catch (err) {}
     setIsEditingTeacher(false);
     alert('បានកែប្រែព័ត៌មានគ្រូថ្នាក់រៀននេះដោយជោគជ័យ!');

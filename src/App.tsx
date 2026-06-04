@@ -250,8 +250,49 @@ export default function App() {
               setGrades(data.grades);
               localStorage.setItem('school_grades_v2', JSON.stringify(data.grades));
             }
+            if (data.settings && Object.keys(data.settings).length > 0) {
+              if (data.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(data.settings['school_custom_users']));
+              if (data.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(data.settings['school_custom_pins']));
+              if (data.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(data.settings['school_custom_teachers_v2']));
+            }
             setSupabaseStatus('connected');
             setSupabaseErrorMsg('');
+
+            // Realtime Auto-Sync setup
+            try {
+              const channel = client.channel('app_sync_channel');
+              
+              const refreshData = () => {
+                syncFetchAll().then(newData => {
+                  if (newData.students) {
+                    setStudents(newData.students);
+                    localStorage.setItem('school_student_scores_v2', JSON.stringify(newData.students));
+                  }
+                  if (newData.reports) {
+                    setReports(newData.reports);
+                    localStorage.setItem('school_reports_v2', JSON.stringify(newData.reports));
+                  }
+                  if (newData.grades) {
+                    setGrades(newData.grades);
+                    localStorage.setItem('school_grades_v2', JSON.stringify(newData.grades));
+                  }
+                  if (newData.settings && Object.keys(newData.settings).length > 0) {
+                    if (newData.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(newData.settings['school_custom_users']));
+                    if (newData.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(newData.settings['school_custom_pins']));
+                    if (newData.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(newData.settings['school_custom_teachers_v2']));
+                  }
+                }).catch(err => console.error("Realtime sync failed", err));
+              };
+
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'student_scores' }, refreshData);
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_reports' }, refreshData);
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_grades' }, refreshData);
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_settings' }, refreshData);
+              
+              channel.subscribe();
+            } catch (err) {
+              console.error('Failed to setup realtime subscription', err);
+            }
           })
           .catch(err => {
             console.error('Initial Supabase fetch failed', err);
@@ -322,6 +363,26 @@ export default function App() {
       if (data.grades && data.grades.length > 0) {
         setGrades(data.grades);
         localStorage.setItem('school_grades_v2', JSON.stringify(data.grades));
+      }
+      
+      if (data.settings && Object.keys(data.settings).length > 0) {
+        if (data.settings['school_custom_users']) {
+          localStorage.setItem('school_custom_users', JSON.stringify(data.settings['school_custom_users']));
+          // Refresh the AVAILABLE_USERS array from localStorage (but without page reload it won't impact until reload? 
+          // Actually LoginPortal reads it on load, so we just mutate it.
+          const { AVAILABLE_USERS } = require('./components/LoginPortal');
+          // Clear custom users from AVAILABLE_USERS
+          const customIds = data.settings['school_custom_users'].map((u: any) => u.id);
+          const filtered = AVAILABLE_USERS.filter((u: any) => !u.id.startsWith('teacher_custom_'));
+          AVAILABLE_USERS.length = 0;
+          AVAILABLE_USERS.push(...filtered, ...data.settings['school_custom_users']);
+        }
+        if (data.settings['school_custom_pins']) {
+          localStorage.setItem('school_custom_pins', JSON.stringify(data.settings['school_custom_pins']));
+        }
+        if (data.settings['school_custom_teachers_v2']) {
+          localStorage.setItem('school_custom_teachers_v2', JSON.stringify(data.settings['school_custom_teachers_v2']));
+        }
       }
 
       setSupabaseStatus('connected');

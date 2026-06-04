@@ -1,3 +1,5 @@
+import { syncUpsertSetting } from '../lib/supabase';
+
 export const getPinForUser = (userId: string, role: string): string => {
   const customPinsStr = localStorage.getItem('school_custom_pins');
   if (customPinsStr) {
@@ -12,4 +14,5 @@ export const setPinForUser = (userId: string, newPin: string) => {
   const customPins = customPinsStr ? JSON.parse(customPinsStr) : {};
   customPins[userId] = newPin;
   localStorage.setItem('school_custom_pins', JSON.stringify(customPins));
+  syncUpsertSetting('school_custom_pins', customPins).catch(console.error);
 };
