@@ -27,18 +27,20 @@ interface AttendanceRecord {
   date: string;
   grade: string;
   presentCount: number;
+  lateCount?: number;
   permissionCount: number;
   absentCount: number;
-  studentStates: { [studentId: string]: 'present' | 'permission' | 'absent' };
+  studentStates: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' };
 }
 
 interface TeacherAttendanceRecord {
   id: string;
   date: string;
   presentCount: number;
+  lateCount?: number;
   permissionCount: number;
   absentCount: number;
-  teacherStates: { [teacherId: string]: 'present' | 'permission' | 'absent' };
+  teacherStates: { [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' };
 }
 
 interface DailyAttendanceProps {
@@ -86,6 +88,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
         date: '2026-06-02',
         grade: grades[0] || 'ថ្នាក់ទី ១ក',
         presentCount: 22,
+        lateCount: 0,
         permissionCount: 1,
         absentCount: 1,
         studentStates: {}
@@ -108,6 +111,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
         id: 't-att-mock-1',
         date: '2026-06-02',
         presentCount: 12,
+        lateCount: 0,
         permissionCount: 0,
         absentCount: 0,
         teacherStates: {}
@@ -116,10 +120,10 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   });
 
   // Track the current student-level state mapping
-  const [activeAttendanceMap, setActiveAttendanceMap] = useState<{ [studentId: string]: 'present' | 'permission' | 'absent' }>({});
+  const [activeAttendanceMap, setActiveAttendanceMap] = useState<{ [studentId: string]: 'present' | 'late' | 'permission' | 'absent' }>({});
 
   // Track the current teacher-level state mapping
-  const [teacherAttendanceMap, setTeacherAttendanceMap] = useState<{ [teacherId: string]: 'present' | 'permission' | 'absent' }>({});
+  const [teacherAttendanceMap, setTeacherAttendanceMap] = useState<{ [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' }>({});
 
   // Compile list of teachers from AVAILABLE_USERS
   const teachersList = AVAILABLE_USERS.filter(u => u.role === 'teacher');
@@ -131,14 +135,14 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     
     if (existing && existing.studentStates && Object.keys(existing.studentStates).length > 0) {
       // Re-hydrate existing states, but ensure new students get designated as present
-      const map: { [studentId: string]: 'present' | 'permission' | 'absent' } = {};
+      const map: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
       gradeStudents.forEach(s => {
         map[s.id] = existing.studentStates[s.id] || 'present';
       });
       setActiveAttendanceMap(map);
     } else {
       // Setup default (every student present)
-      const map: { [studentId: string]: 'present' | 'permission' | 'absent' } = {};
+      const map: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
       gradeStudents.forEach(s => {
         map[s.id] = 'present';
       });
@@ -151,13 +155,13 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     const existing = teacherRecords.find(r => r.date === selectedDate);
     
     if (existing && existing.teacherStates && Object.keys(existing.teacherStates).length > 0) {
-      const map: { [teacherId: string]: 'present' | 'permission' | 'absent' } = {};
+      const map: { [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
       teachersList.forEach(t => {
         map[t.id] = existing.teacherStates[t.id] || 'present';
       });
       setTeacherAttendanceMap(map);
     } else {
-      const map: { [teacherId: string]: 'present' | 'permission' | 'absent' } = {};
+      const map: { [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
       teachersList.forEach(t => {
         map[t.id] = 'present';
       });
@@ -191,7 +195,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   const totalInGrade = students.filter(s => s.grade === selectedGrade).length;
 
   // Mass manipulation utilities
-  const markAllStatus = (status: 'present' | 'permission' | 'absent') => {
+  const markAllStatus = (status: 'present' | 'late' | 'permission' | 'absent') => {
     const gradeStudents = students.filter(s => s.grade === selectedGrade);
     const newMap = { ...activeAttendanceMap };
     gradeStudents.forEach(s => {
@@ -201,19 +205,22 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     triggerToast(
       status === 'present' 
         ? '✅ បានសម្គាល់សិស្សទាំងអស់ជា «វត្តមាន»' 
-        : status === 'permission'
-          ? '⚠️ បានសម្គាល់សិស្សទាំងអស់ជា «ច្បាប់»'
-          : '🚨 បានសម្គាល់សិស្សទាំងអស់ជា «អវត្តមាន»',
-      status === 'present' ? 'success' : 'info'
+        : status === 'late'
+          ? '🕒 បានសម្គាល់សិស្សទាំងអស់ជា «យឺត»'
+          : status === 'permission'
+            ? '⚠️ បានសម្គាល់សិស្សទាំងអស់ជា «ច្បាប់»'
+            : '🚨 បានសម្គាល់សិស្សទាំងអស់ជា «អត់ច្បាប់»',
+      status === 'present' || status === 'late' ? 'success' : 'info'
     );
   };
 
   // Attendance metrics calculation
   const presentCount = displayStudents.filter(s => (activeAttendanceMap[s.id] || 'present') === 'present').length;
+  const lateCount = displayStudents.filter(s => activeAttendanceMap[s.id] === 'late').length;
   const permissionCount = displayStudents.filter(s => activeAttendanceMap[s.id] === 'permission').length;
   const absentCount = displayStudents.filter(s => activeAttendanceMap[s.id] === 'absent').length;
 
-  const rate = totalInGrade > 0 ? Math.round((presentCount / totalInGrade) * 100) : 100;
+  const rate = totalInGrade > 0 ? Math.round(((presentCount + lateCount) / totalInGrade) * 100) : 100;
 
   // Persist the current daily snapshot
   const handleSaveAttendance = () => {
@@ -224,14 +231,16 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     }
 
     let p = 0;
+    let y = 0;
     let l = 0;
     let a = 0;
 
-    const finalStates: { [studentId: string]: 'present' | 'permission' | 'absent' } = {};
+    const finalStates: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
     gradeStudents.forEach(s => {
       const status = activeAttendanceMap[s.id] || 'present';
       finalStates[s.id] = status;
       if (status === 'present') p++;
+      else if (status === 'late') y++;
       else if (status === 'permission') l++;
       else if (status === 'absent') a++;
     });
@@ -242,6 +251,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       date: selectedDate,
       grade: selectedGrade,
       presentCount: p,
+      lateCount: y,
       permissionCount: l,
       absentCount: a,
       studentStates: finalStates
@@ -254,7 +264,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
     setRecords(updated);
     localStorage.setItem('school_daily_attendance', JSON.stringify(updated));
-    triggerToast(`💾 រក្សាទុកវត្តមានជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${l} នាក់ច្បាប់ | ${a} នាក់អវត្តមាន`, 'success');
+    triggerToast(`💾 រក្សាទុកវត្តមានជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់`, 'success');
   };
 
   // Filter teachers matching search query
@@ -265,12 +275,13 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
   const totalTeachersCount = teachersList.length;
   const teacherPresentCount = displayTeachers.filter(t => (teacherAttendanceMap[t.id] || 'present') === 'present').length;
+  const teacherLateCount = displayTeachers.filter(t => teacherAttendanceMap[t.id] === 'late').length;
   const teacherPermissionCount = displayTeachers.filter(t => teacherAttendanceMap[t.id] === 'permission').length;
   const teacherAbsentCount = displayTeachers.filter(t => teacherAttendanceMap[t.id] === 'absent').length;
 
-  const teacherRate = totalTeachersCount > 0 ? Math.round((teacherPresentCount / totalTeachersCount) * 100) : 100;
+  const teacherRate = totalTeachersCount > 0 ? Math.round(((teacherPresentCount + teacherLateCount) / totalTeachersCount) * 100) : 100;
 
-  const markAllTeachersStatus = (status: 'present' | 'permission' | 'absent') => {
+  const markAllTeachersStatus = (status: 'present' | 'late' | 'permission' | 'absent') => {
     const newMap = { ...teacherAttendanceMap };
     teachersList.forEach(t => {
       newMap[t.id] = status;
@@ -279,23 +290,27 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     triggerToast(
       status === 'present' 
         ? '✅ បានសម្គាល់គ្រូបង្រៀនទាំងអស់ជា «វត្តមាន»' 
-        : status === 'permission'
-          ? '⚠️ បានសម្គាល់គ្រូបង្រៀនទាំងអស់ជា «ច្បាប់»'
-          : '🚨 បានសម្គាល់គ្រូបង្រៀនទាំងអស់ជា «អវត្តមាន»',
-      status === 'present' ? 'success' : 'info'
+        : status === 'late'
+          ? '🕒 បានសម្គាល់គ្រូបង្រៀនទាំងអស់ជា «យឺត»'
+          : status === 'permission'
+            ? '⚠️ បានសម្គាល់គ្រូបង្រៀនទាំងអស់ជា «ច្បាប់»'
+            : '🚨 បានសម្គាល់គ្រូបង្រៀនទាំងអស់ជា «អត់ច្បាប់»',
+      status === 'present' || status === 'late' ? 'success' : 'info'
     );
   };
 
   const handleSaveTeacherAttendance = () => {
     let p = 0;
+    let y = 0;
     let l = 0;
     let a = 0;
 
-    const finalStates: { [teacherId: string]: 'present' | 'permission' | 'absent' } = {};
+    const finalStates: { [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
     teachersList.forEach(t => {
       const status = teacherAttendanceMap[t.id] || 'present';
       finalStates[t.id] = status;
       if (status === 'present') p++;
+      else if (status === 'late') y++;
       else if (status === 'permission') l++;
       else if (status === 'absent') a++;
     });
@@ -305,6 +320,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       id: recordId,
       date: selectedDate,
       presentCount: p,
+      lateCount: y,
       permissionCount: l,
       absentCount: a,
       teacherStates: finalStates
@@ -317,7 +333,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
     setTeacherRecords(updated);
     localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(updated));
-    triggerToast(`💾 រក្សាទុកវត្តមានគ្រូជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${l} នាក់ច្បាប់ | ${a} នាក់អវត្តមាន`, 'success');
+    triggerToast(`💾 រក្សាទុកវត្តមានគ្រូជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់`, 'success');
   };
 
   return (
@@ -414,8 +430,8 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       </div>
 
       {/* Top statistics summary modules */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metirc 1: Total Registered */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Metric 1: Total Registered */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500">
             {activeTab === 'student' ? <UserCheck className="w-6 h-6" /> : <Users2 className="w-6 h-6" />}
@@ -433,7 +449,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
         {/* Metric 2: Present */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-[#E6F4EA] border border-emerald-100 flex items-center justify-center text-[#137333]">
-            <span className="text-lg font-black">P</span>
+            <span className="text-sm font-black">វ</span>
           </div>
           <div>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
@@ -447,10 +463,27 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           </div>
         </div>
 
-        {/* Metric 3: Permission */}
+        {/* Metric 3: Late */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-[#E8F0FE] border border-blue-100 flex items-center justify-center text-[#1a73e8]">
+            <span className="text-sm font-black">យ</span>
+          </div>
+          <div>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+              {activeTab === 'student' ? 'សិស្សមកយឺត' : 'គ្រូបង្រៀនមកយឺត'}
+            </p>
+            <h3 className="text-xl font-black text-blue-600 mt-1">
+              {activeTab === 'student' 
+                ? `${totalInGrade > 0 ? lateCount : 0} នាក់` 
+                : `${teacherLateCount} នាក់`}
+            </h3>
+          </div>
+        </div>
+
+        {/* Metric 4: Permission */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-[#FEF7E0] border border-amber-100 flex items-center justify-center text-[#B06000]">
-            <span className="text-lg font-black">L</span>
+            <span className="text-sm font-black">ច្ប</span>
           </div>
           <div>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
@@ -464,14 +497,14 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           </div>
         </div>
 
-        {/* Metric 4: Absent */}
+        {/* Metric 5: Absent */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-[#FCE8E6] border border-rose-100 flex items-center justify-center text-[#C5221F]">
-            <span className="text-lg font-black">A</span>
+            <span className="text-sm font-black">អច្ប</span>
           </div>
           <div>
             <p className="text-[#EA4335] text-[10px] font-bold uppercase tracking-wider">
-              {activeTab === 'student' ? 'អវត្តមានគ្មានច្បាប់' : 'គ្រូបង្រៀនអវត្តមាន'}
+              {activeTab === 'student' ? 'សិស្សអត់ច្បាប់' : 'គ្រូបង្រៀនអត់ច្បាប់'}
             </p>
             <h3 className="text-xl font-black text-rose-600 mt-1">
               {activeTab === 'student' 
@@ -591,6 +624,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   <span>✔️ សម្គាល់វត្តមានទាំងអស់</span>
                 </button>
                 <button
+                  onClick={() => markAllStatus('late')}
+                  className="py-2.5 bg-[#E8F0FE] hover:bg-[#d6e4fd] border border-blue-250 text-blue-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
+                >
+                  <span>🕒 សម្គាល់យឺតទាំងអស់</span>
+                </button>
+                <button
                   onClick={() => markAllStatus('permission')}
                   className="py-2.5 bg-[#FEF7E0] hover:bg-[#faecc3] border border-amber-250 text-amber-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
                 >
@@ -600,7 +639,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   onClick={() => markAllStatus('absent')}
                   className="py-2.5 bg-[#FCE8E6] hover:bg-[#fad0cd] border border-rose-250 text-rose-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
                 >
-                  <span>❌ សម្គាល់អវត្តមានទាំងអស់</span>
+                  <span>❌ សម្គាល់អត់ច្បាប់ទាំងអស់</span>
                 </button>
               </div>
             </div>
@@ -619,6 +658,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   <span>✔️ សម្គាល់វត្តមានគ្រូទាំងអស់</span>
                 </button>
                 <button
+                  onClick={() => markAllTeachersStatus('late')}
+                  className="py-2.5 bg-[#E8F0FE] hover:bg-[#d6e4fd] border border-blue-250 text-blue-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
+                >
+                  <span>🕒 សម្គាល់យឺតគ្រូទាំងអស់</span>
+                </button>
+                <button
                   onClick={() => markAllTeachersStatus('permission')}
                   className="py-2.5 bg-[#FEF7E0] hover:bg-[#faecc3] border border-amber-250 text-amber-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
                 >
@@ -628,7 +673,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   onClick={() => markAllTeachersStatus('absent')}
                   className="py-2.5 bg-[#FCE8E6] hover:bg-[#fad0cd] border border-rose-250 text-rose-805 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
                 >
-                  <span>❌ សម្គាល់អវត្តមានគ្រូទាំងអស់</span>
+                  <span>❌ សម្គាល់អត់ច្បាប់គ្រូទាំងអស់</span>
                 </button>
               </div>
             </div>
@@ -689,6 +734,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                               <div className="inline-flex gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
                                 <button
                                   onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'present' }))}
+                                  title="វត្តមាន (វ)"
                                   className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                     currentStatus === 'present'
                                       ? 'bg-emerald-600 text-white shadow-sm font-bold scale-[1.03]'
@@ -696,11 +742,25 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                   }`}
                                 >
                                   {currentStatus === 'present' && <Check size={10} strokeWidth={3} />}
-                                  <span>P</span>
+                                  <span>វ</span>
+                                </button>
+
+                                <button
+                                  onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'late' }))}
+                                  title="យឺត (យ)"
+                                  className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
+                                    currentStatus === 'late'
+                                      ? 'bg-blue-600 text-white shadow-sm font-bold scale-[1.03]'
+                                      : 'text-slate-400 hover:text-slate-705'
+                                  }`}
+                                >
+                                  {currentStatus === 'late' && <Check size={10} strokeWidth={3} />}
+                                  <span>យ</span>
                                 </button>
                                 
                                 <button
                                   onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'permission' }))}
+                                  title="ច្បាប់ (ច្ប)"
                                   className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                     currentStatus === 'permission'
                                       ? 'bg-amber-500 text-white shadow-sm font-bold scale-[1.03]'
@@ -708,11 +768,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                   }`}
                                 >
                                   {currentStatus === 'permission' && <Check size={10} strokeWidth={3} />}
-                                  <span>L</span>
+                                  <span>ច្ប</span>
                                 </button>
 
                                 <button
                                   onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'absent' }))}
+                                  title="អត់ច្បាប់ (អច្ប)"
                                   className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                     currentStatus === 'absent'
                                       ? 'bg-rose-500 text-white shadow-sm font-bold scale-[1.03]'
@@ -720,7 +781,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                   }`}
                                 >
                                   {currentStatus === 'absent' && <Check size={10} strokeWidth={3} />}
-                                  <span>A</span>
+                                  <span>អច្ប</span>
                                 </button>
                               </div>
                             </td>
@@ -743,7 +804,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
               <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 rounded-b-2xl">
                 <button
                   onClick={() => {
-                    const map: { [studentId: string]: 'present' | 'permission' | 'absent' } = {};
+                    const map: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
                     students.filter(s => s.grade === selectedGrade).forEach(s => {
                       map[s.id] = 'present';
                     });
@@ -821,6 +882,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                               <div className="inline-flex gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
                                 <button
                                   onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'present' }))}
+                                  title="វត្តមាន (វ)"
                                   className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                     currentStatus === 'present'
                                       ? 'bg-emerald-600 text-white shadow-sm font-bold scale-[1.03]'
@@ -828,11 +890,25 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                   }`}
                                 >
                                   {currentStatus === 'present' && <Check size={10} strokeWidth={3} />}
-                                  <span>P</span>
+                                  <span>វ</span>
+                                </button>
+
+                                <button
+                                  onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'late' }))}
+                                  title="យឺត (យ)"
+                                  className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
+                                    currentStatus === 'late'
+                                      ? 'bg-blue-600 text-white shadow-sm font-bold scale-[1.03]'
+                                      : 'text-slate-400 hover:text-slate-705'
+                                  }`}
+                                >
+                                  {currentStatus === 'late' && <Check size={10} strokeWidth={3} />}
+                                  <span>យ</span>
                                 </button>
                                 
                                 <button
                                   onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'permission' }))}
+                                  title="ច្បាប់ (ច្ប)"
                                   className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                     currentStatus === 'permission'
                                       ? 'bg-amber-500 text-white shadow-sm font-bold scale-[1.03]'
@@ -840,11 +916,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                   }`}
                                 >
                                   {currentStatus === 'permission' && <Check size={10} strokeWidth={3} />}
-                                  <span>L</span>
+                                  <span>ច្ប</span>
                                 </button>
 
                                 <button
                                   onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'absent' }))}
+                                  title="អត់ច្បាប់ (អច្ប)"
                                   className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                     currentStatus === 'absent'
                                       ? 'bg-rose-500 text-white shadow-sm font-bold scale-[1.03]'
@@ -852,7 +929,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                   }`}
                                 >
                                   {currentStatus === 'absent' && <Check size={10} strokeWidth={3} />}
-                                  <span>A</span>
+                                  <span>អច្ប</span>
                                 </button>
                               </div>
                             </td>
@@ -875,7 +952,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
               <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 rounded-b-2xl">
                 <button
                   onClick={() => {
-                    const map: { [teacherId: string]: 'present' | 'permission' | 'absent' } = {};
+                    const map: { [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
                     teachersList.forEach(t => {
                       map[t.id] = 'present';
                     });

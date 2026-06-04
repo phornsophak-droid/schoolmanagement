@@ -28,9 +28,10 @@ interface AttendanceRecord {
   date: string;
   grade: string;
   presentCount: number;
+  lateCount?: number;
   permissionCount: number;
   absentCount: number;
-  studentStates: { [studentId: string]: 'present' | 'permission' | 'absent' };
+  studentStates: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' };
 }
 
 interface DashboardProps {
@@ -103,22 +104,24 @@ export default function Dashboard({
 
   const attendanceAggregates = useMemo(() => {
     let totalPresent = 0;
+    let totalLate = 0;
     let totalPermission = 0;
     let totalAbsent = 0;
 
     filteredAttendance.forEach(rec => {
       totalPresent += rec.presentCount;
+      totalLate += rec.lateCount || 0;
       totalPermission += rec.permissionCount;
       totalAbsent += rec.absentCount;
     });
 
-    const totalStudentsScheduled = totalPresent + totalPermission + totalAbsent;
+    const totalStudentsScheduled = totalPresent + totalLate + totalPermission + totalAbsent;
     const overallRate = totalStudentsScheduled > 0 
-      ? Math.round((totalPresent / totalStudentsScheduled) * 100) 
+      ? Math.round(((totalPresent + totalLate) / totalStudentsScheduled) * 100) 
       : 0;
 
     return {
-      totalPresent,
+      totalPresent: totalPresent + totalLate,
       totalPermission,
       totalAbsent,
       overallRate,
@@ -553,8 +556,8 @@ export default function Dashboard({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredAttendance.slice(0, 8).map((rec) => {
-                    const totalTracked = rec.presentCount + rec.permissionCount + rec.absentCount;
-                    const r = totalTracked > 0 ? Math.round((rec.presentCount / totalTracked) * 100) : 100;
+                    const totalTracked = rec.presentCount + (rec.lateCount || 0) + rec.permissionCount + rec.absentCount;
+                    const r = totalTracked > 0 ? Math.round(((rec.presentCount + (rec.lateCount || 0)) / totalTracked) * 100) : 100;
                     return (
                       <tr key={rec.id} className="hover:bg-slate-50/50 transition-all">
                         <td className="px-4 py-3 font-semibold text-slate-705">

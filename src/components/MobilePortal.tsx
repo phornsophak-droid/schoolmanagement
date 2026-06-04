@@ -45,9 +45,10 @@ interface AttendanceRecord {
   date: string;
   grade: string;
   presentCount: number;
+  lateCount?: number;
   permissionCount: number;
   absentCount: number;
-  studentStates: { [studentId: string]: 'present' | 'permission' | 'absent' };
+  studentStates: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' };
 }
 
 interface MobilePortalProps {
@@ -94,7 +95,7 @@ export default function MobilePortal({
     return currentUser?.grade !== 'ទាំងអស់' ? currentUser?.grade || 'ថ្នាក់ទី១' : 'ថ្នាក់ទី១';
   });
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('');
-  const [activeAttendanceMap, setActiveAttendanceMap] = useState<{ [studentId: string]: 'present' | 'permission' | 'absent' }>({});
+  const [activeAttendanceMap, setActiveAttendanceMap] = useState<{ [studentId: string]: 'present' | 'late' | 'permission' | 'absent' }>({});
 
   const [savedAttendanceRecords, setSavedAttendanceRecords] = useState<AttendanceRecord[]>(() => {
     const saved = localStorage.getItem('school_daily_attendance');
@@ -143,7 +144,7 @@ export default function MobilePortal({
       setActiveAttendanceMap(existing.studentStates);
     } else {
       const gradeStudents = students.filter(s => s.grade === selectedAttendanceGrade);
-      const initialMap: { [studentId: string]: 'present' | 'permission' | 'absent' } = {};
+      const initialMap: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
       gradeStudents.forEach(s => {
         initialMap[s.id] = 'present';
       });
@@ -160,14 +161,16 @@ export default function MobilePortal({
     }
 
     let present = 0;
+    let late = 0;
     let permission = 0;
     let absent = 0;
 
-    const finalStates: { [studentId: string]: 'present' | 'permission' | 'absent' } = {};
+    const finalStates: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
     gradeStudents.forEach(s => {
       const state = activeAttendanceMap[s.id] || 'present';
       finalStates[s.id] = state;
       if (state === 'present') present++;
+      else if (state === 'late') late++;
       else if (state === 'permission') permission++;
       else if (state === 'absent') absent++;
     });
@@ -178,6 +181,7 @@ export default function MobilePortal({
       date: selectedAttendanceDate,
       grade: selectedAttendanceGrade,
       presentCount: present,
+      lateCount: late,
       permissionCount: permission,
       absentCount: absent,
       studentStates: finalStates
@@ -190,7 +194,7 @@ export default function MobilePortal({
 
     setSavedAttendanceRecords(updated);
     localStorage.setItem('school_daily_attendance', JSON.stringify(updated));
-    showToast(`✅ បានរក្សាទុកវត្តមាន! (វត្តមាន: ${present}, ច្បាប់: ${permission}, អវត្តមាន: ${absent})`);
+    showToast(`✅ បានរក្សាទុកវត្តមាន! (វត្តមាន: ${present}, យឺត: ${late}, ច្បាប់: ${permission}, អវត្តមាន: ${absent})`);
   };
 
   // States for sub-apps
@@ -787,10 +791,11 @@ export default function MobilePortal({
               
               const totalGradeCount = activeGradeStudents.length;
               const presentCount = activeGradeStudents.filter(s => (activeAttendanceMap[s.id] || 'present') === 'present').length;
+              const lateCount = activeGradeStudents.filter(s => activeAttendanceMap[s.id] === 'late').length;
               const permissionCount = activeGradeStudents.filter(s => activeAttendanceMap[s.id] === 'permission').length;
               const absentCount = activeGradeStudents.filter(s => activeAttendanceMap[s.id] === 'absent').length;
               const attendancePercent = totalGradeCount > 0 
-                ? Math.round((presentCount / totalGradeCount) * 100) 
+                ? Math.round(((presentCount + lateCount) / totalGradeCount) * 100) 
                 : 100;
 
               return (
@@ -892,17 +897,20 @@ export default function MobilePortal({
                       <div className="bg-gradient-to-r from-blue-900/20 to-indigo-950/30 rounded-xl border border-blue-800/20 p-2.5 flex items-center justify-between text-[8px]">
                         <div>
                           <p className="text-slate-400 font-bold">ស្ថិតិវត្តមានថ្នាក់ ({selectedAttendanceGrade})</p>
-                          <p className="text-[12px] font-black text-[#E2C785] mt-1">អត្រា حاضرة: {attendancePercent}%</p>
+                          <p className="text-[12px] font-black text-[#E2C785] mt-1">អត្រាវត្តមាន៖ {attendancePercent}%</p>
                         </div>
                         <div className="flex gap-1.5 font-bold text-center">
                           <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-1 rounded">
                             <span className="block text-[9px] font-black">{presentCount}</span>វត្តមាន
                           </span>
+                          <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-1 rounded">
+                            <span className="block text-[9px] font-black">{lateCount}</span>យឺត
+                          </span>
                           <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-1 rounded">
                             <span className="block text-[9px] font-black">{permissionCount}</span>ច្បាប់
                           </span>
                           <span className="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-1 rounded">
-                            <span className="block text-[9px] font-black">{absentCount}</span>អវវត្តមាន
+                            <span className="block text-[9px] font-black">{absentCount}</span>អត់ច្បាប់
                           </span>
                         </div>
                       </div>
@@ -925,7 +933,7 @@ export default function MobilePortal({
                                   </div>
                                 </div>
 
-                                {/* P, L, A selector buttons */}
+                                {/* វ, យ, ច្ប, អច្ប selector buttons */}
                                 <div className="flex gap-1">
                                   <button
                                     onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'present' }))}
@@ -934,9 +942,20 @@ export default function MobilePortal({
                                         ? 'bg-emerald-600 text-slate-100 border-emerald-500 shadow-sm shadow-emerald-600/20 font-black scale-105'
                                         : 'bg-blue-950/40 text-slate-400 border-blue-900/10'
                                     }`}
-                                    title="វត្តមាន (Present)"
+                                    title="វត្តមាន (វ)"
                                   >
-                                    P
+                                    វ
+                                  </button>
+                                  <button
+                                    onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'late' }))}
+                                    className={`w-7 py-1 text-[8px] font-black rounded-md transition-all border shrink-0 cursor-pointer ${
+                                      currentStatus === 'late'
+                                        ? 'bg-blue-600 text-slate-100 border-blue-500 shadow-sm shadow-blue-600/20 font-black scale-105'
+                                        : 'bg-blue-950/40 text-slate-400 border-blue-900/10'
+                                    }`}
+                                    title="យឺត (យ)"
+                                  >
+                                    យ
                                   </button>
                                   <button
                                     onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'permission' }))}
@@ -945,9 +964,9 @@ export default function MobilePortal({
                                         ? 'bg-amber-600 text-slate-100 border-amber-500 shadow-sm shadow-amber-600/20 font-black scale-105'
                                         : 'bg-blue-950/40 text-slate-400 border-blue-900/10'
                                     }`}
-                                    title="មានច្បាប់ (Excused)"
+                                    title="ច្បាប់ (ច្ប)"
                                   >
-                                    L
+                                    ច្ប
                                   </button>
                                   <button
                                     onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'absent' }))}
@@ -956,9 +975,9 @@ export default function MobilePortal({
                                         ? 'bg-rose-600 text-slate-105 border-rose-500 shadow-sm shadow-rose-600/20 font-black scale-105'
                                         : 'bg-blue-950/40 text-slate-400 border-blue-900/10'
                                     }`}
-                                    title="អវត្តមាន (Absent)"
+                                    title="អត់ច្បាប់ (អច្ប)"
                                   >
-                                    A
+                                    អច្ប
                                   </button>
                                 </div>
                               </div>
@@ -1043,8 +1062,9 @@ export default function MobilePortal({
 
                       <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {savedAttendanceRecords.map((rec) => {
-                          const total = rec.presentCount + rec.permissionCount + rec.absentCount;
-                          const percent = total > 0 ? Math.round((rec.presentCount / total) * 100) : 100;
+                          const total = rec.presentCount + (rec.lateCount || 0) + rec.permissionCount + rec.absentCount;
+                          const percent = total > 0 ? Math.round(((rec.presentCount + (rec.lateCount || 0)) / total) * 105) : 100;
+                          const displayPercent = percent > 100 ? 100 : percent;
                           return (
                             <div
                               key={rec.id}
@@ -1061,21 +1081,22 @@ export default function MobilePortal({
                                   <span className="text-[#E2C785]">📅 {rec.date}</span>
                                   <span className="text-slate-400 bg-blue-950/80 px-1 py-0.2 rounded text-[7.5px]">{rec.grade}</span>
                                 </div>
-                                <div className="text-[8px] text-slate-400 flex items-center gap-2">
+                                <div className="text-[8px] text-slate-400 flex items-center gap-2 flex-wrap">
                                   <span>វត្តមាន៖ <b className="text-emerald-400">{rec.presentCount}</b></span>
+                                  <span>យឺត៖ <b className="text-blue-400">{rec.lateCount || 0}</b></span>
                                   <span>ច្បាប់៖ <b className="text-amber-400">{rec.permissionCount}</b></span>
-                                  <span>អវត្តមាន៖ <b className="text-rose-400">{rec.absentCount}</b></span>
+                                  <span>អត់ច្បាប់៖ <b className="text-rose-400">{rec.absentCount}</b></span>
                                 </div>
                               </div>
                               <div className="text-right">
                                 <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded-md ${
-                                  percent >= 90
+                                  displayPercent >= 90
                                     ? 'bg-[#10B981]/25 text-[#10B981]'
-                                    : percent >= 75
+                                    : displayPercent >= 75
                                       ? 'bg-amber-500/20 text-amber-400'
                                       : 'bg-rose-500/20 text-rose-400'
-                                }`}>
-                                  {percent}%
+                                  }`}>
+                                  {displayPercent}%
                                 </span>
                               </div>
                             </div>
