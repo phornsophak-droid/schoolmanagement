@@ -151,6 +151,60 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     return list.sort((a, b) => a.name.localeCompare(b.name, 'km'));
   }, [students]);
 
+  // Compute cumulative student attendance statistics based on historical records + current active mappings
+  const studentStatsMap = useMemo(() => {
+    const stats: { [studentId: string]: { late: number; permission: number; absent: number; totalAbsence: number } } = {};
+    
+    // Initialize stats for each student to prevent undefined references
+    uniqueStudentsList.forEach(s => {
+      stats[s.id] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
+    });
+
+    // Populate using saved records, excluding the current draft's date & grade so we don't double count it
+    records.forEach(r => {
+      if (r.date === selectedDate && r.grade === selectedGrade) {
+        return; // Exclude current date because we will merge activeAttendanceMap live!
+      }
+      if (r.studentStates) {
+        Object.entries(r.studentStates).forEach(([studentId, status]) => {
+          if (studentId.endsWith('_reason')) return;
+          
+          if (!stats[studentId]) {
+            stats[studentId] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
+          }
+          
+          if (status === 'late') {
+            stats[studentId].late += 1;
+          } else if (status === 'permission') {
+            stats[studentId].permission += 1;
+            stats[studentId].totalAbsence += 1;
+          } else if (status === 'absent') {
+            stats[studentId].absent += 1;
+            stats[studentId].totalAbsence += 1;
+          }
+        });
+      }
+    });
+
+    // Merge the live draft state so changes reflect instantly in real-time
+    Object.entries(activeAttendanceMap).forEach(([studentId, status]) => {
+      if (!stats[studentId]) {
+        stats[studentId] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
+      }
+      if (status === 'late') {
+        stats[studentId].late += 1;
+      } else if (status === 'permission') {
+        stats[studentId].permission += 1;
+        stats[studentId].totalAbsence += 1;
+      } else if (status === 'absent') {
+        stats[studentId].absent += 1;
+        stats[studentId].totalAbsence += 1;
+      }
+    });
+
+    return stats;
+  }, [records, uniqueStudentsList, selectedDate, selectedGrade, activeAttendanceMap]);
+
   // Sync student state mapping when date, grade, or records modify
   useEffect(() => {
     const existing = records.find(r => r.date === selectedDate && r.grade === selectedGrade);
@@ -780,6 +834,10 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                       <th className="px-5 py-3 w-12 text-center">ល.រ</th>
                       <th className="px-5 py-3">ឈ្មោះសិស្ស</th>
                       <th className="px-5 py-3 hidden sm:table-cell">ភេទ</th>
+                      <th className="px-3 py-3 text-center text-blue-600 font-black whitespace-nowrap text-[10.5px]">សរុបយឺត (យ)</th>
+                      <th className="px-3 py-3 text-center text-amber-600 font-black whitespace-nowrap text-[10.5px]">សរុបច្បាប់ (ច្ប)</th>
+                      <th className="px-3 py-3 text-center text-rose-600 font-black whitespace-nowrap text-[10.5px]">សរុបអត់ច្បាប់ (អច្ប)</th>
+                      <th className="px-3 py-3 text-center text-red-700 font-black whitespace-nowrap text-[10.5px] bg-red-50/50 rounded-lg">សរុបអវត្តមាន</th>
                       <th className="px-5 py-3 text-center w-52">ជ្រើសរើសវត្តមាន</th>
                     </tr>
                   </thead>
@@ -787,6 +845,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                     {displayStudents.length > 0 ? (
                       displayStudents.map((std, idx) => {
                         const currentStatus = activeAttendanceMap[std.id] || 'present';
+                        const stats = studentStatsMap[std.id] || { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
                         return (
                           <tr key={std.id} className="hover:bg-slate-50/70 transition-all">
                             {/* Number Index */}
@@ -804,6 +863,34 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
                             {/* Gender */}
                             <td className="px-5 py-3.5 hidden sm:table-cell text-slate-500">{std.gender}</td>
+
+                            {/* Cumulative Late (យឺត) */}
+                            <td className="px-3 py-3.5 text-center">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-blue-50 text-blue-700 border border-blue-200 shadow-3xs" title="សរុបយឺត">
+                                {stats.late}
+                              </span>
+                            </td>
+
+                            {/* Cumulative Permission (ច្បាប់) */}
+                            <td className="px-3 py-3.5 text-center">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-amber-50 text-amber-700 border border-amber-200 shadow-3xs" title="សរុបច្បាប់">
+                                {stats.permission}
+                              </span>
+                            </td>
+
+                            {/* Cumulative Absent without permission (អត់ច្បាប់) */}
+                            <td className="px-3 py-3.5 text-center">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-rose-50 text-rose-700 border border-rose-250 shadow-3xs" title="សរុបអត់ច្បាប់">
+                                {stats.absent}
+                              </span>
+                            </td>
+
+                            {/* Cumulative Total Absences (អវត្តមានសរុប = ច្បាប់ + អត់ច្បាប់) */}
+                            <td className="px-3 py-3.5 text-center bg-red-50/20">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-red-100 text-red-800 border border-red-300 shadow-2xs" title="សរុបអវត្តមានសរុប (ច្បាប់ + អត់ច្បាប់)">
+                                {stats.totalAbsence}
+                              </span>
+                            </td>
 
                             {/* P, L, A Radio Selectors */}
                             <td className="px-5 py-3.5 text-center">
@@ -915,7 +1002,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                       })
                     ) : (
                       <tr>
-                        <td colSpan={4} className="py-20 text-center text-slate-400 text-xs">
+                        <td colSpan={8} className="py-20 text-center text-slate-400 text-xs">
                           <p className="text-xl mb-1">📭</p>
                           <p className="font-bold">ពុំមានគណនីសិស្សនៅក្នុងថ្នាក់ត្រូវបានរកឃើញទេ ឬមិនត្រូវនឹងការស្វែងរករបស់អ្នកឡើយ។</p>
                         </td>
