@@ -200,7 +200,7 @@ export default function App() {
     // Helper to remove duplicate names in Grade 6
     const deduplicateStudents = (students: StudentScore[]) => {
       const seen = new Set<string>();
-      return students.map((s: any) => s.totalScore === undefined ? calculateStudentFields(s) : s).filter(s => {
+      return students.map((s: any) => calculateStudentFields(s)).filter(s => {
         if (s.grade === 'ថ្នាក់ទី ៦' || s.grade === 'ថ្នាក់ទី៦') {
           const key = `${s.name}_${s.gender}`;
           if (seen.has(key)) return false;

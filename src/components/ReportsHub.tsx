@@ -168,14 +168,15 @@ export default function ReportsHub({
             count1++;
           }
         });
-        const overallMonthlyAvg1 = count1 > 0 ? clampScore(sumMonthlyAvgs1 / count1) : 0;
+        const overallMonthlyAvg1 = count1 > 0 ? clampScore(sumMonthlyAvgs1 / count1) : null;
         const examRecord1 = students.find(s =>
           s.name.trim() === student.name &&
           s.grade === student.grade &&
           s.month === 'ប្រឡងឆមាសទី១'
         );
         const examScore1 = examRecord1 ? examRecord1.overallAvg : null;
-        const s1Avg = examScore1 !== null ? clampScore((overallMonthlyAvg1 + examScore1) / 2) : overallMonthlyAvg1;
+        const s1Valid = count1 > 0 || examScore1 !== null;
+        const s1Avg = s1Valid ? (examScore1 !== null ? (overallMonthlyAvg1 !== null ? clampScore((overallMonthlyAvg1 + examScore1) / 2) : examScore1) : overallMonthlyAvg1) : null;
 
         // Semester 2 calculation
         const mRecords2 = students.filter(s =>
@@ -192,54 +193,63 @@ export default function ReportsHub({
             count2++;
           }
         });
-        const overallMonthlyAvg2 = count2 > 0 ? clampScore(sumMonthlyAvgs2 / count2) : 0;
+        const overallMonthlyAvg2 = count2 > 0 ? clampScore(sumMonthlyAvgs2 / count2) : null;
         const examRecord2 = students.find(s =>
           s.name.trim() === student.name &&
           s.grade === student.grade &&
           s.month === 'ប្រឡងឆមាសទី២'
         );
         const examScore2 = examRecord2 ? examRecord2.overallAvg : null;
-        const s2Avg = examScore2 !== null ? clampScore((overallMonthlyAvg2 + examScore2) / 2) : overallMonthlyAvg2;
+        const s2Valid = count2 > 0 || examScore2 !== null;
+        const s2Avg = s2Valid ? (examScore2 !== null ? (overallMonthlyAvg2 !== null ? clampScore((overallMonthlyAvg2 + examScore2) / 2) : examScore2) : overallMonthlyAvg2) : null;
 
         // Annual average
-        let annualAvg = 0;
-        const s1Valid = count1 > 0 || examScore1 !== null;
-        const s2Valid = count2 > 0 || examScore2 !== null;
-        if (s1Valid && s2Valid) {
+        let annualAvg: number | null = null;
+        if (s1Valid && s2Valid && s1Avg !== null && s2Avg !== null) {
           annualAvg = clampScore((s1Avg + s2Avg) / 2);
-        } else if (s1Valid) {
+        } else if (s1Valid && s1Avg !== null) {
           annualAvg = s1Avg;
-        } else if (s2Valid) {
+        } else if (s2Valid && s2Avg !== null) {
           annualAvg = s2Avg;
         }
 
         // Grade Designation
-        let gradeLetter = 'F';
-        if (annualAvg >= 9.0) gradeLetter = 'A';
-        else if (annualAvg >= 8.0) gradeLetter = 'B';
-        else if (annualAvg >= 7.0) gradeLetter = 'C';
-        else if (annualAvg >= 6.0) gradeLetter = 'D';
-        else if (annualAvg >= 5.0) gradeLetter = 'E';
+        let gradeLetter = '-';
+        let result = '-';
+        if (annualAvg !== null) {
+          if (annualAvg >= 9.0) gradeLetter = 'A';
+          else if (annualAvg >= 8.0) gradeLetter = 'B';
+          else if (annualAvg >= 7.0) gradeLetter = 'C';
+          else if (annualAvg >= 6.0) gradeLetter = 'D';
+          else if (annualAvg >= 5.0) gradeLetter = 'E';
+          else gradeLetter = 'F';
 
-        const result = annualAvg >= 5.0 ? 'ជាប់' : 'ធ្លាក់';
+          result = annualAvg >= 5.0 ? 'ជាប់' : 'ធ្លាក់';
+        }
 
         // Subject averages across the year
         const getSubjAnnAvg = (subj: string) => {
           const records = students.filter(s => s.name.trim() === student.name && s.grade === student.grade);
-          if (records.length === 0) return 0;
+          if (records.length === 0) return null;
           let sum = 0;
           let count = 0;
           records.forEach(r => {
-            if (subj === 'khmer' && [r.khmer.listening, r.khmer.writing, r.khmer.reading, r.khmer.speaking].some(s => s !== null)) { sum += r.khmerAvg; count++; }
-            else if (subj === 'math' && [r.math.numbers, r.math.measurement, r.math.geometry, r.math.algebra, r.math.statistics].some(s => s !== null)) { sum += r.mathAvg; count++; }
-            else if (subj === 'science' && r.science !== null) { sum += r.science; count++; }
-            else if (subj === 'socialStudies' && r.socialStudies !== null) { sum += r.socialStudies; count++; }
-            else if (subj === 'physicalEducation' && r.physicalEducation !== null) { sum += r.physicalEducation; count++; }
-            else if (subj === 'health' && r.health !== null) { sum += r.health; count++; }
-            else if (subj === 'lifeSkills' && r.lifeSkills !== null) { sum += r.lifeSkills; count++; }
-            else if (subj === 'foreignLanguage' && r.foreignLanguage !== null) { sum += r.foreignLanguage; count++; }
+            if (subj === 'khmer') {
+              const hasVal = [r.khmer.listening, r.khmer.writing, r.khmer.reading, r.khmer.speaking].some(s => s !== null && s !== undefined);
+              if (hasVal) { sum += r.khmerAvg; count++; }
+            }
+            else if (subj === 'math') {
+              const hasVal = [r.math.numbers, r.math.measurement, r.math.geometry, r.math.algebra, r.math.statistics].some(s => s !== null && s !== undefined);
+              if (hasVal) { sum += r.mathAvg; count++; }
+            }
+            else if (subj === 'science' && r.science !== null && r.science !== undefined) { sum += r.science; count++; }
+            else if (subj === 'socialStudies' && r.socialStudies !== null && r.socialStudies !== undefined) { sum += r.socialStudies; count++; }
+            else if (subj === 'physicalEducation' && r.physicalEducation !== null && r.physicalEducation !== undefined) { sum += r.physicalEducation; count++; }
+            else if (subj === 'health' && r.health !== null && r.health !== undefined) { sum += r.health; count++; }
+            else if (subj === 'lifeSkills' && r.lifeSkills !== null && r.lifeSkills !== undefined) { sum += r.lifeSkills; count++; }
+            else if (subj === 'foreignLanguage' && r.foreignLanguage !== null && r.foreignLanguage !== undefined) { sum += r.foreignLanguage; count++; }
           });
-          return count > 0 ? clampScore(sum / count) : 0;
+          return count > 0 ? clampScore(sum / count) : null;
         };
 
         return {
@@ -356,26 +366,37 @@ export default function ReportsHub({
       foreignLanguage: 0
     };
 
+    const counts = {
+      khmer: 0,
+      math: 0,
+      science: 0,
+      socialStudies: 0,
+      physicalEducation: 0,
+      health: 0,
+      lifeSkills: 0,
+      foreignLanguage: 0
+    };
+
     processedAcademicRoster.forEach(s => {
-      sums.khmer += s.subjects.khmer;
-      sums.math += s.subjects.math;
-      sums.science += s.subjects.science;
-      sums.socialStudies += s.subjects.socialStudies;
-      sums.physicalEducation += s.subjects.physicalEducation;
-      sums.health += s.subjects.health;
-      sums.lifeSkills += s.subjects.lifeSkills;
-      sums.foreignLanguage += s.subjects.foreignLanguage;
+      if (s.subjects.khmer !== null && s.subjects.khmer !== undefined) { sums.khmer += s.subjects.khmer; counts.khmer++; }
+      if (s.subjects.math !== null && s.subjects.math !== undefined) { sums.math += s.subjects.math; counts.math++; }
+      if (s.subjects.science !== null && s.subjects.science !== undefined) { sums.science += s.subjects.science; counts.science++; }
+      if (s.subjects.socialStudies !== null && s.subjects.socialStudies !== undefined) { sums.socialStudies += s.subjects.socialStudies; counts.socialStudies++; }
+      if (s.subjects.physicalEducation !== null && s.subjects.physicalEducation !== undefined) { sums.physicalEducation += s.subjects.physicalEducation; counts.physicalEducation++; }
+      if (s.subjects.health !== null && s.subjects.health !== undefined) { sums.health += s.subjects.health; counts.health++; }
+      if (s.subjects.lifeSkills !== null && s.subjects.lifeSkills !== undefined) { sums.lifeSkills += s.subjects.lifeSkills; counts.lifeSkills++; }
+      if (s.subjects.foreignLanguage !== null && s.subjects.foreignLanguage !== undefined) { sums.foreignLanguage += s.subjects.foreignLanguage; counts.foreignLanguage++; }
     });
 
     return [
-      { name: 'ភាសាខ្មែរ', avg: parseFloat((sums.khmer / total).toFixed(2)), color: 'from-blue-500 to-indigo-500' },
-      { name: 'គណិតវិទ្យា', avg: parseFloat((sums.math / total).toFixed(2)), color: 'from-cyan-500 to-blue-500' },
-      { name: 'វិទ្យាសាស្ត្រ', avg: parseFloat((sums.science / total).toFixed(2)), color: 'from-amber-500 to-orange-500' },
-      { name: 'សិក្សាសង្គម', avg: parseFloat((sums.socialStudies / total).toFixed(2)), color: 'from-indigo-500 to-purple-500' },
-      { name: 'លំហាត់កីឡា', avg: parseFloat((sums.physicalEducation / total).toFixed(2)), color: 'from-teal-500 to-emerald-500' },
-      { name: 'អប់រំសុខភាព', avg: parseFloat((sums.health / total).toFixed(2)), color: 'from-pink-500 to-rose-500' },
-      { name: 'បំណិនជីវិត', avg: parseFloat((sums.lifeSkills / total).toFixed(2)), color: 'from-emerald-500 to-emerald-600' },
-      { name: 'ភាសាបរទេស', avg: parseFloat((sums.foreignLanguage / total).toFixed(2)), color: 'from-violet-500 to-purple-650' }
+      { name: 'ភាសាខ្មែរ', avg: counts.khmer > 0 ? parseFloat((sums.khmer / counts.khmer).toFixed(2)) : 0, color: 'from-blue-500 to-indigo-500' },
+      { name: 'គណិតវិទ្យា', avg: counts.math > 0 ? parseFloat((sums.math / counts.math).toFixed(2)) : 0, color: 'from-cyan-500 to-blue-500' },
+      { name: 'វិទ្យាសាស្ត្រ', avg: counts.science > 0 ? parseFloat((sums.science / counts.science).toFixed(2)) : 0, color: 'from-amber-500 to-orange-500' },
+      { name: 'សិក្សាសង្គម', avg: counts.socialStudies > 0 ? parseFloat((sums.socialStudies / counts.socialStudies).toFixed(2)) : 0, color: 'from-indigo-500 to-purple-500' },
+      { name: 'លំហាត់កីឡា', avg: counts.physicalEducation > 0 ? parseFloat((sums.physicalEducation / counts.physicalEducation).toFixed(2)) : 0, color: 'from-teal-500 to-emerald-500' },
+      { name: 'អប់រំសុខភាព', avg: counts.health > 0 ? parseFloat((sums.health / counts.health).toFixed(2)) : 0, color: 'from-pink-500 to-rose-500' },
+      { name: 'បំណិនជីវិត', avg: counts.lifeSkills > 0 ? parseFloat((sums.lifeSkills / counts.lifeSkills).toFixed(2)) : 0, color: 'from-emerald-500 to-emerald-600' },
+      { name: 'ភាសាបរទេស', avg: counts.foreignLanguage > 0 ? parseFloat((sums.foreignLanguage / counts.foreignLanguage).toFixed(2)) : 0, color: 'from-violet-500 to-purple-650' }
     ];
   }, [processedAcademicRoster]);
 
@@ -915,7 +936,9 @@ export default function ReportsHub({
                           <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full block text-center mb-1">
                             {badgeIcon}
                           </span>
-                          <span className="text-xs font-extrabold font-mono text-blue-600">{st.totalScore !== undefined ? st.overallAvg.toFixed(2) : '-'}</span>
+                          <span className="text-xs font-extrabold font-mono text-blue-600">
+                            {st.overallAvg !== null && st.overallAvg !== undefined ? st.overallAvg.toFixed(2) : '-'}
+                          </span>
                         </div>
                       </div>
                     );
@@ -996,10 +1019,10 @@ export default function ReportsHub({
                               {selectedPeriod === 'ប្រចាំឆ្នាំ' && (
                                 <>
                                   <td className="px-4 py-4 text-center font-mono text-slate-500 font-bold bg-indigo-50/5">
-                                    {st.s1Avg.toFixed(2)}
+                                    {st.s1Avg !== null && st.s1Avg !== undefined ? st.s1Avg.toFixed(2) : '-'}
                                   </td>
                                   <td className="px-4 py-4 text-center font-mono text-slate-500 font-bold bg-blue-50/5">
-                                    {st.s2Avg.toFixed(2)}
+                                    {st.s2Avg !== null && st.s2Avg !== undefined ? st.s2Avg.toFixed(2) : '-'}
                                   </td>
                                 </>
                               )}
@@ -1007,7 +1030,7 @@ export default function ReportsHub({
                                 {st.totalScore !== undefined ? st.totalScore : '-'}
                               </td>
                               <td className="px-4 py-4 text-center font-extrabold font-mono text-blue-700 bg-blue-50/10">
-                                {st.totalScore !== undefined ? st.overallAvg.toFixed(2) : '-'}
+                                {st.overallAvg !== null && st.overallAvg !== undefined ? st.overallAvg.toFixed(2) : '-'}
                               </td>
                               <td className={`px-4 py-4 text-center font-extrabold font-sans ${gradeColor}`}>{st.gradeLetter}</td>
                               <td className="px-4 py-4 text-center">

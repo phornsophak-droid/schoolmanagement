@@ -226,7 +226,7 @@ export default function Gradebook({
         }
       });
 
-      const overallMonthlyAvg = activeMonthsCount > 0 ? clampScore(sumMonthlyAvgs / activeMonthsCount) : 0;
+      const overallMonthlyAvg = activeMonthsCount > 0 ? clampScore(sumMonthlyAvgs / activeMonthsCount) : null;
 
       const examRecord = students.find(s =>
         s.name.trim() === student.name &&
@@ -236,19 +236,27 @@ export default function Gradebook({
 
       const examScore = examRecord ? examRecord.overallAvg : null;
 
-      let semesterAvg = overallMonthlyAvg;
-      if (examScore !== null) {
+      let semesterAvg: number | null = null;
+      if (overallMonthlyAvg !== null && examScore !== null) {
         semesterAvg = clampScore((overallMonthlyAvg + examScore) / 2);
+      } else if (overallMonthlyAvg !== null) {
+        semesterAvg = overallMonthlyAvg;
+      } else if (examScore !== null) {
+        semesterAvg = examScore;
       }
 
-      let gradeLetter = 'F';
-      if (semesterAvg >= 9.0) gradeLetter = 'A';
-      else if (semesterAvg >= 8.0) gradeLetter = 'B';
-      else if (semesterAvg >= 7.0) gradeLetter = 'C';
-      else if (semesterAvg >= 6.0) gradeLetter = 'D';
-      else if (semesterAvg >= 5.0) gradeLetter = 'E';
+      let gradeLetter = '-';
+      let result = '-';
+      if (semesterAvg !== null) {
+        if (semesterAvg >= 9.0) gradeLetter = 'A';
+        else if (semesterAvg >= 8.0) gradeLetter = 'B';
+        else if (semesterAvg >= 7.0) gradeLetter = 'C';
+        else if (semesterAvg >= 6.0) gradeLetter = 'D';
+        else if (semesterAvg >= 5.0) gradeLetter = 'E';
+        else gradeLetter = 'F';
 
-      const result = semesterAvg >= 5.0 ? 'ជាប់' : 'ធ្លាក់';
+        result = semesterAvg >= 5.0 ? 'ជាប់' : 'ធ្លាក់';
+      }
 
       return {
         ...student,
@@ -261,7 +269,7 @@ export default function Gradebook({
       };
     });
 
-    const sorted = roster.sort((a, b) => b.semesterAvg - a.semesterAvg);
+    const sorted = roster.sort((a, b) => (b.semesterAvg ?? 0) - (a.semesterAvg ?? 0));
     return sorted.map((student, idx) => ({
       ...student,
       ranking: idx + 1
@@ -306,14 +314,15 @@ export default function Gradebook({
           count1++;
         }
       });
-      const overallMonthlyAvg1 = count1 > 0 ? clampScore(sumMonthlyAvgs1 / count1) : 0;
+      const overallMonthlyAvg1 = count1 > 0 ? clampScore(sumMonthlyAvgs1 / count1) : null;
       const examRecord1 = students.find(s =>
         s.name.trim() === student.name &&
         s.grade === student.grade &&
         s.month === 'ប្រឡងឆមាសទី១'
       );
       const examScore1 = examRecord1 ? examRecord1.overallAvg : null;
-      const s1Avg = examScore1 !== null ? clampScore((overallMonthlyAvg1 + examScore1) / 2) : overallMonthlyAvg1;
+      const s1Valid = count1 > 0 || examScore1 !== null;
+      const s1Avg = s1Valid ? (examScore1 !== null ? (overallMonthlyAvg1 !== null ? clampScore((overallMonthlyAvg1 + examScore1) / 2) : examScore1) : overallMonthlyAvg1) : null;
 
       // Semester 2 calculation
       const mRecords2 = students.filter(s =>
@@ -330,35 +339,38 @@ export default function Gradebook({
           count2++;
         }
       });
-      const overallMonthlyAvg2 = count2 > 0 ? clampScore(sumMonthlyAvgs2 / count2) : 0;
+      const overallMonthlyAvg2 = count2 > 0 ? clampScore(sumMonthlyAvgs2 / count2) : null;
       const examRecord2 = students.find(s =>
         s.name.trim() === student.name &&
         s.grade === student.grade &&
         s.month === 'ប្រឡងឆមាសទី២'
       );
       const examScore2 = examRecord2 ? examRecord2.overallAvg : null;
-      const s2Avg = examScore2 !== null ? clampScore((overallMonthlyAvg2 + examScore2) / 2) : overallMonthlyAvg2;
+      const s2Valid = count2 > 0 || examScore2 !== null;
+      const s2Avg = s2Valid ? (examScore2 !== null ? (overallMonthlyAvg2 !== null ? clampScore((overallMonthlyAvg2 + examScore2) / 2) : examScore2) : overallMonthlyAvg2) : null;
 
       // Annual Average
-      let annualAvg = 0;
-      const s1Valid = count1 > 0 || examScore1 !== null;
-      const s2Valid = count2 > 0 || examScore2 !== null;
-      if (s1Valid && s2Valid) {
+      let annualAvg: number | null = null;
+      if (s1Valid && s2Valid && s1Avg !== null && s2Avg !== null) {
         annualAvg = clampScore((s1Avg + s2Avg) / 2);
-      } else if (s1Valid) {
+      } else if (s1Valid && s1Avg !== null) {
         annualAvg = s1Avg;
-      } else if (s2Valid) {
+      } else if (s2Valid && s2Avg !== null) {
         annualAvg = s2Avg;
       }
 
-      let gradeLetter = 'F';
-      if (annualAvg >= 9.0) gradeLetter = 'A';
-      else if (annualAvg >= 8.0) gradeLetter = 'B';
-      else if (annualAvg >= 7.0) gradeLetter = 'C';
-      else if (annualAvg >= 6.0) gradeLetter = 'D';
-      else if (annualAvg >= 5.0) gradeLetter = 'E';
+      let gradeLetter = '-';
+      let result = '-';
+      if (annualAvg !== null) {
+        if (annualAvg >= 9.0) gradeLetter = 'A';
+         else if (annualAvg >= 8.0) gradeLetter = 'B';
+         else if (annualAvg >= 7.0) gradeLetter = 'C';
+         else if (annualAvg >= 6.0) gradeLetter = 'D';
+         else if (annualAvg >= 5.0) gradeLetter = 'E';
+         else gradeLetter = 'F';
 
-      const result = annualAvg >= 5.0 ? 'ជាប់' : 'ធ្លាក់';
+         result = annualAvg >= 5.0 ? 'ជាប់' : 'ធ្លាក់';
+      }
 
       return {
         ...student,
@@ -370,7 +382,7 @@ export default function Gradebook({
       };
     });
 
-    const sorted = roster.sort((a, b) => b.annualAvg - a.annualAvg);
+    const sorted = roster.sort((a, b) => (b.annualAvg ?? 0) - (a.annualAvg ?? 0));
     return sorted.map((student, idx) => ({
       ...student,
       ranking: idx + 1
@@ -1315,23 +1327,23 @@ export default function Gradebook({
                           const mVal = st.monthAverages[m];
                           return (
                             <td key={m} className={`px-2 py-3.5 text-center font-mono ${mVal ? 'text-slate-700 font-bold' : 'text-slate-300'}`}>
-                              {mVal !== undefined ? mVal.toFixed(1) : '-'}
+                              {mVal !== undefined && mVal !== null ? mVal.toFixed(1) : '-'}
                             </td>
                           );
                         })}
                         
                         <td className="px-3 py-3.5 text-center font-bold font-mono text-indigo-700 bg-indigo-50/10">
-                          {st.overallMonthlyAvg.toFixed(2)}
+                          {st.overallMonthlyAvg !== null && st.overallMonthlyAvg !== undefined ? st.overallMonthlyAvg.toFixed(2) : '-'}
                         </td>
                         
                         <td className="px-3 py-3.5 text-center font-bold font-mono text-blue-650 bg-blue-50/10 text-blue-600">
-                          {st.examScore !== null ? st.examScore.toFixed(2) : (
+                          {st.examScore !== null && st.examScore !== undefined ? st.examScore.toFixed(2) : (
                             <span className="text-[10px] text-slate-400 font-normal italic">គ្មានពិន្ទុ</span>
                           )}
                         </td>
                         
                         <td className="px-3 py-3.5 text-center font-black font-mono text-white bg-indigo-600">
-                          {st.semesterAvg.toFixed(2)}
+                          {st.semesterAvg !== null && st.semesterAvg !== undefined ? st.semesterAvg.toFixed(2) : '-'}
                         </td>
                         
                         <td className={`px-3 py-3.5 text-center font-semibold font-sans ${gradeColor}`}>{st.gradeLetter}</td>
@@ -1414,13 +1426,13 @@ export default function Gradebook({
                         </td>
                         <td className="px-4 py-4 text-center text-slate-400 font-bold">{st.grade}</td>
                         <td className="px-4 py-4 text-center font-mono font-bold text-indigo-700 bg-indigo-50/5">
-                          {st.s1Avg.toFixed(2)}
+                          {st.s1Avg !== null && st.s1Avg !== undefined ? st.s1Avg.toFixed(2) : '-'}
                         </td>
                         <td className="px-4 py-4 text-center font-mono font-bold text-blue-700 bg-blue-50/5">
-                          {st.s2Avg.toFixed(2)}
+                          {st.s2Avg !== null && st.s2Avg !== undefined ? st.s2Avg.toFixed(2) : '-'}
                         </td>
                         <td className="px-4 py-4 text-center font-extrabold font-mono text-white bg-emerald-600">
-                          {st.annualAvg.toFixed(2)}
+                          {st.annualAvg !== null && st.annualAvg !== undefined ? st.annualAvg.toFixed(2) : '-'}
                         </td>
                         <td className={`px-4 py-4 text-center font-extrabold font-sans ${gradeColor}`}>{st.gradeLetter}</td>
                         <td className="px-4 py-4 text-center">

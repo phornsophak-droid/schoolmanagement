@@ -298,14 +298,14 @@ export default function ClassStudentMgmt({
         grade: studentFormGrade,
         status: studentFormStatus,
         month: 'មេសា',
-        khmer: { listening: 0, writing: 0, reading: 0, speaking: 0 },
-        math: { numbers: 0, measurement: 0, geometry: 0, algebra: 0, statistics: 0 },
-        science: 0,
-        socialStudies: 0,
-        physicalEducation: 0,
-        health: 0,
-        lifeSkills: 0,
-        foreignLanguage: 0
+        khmer: { listening: null, writing: null, reading: null, speaking: null },
+        math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
+        science: null,
+        socialStudies: null,
+        physicalEducation: null,
+        health: null,
+        lifeSkills: null,
+        foreignLanguage: null
       };
       
       const updated = [...students, calculateStudentFields(payload)];
@@ -934,14 +934,14 @@ export default function ClassStudentMgmt({
             grade: gradeVal,
             status: statusVal,
             month: 'មេសា', // default fallback
-            khmer: { listening: 0, writing: 0, reading: 0, speaking: 0 },
-            math: { numbers: 0, measurement: 0, geometry: 0, algebra: 0, statistics: 0 },
-            science: 0,
-            socialStudies: 0,
-            physicalEducation: 0,
-            health: 0,
-            lifeSkills: 0,
-            foreignLanguage: 0
+            khmer: { listening: null, writing: null, reading: null, speaking: null },
+            math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
+            science: null,
+            socialStudies: null,
+            physicalEducation: null,
+            health: null,
+            lifeSkills: null,
+            foreignLanguage: null
           };
 
           newStudentsList.push(calculateStudentFields(payload));
