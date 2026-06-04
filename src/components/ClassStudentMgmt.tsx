@@ -76,6 +76,7 @@ export default function ClassStudentMgmt({
       'ថ្នាក់ទី ៤ខ': { name: 'លោកគ្រូ ថាវ សុផាត', bg: 'bg-gradient-to-tr from-sky-600 to-indigo-500', text: 'ថ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ៤ខ' },
       'ថ្នាក់ទី ៥ក': { name: 'លោកគ្រូ គឺ អ៊ុនតាក់', bg: 'bg-gradient-to-tr from-violet-600 to-indigo-500', text: 'គ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ៥ក' },
       'ថ្នាក់ទី ៥ខ': { name: 'លោកគ្រូ ចែម ណាក់', bg: 'bg-gradient-to-tr from-pink-600 to-red-500', text: 'ច', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ៥ខ' },
+      'ថ្នាក់ទី ៦': { name: 'លោកគ្រូ ស៊ុំ សំណាង', bg: 'bg-gradient-to-tr from-pink-600 to-red-500', text: 'ស', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀន និងគ្រប់គ្រងសិស្សថ្នាក់ទី ៦' },
       'ថ្នាក់ភាសាអង់គ្លេស': { name: 'លោកគ្រូ យ៉ន យ៉ាវ', bg: 'bg-gradient-to-tr from-cyan-600 to-teal-500', text: 'យ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀនភាសាអង់គ្លេស' },
       'ថ្នាក់គំនូរ': { name: 'អ្នកគ្រូ នី ចន្ទី', bg: 'bg-gradient-to-tr from-fuchsia-600 to-pink-500', text: 'ន', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀនជំនាញគំនូរ' },
       'ថ្នាក់កីឡា និងអប់រំកាយ': { name: 'លោកគ្រូ គឺ អ៊ុនតាក់', bg: 'bg-gradient-to-tr from-emerald-600 to-emerald-400', text: 'គ', desc: 'គ្រូបន្ទុកថ្នាក់បង្រៀនកីឡា និងអប់រំកាយ' },
