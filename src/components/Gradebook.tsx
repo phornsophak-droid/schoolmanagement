@@ -106,25 +106,25 @@ export default function Gradebook({
   const [formMonth, setFormMonth] = useState('មេសា');
 
   // Sub-subjects Khmer
-  const [khmerListening, setKhmerListening] = useState('0');
-  const [khmerWriting, setKhmerWriting] = useState('0');
-  const [khmerReading, setKhmerReading] = useState('0');
-  const [khmerSpeaking, setKhmerSpeaking] = useState('0');
+  const [khmerListening, setKhmerListening] = useState('');
+  const [khmerWriting, setKhmerWriting] = useState('');
+  const [khmerReading, setKhmerReading] = useState('');
+  const [khmerSpeaking, setKhmerSpeaking] = useState('');
 
   // Sub-subjects Math
-  const [mathNumbers, setMathNumbers] = useState('0');
-  const [mathMeasurement, setMathMeasurement] = useState('0');
-  const [mathGeometry, setMathGeometry] = useState('0');
-  const [mathAlgebra, setMathAlgebra] = useState('0');
-  const [mathStatistics, setMathStatistics] = useState('0');
+  const [mathNumbers, setMathNumbers] = useState('');
+  const [mathMeasurement, setMathMeasurement] = useState('');
+  const [mathGeometry, setMathGeometry] = useState('');
+  const [mathAlgebra, setMathAlgebra] = useState('');
+  const [mathStatistics, setMathStatistics] = useState('');
 
   // Other fields
-  const [science, setScience] = useState('0');
-  const [socialStudies, setSocialStudies] = useState('0');
-  const [physicalEducation, setPhysicalEducation] = useState('0');
-  const [health, setHealth] = useState('0');
-  const [lifeSkills, setLifeSkills] = useState('0');
-  const [foreignLanguage, setForeignLanguage] = useState('0');
+  const [science, setScience] = useState('');
+  const [socialStudies, setSocialStudies] = useState('');
+  const [physicalEducation, setPhysicalEducation] = useState('');
+  const [health, setHealth] = useState('');
+  const [lifeSkills, setLifeSkills] = useState('');
+  const [foreignLanguage, setForeignLanguage] = useState('');
 
   // Filter registered students in the active grade to select from when creating scores
   const registeredStudentsInFormGrade = useMemo(() => {
@@ -394,21 +394,21 @@ export default function Gradebook({
     setFormMonth(selectedMonth === 'ទាំងអស់' ? 'មេសា' : selectedMonth);
     
     // reset scores
-    setKhmerListening('0');
-    setKhmerWriting('0');
-    setKhmerReading('0');
-    setKhmerSpeaking('0');
-    setMathNumbers('0');
-    setMathMeasurement('0');
-    setMathGeometry('0');
-    setMathAlgebra('0');
-    setMathStatistics('0');
-    setScience('0');
-    setSocialStudies('0');
-    setPhysicalEducation('0');
-    setHealth('0');
-    setLifeSkills('0');
-    setForeignLanguage('0');
+    setKhmerListening('');
+    setKhmerWriting('');
+    setKhmerReading('');
+    setKhmerSpeaking('');
+    setMathNumbers('');
+    setMathMeasurement('');
+    setMathGeometry('');
+    setMathAlgebra('');
+    setMathStatistics('');
+    setScience('');
+    setSocialStudies('');
+    setPhysicalEducation('');
+    setHealth('');
+    setLifeSkills('');
+    setForeignLanguage('');
     
     setIsFormOpen(true);
   };
@@ -422,23 +422,23 @@ export default function Gradebook({
     setFormMonth(student.month);
 
     // Populate score fields
-    setKhmerListening(student.khmer.listening.toString());
-    setKhmerWriting(student.khmer.writing.toString());
-    setKhmerReading(student.khmer.reading.toString());
-    setKhmerSpeaking(student.khmer.speaking.toString());
+    setKhmerListening(student.khmer.listening !== null ? student.khmer.listening.toString() : '');
+    setKhmerWriting(student.khmer.writing !== null ? student.khmer.writing.toString() : '');
+    setKhmerReading(student.khmer.reading !== null ? student.khmer.reading.toString() : '');
+    setKhmerSpeaking(student.khmer.speaking !== null ? student.khmer.speaking.toString() : '');
 
-    setMathNumbers(student.math.numbers.toString());
-    setMathMeasurement(student.math.measurement.toString());
-    setMathGeometry(student.math.geometry.toString());
-    setMathAlgebra(student.math.algebra.toString());
-    setMathStatistics(student.math.statistics.toString());
+    setMathNumbers(student.math.numbers !== null ? student.math.numbers.toString() : '');
+    setMathMeasurement(student.math.measurement !== null ? student.math.measurement.toString() : '');
+    setMathGeometry(student.math.geometry !== null ? student.math.geometry.toString() : '');
+    setMathAlgebra(student.math.algebra !== null ? student.math.algebra.toString() : '');
+    setMathStatistics(student.math.statistics !== null ? student.math.statistics.toString() : '');
 
-    setScience(student.science.toString());
-    setSocialStudies(student.socialStudies.toString());
-    setPhysicalEducation(student.physicalEducation.toString());
-    setHealth(student.health.toString());
-    setLifeSkills(student.lifeSkills.toString());
-    setForeignLanguage(student.foreignLanguage.toString());
+    setScience(student.science !== null ? student.science.toString() : '');
+    setSocialStudies(student.socialStudies !== null ? student.socialStudies.toString() : '');
+    setPhysicalEducation(student.physicalEducation !== null ? student.physicalEducation.toString() : '');
+    setHealth(student.health !== null ? student.health.toString() : '');
+    setLifeSkills(student.lifeSkills !== null ? student.lifeSkills.toString() : '');
+    setForeignLanguage(student.foreignLanguage !== null ? student.foreignLanguage.toString() : '');
 
     setIsFormOpen(true);
   };
@@ -459,24 +459,24 @@ export default function Gradebook({
       grade: formGrade,
       month: formMonth,
       khmer: {
-        listening: clampScore(parseFloat(khmerListening) || 0),
-        writing: clampScore(parseFloat(khmerWriting) || 0),
-        reading: clampScore(parseFloat(khmerReading) || 0),
-        speaking: clampScore(parseFloat(khmerSpeaking) || 0),
+        listening: khmerListening === '' ? null : clampScore(parseFloat(khmerListening) || 0),
+        writing: khmerWriting === '' ? null : clampScore(parseFloat(khmerWriting) || 0),
+        reading: khmerReading === '' ? null : clampScore(parseFloat(khmerReading) || 0),
+        speaking: khmerSpeaking === '' ? null : clampScore(parseFloat(khmerSpeaking) || 0),
       },
       math: {
-        numbers: clampScore(parseFloat(mathNumbers) || 0),
-        measurement: clampScore(parseFloat(mathMeasurement) || 0),
-        geometry: clampScore(parseFloat(mathGeometry) || 0),
-        algebra: clampScore(parseFloat(mathAlgebra) || 0),
-        statistics: clampScore(parseFloat(mathStatistics) || 0),
+        numbers: mathNumbers === '' ? null : clampScore(parseFloat(mathNumbers) || 0),
+        measurement: mathMeasurement === '' ? null : clampScore(parseFloat(mathMeasurement) || 0),
+        geometry: mathGeometry === '' ? null : clampScore(parseFloat(mathGeometry) || 0),
+        algebra: mathAlgebra === '' ? null : clampScore(parseFloat(mathAlgebra) || 0),
+        statistics: mathStatistics === '' ? null : clampScore(parseFloat(mathStatistics) || 0),
       },
-      science: clampScore(parseFloat(science) || 0),
-      socialStudies: clampScore(parseFloat(socialStudies) || 0),
-      physicalEducation: clampScore(parseFloat(physicalEducation) || 0),
-      health: clampScore(parseFloat(health) || 0),
-      lifeSkills: clampScore(parseFloat(lifeSkills) || 0),
-      foreignLanguage: clampScore(parseFloat(foreignLanguage) || 0)
+      science: science === '' ? null : clampScore(parseFloat(science) || 0),
+      socialStudies: socialStudies === '' ? null : clampScore(parseFloat(socialStudies) || 0),
+      physicalEducation: physicalEducation === '' ? null : clampScore(parseFloat(physicalEducation) || 0),
+      health: health === '' ? null : clampScore(parseFloat(health) || 0),
+      lifeSkills: lifeSkills === '' ? null : clampScore(parseFloat(lifeSkills) || 0),
+      foreignLanguage: foreignLanguage === '' ? null : clampScore(parseFloat(foreignLanguage) || 0)
     };
 
     const calculatedPayload = calculateStudentFields(payload);
@@ -1168,7 +1168,8 @@ export default function Gradebook({
                   <th className="px-4 py-3 text-center">សុខភាព</th>
                   <th className="px-4 py-3 text-center">បំណិនជីវិត</th>
                   <th className="px-4 py-3 text-center">ភាសាបរទេស</th>
-                  <th className="px-4 py-3 text-center">មធ្យមភាគរួម</th>
+                  <th className="px-4 py-3 text-center text-blue-600 bg-blue-50/50 rounded-tl-md">ពិន្ទុសរុប</th>
+                  <th className="px-4 py-3 text-center text-blue-600 bg-blue-50/50 rounded-tr-md">មធ្យមភាគរួម</th>
                   <th className="px-4 py-3 text-center">និទ្ទេស</th>
                   <th className="px-4 py-3 text-center">លទ្ធផល</th>
                   <th className="px-4 py-3 text-right">សកម្មភាព</th>
@@ -1199,21 +1200,24 @@ export default function Gradebook({
                         <td className="px-4 py-3 text-center font-mono">
                           {st.khmerAvg} 
                           <span className="text-[9px] text-slate-400 block font-normal">
-                            ({st.khmer.listening}/{st.khmer.writing}/{st.khmer.reading}/{st.khmer.speaking})
+                            ({st.khmer.listening !== null ? st.khmer.listening : '-'}/{st.khmer.writing !== null ? st.khmer.writing : '-'}/{st.khmer.reading !== null ? st.khmer.reading : '-'}/{st.khmer.speaking !== null ? st.khmer.speaking : '-'})
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center font-mono">
                           {st.mathAvg}
                           <span className="text-[9px] text-slate-400 block font-normal">
-                            ({st.math.numbers}/{st.math.measurement}/{st.math.geometry}/{st.math.algebra}/{st.math.statistics})
+                            ({st.math.numbers !== null ? st.math.numbers : '-'}/{st.math.measurement !== null ? st.math.measurement : '-'}/{st.math.geometry !== null ? st.math.geometry : '-'}/{st.math.algebra !== null ? st.math.algebra : '-'}/{st.math.statistics !== null ? st.math.statistics : '-'})
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.science}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.socialStudies}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.physicalEducation}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.health}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.lifeSkills}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.foreignLanguage}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.science !== null ? st.science : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.socialStudies !== null ? st.socialStudies : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.physicalEducation !== null ? st.physicalEducation : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.health !== null ? st.health : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.lifeSkills !== null ? st.lifeSkills : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.foreignLanguage !== null ? st.foreignLanguage : '-'}</td>
+                        <td className="px-4 py-3 text-center font-mono font-bold text-blue-600 bg-blue-50/30">
+                          {st.totalScore !== undefined ? st.totalScore : '-'}
+                        </td>
                         <td className="px-4 py-3 text-center font-mono font-bold text-blue-600 bg-blue-50/10">
                           {st.overallAvg}
                         </td>

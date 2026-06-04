@@ -26,28 +26,24 @@ export function generateUniqueId(): string {
 
 // Calculate nested average and other properties for student scores
 export function calculateStudentFields(
-  student: Omit<StudentScore, 'khmerAvg' | 'mathAvg' | 'overallAvg' | 'gradeLetter' | 'result'>
+  student: Omit<StudentScore, 'khmerAvg' | 'mathAvg' | 'overallAvg' | 'totalScore' | 'gradeLetter' | 'result'>
 ): StudentScore {
-  const khmerAvg = clampScore(
-    (student.khmer.listening + student.khmer.writing + student.khmer.reading + student.khmer.speaking) / 4
-  );
+  const khmerScores = [student.khmer.listening, student.khmer.writing, student.khmer.reading, student.khmer.speaking].filter(s => s !== null) as number[];
+  const khmerAvg = khmerScores.length > 0 ? clampScore(khmerScores.reduce((a, b) => a + b, 0) / khmerScores.length) : 0;
   
-  const mathAvg = clampScore(
-    (student.math.numbers + student.math.measurement + student.math.geometry + student.math.algebra + student.math.statistics) / 5
-  );
+  const mathScores = [student.math.numbers, student.math.measurement, student.math.geometry, student.math.algebra, student.math.statistics].filter(s => s !== null) as number[];
+  const mathAvg = mathScores.length > 0 ? clampScore(mathScores.reduce((a, b) => a + b, 0) / mathScores.length) : 0;
 
-  const subjects = [
-    khmerAvg,
-    mathAvg,
-    student.science,
-    student.socialStudies,
-    student.physicalEducation,
-    student.health,
-    student.lifeSkills,
-    student.foreignLanguage
-  ];
+  const validSubjects: (number | null)[] = [];
+  if (khmerScores.length > 0) validSubjects.push(khmerAvg);
+  if (mathScores.length > 0) validSubjects.push(mathAvg);
+  validSubjects.push(student.science, student.socialStudies, student.physicalEducation, student.health, student.lifeSkills, student.foreignLanguage);
 
-  const overallAvg = clampScore(subjects.reduce((sum, s) => sum + s, 0) / subjects.length);
+  const subjects = validSubjects.filter(s => s !== null) as number[];
+
+  const sumScore = subjects.reduce((sum, s) => sum + s, 0);
+  const overallAvg = subjects.length > 0 ? clampScore(sumScore / subjects.length) : 0;
+  const totalScore = parseFloat(sumScore.toFixed(2));
 
   let gradeLetter = 'F';
   if (overallAvg >= 9.0) gradeLetter = 'A';
@@ -63,6 +59,7 @@ export function calculateStudentFields(
     khmerAvg,
     mathAvg,
     overallAvg,
+    totalScore,
     gradeLetter,
     result
   };

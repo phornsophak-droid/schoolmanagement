@@ -4,18 +4,18 @@
  */
 
 export interface KhmerScore {
-  listening: number; // ស្ដាប់ (0-10)
-  writing: number;   // សរសេរ (0-10)
-  reading: number;   // អាន (0-10)
-  speaking: number;  // និយាយ (0-10)
+  listening: number | null; // ស្ដាប់ (0-10)
+  writing: number | null;   // សរសេរ (0-10)
+  reading: number | null;   // អាន (0-10)
+  speaking: number | null;  // និយាយ (0-10)
 }
 
 export interface MathScore {
-  numbers: number;     // ចំនូន (0-10)
-  measurement: number; // រង្វាស់រង្វាល់ (0-10)
-  geometry: number;    // ធរណីមាត្រ (0-10)
-  algebra: number;     // ពិជគណិត (0-10)
-  statistics: number;  // ស្ថិតិ (0-10)
+  numbers: number | null;     // ចំនូន (0-10)
+  measurement: number | null; // រង្វាស់រង្វាល់ (0-10)
+  geometry: number | null;    // ធរណីមាត្រ (0-10)
+  algebra: number | null;     // ពិជគណិត (0-10)
+  statistics: number | null;  // ស្ថិតិ (0-10)
 }
 
 export interface StudentScore {
@@ -26,17 +26,18 @@ export interface StudentScore {
   month: string; // ខែ (មករា, កុម្ភៈ, ...)
   khmer: KhmerScore;
   math: MathScore;
-  science: number;        // វិទ្យាសាស្ត្រ (0-10)
-  socialStudies: number;  // សិក្សាសង្គម (0-10)
-  physicalEducation: number; // កាយ-កីឡា (0-10)
-  health: number;         // សុខភាព (0-10)
-  lifeSkills: number;     // បំណិនជីវិត (0-10)
-  foreignLanguage: number; // ភាសាបរទេស (0-10)
+  science: number | null;        // វិទ្យាសាស្ត្រ (0-10)
+  socialStudies: number | null;  // សិក្សាសង្គម (0-10)
+  physicalEducation: number | null; // កាយ-កីឡា (0-10)
+  health: number | null;         // សុខភាព (0-10)
+  lifeSkills: number | null;     // បំណិនជីវិត (0-10)
+  foreignLanguage: number | null; // ភាសាបរទេស (0-10)
   
   // Computed values
   khmerAvg: number;
   mathAvg: number;
   overallAvg: number;
+  totalScore?: number;
   gradeLetter: string; // A - F
   result: 'ជាប់' | 'ធ្លាក់';
   ranking?: number;
