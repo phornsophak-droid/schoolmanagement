@@ -259,6 +259,35 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       return;
     }
 
+    // Validate that if a student is not 'present', a reason must be selected/provided.
+    // If they choose 'ផ្សេងៗ' (Other), they must write down the actual reason in the text box.
+    let validationFailed = false;
+    let failedStudentName = "";
+    let validationErrorMsg = "";
+
+    for (const s of gradeStudents) {
+      const status = activeAttendanceMap[s.id] || 'present';
+      if (status !== 'present') {
+        const reason = (studentReasonsMap[s.id] || '').trim();
+        if (!reason) {
+          validationFailed = true;
+          failedStudentName = s.name;
+          validationErrorMsg = `⚠️ សូមជ្រើសរើស ឬសរសេរបំពេញមូលហេតុជាក់ស្តែងសម្រាប់ការអវត្តមាន/យឺតយ៉ាវរបស់សិស្ស «${s.name}»`;
+          break;
+        } else if (reason === 'ផ្សេងៗ') {
+          validationFailed = true;
+          failedStudentName = s.name;
+          validationErrorMsg = `⚠️ សម្រាប់ជម្រើស «ផ្សេងៗ» សូមសរសេរបញ្ជាក់ពីមូលហេតុជាក់ស្តែងដែលសិស្ស «${s.name}» អវត្តមាន`;
+          break;
+        }
+      }
+    }
+
+    if (validationFailed) {
+      triggerToast(validationErrorMsg, 'error');
+      return;
+    }
+
     let p = 0;
     let y = 0;
     let l = 0;
@@ -855,16 +884,27 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                     </select>
                                     
                                     {!['', 'បញ្ហាសុខភាព', 'មានធុរៈក្នុងគ្រួសារ', 'ខ្ជិល'].includes(studentReasonsMap[std.id] || '') && (
-                                      <input
-                                        type="text"
-                                        placeholder="សរសេរមូលហេតុផ្សេងៗ..."
-                                        value={studentReasonsMap[std.id] === 'ផ្សេងៗ' ? '' : (studentReasonsMap[std.id] || '')}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          setStudentReasonsMap(prev => ({ ...prev, [std.id]: val }));
-                                        }}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1 text-[10.5px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none"
-                                      />
+                                      <div className="w-full flex flex-col gap-1">
+                                        <input
+                                          type="text"
+                                          placeholder="សរសេរមូលហេតុជាក់ស្តែង..."
+                                          value={studentReasonsMap[std.id] === 'ផ្សេងៗ' ? '' : (studentReasonsMap[std.id] || '')}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setStudentReasonsMap(prev => ({ ...prev, [std.id]: val }));
+                                          }}
+                                          className={`w-full border rounded-md px-2.5 py-1 text-[10.5px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none ${
+                                            studentReasonsMap[std.id] === 'ផ្សេងៗ' || !studentReasonsMap[std.id]
+                                              ? 'bg-red-50 border-red-300'
+                                              : 'bg-slate-50 border-slate-200'
+                                          }`}
+                                        />
+                                        {(studentReasonsMap[std.id] === 'ផ្សេងៗ' || !studentReasonsMap[std.id]) && (
+                                          <span className="text-[9px] text-red-500 font-bold font-sans self-start ml-1 animate-pulse">
+                                            * ត្រូវសរសេរបញ្ជាក់ពីមូលហេតុជាក់ស្តែង
+                                          </span>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                 )}
