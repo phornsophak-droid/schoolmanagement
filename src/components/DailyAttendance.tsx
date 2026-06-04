@@ -133,7 +133,16 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   const [teacherReasonsMap, setTeacherReasonsMap] = useState<{ [teacherId: string]: string }>({});
 
   // Compile list of teachers from AVAILABLE_USERS
-  const teachersList = AVAILABLE_USERS.filter(u => u.role === 'teacher');
+  const teachersList = useMemo(() => {
+    const list = AVAILABLE_USERS.filter(u => u.role === 'teacher');
+    if (currentUser?.role === 'principal') {
+      const principalUser = AVAILABLE_USERS.find(u => u.role === 'principal');
+      if (principalUser && !list.some(u => u.id === principalUser.id)) {
+        return [principalUser, ...list];
+      }
+    }
+    return list;
+  }, [currentUser]);
 
   // Compute cumulative teacher attendance statistics based on historical records + current active mappings
   const teacherStatsMap = useMemo(() => {
@@ -311,7 +320,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       setTeacherAttendanceMap(map);
       setTeacherReasonsMap(reasons);
     }
-  }, [selectedDate, teacherRecords]);
+  }, [selectedDate, teacherRecords, teachersList]);
 
   // Utility to display lightweight feedback notifications
   const triggerToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
