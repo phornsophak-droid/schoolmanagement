@@ -621,7 +621,7 @@ export default function Gradebook({
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white font-semibold hover:bg-blue-700 rounded-xl text-sm transition-all shadow-md shadow-blue-500/10"
           >
             <UserPlus size={16} />
-            បញ្ចូលពិន្ទុសិស្សថ្មី
+            បញ្ចូលពិន្ទុ
           </button>
         </div>
       </div>
@@ -716,7 +716,7 @@ export default function Gradebook({
           <div className="flex items-center justify-between pb-4 border-b border-blue-50">
             <h3 className="font-semibold text-slate-800 text-base flex items-center gap-1.5">
               <GraduationCap className="text-blue-600" size={20} />
-              {editingStudentId ? `កែសម្រួលពិន្ទុរបស់សិស្ស៖ ${formName}` : 'បញ្ចូលពិន្ទុសិស្សថ្មី'}
+              {editingStudentId ? `កែសម្រួលពិន្ទុរបស់សិស្ស៖ ${formName}` : 'បញ្ចូលពិន្ទុសិស្ស'}
             </h3>
             <button
               onClick={() => setIsFormOpen(false)}
@@ -740,39 +740,32 @@ export default function Gradebook({
                     value={formName}
                     className="w-full px-3.5 py-2 text-sm bg-slate-100 border border-slate-200 rounded-lg outline-none font-medium text-slate-500 font-sans"
                   />
-                ) : currentUser?.role === 'teacher' ? (
-                  <select
-                    required
-                    value={formName}
-                    onChange={(e) => {
-                      const selectedName = e.target.value;
-                      setFormName(selectedName);
-                      const sRecord = students.find(s => s.name.trim() === selectedName.trim() && s.grade === formGrade);
-                      if (sRecord) {
-                        setFormGender(sRecord.gender);
-                      }
-                    }}
-                    className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-800 font-sans"
-                  >
-                    <option value="">-- ជ្រើសរើសឈ្មោះសិស្ស --</option>
-                    {registeredStudentsInFormGrade.map(name => (
-                      <option key={name} value={name}>{name}</option>
-                    ))}
-                  </select>
                 ) : (
-                  <input
-                    type="text"
-                    required
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder="ឧ. ចាន់ ដារ៉ា"
-                    className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-800 transition-all font-sans"
-                  />
-                )}
-                {currentUser?.role === 'teacher' && !editingStudentId && registeredStudentsInFormGrade.length === 0 && (
-                  <p className="text-[10px] text-amber-600 mt-1 font-semibold leading-relaxed">
-                    ⚠️ មិនទាន់មានឈ្មោះសិស្សចុះឈ្មោះក្នុងថ្នាក់នេះទេ។ សូមទំនាក់ទំនងទៅកាន់លោកនាយកសាលាដើម្បីចុះឈ្មោះសិស្សជាមុនសិន។
-                  </p>
+                  <>
+                    <select
+                      required
+                      value={formName}
+                      onChange={(e) => {
+                        const selectedName = e.target.value;
+                        setFormName(selectedName);
+                        const sRecord = students.find(s => s.name.trim() === selectedName.trim() && s.grade === formGrade);
+                        if (sRecord) {
+                          setFormGender(sRecord.gender);
+                        }
+                      }}
+                      className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-800 font-sans"
+                    >
+                      <option value="">-- ជ្រើសរើសឈ្មោះសិស្ស --</option>
+                      {registeredStudentsInFormGrade.map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                    {!editingStudentId && registeredStudentsInFormGrade.length === 0 && (
+                      <p className="text-[10px] text-amber-600 mt-1 font-semibold leading-relaxed">
+                        ⚠️ មិនទាន់មានឈ្មោះសិស្សចុះឈ្មោះក្នុងថ្នាក់នេះទេ។ {currentUser?.role === 'teacher' ? 'សូមទំនាក់ទំនងទៅកាន់លោកនាយកសាលាដើម្បីចុះឈ្មោះសិស្សជាមុនសិន។' : 'សូមចូលទៅកាន់មុខងារ «គ្រប់គ្រងថ្នាក់ និងសិស្ស» ដើម្បីចុះឈ្មោះសិស្សថ្មីជាមុនសិន។'}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -1295,7 +1288,7 @@ export default function Gradebook({
                   <tr>
                     <td colSpan={17} className="px-4 py-12 text-center text-slate-400 font-medium">
                       <FolderLock size={32} className="mx-auto text-slate-300 mb-2" />
-                      គ្មានគណនីសិស្ស ឬពិន្ទុត្រូវនឹងការជ្រើសរើសរបស់អ្នកទេ សូមចុច «បញ្ចូលពិន្ទុសិស្សថ្មី» ដើម្បីបន្ថែម!
+                      គ្មានទិន្នន័យពិន្ទុទេ សូមចុច «បញ្ចូលពិន្ទុ» ដើម្បីបន្ថែមពិន្ទុសម្រាប់សិស្សដែលមានស្រាប់ក្នុងថ្នាក់!
                     </td>
                   </tr>
                 )}

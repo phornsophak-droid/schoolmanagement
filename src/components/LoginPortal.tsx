@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SchoolUser } from '../types';
-import { getPinForUser } from '../utils/auth';
+import { getPinForUser, setPinForUser } from '../utils/auth';
 import { 
   KeyRound, 
   ShieldAlert, 
@@ -163,11 +163,29 @@ export const AVAILABLE_USERS: SchoolUser[] = [
   }
 ];
 
+// Load any dynamically added custom users
+try {
+  const customUsersStr = localStorage.getItem('school_custom_users');
+  if (customUsersStr) {
+    const customUsers = JSON.parse(customUsersStr);
+    if (Array.isArray(customUsers)) {
+      AVAILABLE_USERS.push(...customUsers);
+    }
+  }
+} catch (e) {
+  console.error('Failed to load custom users', e);
+}
+
 export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
   const [selectedUser, setSelectedUser] = useState<SchoolUser | null>(null);
   const [pinCode, setPinCode] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [showPin, setShowPin] = useState<boolean>(false);
+
+  const [isAddClassOpen, setIsAddClassOpen] = useState(false);
+  const [newClassName, setNewClassName] = useState('');
+  const [newTeacherName, setNewTeacherName] = useState('');
+  const [newPinCode, setNewPinCode] = useState('1234');
 
   const handleSelectUser = (user: SchoolUser) => {
     setSelectedUser(user);
@@ -186,6 +204,48 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
     } else {
       setErrorMsg('លេខកូដសម្ងាត់មិនត្រឹមត្រូវទេ!');
     }
+  };
+
+  const handleAddClassSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanClass = newClassName.trim();
+    const cleanTeacher = newTeacherName.trim();
+    if (!cleanClass || !cleanTeacher) return;
+
+    const newId = 'teacher_custom_' + Date.now();
+    
+    // Generate initials for photoCode
+    const code = cleanTeacher.split(' ').map(w => w[0]).join('').substring(0, 2) || 'គព';
+
+    const newUser: SchoolUser = {
+      id: newId,
+      name: cleanTeacher,
+      role: 'teacher',
+      grade: cleanClass,
+      photoCode: code,
+      avatarBg: 'bg-gradient-to-tr from-indigo-500 to-purple-500' // Default purple gradient
+    };
+
+    // Add to current session
+    AVAILABLE_USERS.push(newUser);
+
+    // Persist to localStorage
+    const savedStr = localStorage.getItem('school_custom_users');
+    let savedUsers = savedStr ? JSON.parse(savedStr) : [];
+    if (!Array.isArray(savedUsers)) savedUsers = [];
+    savedUsers.push(newUser);
+    localStorage.setItem('school_custom_users', JSON.stringify(savedUsers));
+
+    // Save custom PIN if provided
+    if (newPinCode && newPinCode !== '1234') {
+        setPinForUser(newId, newPinCode);
+    }
+
+    // Reset and close
+    setIsAddClassOpen(false);
+    setNewClassName('');
+    setNewTeacherName('');
+    setNewPinCode('1234');
   };
 
   return (
@@ -287,6 +347,18 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
                 ))}
 
               </div>
+              
+              {/* Add New Class Button */}
+              <div className="pt-2 border-t border-slate-200/60 flex justify-center">
+                <button
+                  onClick={() => setIsAddClassOpen(true)}
+                  className="px-4 py-2 border border-dashed border-slate-300 text-slate-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                >
+                  <span>+</span>
+                  <span>បន្ថែមថ្នាក់ថ្មី</span>
+                </button>
+              </div>
+
             </div>
           ) : (
             // Back to selection and dynamic security token check
@@ -362,6 +434,77 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
         </div>
 
       </div>
+
+      {/* Add Custom Class Modal */}
+      {isAddClassOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                បន្ថែមថ្នាក់ថ្មី (គណនីគ្រូ)
+              </h3>
+              <button 
+                onClick={() => setIsAddClassOpen(false)}
+                className="text-slate-400 hover:text-rose-500 transition-colors p-1"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleAddClassSubmit} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ថ្នាក់សិក្សា</label>
+                <input
+                  type="text"
+                  placeholder="ឧទាហរណ៍៖ ថ្នាក់ទី ៧ក"
+                  required
+                  value={newClassName}
+                  onChange={e => setNewClassName(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ឈ្មោះលោកគ្រូ-អ្នកគ្រូ</label>
+                <input
+                  type="text"
+                  placeholder="ឈ្មោះគ្រូបន្ទុកថ្នាក់"
+                  required
+                  value={newTeacherName}
+                  onChange={e => setNewTeacherName(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">កំណត់លេខកូដសម្ងាត់ (PIN)</label>
+                <input
+                  type="text"
+                  placeholder="1234"
+                  value={newPinCode}
+                  onChange={e => setNewPinCode(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500 font-mono"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">លំនាំដើមគឺលេខ 1234 ប៉ុន្តែអ្នកអាចដូរបាន។</p>
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddClassOpen(false)}
+                  className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition-colors"
+                >
+                  បោះបង់
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors"
+                >
+                  បង្កើតគណនីថ្មី
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
