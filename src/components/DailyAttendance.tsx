@@ -130,9 +130,64 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
   // Track the current teacher-level state mapping
   const [teacherAttendanceMap, setTeacherAttendanceMap] = useState<{ [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' }>({});
+  const [teacherReasonsMap, setTeacherReasonsMap] = useState<{ [teacherId: string]: string }>({});
 
   // Compile list of teachers from AVAILABLE_USERS
   const teachersList = AVAILABLE_USERS.filter(u => u.role === 'teacher');
+
+  // Compute cumulative teacher attendance statistics based on historical records + current active mappings
+  const teacherStatsMap = useMemo(() => {
+    const stats: { [teacherId: string]: { present: number; late: number; permission: number; absent: number } } = {};
+    
+    // Initialize stats for each teacher to prevent undefined references
+    teachersList.forEach(t => {
+      stats[t.id] = { present: 0, late: 0, permission: 0, absent: 0 };
+    });
+
+    // Populate using saved records, excluding the current draft's date so we don't double count it
+    teacherRecords.forEach(r => {
+      if (r.date === selectedDate) {
+        return; // Exclude current date because we will merge teacherAttendanceMap live!
+      }
+      if (r.teacherStates) {
+        Object.entries(r.teacherStates).forEach(([teacherId, status]) => {
+          if (teacherId.endsWith('_reason')) return;
+          
+          if (!stats[teacherId]) {
+            stats[teacherId] = { present: 0, late: 0, permission: 0, absent: 0 };
+          }
+          
+          if (status === 'present') {
+            stats[teacherId].present += 1;
+          } else if (status === 'late') {
+            stats[teacherId].late += 1;
+          } else if (status === 'permission') {
+            stats[teacherId].permission += 1;
+          } else if (status === 'absent') {
+            stats[teacherId].absent += 1;
+          }
+        });
+      }
+    });
+
+    // Merge the live draft state so changes reflect instantly in real-time
+    Object.entries(teacherAttendanceMap).forEach(([teacherId, status]) => {
+      if (!stats[teacherId]) {
+        stats[teacherId] = { present: 0, late: 0, permission: 0, absent: 0 };
+      }
+      if (status === 'present') {
+        stats[teacherId].present += 1;
+      } else if (status === 'late') {
+        stats[teacherId].late += 1;
+      } else if (status === 'permission') {
+        stats[teacherId].permission += 1;
+      } else if (status === 'absent') {
+        stats[teacherId].absent += 1;
+      }
+    });
+
+    return stats;
+  }, [teacherRecords, teachersList, selectedDate, teacherAttendanceMap]);
 
   // Create a unique list of student profiles so that multiple monthly scores don't show as duplicate students in Attendance
   const uniqueStudentsList = useMemo(() => {
@@ -239,16 +294,22 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     
     if (existing && existing.teacherStates && Object.keys(existing.teacherStates).length > 0) {
       const map: { [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
+      const reasons: { [teacherId: string]: string } = {};
       teachersList.forEach(t => {
         map[t.id] = existing.teacherStates[t.id] || 'present';
+        reasons[t.id] = (existing.teacherStates as any)[t.id + '_reason'] || '';
       });
       setTeacherAttendanceMap(map);
+      setTeacherReasonsMap(reasons);
     } else {
       const map: { [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
+      const reasons: { [teacherId: string]: string } = {};
       teachersList.forEach(t => {
         map[t.id] = 'present';
+        reasons[t.id] = '';
       });
       setTeacherAttendanceMap(map);
+      setTeacherReasonsMap(reasons);
     }
   }, [selectedDate, teacherRecords]);
 
@@ -391,13 +452,19 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     triggerToast(`💾 រក្សាទុកវត្តមានជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់`, 'success');
   };
 
-  // Filter teachers matching search query
-  const displayTeachers = teachersList.filter(t => 
-    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.grade.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter teachers matching search query and role-based access
+  const displayTeachers = useMemo(() => {
+    let list = teachersList;
+    if (currentUser?.role === 'teacher') {
+      list = teachersList.filter(t => t.id === currentUser.id || t.name === currentUser.name);
+    }
+    return list.filter(t => 
+      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.grade.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [teachersList, currentUser, searchQuery]);
 
-  const totalTeachersCount = teachersList.length;
+  const totalTeachersCount = displayTeachers.length;
   const teacherPresentCount = displayTeachers.filter(t => (teacherAttendanceMap[t.id] || 'present') === 'present').length;
   const teacherLateCount = displayTeachers.filter(t => teacherAttendanceMap[t.id] === 'late').length;
   const teacherPermissionCount = displayTeachers.filter(t => teacherAttendanceMap[t.id] === 'permission').length;
@@ -424,6 +491,29 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   };
 
   const handleSaveTeacherAttendance = () => {
+    // Validate we have a written reason if not present
+    let validationFailed = false;
+    let failedTeacherName = "";
+    let validationErrorMsg = "";
+
+    for (const t of displayTeachers) {
+      const status = teacherAttendanceMap[t.id] || 'present';
+      if (status !== 'present') {
+        const reason = (teacherReasonsMap[t.id] || '').trim();
+        if (!reason) {
+          validationFailed = true;
+          failedTeacherName = t.name;
+          validationErrorMsg = `⚠️ សូមសរសេរបញ្ជាក់ពីមូលហេតុជាក់ស្តែងសម្រាប់ការអវត្តមាន/យឺតយ៉ាវរបស់គ្រូ «${t.name}»`;
+          break;
+        }
+      }
+    }
+
+    if (validationFailed) {
+      triggerToast(validationErrorMsg, 'error');
+      return;
+    }
+
     let p = 0;
     let y = 0;
     let l = 0;
@@ -433,6 +523,9 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     teachersList.forEach(t => {
       const status = teacherAttendanceMap[t.id] || 'present';
       finalStates[t.id] = status;
+      if (status !== 'present' && teacherReasonsMap[t.id]) {
+        (finalStates as any)[t.id + '_reason'] = teacherReasonsMap[t.id];
+      }
       if (status === 'present') p++;
       else if (status === 'late') y++;
       else if (status === 'permission') l++;
@@ -1060,6 +1153,10 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                       <th className="px-5 py-3 w-12 text-center">ល.រ</th>
                       <th className="px-5 py-3">ឈ្មោះគ្រូបង្រៀន</th>
                       <th className="px-5 py-3 hidden sm:table-cell">បង្រៀនថ្នាក់រៀន/ជំនាញ</th>
+                      <th className="px-3 py-3 text-center text-emerald-600 font-black whitespace-nowrap text-[10.5px]">សរុបវត្តមាន (វ)</th>
+                      <th className="px-3 py-3 text-center text-blue-600 font-black whitespace-nowrap text-[10.5px]">សរុបយឺត (យ)</th>
+                      <th className="px-3 py-3 text-center text-amber-600 font-black whitespace-nowrap text-[10.5px]">សរុបច្បាប់ (ច្ប)</th>
+                      <th className="px-3 py-3 text-center text-rose-600 font-black whitespace-nowrap text-[10.5px]">សរុបអត់ច្បាប់ (អច្ប)</th>
                       <th className="px-5 py-3 text-center w-52">ជ្រើសរើសវត្តមាន</th>
                     </tr>
                   </thead>
@@ -1067,6 +1164,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                     {displayTeachers.length > 0 ? (
                       displayTeachers.map((tc, idx) => {
                         const currentStatus = teacherAttendanceMap[tc.id] || 'present';
+                        const tcStats = teacherStatsMap[tc.id] || { present: 0, late: 0, permission: 0, absent: 0 };
                         return (
                           <tr key={tc.id} className="hover:bg-slate-50/70 transition-all">
                             {/* Index */}
@@ -1092,60 +1190,118 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                               </span>
                             </td>
 
-                            {/* P, L, A Picker buttons */}
+                            {/* Cumulative Present (វ) */}
+                            <td className="px-3 py-3.5 text-center">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-3xs" title="សរុបវត្តមាន">
+                                {tcStats.present}
+                              </span>
+                            </td>
+
+                            {/* Cumulative Late (យ) */}
+                            <td className="px-3 py-3.5 text-center">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-blue-50 text-blue-700 border border-blue-200 shadow-3xs" title="សរុបយឺត">
+                                {tcStats.late}
+                              </span>
+                            </td>
+
+                            {/* Cumulative Permission (ច្ប) */}
+                            <td className="px-3 py-3.5 text-center">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-amber-50 text-amber-700 border border-amber-200 shadow-3xs" title="សរុបច្បាប់">
+                                {tcStats.permission}
+                              </span>
+                            </td>
+
+                            {/* Cumulative Absent (អច្ប) */}
+                            <td className="px-3 py-3.5 text-center">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-rose-50 text-rose-700 border border-rose-250 shadow-3xs" title="សរុបអត់ច្បាប់">
+                                {tcStats.absent}
+                              </span>
+                            </td>
+
+                            {/* P, L, A Picker buttons + Reason text input */}
                             <td className="px-5 py-3.5 text-center">
-                              <div className="inline-flex gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
-                                <button
-                                  onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'present' }))}
-                                  title="វត្តមាន (វ)"
-                                  className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
-                                    currentStatus === 'present'
-                                      ? 'bg-emerald-600 text-white shadow-sm font-bold scale-[1.03]'
-                                      : 'text-slate-400 hover:text-slate-705'
-                                  }`}
-                                >
-                                  {currentStatus === 'present' && <Check size={10} strokeWidth={3} />}
-                                  <span>វ</span>
-                                </button>
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="inline-flex gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                                  <button
+                                    onClick={() => {
+                                      setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'present' }));
+                                      setTeacherReasonsMap(prev => ({ ...prev, [tc.id]: '' }));
+                                    }}
+                                    title="វត្តមាន (វ)"
+                                    className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
+                                      currentStatus === 'present'
+                                        ? 'bg-emerald-600 text-white shadow-sm font-bold scale-[1.03]'
+                                        : 'text-slate-400 hover:text-slate-705'
+                                    }`}
+                                  >
+                                    {currentStatus === 'present' && <Check size={10} strokeWidth={3} />}
+                                    <span>វ</span>
+                                  </button>
 
-                                <button
-                                  onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'late' }))}
-                                  title="យឺត (យ)"
-                                  className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
-                                    currentStatus === 'late'
-                                      ? 'bg-blue-600 text-white shadow-sm font-bold scale-[1.03]'
-                                      : 'text-slate-400 hover:text-slate-705'
-                                  }`}
-                                >
-                                  {currentStatus === 'late' && <Check size={10} strokeWidth={3} />}
-                                  <span>យ</span>
-                                </button>
-                                
-                                <button
-                                  onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'permission' }))}
-                                  title="ច្បាប់ (ច្ប)"
-                                  className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
-                                    currentStatus === 'permission'
-                                      ? 'bg-amber-500 text-white shadow-sm font-bold scale-[1.03]'
-                                      : 'text-slate-400 hover:text-slate-705'
-                                  }`}
-                                >
-                                  {currentStatus === 'permission' && <Check size={10} strokeWidth={3} />}
-                                  <span>ច្ប</span>
-                                </button>
+                                  <button
+                                    onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'late' }))}
+                                    title="យឺត (យ)"
+                                    className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
+                                      currentStatus === 'late'
+                                        ? 'bg-blue-600 text-white shadow-sm font-bold scale-[1.03]'
+                                        : 'text-slate-400 hover:text-slate-705'
+                                    }`}
+                                  >
+                                    {currentStatus === 'late' && <Check size={10} strokeWidth={3} />}
+                                    <span>យ</span>
+                                  </button>
+                                  
+                                  <button
+                                    onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'permission' }))}
+                                    title="ច្បាប់ (ច្ប)"
+                                    className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
+                                      currentStatus === 'permission'
+                                        ? 'bg-amber-500 text-white shadow-sm font-bold scale-[1.03]'
+                                        : 'text-slate-400 hover:text-slate-705'
+                                    }`}
+                                  >
+                                    {currentStatus === 'permission' && <Check size={10} strokeWidth={3} />}
+                                    <span>ច្ប</span>
+                                  </button>
 
-                                <button
-                                  onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'absent' }))}
-                                  title="អត់ច្បាប់ (អច្ប)"
-                                  className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
-                                    currentStatus === 'absent'
-                                      ? 'bg-rose-500 text-white shadow-sm font-bold scale-[1.03]'
-                                      : 'text-slate-400 hover:text-slate-705'
-                                  }`}
-                                >
-                                  {currentStatus === 'absent' && <Check size={10} strokeWidth={3} />}
-                                  <span>អច្ប</span>
-                                </button>
+                                  <button
+                                    onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'absent' }))}
+                                    title="អត់ច្បាប់ (អច្ប)"
+                                    className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
+                                      currentStatus === 'absent'
+                                        ? 'bg-rose-500 text-white shadow-sm font-bold scale-[1.03]'
+                                        : 'text-slate-400 hover:text-slate-705'
+                                    }`}
+                                  >
+                                    {currentStatus === 'absent' && <Check size={10} strokeWidth={3} />}
+                                    <span>អច្ប</span>
+                                  </button>
+                                </div>
+
+                                {/* Reason input if not present */}
+                                {currentStatus !== 'present' && (
+                                  <div className="w-full max-w-[190px] flex flex-col gap-1">
+                                    <input
+                                      type="text"
+                                      placeholder="សរសេរមូលហេតុជាក់ស្តែង..."
+                                      value={teacherReasonsMap[tc.id] || ''}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setTeacherReasonsMap(prev => ({ ...prev, [tc.id]: val }));
+                                      }}
+                                      className={`w-full border rounded-md px-2.5 py-1 text-[10.5px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none ${
+                                        !teacherReasonsMap[tc.id]?.trim()
+                                          ? 'bg-red-50 border-red-300'
+                                          : 'bg-slate-55 border-slate-200'
+                                      }`}
+                                    />
+                                    {!teacherReasonsMap[tc.id]?.trim() && (
+                                      <span className="text-[9px] text-red-500 font-bold font-sans self-start ml-1 animate-pulse">
+                                        * ត្រូវសរសេរបញ្ជាក់ពីមូលហេតុជាក់ស្តែង
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1153,9 +1309,9 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                       })
                     ) : (
                       <tr>
-                        <td colSpan={4} className="py-20 text-center text-slate-400 text-xs">
+                        <td colSpan={8} className="py-20 text-center text-slate-400 text-xs font-bold">
                           <p className="text-xl mb-1">📭</p>
-                          <p className="font-bold">ពុំមានគណនីគ្រូបង្រៀនត្រូវបានរកឃើញឡើយ ឬមិនត្រូវនឹងការស្វែងរករបស់អ្នក។</p>
+                          <p>ពុំមានគណនីគ្រូបង្រៀនត្រូវបានរកឃើញឡើយ ឬមិនត្រូវនឹងការស្វែងរករបស់អ្នក។</p>
                         </td>
                       </tr>
                     )}
@@ -1168,10 +1324,13 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                 <button
                   onClick={() => {
                     const map: { [teacherId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
+                    const reasons: { [teacherId: string]: string } = {};
                     teachersList.forEach(t => {
                       map[t.id] = 'present';
+                      reasons[t.id] = '';
                     });
                     setTeacherAttendanceMap(map);
+                    setTeacherReasonsMap(reasons);
                     triggerToast('🔄 បានធ្វើឱ្យវត្តមានគ្រូត្រលប់មកដើមវិញ (វត្តមានទាំងអស់)', 'info');
                   }}
                   className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-slate-605 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
