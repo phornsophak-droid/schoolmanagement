@@ -39,6 +39,8 @@ import { StudentScore, SchoolUser, SchoolReport } from '../types';
 import ClassStudentMgmt from './ClassStudentMgmt';
 import ReportsHub from './ReportsHub';
 import Gradebook from './Gradebook';
+import DailyAttendance from './DailyAttendance';
+import Dashboard from './Dashboard';
 
 interface AttendanceRecord {
   id: string;
@@ -382,9 +384,9 @@ export default function MobilePortal({
   };
 
   return (
-    <div className="flex justify-center items-center h-full w-full bg-slate-950 font-sans p-0 m-0 relative print:hidden">
-      {/* Smartphone Device Wrapper Mockup */}
-      <div className="w-[390px] h-[780px] bg-[#111E38] rounded-[48px] border-8 border-slate-800 shadow-2xl relative flex flex-col overflow-hidden max-w-[100vw] text-slate-100">
+    <div className="flex justify-center items-center h-full w-full bg-slate-900 font-sans p-0 m-0 relative print:hidden">
+      {/* Smartphone Device Wrapper Mockup with light mint-green background */}
+      <div className="w-[390px] h-[780px] bg-[#F0FDF4] rounded-[48px] border-8 border-slate-700 shadow-2xl relative flex flex-col overflow-hidden max-w-[100vw] text-slate-800">
         
         {/* Elegant Mobile-Friendly Toast Notification */}
         <AnimatePresence>
@@ -393,51 +395,43 @@ export default function MobilePortal({
               initial={{ opacity: 0, y: -50, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              className="absolute top-10 left-4 right-4 bg-slate-900/95 backdrop-blur-md rounded-xl p-3 border border-[#E2C785]/30 text-[9px] text-[#E2C785] shadow-2xl z-55 flex items-center gap-2.5 font-bold"
+              className="absolute top-10 left-4 right-4 bg-emerald-900/95 backdrop-blur-md rounded-xl p-3 border border-emerald-500/30 text-[10px] text-emerald-100 shadow-2xl z-55 flex items-center gap-2.5 font-bold"
             >
               <span className="text-sm shrink-0">🔔</span>
-              <p className="flex-1 leading-normal text-slate-100">{toastMessage}</p>
+              <p className="flex-1 leading-normal text-white">{toastMessage}</p>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Phone Notch/Island */}
-        <div className="absolute top-0 left-0 right-0 h-7 flex justify-between items-center px-6 z-50 text-[10.5px] font-semibold text-white/90">
+        <div className="absolute top-0 left-0 right-0 h-7 flex justify-between items-center px-6 z-50 text-[11px] font-black text-slate-700">
           <span>8:55</span>
           <div className="w-[110px] h-4 bg-black rounded-b-xl absolute left-1/2 -translate-x-1/2 top-0" />
           <div className="flex items-center gap-1">
             <span>5G</span>
-            <div className="w-4 h-2.5 bg-white rounded-xs" />
-          </div>
-        </div>
-
-        {/* Dynamic Frame Banner for Cambodia Slogan inside Phone View */}
-        <div className="pt-7 pb-2 px-4 bg-gradient-to-b from-[#132247] to-[#122044] border-b border-blue-900/40 shrink-0">
-          <div className="flex items-center justify-between mt-1 text-[9.5px] font-bold text-slate-400">
-            <span className="bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded">ព្រះរាជាណាចក្រកម្ពុជា</span>
-            <span className="text-[#E2C785] tracking-wide">ជាតិ សាសនា ព្រះមហាក្សត្រ</span>
+            <div className="w-4 h-2.5 bg-slate-700/20 border border-slate-400 rounded-xs" />
           </div>
         </div>
 
         {/* 1. Header (Replica of mockup) */}
-        <header className="px-4 py-3 bg-[#111E38] flex items-center justify-between border-b border-blue-950/20 shrink-0">
+        <header className="px-4 pt-9 pb-3.5 bg-[#F0FDF4] flex items-center justify-between border-b border-emerald-100 shrink-0">
           <div>
-            <h1 className="text-sm font-black font-serif tracking-tight text-[#E2C785] outline-amber-700/20">
+            <h1 className="text-xl font-black font-serif tracking-tight text-emerald-950">
               សាលាសហគមន៍ច្បារច្រុះ
             </h1>
-            <p className="text-[10px] text-slate-450 mt-0.5 font-bold tracking-widest font-sans uppercase">
-              សេវាអប់រំសហគមន៍
+            <p className="text-[11.5px] text-emerald-600 mt-0.5 font-extrabold font-sans">
+              Chbar Chros Community School
             </p>
           </div>
 
           {/* Right Action Icons in the Header */}
           <div className="flex items-center gap-2">
             {/* Bell/Notification Icon */}
-            <div className="relative p-1.5 rounded-lg bg-blue-950/40 border border-blue-900/30 hover:bg-blue-950/60 transition-all cursor-pointer">
-              <span className="w-5 h-5 absolute -top-1.5 -right-1.5 bg-rose-500 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs animate-bounce border-2 border-[#111E38]">
+            <div className="relative p-1.5 rounded-lg bg-emerald-50 border border-emerald-200/60 hover:bg-emerald-100 transition-all cursor-pointer">
+              <span className="w-5 h-5 absolute -top-1.5 -right-1.5 bg-rose-500 rounded-full text-[10px] font-black text-white flex items-center justify-center shadow-xs animate-bounce border-2 border-[#F0FDF4]">
                 S
               </span>
-              <span className="text-slate-200">🔔</span>
+              <span className="text-emerald-800 text-xs">🔔</span>
             </div>
 
             {/* Dashboard / Mini LayoutGrid Selector Icon */}
@@ -446,18 +440,18 @@ export default function MobilePortal({
                 setInnerView('home');
                 setShowMenuOverlay(true);
               }}
-              className="p-1.5 rounded-lg bg-blue-950/40 border border-blue-900/30 text-slate-300 hover:text-white transition-all cursor-pointer"
+              className="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200/60 text-emerald-700 hover:text-emerald-900 transition-all cursor-pointer"
             >
-              <Users size={16} className="text-[#E2C785]" />
+              <Users size={16} className="text-emerald-700" />
             </button>
           </div>
         </header>
 
         {/* 2. Main Scrollable Container Inside the Phone Body */}
-        <div className="flex-1 overflow-y-auto bg-[#132247] p-4 pb-20 relative select-none">
+        <div className="flex-1 overflow-y-auto bg-[#EAF6ED] p-4 pb-20 relative select-none">
           <AnimatePresence mode="wait">
             
-            {/* HOME VIEW: 3x3 Luxury Gold Menu Layout Grid matching Mockup exactly */}
+            {/* HOME VIEW: 12 Premium Bento-style Light Green Buttons */}
             {innerView === 'home' && (
               <motion.div
                 key="home_grid"
@@ -467,139 +461,179 @@ export default function MobilePortal({
                 className="flex flex-col h-full justify-between"
               >
                 {/* School Welcome Card Banner */}
-                <div className="mb-4 bg-gradient-to-r from-blue-900/30 via-indigo-950/40 to-blue-950/30 p-3.5 border border-blue-800/25 rounded-2xl flex items-center gap-3">
-                  <span className="text-xl">🏫</span>
+                <div className="mb-4 bg-gradient-to-r from-emerald-100 to-green-50 p-3.5 border border-emerald-200 rounded-2xl flex items-center gap-3 shadow-3xs">
+                  <span className="text-2xl">🏫</span>
                   <div className="min-w-0">
-                    <p className="text-[11.5px] font-bold text-white leading-tight">ស្វាគមន៍មកកាន់ប្រព័ន្ធគ្រប់គ្រងសាលា</p>
-                    <p className="text-[9.5px] text-slate-400 leading-normal mt-0.5">គណនីបច្ចុប្បន្ន៖ <span className="text-[#E2C785] font-bold">{currentUser?.name}</span> ({currentUser?.role === 'principal' ? 'នាយកសាលា' : `គ្រូ ${currentUser?.grade}`})</p>
+                    <p className="text-[13.5px] font-black text-emerald-950 leading-tight">ស្វាគមន៍មកកាន់ប្រព័ន្ធគ្រប់គ្រងសាលា</p>
+                    <p className="text-[11.5px] text-emerald-850 leading-normal mt-0.5">
+                      គណនីបច្ចុប្បន្ន៖ <span className="text-[#E2C785] font-black bg-emerald-950 px-1.5 py-0.5 rounded text-[10px] text-emerald-300 mr-1">{currentUser?.name}</span> 
+                      ({currentUser?.role === 'principal' ? 'នាយកសាលា' : `គ្រូ ${currentUser?.grade}`})
+                    </p>
                   </div>
                 </div>
 
-                {/* 3x3 Sharp Thin Divider Grid */}
-                <div className="grid grid-cols-3 divide-x divide-y divide-blue-900/25 border-t border-b border-l border-r border-[#1e3460]/20 rounded-2xl overflow-hidden bg-blue-950/15">
-                  
-                  {/* Grid 1: Timetable */}
-                  <button
-                    onClick={() => setInnerView('timetable')}
-                    className="flex flex-col items-center justify-center p-4 aspect-square hover:bg-blue-950/30 transition-all group"
-                  >
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center transition-all group-active:scale-95">
-                      <BookOpen className="w-7 h-7 stroke-[#E2C785] stroke-[1.2] fill-none drop-shadow-[0_0_4px_rgba(226,199,133,0.35)]" />
-                    </div>
-                    <span className="text-[9.5px] font-semibold text-center text-slate-300 mt-2 hover:text-[#E2C785]">
-                      កាលវិភាគសិក្សា
-                    </span>
-                  </button>
-
-                  {/* Grid 2: Reports */}
-                  <button
-                    onClick={() => setInnerView('pdf-reports')}
-                    className="flex flex-col items-center justify-center p-4 aspect-square hover:bg-blue-950/30 transition-all group"
-                  >
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center transition-all group-active:scale-95">
-                      <Award className="w-7 h-7 stroke-[#E2C785] stroke-[1.2] fill-none drop-shadow-[0_0_4px_rgba(226,199,133,0.35)]" />
-                    </div>
-                    <span className="text-[9.5px] font-semibold text-center text-slate-300 mt-2 hover:text-[#E2C785]">
-                      របាយការណ៍សិក្សា
-                    </span>
-                  </button>
-
-                  {/* Grid 3: Classroom Management */}
-                  <button
-                    onClick={() => setInnerView('class-mgmt')}
-                    className="flex flex-col items-center justify-center p-4 aspect-square hover:bg-blue-950/30 transition-all group"
-                  >
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center transition-all group-active:scale-95">
-                      <Users className="w-7 h-7 stroke-[#E2C785] stroke-[1.2] fill-none drop-shadow-[0_0_4px_rgba(226,199,133,0.35)]" />
-                    </div>
-                    <span className="text-[9.5px] font-semibold text-center text-slate-300 mt-2 hover:text-[#E2C785]">
-                      គ្រប់គ្រងថ្នាក់រៀន
-                    </span>
-                  </button>
-
-                  {/* Grid 4: Online Class */}
-                  <button
-                    onClick={() => setInnerView('online-classes')}
-                    className="flex flex-col items-center justify-center p-4 aspect-square hover:bg-blue-950/30 transition-all group"
-                  >
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center transition-all group-active:scale-95">
-                      <Video className="w-7 h-7 stroke-[#E2C785] stroke-[1.2] fill-none drop-shadow-[0_0_4px_rgba(226,199,133,0.35)]" />
-                    </div>
-                    <span className="text-[9.5px] font-semibold text-center text-slate-300 mt-2 hover:text-[#E2C785]">
-                      ថ្នាក់រៀនអនឡាញ
-                    </span>
-                  </button>
-
-                  {/* Grid 5: Attendance QR */}
-                  <button
-                    onClick={() => setInnerView('attendance-qr')}
-                    className="flex flex-col items-center justify-center p-4 aspect-square hover:bg-blue-950/30 transition-all group"
-                  >
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center transition-all group-active:scale-95">
-                      <QrCode className="w-7 h-7 stroke-[#E2C785] stroke-[1.2] fill-none drop-shadow-[0_0_4px_rgba(226,199,133,0.35)]" />
-                    </div>
-                    <span className="text-[9.5px] font-semibold text-center text-slate-300 mt-2 hover:text-[#E2C785]">
-                      វត្តមានសិស្សប្រចាំថ្ងៃ
-                    </span>
-                  </button>
-
-                  {/* Grid 6: Library */}
-                  <button
-                    onClick={() => setInnerView('library')}
-                    className="flex flex-col items-center justify-center p-4 aspect-square hover:bg-blue-950/30 transition-all group"
-                  >
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center transition-all group-active:scale-95">
-                      <LibraryIcon className="w-7 h-7 stroke-[#E2C785] stroke-[1.2] fill-none drop-shadow-[0_0_4px_rgba(226,199,133,0.35)]" />
-                    </div>
-                    <span className="text-[9.5px] font-semibold text-center text-slate-300 mt-2 hover:text-[#E2C785]">
-                      បណ្ណាល័យ
-                    </span>
-                  </button>
-
-                  {/* Grid 7: School Notice megaphone */}
+                {/* 12 Custom-styled Grid buttons requested by user */}
+                <div className="grid grid-cols-2 gap-2.5 pb-4">
+                  {/* Button 1: គ្រប់គ្រងព័ត៌មានទូទៅ */}
                   <button
                     onClick={() => setInnerView('notices')}
-                    className="flex flex-col items-center justify-center p-4 aspect-square hover:bg-blue-950/30 transition-all group"
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
                   >
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center transition-all group-active:scale-95">
-                      <Megaphone className="w-7 h-7 stroke-[#E2C785] stroke-[1.2] fill-none drop-shadow-[0_0_4px_rgba(226,199,133,0.35)]" />
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <Settings className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
                     </div>
-                    <span className="text-[9.5px] font-semibold text-center text-slate-300 mt-2 hover:text-[#E2C785]">
-                      សេចក្តីជូនដំណឹងសាលា
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      គ្រប់គ្រងព័ត៌មានទូទៅ
                     </span>
                   </button>
 
-                  {/* Grid 8: Student Information Badge */}
+                  {/* Button 2: តារាងពិន្ទុ */}
+                  <button
+                    onClick={() => setInnerView('records')}
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <Award className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    </div>
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      តារាងពិន្ទុ
+                    </span>
+                  </button>
+
+                  {/* Button 3: វត្តមានប្រចាំថ្ងៃ */}
+                  <button
+                    onClick={() => setInnerView('attendance-qr')}
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <QrCode className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    </div>
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      វត្តមានប្រចាំថ្ងៃ
+                    </span>
+                  </button>
+
+                  {/* Button 4: គ្រប់គ្រងថ្នាក់ */}
+                  <button
+                    onClick={() => setInnerView('class-mgmt')}
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <Users className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    </div>
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      គ្រប់គ្រងថ្នាក់
+                    </span>
+                  </button>
+
+                  {/* Button 5: គ្រប់គ្រងសិស្ស */}
                   <button
                     onClick={() => setInnerView('students-info')}
-                    className="flex flex-col items-center justify-center p-4 aspect-square hover:bg-blue-950/30 transition-all group"
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
                   >
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center transition-all group-active:scale-95">
-                      <Contact className="w-7 h-7 stroke-[#E2C785] stroke-[1.2] fill-none drop-shadow-[0_0_4px_rgba(226,199,133,0.35)]" />
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <Contact className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
                     </div>
-                    <span className="text-[9.5px] font-semibold text-center text-slate-300 mt-2 hover:text-[#E2C785]">
-                      ព័ត៌មានសិស្ស
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      គ្រប់គ្រងសិស្ស
                     </span>
                   </button>
 
-                  {/* Grid 9: Student transport Bus */}
+                  {/* Button 6: លទ្ធផលសិក្សា */}
+                  <button
+                    onClick={() => setInnerView('pdf-reports')}
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <BookOpen className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    </div>
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      លទ្ធផលសិក្សា
+                    </span>
+                  </button>
+
+                  {/* Button 7: របាយការណ៍ */}
+                  <button
+                    onClick={() => setInnerView('pdf-reports')}
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <Award className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    </div>
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      របាយការណ៍
+                    </span>
+                  </button>
+
+                  {/* Button 8: តេស្ត និងប្រឡង */}
+                  <button
+                    onClick={() => setInnerView('timetable')}
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <Sparkles className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    </div>
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      តេស្ត និងប្រឡង
+                    </span>
+                  </button>
+
+                  {/* Button 9: កម្មវិធីសិក្សា */}
+                  <button
+                    onClick={() => setInnerView('timetable')}
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <Book className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    </div>
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      កម្មវិធីសិក្សា
+                    </span>
+                  </button>
+
+                  {/* Button 10: កិច្ចការផ្ទះ */}
+                  <button
+                    onClick={() => setInnerView('library')}
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <LibraryIcon className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    </div>
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      កិច្ចការផ្ទះ
+                    </span>
+                  </button>
+
+                  {/* Button 11: តាមដាន */}
                   <button
                     onClick={() => setInnerView('transport')}
-                    className="flex flex-col items-center justify-center p-4 aspect-square hover:bg-blue-950/30 transition-all group"
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
                   >
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center transition-all group-active:scale-95">
-                      <Bus className="w-7 h-7 stroke-[#E2C785] stroke-[1.2] fill-none drop-shadow-[0_0_4px_rgba(226,199,133,0.35)]" />
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <Bus className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
                     </div>
-                    <span className="text-[9.5px] font-semibold text-center text-slate-300 mt-2 hover:text-[#E2C785]">
-                      ដឹកជញ្ជូនសិស្ស
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      តាមដាន
                     </span>
                   </button>
 
+                  {/* Button 12: កម្មវិធីសិក្សា */}
+                  <button
+                    onClick={() => setInnerView('timetable')}
+                    className="flex flex-col items-start justify-between p-3.5 bg-white rounded-2xl border border-emerald-150/80 shadow-2xs hover:bg-emerald-50 hover:border-emerald-250 active:scale-97 transition-all cursor-pointer group min-h-[105px]"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-150/40 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-emerald-100/50 shadow-3xs">
+                      <Calendar className="w-5.5 h-5.5 text-emerald-600 stroke-[2]" />
+                    </div>
+                    <span className="text-[13.5px] font-extrabold text-left text-slate-800 leading-snug tracking-tight mt-3">
+                      កម្មវិធីសិក្សា
+                    </span>
+                  </button>
                 </div>
 
                 {/* Khmer Traditional Custom Footer inside Home Dashboard view */}
-                <div className="mt-5 p-3 rounded-xl border border-blue-900/35 bg-blue-950/15 text-center">
-                  <p className="text-[8.5px] text-slate-400 italic">
+                <div className="mt-2 p-3.5 rounded-xl border border-emerald-200/50 bg-[#F4FBF6] text-center">
+                  <p className="text-[11.5px] text-emerald-800 font-bold italic">
                     « គណៈគ្រប់គ្រងសាលា និងគណៈកម្មការអប់រំសហគមន៍ច្បារច្រុះ »
                   </p>
                 </div>
@@ -658,42 +692,26 @@ export default function MobilePortal({
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-3 h-full pb-10"
               >
-                <div className="flex items-center justify-between border-b border-blue-900/50 pb-2 mb-2">
+                <div className="flex items-center justify-between border-b border-emerald-250/50 pb-2 mb-2">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-blue-900/55 rounded text-[#E2C785]">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
                       <ArrowLeft size={16} />
                     </button>
-                    <h3 className="text-xs font-bold text-white">📊 របាយការណ៍សិក្សាប្រចាំខែ</h3>
+                    <h3 className="text-xs font-bold text-emerald-950">📊 របាយការណ៍សិក្សាប្រចាំខែ</h3>
                   </div>
                 </div>
 
-                <div className="bg-[#111E38]/90 rounded-2xl border border-blue-900/30 overflow-hidden text-slate-100 flex flex-col max-h-[580px]">
-                  {/* Embedded high fidelity reports view adjusted for phone screen */}
-                  <div className="p-3 bg-slate-900/50 border-b border-slate-800 flex justify-between items-center shrink-0">
-                    <span className="text-[10px] font-bold text-slate-400">របាយការណ៍សាលារៀនសរុប</span>
-                    <span className="bg-[#E2C785] text-slate-950 font-black text-[8px] px-1.5 py-0.5 rounded">
-                      សរុប៖ {reports.length}
-                    </span>
-                  </div>
-                  <div className="overflow-y-auto p-2 space-y-2 max-h-[480px]">
-                    {reports.length === 0 ? (
-                      <p className="text-[9px] text-slate-400 text-center py-8">មិនទាន់មានការចងក្រងរបាយការណ៍ប្រចាំខែនៅឡើយទេ។</p>
-                    ) : (
-                      reports.map((rep) => (
-                        <div key={rep.id} className="bg-blue-950/50 p-2.5 rounded-lg border border-blue-800/10 flex justify-between items-center text-[9px]">
-                          <div>
-                            <p className="font-bold text-[#E2C785]">{rep.generalInfo?.month || 'ប្រចាំខែមិនដឹង'}</p>
-                            <p className="text-[8px] text-slate-400 mt-1">ថ្នាក់៖ {rep.generalInfo?.grade || 'គ្រប់ថ្នាក់'} | វត្តមានសកម្ម៖ {rep.studentStats?.currentTotal || 0}នាក់</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[7.5px] bg-[#10B981]/25 text-[#10B981] font-bold px-1.5 py-0.5 rounded-md">
-                              រួចរាល់
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                <div className="bg-white rounded-2xl border border-emerald-100 overflow-hidden text-slate-800 max-h-[620px] overflow-y-auto">
+                  <ReportsHub
+                    reports={reports}
+                    onSaveReport={onSaveReport}
+                    onDeleteReport={() => {}}
+                    onViewReport={() => {}}
+                    students={students}
+                    grades={grades}
+                    currentUser={currentUser}
+                    onCancel={() => setInnerView('home')}
+                  />
                 </div>
               </motion.div>
             )}
@@ -707,28 +725,23 @@ export default function MobilePortal({
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-3"
               >
-                <div className="flex items-center gap-2 border-b border-blue-900/50 pb-2 mb-2">
-                  <button onClick={() => setInnerView('home')} className="p-1 hover:bg-blue-900/55 rounded text-[#E2C785]">
+                <div className="flex items-center gap-2 border-b border-emerald-250/50 pb-2 mb-2">
+                  <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
                     <ArrowLeft size={16} />
                   </button>
-                  <h3 className="text-xs font-bold text-white">🏫 គ្រប់គ្រងថ្នាក់ និងសិស្ស</h3>
+                  <h3 className="text-xs font-bold text-emerald-950">🏫 គ្រប់គ្រងថ្នាក់ និងសិស្ស</h3>
                 </div>
 
-                <div className="bg-[#111E38]/95 rounded-2xl p-2.5 border border-slate-800 text-slate-200">
-                  <p className="text-[9.5px] text-[#E2C785] font-semibold mb-2">បញ្ជីថ្នាក់រៀនសរុប៖ {grades.length} ថ្នាក់</p>
-                  <div className="space-y-1.5 max-h-[500px] overflow-y-auto pr-1">
-                    {grades.map((gr, i) => {
-                      const count = students.filter(s => s.grade === gr).length;
-                      return (
-                        <div key={i} className="flex justify-between items-center p-2 bg-blue-950/40 rounded-lg border border-blue-900/20 text-[9px]">
-                          <span className="font-bold text-slate-200">{gr}</span>
-                          <span className="bg-[#10B981]/20 text-[#10B981] px-2 py-0.5 rounded font-black text-[7.5px]">
-                            {count} នាក់
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div className="bg-white rounded-2xl p-2 border border-emerald-100 text-slate-800 max-h-[620px] overflow-y-auto">
+                  <ClassStudentMgmt
+                    students={students}
+                    grades={grades}
+                    onSaveStudents={onSaveStudents}
+                    onAddGrade={onAddGrade}
+                    onDeleteGrade={onDeleteGrade}
+                    onRenameGrade={onRenameGrade}
+                    currentUser={currentUser}
+                  />
                 </div>
               </motion.div>
             )}
@@ -783,7 +796,33 @@ export default function MobilePortal({
             )}
 
             {/* 5. ATTENDANCE SCAN QR & DAILY ROLL CALL */}
-            {innerView === 'attendance-qr' && (() => {
+            {innerView === 'attendance-qr' && (
+              <motion.div
+                key="attendance-qr"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-3 text-left"
+              >
+                <div className="flex items-center gap-2 border-b border-emerald-200/50 pb-2 mb-2">
+                  <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                    <ArrowLeft size={16} />
+                  </button>
+                  <h3 className="text-xs font-bold text-emerald-950">📅 ប្រព័ន្ធគ្រប់គ្រងវត្តមានប្រចាំថ្ងៃ</h3>
+                </div>
+
+                <div className="bg-white rounded-2xl p-2 border border-emerald-100 text-slate-800 max-h-[620px] overflow-y-auto w-full">
+                  <DailyAttendance
+                    students={students}
+                    currentUser={currentUser}
+                    grades={grades}
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* PREVIOUS MOCK ATTENDANCE SYSTEM */}
+            {innerView === 'unused-attendance-qr' && (() => {
               const activeGradeStudents = students.filter(s => s.grade === selectedAttendanceGrade);
               const filteredStudents = activeGradeStudents.filter(s => 
                 s.name.toLowerCase().includes(attendanceSearchQuery.toLowerCase())
@@ -1153,6 +1192,42 @@ export default function MobilePortal({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                className="space-y-3 text-left"
+              >
+                <div className="flex items-center gap-2 border-b border-emerald-200/50 pb-2 mb-2">
+                  <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                    <ArrowLeft size={16} />
+                  </button>
+                  <h3 className="text-xs font-bold text-emerald-950">📋 គ្រប់គ្រងព័ត៌មានទូទៅ (Dashboard)</h3>
+                </div>
+
+                <div className="bg-white rounded-2xl p-2 border border-emerald-100 text-slate-800 max-h-[620px] overflow-y-auto w-full">
+                  <Dashboard
+                    reports={reports}
+                    students={students}
+                    selectedMonth="ទាំងអស់"
+                    setSelectedMonth={() => {}}
+                    selectedGrade="ទាំងអស់"
+                    setSelectedGrade={() => {}}
+                    onViewReport={() => {}}
+                    onDeleteReport={() => {}}
+                    onCreateReportClick={() => setInnerView('pdf-reports')}
+                    onOpenGradebookClick={() => setInnerView('records')}
+                    onOpenAttendanceClick={() => setInnerView('attendance-qr')}
+                    grades={grades}
+                    currentUser={currentUser}
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* PREVIOUS BULLETIN BOARD */}
+            {innerView === 'unused-notices' && (
+              <motion.div
+                key="notices"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
                 className="space-y-3"
               >
                 <div className="flex items-center gap-2 border-b border-blue-900/50 pb-2 mb-2">
@@ -1182,6 +1257,38 @@ export default function MobilePortal({
 
             {/* 8. STUDENT INFORMATION PROFILE CARDS */}
             {innerView === 'students-info' && (
+              <motion.div
+                key="students-info"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-3 text-left"
+              >
+                <div className="flex items-center justify-between border-b border-emerald-250/50 pb-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-emerald-950">🪪 ព័ត៌មាន និងពិន្ទុសិស្សថ្នាក់រៀន</h3>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-2 border border-emerald-100 text-slate-800 max-h-[620px] overflow-y-auto w-full">
+                  <ClassStudentMgmt
+                    students={students}
+                    grades={grades}
+                    onSaveStudents={onSaveStudents}
+                    onAddGrade={onAddGrade}
+                    onDeleteGrade={onDeleteGrade}
+                    onRenameGrade={onRenameGrade}
+                    currentUser={currentUser}
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* PREVIOUS STUDENT PROFILES */}
+            {innerView === 'unused-students-info' && (
               <motion.div
                 key="students-info"
                 initial={{ opacity: 0, x: 20 }}
@@ -1272,6 +1379,41 @@ export default function MobilePortal({
 
             {/* TAB 2 VIEW: NOTES AND RECORDS */}
             {innerView === 'records' && (
+              <motion.div
+                key="records"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                className="space-y-4 text-left"
+              >
+                <div className="border-b border-emerald-250/50 pb-2 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-emerald-950">📝 តារាងពិន្ទុ និងការវាយតម្លៃ (Gradebook)</h3>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-2 border border-emerald-100 text-slate-800 max-h-[620px] overflow-y-auto w-full">
+                  <Gradebook
+                    students={students}
+                    selectedMonth="ទាំងអស់"
+                    setSelectedMonth={() => {}}
+                    selectedGrade="ទាំងអស់"
+                    setSelectedGrade={() => {}}
+                    onSaveStudents={onSaveStudents}
+                    currentUser={currentUser}
+                    grades={grades}
+                    onAddGrade={onAddGrade}
+                    onDeleteGrade={onDeleteGrade}
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* PREVIOUS LOGS FOR TEACHERS */}
+            {innerView === 'unused-records' && (
               <motion.div
                 key="records"
                 initial={{ opacity: 0, y: 15 }}
