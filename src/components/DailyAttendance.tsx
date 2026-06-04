@@ -128,10 +128,27 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   // Compile list of teachers from AVAILABLE_USERS
   const teachersList = AVAILABLE_USERS.filter(u => u.role === 'teacher');
 
+  // Create a unique list of student profiles so that multiple monthly scores don't show as duplicate students in Attendance
+  const uniqueStudentsList = useMemo(() => {
+    const list: StudentScore[] = [];
+    const seen = new Set<string>();
+    
+    students.forEach(s => {
+      const key = `${s.name.trim().toLowerCase()}_${s.grade}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(s);
+      }
+    });
+    
+    // Sort alphabetically by name
+    return list.sort((a, b) => a.name.localeCompare(b.name, 'km'));
+  }, [students]);
+
   // Sync student state mapping when date, grade, or records modify
   useEffect(() => {
     const existing = records.find(r => r.date === selectedDate && r.grade === selectedGrade);
-    const gradeStudents = students.filter(s => s.grade === selectedGrade);
+    const gradeStudents = uniqueStudentsList.filter(s => s.grade === selectedGrade);
     
     if (existing && existing.studentStates && Object.keys(existing.studentStates).length > 0) {
       // Re-hydrate existing states, but ensure new students get designated as present
@@ -148,7 +165,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       });
       setActiveAttendanceMap(map);
     }
-  }, [selectedDate, selectedGrade, records, students]);
+  }, [selectedDate, selectedGrade, records, uniqueStudentsList]);
 
   // Sync teacher state mapping when date or teacherRecords modify
   useEffect(() => {
@@ -188,15 +205,15 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   };
 
   // Filter students matching grade and query
-  const displayStudents = students
+  const displayStudents = uniqueStudentsList
     .filter(s => s.grade === selectedGrade)
     .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const totalInGrade = students.filter(s => s.grade === selectedGrade).length;
+  const totalInGrade = uniqueStudentsList.filter(s => s.grade === selectedGrade).length;
 
   // Mass manipulation utilities
   const markAllStatus = (status: 'present' | 'late' | 'permission' | 'absent') => {
-    const gradeStudents = students.filter(s => s.grade === selectedGrade);
+    const gradeStudents = uniqueStudentsList.filter(s => s.grade === selectedGrade);
     const newMap = { ...activeAttendanceMap };
     gradeStudents.forEach(s => {
       newMap[s.id] = status;
@@ -224,7 +241,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
   // Persist the current daily snapshot
   const handleSaveAttendance = () => {
-    const gradeStudents = students.filter(s => s.grade === selectedGrade);
+    const gradeStudents = uniqueStudentsList.filter(s => s.grade === selectedGrade);
     if (gradeStudents.length === 0) {
       triggerToast('⚠️ គ្មានឈ្មោះសិស្សនៅក្នុងថ្នាក់ដែលបានជ្រើសរើសឡើយ។', 'error');
       return;
@@ -805,7 +822,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                 <button
                   onClick={() => {
                     const map: { [studentId: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
-                    students.filter(s => s.grade === selectedGrade).forEach(s => {
+                    uniqueStudentsList.filter(s => s.grade === selectedGrade).forEach(s => {
                       map[s.id] = 'present';
                     });
                     setActiveAttendanceMap(map);
