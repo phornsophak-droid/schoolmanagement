@@ -948,6 +948,7 @@ export default function ReportsHub({
                             <th className="px-4 py-3.5 text-center text-slate-500 font-mono bg-blue-50/20">មធ្យមភាគ ឆ.២</th>
                           </>
                         )}
+                        <th className="px-4 py-3.5 text-center bg-blue-50/20 text-blue-700">ពិន្ទុសរុប</th>
                         <th className="px-4 py-3.5 text-center bg-blue-50/30 text-blue-800">មធ្យមភាគសរុប</th>
                         <th className="px-4 py-3.5 text-center">និទ្ទេស</th>
                         <th className="px-4 py-3.5 text-center">លទ្ធផល</th>
@@ -1001,6 +1002,9 @@ export default function ReportsHub({
                                   </td>
                                 </>
                               )}
+                              <td className="px-4 py-4 text-center font-bold font-mono text-blue-600 bg-blue-50/5">
+                                {st.totalScore !== undefined ? st.totalScore : '-'}
+                              </td>
                               <td className="px-4 py-4 text-center font-extrabold font-mono text-blue-700 bg-blue-50/10">
                                 {st.overallAvg.toFixed(2)}
                               </td>
@@ -1015,7 +1019,7 @@ export default function ReportsHub({
                         })
                       ) : (
                         <tr>
-                          <td colSpan={selectedPeriod === 'ប្រចាំឆ្នាំ' ? 9 : 7} className="px-4 py-12 text-center text-slate-400 font-medium">
+                          <td colSpan={selectedPeriod === 'ប្រចាំឆ្នាំ' ? 10 : 8} className="px-4 py-12 text-center text-slate-400 font-medium">
                             <FolderLock size={32} className="mx-auto text-slate-300 mb-2" />
                             មិនមានឈ្មោះសិស្សត្រូវនឹងលក្ខខណ្ឌចម្រោះស្វែងរកនោះឡើយ។
                           </td>

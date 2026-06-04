@@ -688,7 +688,7 @@ export default function Gradebook({
             </button>
           </div>
 
-          <form onSubmit={handleFormSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <form onSubmit={handleFormSubmit} noValidate className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Column 1: General Student Specs */}
             <div className="space-y-4 p-4 bg-slate-50/50 border border-slate-100 rounded-xl">
               <h4 className="font-medium text-slate-700 text-sm border-b border-slate-100 pb-2">១. ព័ត៌មានផ្ទាល់ខ្លួន</h4>
@@ -1462,7 +1462,7 @@ export default function Gradebook({
               </button>
             </div>
 
-            <form onSubmit={handleExamFormSubmit} className="space-y-4 text-xs font-semibold">
+            <form onSubmit={handleExamFormSubmit} noValidate className="space-y-4 text-xs font-semibold">
               <div className="p-3 bg-slate-50 rounded-xl space-y-1.5">
                 <p className="text-slate-500 font-semibold">សិស្ស៖ <span className="font-bold text-slate-800">{examStudentName} ({examStudentGender})</span></p>
                 <p className="text-slate-500 font-semibold">ថ្នាក់៖ <span className="font-bold text-slate-800">{examStudentGrade}</span></p>
