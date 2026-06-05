@@ -21,11 +21,46 @@ import {
 } from 'lucide-react';
 import { StudentScore, SchoolUser } from '../types';
 import { AVAILABLE_USERS } from './LoginPortal';
-import { 
-  getSupabaseClient, 
-  syncUpsertStudentAttendance, 
-  syncUpsertTeacherAttendance 
+import {
+  getSupabaseClient,
+  syncUpsertStudentAttendance,
+  syncUpsertTeacherAttendance
 } from '../lib/supabase';
+
+// Structured absence / lateness reasons (5 categories + free-text "Other").
+const ABSENCE_REASON_GROUPS: { label: string; options: string[] }[] = [
+  { label: '១. បញ្ហាសុខភាព', options: [
+    'ឈឺធម្មតា (ផ្តាសាយ គ្រុនក្តៅ ឈឺពោះ។ល។)',
+    'ជួបគ្រោះថ្នាក់ ឬរបួស',
+    'ទៅពិនិត្យសុខភាព ឬព្យាបាលជំងឺ',
+  ] },
+  { label: '២. កត្តាគ្រួសារ', options: [
+    'ជួយការងារផ្ទះ ឬមើលថែប្អូន',
+    'ជួយការងារឪពុកម្តាយ (ស្រែចម្ការ លក់ដូរ។ល។)',
+    'ចូលរួមពិធីបុណ្យ ឬកម្មវិធីគ្រួសារ',
+    'ធ្វើដំណើរជាមួយគ្រួសារ',
+    'បញ្ហាសេដ្ឋកិច្ចគ្រួសារ',
+  ] },
+  { label: '៣. កត្តាធ្វើដំណើរ', options: [
+    'គ្មានអ្នកជូនមកសាលា',
+    'ខូចមធ្យោបាយធ្វើដំណើរ',
+    'ភ្លៀងខ្លាំង ទឹកជំនន់ ឬផ្លូវពិបាកធ្វើដំណើរ',
+  ] },
+  { label: '៤. កត្តាសាលារៀន និងការសិក្សា', options: [
+    'មិនទាន់បានធ្វើកិច្ចការផ្ទះ',
+    'បាត់សម្ភារៈសិក្សា',
+    'រៀនអត់ចេះ',
+  ] },
+  { label: '៥. កត្តាផ្ទាល់ខ្លួន', options: [
+    'ក្រោកពីគេងយឺត',
+    'មិនចង់មកសាលា (ខ្ជិល)',
+    'ខ្លាចគ្រូ/មិត្តភក្តិ',
+    'មានជម្លោះជាមួយមិត្តភក្តិ',
+    'ច្រឡំថ្ងៃ ឬវេនរៀន',
+  ] },
+];
+// Flat list of all predefined reason values (plus '' for the empty default).
+const PREDEFINED_REASONS: string[] = ['', ...ABSENCE_REASON_GROUPS.flatMap(g => g.options)];
 
 interface AttendanceRecord {
   id: string;
@@ -997,7 +1032,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                 {currentStatus !== 'present' && (
                                   <div className="w-full max-w-[190px] flex flex-col gap-1 items-start">
                                     <select
-                                      value={['', 'បញ្ហាសុខភាព', 'មានធុរៈក្នុងគ្រួសារ', 'ខ្ជិល'].includes(studentReasonsMap[std.id] || '') ? (studentReasonsMap[std.id] || '') : 'ផ្សេងៗ'}
+                                      value={PREDEFINED_REASONS.includes(studentReasonsMap[std.id] || '') ? (studentReasonsMap[std.id] || '') : 'ផ្សេងៗ'}
                                       onChange={(e) => {
                                         const val = e.target.value;
                                         setStudentReasonsMap(prev => ({ ...prev, [std.id]: val }));
@@ -1005,13 +1040,17 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                       className="w-full bg-slate-55 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none"
                                     >
                                       <option value="">-- ជ្រើសរើសមូលហេតុ --</option>
-                                      <option value="បញ្ហាសុខភាព">១. បញ្ហាសុខភាព</option>
-                                      <option value="មានធុរៈក្នុងគ្រួសារ">២. មានធុរៈក្នុងគ្រួសារ</option>
-                                      <option value="ខ្ជិល">៣. ខ្ជិល</option>
-                                      <option value="ផ្សេងៗ">៤. ផ្សេងៗ (សរសេរ)..........</option>
+                                      {ABSENCE_REASON_GROUPS.map(group => (
+                                        <optgroup key={group.label} label={group.label}>
+                                          {group.options.map(opt => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                          ))}
+                                        </optgroup>
+                                      ))}
+                                      <option value="ផ្សេងៗ">៦. ផ្សេងៗ (សរសេរ)..........</option>
                                     </select>
                                     
-                                    {!['', 'បញ្ហាសុខភាព', 'មានធុរៈក្នុងគ្រួសារ', 'ខ្ជិល'].includes(studentReasonsMap[std.id] || '') && (
+                                    {!PREDEFINED_REASONS.includes(studentReasonsMap[std.id] || '') && (
                                       <div className="w-full flex flex-col gap-1">
                                         <input
                                           type="text"
