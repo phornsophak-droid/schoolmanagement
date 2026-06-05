@@ -19,7 +19,8 @@ import {
   ArrowRight,
   UserCheck,
   CheckCircle,
-  Clock
+  Clock,
+  Download
 } from 'lucide-react';
 import { SchoolReport, StudentScore, SchoolUser } from '../types';
 
@@ -135,10 +136,27 @@ export default function Dashboard({
     const isTeacher = currentUser?.role === 'teacher';
     const teacherGrade = currentUser?.grade;
 
-    // Map student id -> name/grade for fast name lookup
-    const idMap = new Map<string, { name: string; grade: string }>();
+    // Map student id -> name/grade/gender for fast lookup
+    const idMap = new Map<string, { name: string; grade: string; gender: string }>();
     students.forEach(s => {
-      if (!idMap.has(s.id)) idMap.set(s.id, { name: s.name, grade: s.grade });
+      if (!idMap.has(s.id)) idMap.set(s.id, { name: s.name, grade: s.grade, gender: s.gender });
+    });
+
+    // Cumulative per-student totals across ALL recorded days.
+    // (Matches DailyAttendance: late counts on its own; permission & absent also add to total absence.)
+    const totals = new Map<string, { late: number; permission: number; absent: number; absence: number }>();
+    const bump = (id: string) => {
+      if (!totals.has(id)) totals.set(id, { late: 0, permission: 0, absent: 0, absence: 0 });
+      return totals.get(id)!;
+    };
+    attendanceRecords.forEach(rec => {
+      Object.keys(rec.studentStates).forEach(key => {
+        if (key.endsWith('_reason')) return;
+        const st = rec.studentStates[key];
+        if (st === 'late') bump(key).late += 1;
+        else if (st === 'permission') { const t = bump(key); t.permission += 1; t.absence += 1; }
+        else if (st === 'absent') { const t = bump(key); t.absent += 1; t.absence += 1; }
+      });
     });
 
     // Role/grade scoped records
@@ -148,7 +166,7 @@ export default function Dashboard({
       return true;
     });
 
-    type AbsRow = { id: string; name: string; grade: string; status: 'late' | 'permission' | 'absent'; reason: string };
+    type AbsRow = { id: string; name: string; grade: string; gender: string; status: 'late' | 'permission' | 'absent'; reason: string; totLate: number; totPermission: number; totAbsent: number; totAbsence: number };
     if (scoped.length === 0) {
       return { date: null as string | null, rows: [] as AbsRow[], late: 0, permission: 0, absent: 0 };
     }
@@ -167,7 +185,19 @@ export default function Dashboard({
         if (status !== 'late' && status !== 'permission' && status !== 'absent') return;
         const reason = (((rec.studentStates as any)[key + '_reason'] as string) || '').trim() || '—';
         const info = idMap.get(key);
-        rows.push({ id: key, name: info ? info.name : '(មិនស្គាល់ឈ្មោះ)', grade: rec.grade, status, reason });
+        const t = totals.get(key) || { late: 0, permission: 0, absent: 0, absence: 0 };
+        rows.push({
+          id: key,
+          name: info ? info.name : '(មិនស្គាល់ឈ្មោះ)',
+          grade: rec.grade,
+          gender: info ? info.gender : '',
+          status,
+          reason,
+          totLate: t.late,
+          totPermission: t.permission,
+          totAbsent: t.absent,
+          totAbsence: t.absence
+        });
         if (status === 'late') late++;
         else if (status === 'permission') permission++;
         else absent++;
@@ -183,6 +213,80 @@ export default function Dashboard({
 
     return { date: latestDate, rows, late, permission, absent };
   }, [attendanceRecords, students, currentUser, selectedGrade]);
+
+  // Generate a clean printable daily-absentee report and open the print dialog (Save as PDF).
+  const handleDownloadDailyPdf = () => {
+    const { date, rows, late, permission, absent } = dailyAbsentees;
+    const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+    const scopeLabel = currentUser?.role === 'teacher'
+      ? `ថ្នាក់៖ ${currentUser?.grade || ''}`
+      : 'គ្រប់ថ្នាក់ទាំងអស់';
+
+    const rowsHtml = rows.length > 0
+      ? rows.map((r, i) => {
+          const label = r.status === 'absent' ? 'អត់ច្បាប់' : r.status === 'permission' ? 'ច្បាប់' : 'យឺត';
+          const color = r.status === 'absent' ? '#e11d48' : r.status === 'permission' ? '#2563eb' : '#d97706';
+          return `<tr><td style="text-align:center">${i + 1}</td><td>${esc(r.name)}<div style="font-size:10px;color:#94a3b8">${esc(r.grade)}</div></td><td>${esc(r.gender)}</td><td style="color:${color};font-weight:bold">${label}</td><td style="text-align:center">${r.totLate}</td><td style="text-align:center">${r.totPermission}</td><td style="text-align:center">${r.totAbsent}</td><td style="text-align:center;font-weight:bold">${r.totAbsence}</td><td>${esc(r.reason)}</td></tr>`;
+        }).join('')
+      : `<tr><td colspan="9" style="text-align:center;padding:24px;color:#16a34a">គ្មានសិស្សអវត្តមាននៅថ្ងៃនេះទេ 🎉</td></tr>`;
+
+    const html = `<!doctype html><html lang="km"><head><meta charset="utf-8">
+      <title>របាយការណ៍អវត្តមាន ${date || ''}</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700&display=swap" rel="stylesheet">
+      <style>
+        *{font-family:'Noto Sans Khmer','Khmer OS',sans-serif;box-sizing:border-box}
+        body{margin:32px;color:#1e293b}
+        h1{font-size:20px;margin:0;text-align:center;color:#0f172a}
+        .sub{text-align:center;color:#64748b;font-size:13px;margin:4px 0 18px}
+        .meta{display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px;font-weight:bold}
+        .totals{display:flex;gap:12px;margin:0 0 18px}
+        .box{flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;text-align:center}
+        .box .n{font-size:22px;font-weight:bold}
+        .box .l{font-size:11px;color:#64748b;margin-top:2px}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        th,td{border:1px solid #e2e8f0;padding:8px 10px;text-align:left}
+        th{background:#f1f5f9;font-size:12px}
+        .foot{margin-top:24px;font-size:11px;color:#94a3b8;text-align:center}
+        @page{margin:14mm}
+      </style></head>
+      <body>
+        <h1>សាលាសហគមន៍ច្បារច្រុះ</h1>
+        <div class="sub">របាយការណ៍សិស្សអវត្តមានប្រចាំថ្ងៃ</div>
+        <div class="meta"><span>${scopeLabel}</span><span>កាលបរិច្ឆេទ៖ ${date || '—'}</span></div>
+        <div class="totals">
+          <div class="box"><div class="n" style="color:#d97706">${late}</div><div class="l">យឺតសរុប</div></div>
+          <div class="box"><div class="n" style="color:#2563eb">${permission}</div><div class="l">ច្បាប់សរុប</div></div>
+          <div class="box"><div class="n" style="color:#e11d48">${absent}</div><div class="l">អត់ច្បាប់សរុប</div></div>
+          <div class="box"><div class="n">${rows.length}</div><div class="l">អវត្តមានសរុប</div></div>
+        </div>
+        <table>
+          <thead><tr><th style="width:36px;text-align:center">ល.រ</th><th>ឈ្មោះសិស្ស</th><th>ភេទ</th><th>ស្ថានភាព</th><th style="text-align:center">សរុបយឺត</th><th style="text-align:center">សរុបច្បាប់</th><th style="text-align:center">សរុបអត់ច្បាប់</th><th style="text-align:center">សរុបអវត្តមាន</th><th>មូលហេតុ</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <div class="foot">បង្កើតដោយប្រព័ន្ធគ្រប់គ្រងសាលា • ${new Date().toLocaleString('en-GB')}</div>
+      </body></html>`;
+
+    // Render into a hidden same-origin iframe and print it.
+    // This avoids popup blockers and works on desktop, mobile, and the preview.
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (!doc) { iframe.remove(); return; }
+    doc.open();
+    doc.write(html);
+    doc.close();
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error('Daily report print failed', err);
+      }
+      setTimeout(() => iframe.remove(), 1000);
+    }, 700);
+  };
 
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
@@ -698,17 +802,33 @@ export default function Dashboard({
             </p>
           </div>
 
-          {/* Summary chips: late / permission / no-permission */}
-          <div className="flex items-center gap-2 text-[11px] font-bold">
-            <span className="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-100 flex items-center gap-1.5">
-              យឺត <span className="font-mono">{dailyAbsentees.late}</span>
-            </span>
-            <span className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1.5">
-              ច្បាប់ <span className="font-mono">{dailyAbsentees.permission}</span>
-            </span>
-            <span className="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-100 flex items-center gap-1.5">
-              អត់ច្បាប់ <span className="font-mono">{dailyAbsentees.absent}</span>
-            </span>
+          {/* Download daily report as PDF */}
+          <button
+            onClick={handleDownloadDailyPdf}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition duration-250 cursor-pointer shadow-sm shadow-rose-600/15 print:hidden"
+          >
+            <Download size={14} />
+            <span>ទាញយករបាយការណ៍ប្រចាំថ្ងៃ (PDF)</span>
+          </button>
+        </div>
+
+        {/* Totals: late / permission / no-permission / total absentees */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-amber-50/60 border border-amber-100 rounded-xl p-3 text-center">
+            <div className="text-xl font-black text-amber-600 font-mono">{dailyAbsentees.late}</div>
+            <div className="text-[10px] font-bold text-amber-700/80 uppercase tracking-wide mt-0.5">យឺតសរុប</div>
+          </div>
+          <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-3 text-center">
+            <div className="text-xl font-black text-blue-600 font-mono">{dailyAbsentees.permission}</div>
+            <div className="text-[10px] font-bold text-blue-700/80 uppercase tracking-wide mt-0.5">ច្បាប់សរុប</div>
+          </div>
+          <div className="bg-rose-50/60 border border-rose-100 rounded-xl p-3 text-center">
+            <div className="text-xl font-black text-rose-600 font-mono">{dailyAbsentees.absent}</div>
+            <div className="text-[10px] font-bold text-rose-700/80 uppercase tracking-wide mt-0.5">អត់ច្បាប់សរុប</div>
+          </div>
+          <div className="bg-slate-50 border border-slate-150 rounded-xl p-3 text-center">
+            <div className="text-xl font-black text-slate-700 font-mono">{dailyAbsentees.rows.length}</div>
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-0.5">អវត្តមានសរុប</div>
           </div>
         </div>
 
@@ -720,9 +840,13 @@ export default function Dashboard({
                   <tr className="bg-slate-50/40 border-b border-slate-150 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                     <th className="px-4 py-2.5">ល.រ</th>
                     <th className="px-4 py-2.5">ឈ្មោះសិស្ស</th>
-                    <th className="px-4 py-2.5">ថ្នាក់រៀន</th>
-                    <th className="px-4 py-2.5 text-center">ស្ថានភាព</th>
-                    <th className="px-4 py-2.5">មូលហេតុនៃអវត្តមាន</th>
+                    <th className="px-4 py-2.5">ភេទ</th>
+                    <th className="px-4 py-2.5 text-center">ស្ថានភាពថ្ងៃនេះ</th>
+                    <th className="px-4 py-2.5 text-center">សរុបយឺត</th>
+                    <th className="px-4 py-2.5 text-center">សរុបច្បាប់</th>
+                    <th className="px-4 py-2.5 text-center">សរុបអត់ច្បាប់</th>
+                    <th className="px-4 py-2.5 text-center">សរុបអវត្តមាន</th>
+                    <th className="px-4 py-2.5">មូលហេតុ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -735,11 +859,18 @@ export default function Dashboard({
                     return (
                       <tr key={row.id + '_' + idx} className="hover:bg-slate-50/50 transition-all">
                         <td className="px-4 py-3 font-mono text-slate-400">{idx + 1}</td>
-                        <td className="px-4 py-3 font-bold text-slate-800 font-sans">{row.name}</td>
-                        <td className="px-4 py-3 font-semibold text-slate-600 font-sans">{row.grade}</td>
+                        <td className="px-4 py-3">
+                          <div className="font-bold text-slate-800 font-sans">{row.name}</div>
+                          <div className="text-[10px] text-slate-400 font-sans">{row.grade} • ID: {row.id.slice(-5)}</div>
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-slate-600 font-sans">{row.gender || '—'}</td>
                         <td className="px-4 py-3 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badge.cls}`}>{badge.label}</span>
                         </td>
+                        <td className="px-4 py-3 text-center font-mono font-bold text-amber-600">{row.totLate}</td>
+                        <td className="px-4 py-3 text-center font-mono font-bold text-blue-600">{row.totPermission}</td>
+                        <td className="px-4 py-3 text-center font-mono font-bold text-rose-600">{row.totAbsent}</td>
+                        <td className="px-4 py-3 text-center font-mono font-bold text-slate-800">{row.totAbsence}</td>
                         <td className="px-4 py-3 text-slate-600 font-sans">{row.reason}</td>
                       </tr>
                     );
