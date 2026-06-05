@@ -1519,7 +1519,7 @@ export default function App() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ duration: 0.15 }}
-                    className="w-full flex justify-center"
+                    className="fixed inset-0 z-50 bg-slate-900 w-full flex justify-center md:static md:z-auto md:bg-transparent"
                   >
                     <MobilePortal
                       students={students}
