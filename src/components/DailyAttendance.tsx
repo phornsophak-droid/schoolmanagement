@@ -146,11 +146,11 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
   // Compute cumulative teacher attendance statistics based on historical records + current active mappings
   const teacherStatsMap = useMemo(() => {
-    const stats: { [teacherId: string]: { present: number; late: number; permission: number; absent: number } } = {};
+    const stats: { [teacherId: string]: { late: number; permission: number; absent: number; totalAbsence: number } } = {};
     
     // Initialize stats for each teacher to prevent undefined references
     teachersList.forEach(t => {
-      stats[t.id] = { present: 0, late: 0, permission: 0, absent: 0 };
+      stats[t.id] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
     });
 
     // Populate using saved records, excluding the current draft's date so we don't double count it
@@ -163,17 +163,17 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           if (teacherId.endsWith('_reason')) return;
           
           if (!stats[teacherId]) {
-            stats[teacherId] = { present: 0, late: 0, permission: 0, absent: 0 };
+            stats[teacherId] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
           }
           
-          if (status === 'present') {
-            stats[teacherId].present += 1;
-          } else if (status === 'late') {
+          if (status === 'late') {
             stats[teacherId].late += 1;
           } else if (status === 'permission') {
             stats[teacherId].permission += 1;
+            stats[teacherId].totalAbsence += 1;
           } else if (status === 'absent') {
             stats[teacherId].absent += 1;
+            stats[teacherId].totalAbsence += 1;
           }
         });
       }
@@ -182,16 +182,16 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     // Merge the live draft state so changes reflect instantly in real-time
     Object.entries(teacherAttendanceMap).forEach(([teacherId, status]) => {
       if (!stats[teacherId]) {
-        stats[teacherId] = { present: 0, late: 0, permission: 0, absent: 0 };
+        stats[teacherId] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
       }
-      if (status === 'present') {
-        stats[teacherId].present += 1;
-      } else if (status === 'late') {
+      if (status === 'late') {
         stats[teacherId].late += 1;
       } else if (status === 'permission') {
         stats[teacherId].permission += 1;
+        stats[teacherId].totalAbsence += 1;
       } else if (status === 'absent') {
         stats[teacherId].absent += 1;
+        stats[teacherId].totalAbsence += 1;
       }
     });
 
@@ -750,48 +750,53 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
         </div>
       </div>
 
-      {/* Primary configuration controls with attendance details layout split */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Left Column: Controls and Mass Actions */}
-        <div className="space-y-4 lg:col-span-1">
+      {/* Primary configuration controls with attendance details layout */}
+      <div className="flex flex-col gap-6 items-start w-full">
+        {/* Top Controls: Filters */}
+        <div className="w-full">
           {activeTab === 'student' ? (
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs space-y-4">
-              <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2.5 uppercase tracking-wider">⚙️ ការជ្រើសរើសថ្នាក់រៀន</h3>
-              
-              {/* Grade filter */}
-              <div className="space-y-1.5">
-                <label className="block text-[10.5px] text-slate-500 font-bold">ជ្រើសរើសតម្រងថ្នាក់</label>
-                <select
-                  value={selectedGrade}
-                  onChange={(e) => {
-                    setSelectedGrade(e.target.value);
-                    setSearchQuery('');
-                  }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-3xs"
-                >
-                  {grades.map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex flex-wrap md:flex-row gap-6 items-center lg:justify-between w-full">
+              <div className="flex flex-col md:flex-row items-center gap-6 grow w-full lg:w-auto">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xl">⚙️</span>
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">ការជ្រើសរើស<br className="hidden lg:block "/>ថ្នាក់រៀន</h3>
+                </div>
+                
+                {/* Grade filter */}
+                <div className="space-y-1.5 flex-1 w-full min-w-[200px]">
+                  <label className="block text-[10.5px] text-slate-500 font-bold">ជ្រើសរើសតម្រងថ្នាក់</label>
+                  <select
+                    value={selectedGrade}
+                    onChange={(e) => {
+                      setSelectedGrade(e.target.value);
+                      setSearchQuery('');
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-3xs"
+                  >
+                    {grades.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Quick Filter Search Input */}
-              <div className="space-y-1.5">
-                <label className="block text-[10.5px] text-slate-500 font-bold">ស្វែងរកតាមឈ្មោះសិស្ស</label>
-                <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus-within:border-blue-500 focus-within:bg-white focus-within:shadow-3xs transition-all">
-                  <Search size={14} className="text-slate-400 mr-2 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="វាយឈ្មោះសិស្សស្វែងរក..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent border-none text-slate-800 w-full outline-none text-xs"
-                  />
+                {/* Quick Filter Search Input */}
+                <div className="space-y-1.5 flex-1 w-full min-w-[200px]">
+                  <label className="block text-[10.5px] text-slate-500 font-bold">ស្វែងរកតាមឈ្មោះសិស្ស</label>
+                  <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus-within:border-blue-500 focus-within:bg-white focus-within:shadow-3xs transition-all w-full">
+                    <Search size={14} className="text-slate-400 mr-2 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="វាយឈ្មោះសិស្សស្វែងរក..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent border-none text-slate-800 w-full outline-none text-xs"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Attendance rate gauge */}
-              <div className="pt-2">
+              <div className="pt-2 w-full lg:w-64 shrink-0 mt-2 lg:mt-0">
                 <div className="flex justify-between text-[10.5px] font-bold mb-1.5">
                   <span className="text-slate-500">អត្រាវត្តមានសរុបប្រចាំថ្ងៃ៖</span>
                   <span className={rate >= 90 ? 'text-emerald-600' : rate >= 75 ? 'text-amber-500' : 'text-rose-500'}>{rate}%</span>
@@ -807,26 +812,31 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
               </div>
             </div>
           ) : (
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs space-y-4">
-              <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2.5 uppercase tracking-wider">⚙️ តម្រងស្វែងរកគ្រូបង្រៀន</h3>
-              
-              {/* Quick Filter Search Input */}
-              <div className="space-y-1.5">
-                <label className="block text-[10.5px] text-slate-500 font-bold">ស្វែងរកតាមឈ្មោះ ឬថ្នាក់ទទួលបន្ទុក</label>
-                <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus-within:border-blue-500 focus-within:bg-white focus-within:shadow-3xs transition-all">
-                  <Search size={14} className="text-slate-400 mr-2 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="វាយឈ្មោះ ឬថ្នាក់របស់គ្រូស្វែងរក..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent border-none text-slate-800 w-full outline-none text-xs"
-                  />
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex flex-wrap md:flex-row gap-6 items-center lg:justify-between w-full">
+              <div className="flex flex-col md:flex-row items-center gap-6 grow w-full lg:w-auto">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xl">⚙️</span>
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">តម្រងស្វែងរក<br className="hidden lg:block"/>គ្រូបង្រៀន</h3>
+                </div>
+                
+                {/* Quick Filter Search Input */}
+                <div className="space-y-1.5 flex-[2] w-full min-w-[250px]">
+                  <label className="block text-[10.5px] text-slate-500 font-bold">ស្វែងរកតាមឈ្មោះ ឬថ្នាក់ទទួលបន្ទុក</label>
+                  <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus-within:border-blue-500 focus-within:bg-white focus-within:shadow-3xs transition-all w-full">
+                    <Search size={14} className="text-slate-400 mr-2 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="វាយឈ្មោះ ឬថ្នាក់របស់គ្រូស្វែងរក..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent border-none text-slate-800 w-full outline-none text-xs"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Attendance rate gauge */}
-              <div className="pt-2">
+              <div className="pt-2 w-full lg:w-64 shrink-0 mt-2 lg:mt-0">
                 <div className="flex justify-between text-[10.5px] font-bold mb-1.5">
                   <span className="text-slate-500">អត្រាវត្តមានគ្រូប្រចាំថ្ងៃ៖</span>
                   <span className={teacherRate >= 90 ? 'text-emerald-600' : teacherRate >= 75 ? 'text-amber-500' : 'text-rose-500'}>{teacherRate}%</span>
@@ -842,81 +852,10 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
               </div>
             </div>
           )}
-
-          {/* Mass Actions */}
-          {activeTab === 'student' ? (
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs space-y-3.5">
-              <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2.5 uppercase tracking-wider">⚡ សកម្មភាពរហ័ស</h3>
-              <p className="text-[10px] text-slate-400 leading-normal">
-                ចុចប៊ូតុងខាងក្រោមដើម្បីសម្គាល់ស្ថានភាពវត្តមានដូចគ្នាសម្រាប់សិស្សទាំងអស់ក្នុងថ្នាក់ {selectedGrade} ក្នុងពេលតែមួយ។
-              </p>
-
-              <div className="grid grid-cols-1 gap-2 pt-1">
-                <button
-                  onClick={() => markAllStatus('present')}
-                  className="py-2.5 bg-[#E6F4EA] hover:bg-[#d2ebd9] border border-emerald-250 text-emerald-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
-                >
-                  <span>✔️ សម្គាល់វត្តមានទាំងអស់</span>
-                </button>
-                <button
-                  onClick={() => markAllStatus('late')}
-                  className="py-2.5 bg-[#E8F0FE] hover:bg-[#d6e4fd] border border-blue-250 text-blue-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
-                >
-                  <span>🕒 សម្គាល់យឺតទាំងអស់</span>
-                </button>
-                <button
-                  onClick={() => markAllStatus('permission')}
-                  className="py-2.5 bg-[#FEF7E0] hover:bg-[#faecc3] border border-amber-250 text-amber-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
-                >
-                  <span>⚠️ សម្គាល់មានច្បាប់ទាំងអស់</span>
-                </button>
-                <button
-                  onClick={() => markAllStatus('absent')}
-                  className="py-2.5 bg-[#FCE8E6] hover:bg-[#fad0cd] border border-rose-250 text-rose-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
-                >
-                  <span>❌ សម្គាល់អត់ច្បាប់ទាំងអស់</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs space-y-3.5">
-              <h3 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2.5 uppercase tracking-wider">⚡ សកម្មភាពរហ័ស</h3>
-              <p className="text-[10px] text-slate-400 leading-normal">
-                ចុចប៊ូតុងខាងក្រោមដើម្បីសម្គាល់ស្ថានភាពវត្តមានដូចគ្នាសម្រាប់គ្រូបង្រៀនទាំងអស់ក្នុងពេលតែមួយ។
-              </p>
-
-              <div className="grid grid-cols-1 gap-2 pt-1">
-                <button
-                  onClick={() => markAllTeachersStatus('present')}
-                  className="py-2.5 bg-[#E6F4EA] hover:bg-[#d2ebd9] border border-emerald-250 text-emerald-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
-                >
-                  <span>✔️ សម្គាល់វត្តមានគ្រូទាំងអស់</span>
-                </button>
-                <button
-                  onClick={() => markAllTeachersStatus('late')}
-                  className="py-2.5 bg-[#E8F0FE] hover:bg-[#d6e4fd] border border-blue-250 text-blue-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
-                >
-                  <span>🕒 សម្គាល់យឺតគ្រូទាំងអស់</span>
-                </button>
-                <button
-                  onClick={() => markAllTeachersStatus('permission')}
-                  className="py-2.5 bg-[#FEF7E0] hover:bg-[#faecc3] border border-amber-250 text-amber-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
-                >
-                  <span>⚠️ សម្គាល់មានច្បាប់គ្រូទាំងអស់</span>
-                </button>
-                <button
-                  onClick={() => markAllTeachersStatus('absent')}
-                  className="py-2.5 bg-[#FCE8E6] hover:bg-[#fad0cd] border border-rose-250 text-rose-805 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-3xs"
-                >
-                  <span>❌ សម្គាល់អត់ច្បាប់គ្រូទាំងអស់</span>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Right Column: Attendance Sheet Table */}
-        <div className="space-y-4 lg:col-span-2">
+        {/* Bottom Area: Attendance Sheet Table Full Width */}
+        <div className="w-full">
           {activeTab === 'student' && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-3xs overflow-hidden flex flex-col">
               <div className="p-5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2.5 bg-slate-50/50">
@@ -934,7 +873,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-left font-bold select-none text-[10px] uppercase tracking-wider">
                       <th className="px-5 py-3 w-12 text-center">ល.រ</th>
-                      <th className="px-5 py-3">ឈ្មោះសិស្ស</th>
+                      <th className="px-5 py-3 sticky left-0 z-10 bg-slate-50 border-r border-slate-200/60 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">ឈ្មោះសិស្ស</th>
                       <th className="px-5 py-3 hidden sm:table-cell">ភេទ</th>
                       <th className="px-3 py-3 text-center text-blue-600 font-black whitespace-nowrap text-[10.5px]">សរុបយឺត (យ)</th>
                       <th className="px-3 py-3 text-center text-amber-600 font-black whitespace-nowrap text-[10.5px]">សរុបច្បាប់ (ច្ប)</th>
@@ -949,12 +888,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                         const currentStatus = activeAttendanceMap[std.id] || 'present';
                         const stats = studentStatsMap[std.id] || { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
                         return (
-                          <tr key={std.id} className="hover:bg-slate-50/70 transition-all">
+                          <tr key={std.id} className="hover:bg-slate-50/70 transition-all group">
                             {/* Number Index */}
-                            <td className="px-5 py-3.5 text-center text-slate-400 font-mono text-[11px]">{idx + 1}</td>
+                            <td className="px-5 py-3.5 text-center text-slate-400 font-mono text-[11px] group-hover:bg-slate-50/70">{idx + 1}</td>
                             
                             {/* Profile & Name */}
-                            <td className="px-5 py-3.5">
+                            <td className="px-5 py-3.5 sticky left-0 z-10 bg-white group-hover:bg-slate-50/70 transition-all border-r border-slate-100 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
                               <div className="flex items-center gap-2.5">
                                 <div>
                                   <p className="font-bold text-slate-800">{std.name}</p>
@@ -1167,7 +1106,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-left font-bold select-none text-[10px] uppercase tracking-wider">
                     <tr>
                       <th className="px-5 py-3 w-12 text-center">ល.រ</th>
-                      <th className="px-5 py-3">ឈ្មោះគ្រូបង្រៀន</th>
+                      <th className="px-5 py-3 sticky left-0 z-10 bg-slate-50 border-r border-slate-200/60 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">ឈ្មោះគ្រូបង្រៀន</th>
                       <th className="px-5 py-3 hidden sm:table-cell">បង្រៀនថ្នាក់រៀន/ជំនាញ</th>
                       <th className="px-3 py-3 text-center text-blue-600 font-black whitespace-nowrap text-[10.5px]">សរុបយឺត (យ)</th>
                       <th className="px-3 py-3 text-center text-amber-600 font-black whitespace-nowrap text-[10.5px]">សរុបច្បាប់ (ច្ប)</th>
@@ -1182,12 +1121,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                         const currentStatus = teacherAttendanceMap[tc.id] || 'present';
                         const tcStats = teacherStatsMap[tc.id] || { present: 0, late: 0, permission: 0, absent: 0 };
                         return (
-                          <tr key={tc.id} className="hover:bg-slate-50/70 transition-all">
+                          <tr key={tc.id} className="hover:bg-slate-50/70 transition-all group">
                             {/* Index */}
-                            <td className="px-5 py-3.5 text-center text-slate-400 font-mono text-[11px]">{idx + 1}</td>
+                            <td className="px-5 py-3.5 text-center text-slate-400 font-mono text-[11px] group-hover:bg-slate-50/70">{idx + 1}</td>
                             
                             {/* Profile Info */}
-                            <td className="px-5 py-3.5">
+                            <td className="px-5 py-3.5 sticky left-0 z-10 bg-white group-hover:bg-slate-50/70 transition-all border-r border-slate-100 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
                               <div className="flex items-center gap-2.5">
                                 <div className={`w-9 h-9 rounded-xl text-white flex items-center justify-center font-bold text-xs select-none shadow-3xs ${tc.avatarBg}`}>
                                   {tc.photoCode || 'គ្រូ'}
@@ -1230,7 +1169,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                             {/* Cumulative Total Absences (អវត្តមានសរុប = ច្បាប់ + អត់ច្បាប់) */}
                             <td className="px-3 py-3.5 text-center bg-red-50/20">
                               <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-red-100 text-red-800 border border-red-300 shadow-2xs" title="សរុបអវត្តមាន">
-                                {tcStats.permission + tcStats.absent}
+                                {tcStats.totalAbsence}
                               </span>
                             </td>
 
@@ -1296,25 +1235,44 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
                                 {/* Reason input if not present */}
                                 {currentStatus !== 'present' && (
-                                  <div className="w-full max-w-[190px] flex flex-col gap-1">
-                                    <input
-                                      type="text"
-                                      placeholder="សរសេរមូលហេតុជាក់ស្តែង..."
-                                      value={teacherReasonsMap[tc.id] || ''}
+                                  <div className="w-full max-w-[190px] flex flex-col gap-1 items-start">
+                                    <select
+                                      value={['', 'បញ្ហាសុខភាព', 'មានធុរៈក្នុងគ្រួសារ', 'ជាប់បេសកកម្ម'].includes(teacherReasonsMap[tc.id] || '') ? (teacherReasonsMap[tc.id] || '') : 'ផ្សេងៗ'}
                                       onChange={(e) => {
                                         const val = e.target.value;
                                         setTeacherReasonsMap(prev => ({ ...prev, [tc.id]: val }));
                                       }}
-                                      className={`w-full border rounded-md px-2.5 py-1 text-[10.5px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none ${
-                                        !teacherReasonsMap[tc.id]?.trim()
-                                          ? 'bg-red-50 border-red-300'
-                                          : 'bg-slate-55 border-slate-200'
-                                      }`}
-                                    />
-                                    {!teacherReasonsMap[tc.id]?.trim() && (
-                                      <span className="text-[9px] text-red-500 font-bold font-sans self-start ml-1 animate-pulse">
-                                        * ត្រូវសរសេរបញ្ជាក់ពីមូលហេតុជាក់ស្តែង
-                                      </span>
+                                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none"
+                                    >
+                                      <option value="">-- ជ្រើសរើសមូលហេតុ --</option>
+                                      <option value="បញ្ហាសុខភាព">១. បញ្ហាសុខភាព</option>
+                                      <option value="មានធុរៈក្នុងគ្រួសារ">២. មានធុរៈក្នុងគ្រួសារ</option>
+                                      <option value="ជាប់បេសកកម្ម">៣. ជាប់បេសកកម្ម</option>
+                                      <option value="ផ្សេងៗ">៤. ផ្សេងៗ (សរសេរ)..........</option>
+                                    </select>
+                                    
+                                    {!['', 'បញ្ហាសុខភាព', 'មានធុរៈក្នុងគ្រួសារ', 'ជាប់បេសកកម្ម'].includes(teacherReasonsMap[tc.id] || '') && (
+                                      <div className="w-full flex flex-col gap-1">
+                                        <input
+                                          type="text"
+                                          placeholder="សរសេរមូលហេតុជាក់ស្តែង..."
+                                          value={teacherReasonsMap[tc.id] === 'ផ្សេងៗ' ? '' : (teacherReasonsMap[tc.id] || '')}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setTeacherReasonsMap(prev => ({ ...prev, [tc.id]: val }));
+                                          }}
+                                          className={`w-full border rounded-md px-2.5 py-1 text-[10.5px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none ${
+                                            teacherReasonsMap[tc.id] === 'ផ្សេងៗ' || !teacherReasonsMap[tc.id]
+                                              ? 'bg-red-50 border-red-300'
+                                              : 'bg-slate-50 border-slate-200'
+                                          }`}
+                                        />
+                                        {(teacherReasonsMap[tc.id] === 'ផ្សេងៗ' || !teacherReasonsMap[tc.id]) && (
+                                          <span className="text-[9px] text-red-500 font-bold font-sans self-start ml-1 animate-pulse">
+                                            * ត្រូវសរសេរបញ្ជាក់ពីមូលហេតុជាក់ស្តែង
+                                          </span>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                 )}
