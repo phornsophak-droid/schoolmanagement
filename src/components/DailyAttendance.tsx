@@ -917,7 +917,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
         {/* Right Column: Attendance Sheet Table */}
         <div className="space-y-4 lg:col-span-2">
-          {activeTab === 'student' ? (
+          {activeTab === 'student' && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-3xs overflow-hidden flex flex-col">
               <div className="p-5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2.5 bg-slate-50/50">
                 <div className="flex items-center gap-2">
@@ -1104,7 +1104,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                       })
                     ) : (
                       <tr>
-                        <td colSpan={8} className="py-20 text-center text-slate-400 text-xs">
+                        <td colSpan={8} className="py-20 text-center text-slate-400 text-xs text-bold">
                           <p className="text-xl mb-1">📭</p>
                           <p className="font-bold">ពុំមានគណនីសិស្សនៅក្នុងថ្នាក់ត្រូវបានរកឃើញទេ ឬមិនត្រូវនឹងការស្វែងរករបស់អ្នកឡើយ។</p>
                         </td>
@@ -1139,33 +1139,40 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   className="px-6 py-2 bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-md uppercase tracking-wider"
                 >
                   <CheckCircle size={13} />
-                  <span>រក្សាទុកវត្តមាន</span>
+                  <span>រក្សាទុកវត្តមានទាំងអស់</span>
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-3xs overflow-hidden flex flex-col">
-              <div className="p-5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2.5 bg-slate-50/50">
+          )}
+
+          {/* TEACHER LIST TAB CONTENT */}
+          {activeTab === 'teacher' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Settings / Top Bar */}
+              <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">👨‍🏫 បញ្ជីឈ្មោះគ្រូបង្រៀន និងការចុះវត្តមាន</h3>
+                  <div className="px-3 py-1.5 bg-blue-50 text-blue-700 font-black font-sans text-xs rounded-lg border border-blue-200/50 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    ថ្ងៃនេះទី៖ {selectedDate}
+                  </div>
                 </div>
-                <span className="text-[10.5px] text-slate-500 font-bold bg-white px-2.5 py-1 border border-slate-200 rounded-lg">
+                
+                <div className="text-xs text-slate-500 font-medium">
                   សរុប៖ <b>{displayTeachers.length}</b> នាក់
-                </span>
+                </div>
               </div>
 
-              <div className="overflow-x-auto min-h-[300px]">
-                <table className="w-full text-slate-700 text-xs font-medium">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-left font-bold select-none text-[10px] uppercase tracking-wider">
+              <div className="overflow-x-auto min-h-[400px]">
+                <table className="w-full min-w-[900px]">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-left font-bold select-none text-[10px] uppercase tracking-wider">
+                    <tr>
                       <th className="px-5 py-3 w-12 text-center">ល.រ</th>
                       <th className="px-5 py-3">ឈ្មោះគ្រូបង្រៀន</th>
                       <th className="px-5 py-3 hidden sm:table-cell">បង្រៀនថ្នាក់រៀន/ជំនាញ</th>
-                      <th className="px-3 py-3 text-center text-emerald-600 font-black whitespace-nowrap text-[10.5px]">សរុបវត្តមាន (វ)</th>
                       <th className="px-3 py-3 text-center text-blue-600 font-black whitespace-nowrap text-[10.5px]">សរុបយឺត (យ)</th>
                       <th className="px-3 py-3 text-center text-amber-600 font-black whitespace-nowrap text-[10.5px]">សរុបច្បាប់ (ច្ប)</th>
                       <th className="px-3 py-3 text-center text-rose-600 font-black whitespace-nowrap text-[10.5px]">សរុបអត់ច្បាប់ (អច្ប)</th>
+                      <th className="px-3 py-3 text-center text-red-700 font-black whitespace-nowrap text-[10.5px] bg-red-50/50 rounded-lg">សរុបអវត្តមាន</th>
                       <th className="px-5 py-3 text-center w-52">ជ្រើសរើសវត្តមាន</th>
                     </tr>
                   </thead>
@@ -1199,13 +1206,6 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                               </span>
                             </td>
 
-                            {/* Cumulative Present (វ) */}
-                            <td className="px-3 py-3.5 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-3xs" title="សរុបវត្តមាន">
-                                {tcStats.present}
-                              </span>
-                            </td>
-
                             {/* Cumulative Late (យ) */}
                             <td className="px-3 py-3.5 text-center">
                               <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-blue-50 text-blue-700 border border-blue-200 shadow-3xs" title="សរុបយឺត">
@@ -1224,6 +1224,13 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                             <td className="px-3 py-3.5 text-center">
                               <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-rose-50 text-rose-700 border border-rose-250 shadow-3xs" title="សរុបអត់ច្បាប់">
                                 {tcStats.absent}
+                              </span>
+                            </td>
+
+                            {/* Cumulative Total Absences (អវត្តមានសរុប = ច្បាប់ + អត់ច្បាប់) */}
+                            <td className="px-3 py-3.5 text-center bg-red-50/20">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-red-100 text-red-800 border border-red-300 shadow-2xs" title="សរុបអវត្តមាន">
+                                {tcStats.permission + tcStats.absent}
                               </span>
                             </td>
 
