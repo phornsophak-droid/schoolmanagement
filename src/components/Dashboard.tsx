@@ -23,6 +23,7 @@ import {
   Download
 } from 'lucide-react';
 import { SchoolReport, StudentScore, SchoolUser } from '../types';
+import schoolLogo from '../assets/logo.png';
 
 interface AttendanceRecord {
   id: string;
@@ -225,8 +226,9 @@ export default function Dashboard({
     const rowsHtml = rows.length > 0
       ? rows.map((r, i) => {
           const label = r.status === 'absent' ? 'អត់ច្បាប់' : r.status === 'permission' ? 'ច្បាប់' : 'យឺត';
-          const color = r.status === 'absent' ? '#e11d48' : r.status === 'permission' ? '#2563eb' : '#d97706';
-          return `<tr><td style="text-align:center">${i + 1}</td><td>${esc(r.name)}</td><td>${esc(r.grade)}</td><td>${esc(r.gender)}</td><td style="text-align:center">${r.totLate}</td><td style="text-align:center">${r.totPermission}</td><td style="text-align:center">${r.totAbsent}</td><td style="text-align:center;font-weight:bold">${r.totAbsence}</td><td style="color:${color};font-weight:bold">${label}</td><td>${esc(r.reason)}</td></tr>`;
+          const bBg = r.status === 'absent' ? '#ffe4e6' : r.status === 'permission' ? '#dbeafe' : '#fef3c7';
+          const bFg = r.status === 'absent' ? '#be123c' : r.status === 'permission' ? '#1d4ed8' : '#b45309';
+          return `<tr><td style="text-align:center;color:#94a3b8">${i + 1}</td><td style="font-weight:bold">${esc(r.name)}</td><td>${esc(r.grade)}</td><td>${esc(r.gender)}</td><td style="text-align:center;color:#d97706;font-weight:bold">${r.totLate}</td><td style="text-align:center;color:#2563eb;font-weight:bold">${r.totPermission}</td><td style="text-align:center;color:#e11d48;font-weight:bold">${r.totAbsent}</td><td style="text-align:center;font-weight:bold;color:#0f172a">${r.totAbsence}</td><td style="text-align:center"><span class="pill" style="background:${bBg};color:${bFg}">${label}</span></td><td>${esc(r.reason)}</td></tr>`;
         }).join('')
       : `<tr><td colspan="10" style="text-align:center;padding:24px;color:#16a34a">គ្មានសិស្សអវត្តមាននៅថ្ងៃនេះទេ 🎉</td></tr>`;
 
@@ -236,35 +238,49 @@ export default function Dashboard({
       <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700&display=swap" rel="stylesheet">
       <style>
         *{font-family:'Noto Sans Khmer','Khmer OS',sans-serif;box-sizing:border-box}
-        body{margin:32px;color:#1e293b}
-        h1{font-size:20px;margin:0;text-align:center;color:#0f172a}
-        .sub{text-align:center;color:#64748b;font-size:13px;margin:4px 0 18px}
-        .meta{display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px;font-weight:bold}
-        .totals{display:flex;gap:12px;margin:0 0 18px}
-        .box{flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;text-align:center}
-        .box .n{font-size:22px;font-weight:bold}
-        .box .l{font-size:11px;color:#64748b;margin-top:2px}
-        table{width:100%;border-collapse:collapse;font-size:13px}
-        th,td{border:1px solid #e2e8f0;padding:8px 10px;text-align:left}
-        th{background:#f1f5f9;font-size:12px}
-        .foot{margin-top:24px;font-size:11px;color:#94a3b8;text-align:center}
-        @page{margin:14mm}
+        html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{margin:28px;color:#1e293b}
+        .header{display:flex;flex-direction:column;align-items:center;border-bottom:3px solid #1e3a8a;padding-bottom:14px;margin-bottom:6px}
+        .logo{height:66px;width:66px;object-fit:contain;margin-bottom:6px}
+        h1{font-size:22px;margin:0;text-align:center;color:#1e3a8a;font-weight:bold}
+        .sub{text-align:center;color:#475569;font-size:13px;margin:3px 0 0}
+        .meta{display:flex;justify-content:space-between;font-size:13px;margin:16px 0 14px;font-weight:bold;color:#334155}
+        .meta .date{color:#1d4ed8}
+        .totals{display:flex;gap:10px;margin:0 0 18px}
+        .box{flex:1;border:1px solid;border-radius:12px;padding:12px;text-align:center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        .box .n{font-size:24px;font-weight:bold;line-height:1}
+        .box .l{font-size:11px;margin-top:4px;font-weight:bold}
+        .b-late{background:#fffbeb;border-color:#fde68a}.b-late .n,.b-late .l{color:#b45309}
+        .b-perm{background:#eff6ff;border-color:#bfdbfe}.b-perm .n,.b-perm .l{color:#1d4ed8}
+        .b-abs{background:#fff1f2;border-color:#fecdd3}.b-abs .n,.b-abs .l{color:#be123c}
+        .b-tot{background:#eef2ff;border-color:#c7d2fe}.b-tot .n,.b-tot .l{color:#4338ca}
+        table{width:100%;border-collapse:collapse;font-size:12.5px;border:1px solid #e2e8f0}
+        th{background:#1e3a8a;color:#fff;padding:9px 10px;text-align:left;font-size:12px;font-weight:bold;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        td{border-top:1px solid #e2e8f0;padding:8px 10px;text-align:left}
+        tbody tr:nth-child(even){background:#f8fafc}
+        .pill{padding:3px 10px;border-radius:999px;font-weight:bold;font-size:11px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        .foot{margin-top:22px;font-size:11px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px}
+        .foot b{color:#f59e0b}
+        @page{margin:13mm}
       </style></head>
       <body>
-        <h1>សាលាសហគមន៍ច្បារច្រុះ</h1>
-        <div class="sub">របាយការណ៍សិស្សអវត្តមានប្រចាំថ្ងៃ</div>
-        <div class="meta"><span>${scopeLabel}</span><span>កាលបរិច្ឆេទ៖ ${date || '—'}</span></div>
+        <div class="header">
+          <img class="logo" src="${schoolLogo}" alt="logo" />
+          <h1>សាលាសហគមន៍ច្បារច្រុះ</h1>
+          <div class="sub">របាយការណ៍សិស្សអវត្តមានប្រចាំថ្ងៃ</div>
+        </div>
+        <div class="meta"><span>${scopeLabel}</span><span class="date">កាលបរិច្ឆេទ៖ ${date || '—'}</span></div>
         <div class="totals">
-          <div class="box"><div class="n" style="color:#d97706">${late}</div><div class="l">យឺតសរុប</div></div>
-          <div class="box"><div class="n" style="color:#2563eb">${permission}</div><div class="l">ច្បាប់សរុប</div></div>
-          <div class="box"><div class="n" style="color:#e11d48">${absent}</div><div class="l">អត់ច្បាប់សរុប</div></div>
-          <div class="box"><div class="n">${rows.length}</div><div class="l">អវត្តមានសរុប</div></div>
+          <div class="box b-late"><div class="n">${late}</div><div class="l">យឺតសរុប</div></div>
+          <div class="box b-perm"><div class="n">${permission}</div><div class="l">ច្បាប់សរុប</div></div>
+          <div class="box b-abs"><div class="n">${absent}</div><div class="l">អត់ច្បាប់សរុប</div></div>
+          <div class="box b-tot"><div class="n">${rows.length}</div><div class="l">អវត្តមានសរុប</div></div>
         </div>
         <table>
           <thead><tr><th style="width:32px;text-align:center">ល.រ</th><th>ឈ្មោះសិស្ស</th><th>ថ្នាក់រៀន</th><th>ភេទ</th><th style="text-align:center">សរុបយឺត</th><th style="text-align:center">សរុបច្បាប់</th><th style="text-align:center">សរុបអត់ច្បាប់</th><th style="text-align:center">សរុបអវត្តមាន</th><th>ស្ថានភាព</th><th>មូលហេតុ</th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
-        <div class="foot">បង្កើតដោយប្រព័ន្ធគ្រប់គ្រងសាលា • ${new Date().toLocaleString('en-GB')}</div>
+        <div class="foot">បង្កើតដោយ<b>ប្រព័ន្ធគ្រប់គ្រងសាលា</b> • ${new Date().toLocaleString('en-GB')}</div>
       </body></html>`;
 
     // Render into a hidden same-origin iframe and print it.
@@ -277,7 +293,12 @@ export default function Dashboard({
     doc.open();
     doc.write(html);
     doc.close();
-    setTimeout(() => {
+
+    // Wait for the logo image to load before printing so it appears in the PDF.
+    let printed = false;
+    const finishAndPrint = () => {
+      if (printed) return;
+      printed = true;
       try {
         iframe.contentWindow?.focus();
         iframe.contentWindow?.print();
@@ -285,7 +306,15 @@ export default function Dashboard({
         console.error('Daily report print failed', err);
       }
       setTimeout(() => iframe.remove(), 1000);
-    }, 700);
+    };
+    const logoImg = doc.querySelector('img');
+    if (logoImg && !logoImg.complete) {
+      logoImg.addEventListener('load', () => setTimeout(finishAndPrint, 200));
+      logoImg.addEventListener('error', () => setTimeout(finishAndPrint, 200));
+      setTimeout(finishAndPrint, 1800); // safety fallback
+    } else {
+      setTimeout(finishAndPrint, 400);
+    }
   };
 
   // Filter students based on selection
