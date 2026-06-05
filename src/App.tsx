@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   GraduationCap, 
@@ -63,6 +63,7 @@ import LoginPortal from './components/LoginPortal';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
 import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
+import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
 
 
@@ -77,14 +78,8 @@ export default function App() {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Supabase connection panel active states.
-  // Default to the small collapsed pill (less intrusive); remember the user's choice.
-  const [isSupabasePanelExpanded, setIsSupabasePanelExpanded] = useState<boolean>(
-    () => localStorage.getItem('school_supabase_panel_expanded') === 'true'
-  );
-  useEffect(() => {
-    localStorage.setItem('school_supabase_panel_expanded', String(isSupabasePanelExpanded));
-  }, [isSupabasePanelExpanded]);
+  // Supabase connection panel active states
+  const [isSupabasePanelExpanded, setIsSupabasePanelExpanded] = useState(true);
 
   // User session state
   const [currentUser, setCurrentUser] = useState<SchoolUser | null>(null);
@@ -303,12 +298,8 @@ export default function App() {
 
             // Realtime Auto-Sync setup
             try {
-              // Remove any prior channel first so a re-run (e.g. React StrictMode
-              // re-mount) doesn't reuse an already-subscribed channel, which throws
-              // when adding `postgres_changes` listeners after subscribe().
-              client.removeAllChannels();
-              const channel = client.channel('app_sync_channel_' + Date.now());
-
+              const channel = client.channel('app_sync_channel');
+              
               const refreshData = () => {
                 syncFetchAll().then(newData => {
                   if (newData.students) {
@@ -624,15 +615,6 @@ export default function App() {
     alert('ផ្លាស់ប្តូរលេខកូដសម្ងាត់ (PIN) បានជោគជ័យ!');
   };
 
-  // Cloud-save confirmation toast (auto-hides)
-  const [cloudToast, setCloudToast] = useState<{ msg: string; ok: boolean } | null>(null);
-  const cloudToastTimer = useRef<number | null>(null);
-  const showCloudToast = (msg: string, ok: boolean) => {
-    setCloudToast({ msg, ok });
-    if (cloudToastTimer.current) window.clearTimeout(cloudToastTimer.current);
-    cloudToastTimer.current = window.setTimeout(() => setCloudToast(null), 2800);
-  };
-
   // 4. Sync Mutated States to LocalStorage & Supabase Cloud
   const handleSaveStudents = async (updatedList: StudentScore[]) => {
     const deletedStudentIds = students
@@ -652,13 +634,9 @@ export default function App() {
         if (updatedList.length > 0) {
           await syncUpsertStudentsBulk(updatedList);
         }
-        showCloudToast('បានរក្សាទុក និងធ្វើសមកាលកម្មទៅ Cloud ✓', true);
       } catch (err) {
         console.warn('Supabase students backup sync failed', err);
-        showCloudToast('បានរក្សាទុកក្នុងម៉ាស៊ីន — សមកាលកម្ម Cloud បរាជ័យ', false);
       }
-    } else {
-      showCloudToast('បានរក្សាទុកក្នុងម៉ាស៊ីន (មិនបានភ្ជាប់ Cloud)', false);
     }
   };
 
@@ -929,29 +907,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FA] text-slate-800 font-sans flex selection:bg-blue-105 selection:text-blue-900 overflow-hidden w-full">
-
-      {/* Cloud-save confirmation toast */}
-      <AnimatePresence>
-        {cloudToast && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold print:hidden ${cloudToast.ok ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-amber-500 text-white border-amber-400'}`}
-          >
-            <span className="text-base">{cloudToast.ok ? '☁️' : '⚠️'}</span>
-            {cloudToast.msg}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      
       {/* 1. Desktop Sidebar (Hidden on mobile and in print) */}
       <aside className="w-64 md:w-72 bg-[#1E293B] text-white flex flex-col shrink-0 hidden md:flex border-r border-slate-800/80 print:hidden h-full">
         {/* Sidebar Brand Header */}
         <div className="p-6 border-b border-slate-700/50">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-lg shadow-md font-bold">
-              🇰🇭
+            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md border border-slate-700/30 overflow-hidden">
+              <SchoolLogo className="w-full h-full p-0.5" />
             </div>
             <div>
               <h1 className="text-sm font-bold text-slate-100 leading-tight">ប្រព័ន្ធគ្រប់គ្រងសាលា</h1>
@@ -973,7 +936,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <LayoutDashboard size={16} className={activeView === 'dashboard' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>ផ្ទាំងគ្រប់គ្រងព័ត៌មាន</span>
+              <span>គ្រប់គ្រងព័ត៌មានទូទៅ</span>
             </div>
             {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
           </button>
@@ -989,7 +952,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <GraduationCap size={16} className={activeView === 'gradebook' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>តារាងពិន្ទុសិស្ស (Gradebook)</span>
+              <span>គ្រប់គ្រងពិន្ទុសិស្ស</span>
             </div>
           </button>
 
@@ -1004,7 +967,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <ClipboardCheck size={16} className={activeView === 'attendance' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>វត្តមានសិស្សប្រចាំថ្ងៃ</span>
+              <span>គ្រប់គ្រងវត្តមាន</span>
             </div>
           </button>
 
@@ -1024,6 +987,22 @@ export default function App() {
           </button>
 
           <button
+            id="nav_report_wizard_tab"
+            onClick={currentUser?.role === 'teacher' ? () => setActiveView('wizard') : handleCreateReportInit}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'wizard'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <FileText size={16} className={activeView === 'wizard' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>គ្រប់គ្រងរបាយការណ៍</span>
+            </div>
+            {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
+          </button>
+
+          <button
             id="nav_mobile_portal_tab"
             onClick={() => setActiveView('mobile-portal')}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -1037,22 +1016,6 @@ export default function App() {
               <span>📱 ទិដ្ឋភាពទូរស័ព្ទ VIP (Mobile UI)</span>
             </div>
             <span className="px-1.5 py-0.5 bg-amber-500 text-slate-900 text-[8.5px] font-extrabold rounded-md shadow-xs animate-pulse">NEW</span>
-          </button>
-
-          <button
-            id="nav_report_wizard_tab"
-            onClick={currentUser?.role === 'teacher' ? () => setActiveView('wizard') : handleCreateReportInit}
-            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
-              activeView === 'wizard'
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
-                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <FileText size={16} className={activeView === 'wizard' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>ផ្ទាំងរបាយការណ៍សាលា</span>
-            </div>
-            {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
           </button>
         </nav>
 
@@ -1151,8 +1114,8 @@ export default function App() {
             >
               <div className="p-6 border-b border-slate-700/50 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-lg shadow-md font-bold">
-                    🇰🇭
+                  <div className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-md border border-slate-700/30 overflow-hidden">
+                    <SchoolLogo className="w-full h-full p-0.5" />
                   </div>
                   <div>
                     <h1 className="text-xs font-bold text-slate-100">ប្រព័ន្ធគ្រប់គ្រងសាលា</h1>
@@ -1181,7 +1144,7 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <LayoutDashboard size={16} />
-                    <span>ផ្ទាំងគ្រប់គ្រងព័ត៌មាន</span>
+                    <span>គ្រប់គ្រងព័ត៌មានទូទៅ</span>
                   </div>
                   {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
                 </button>
@@ -1199,7 +1162,7 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <GraduationCap size={16} />
-                    <span>តារាងពិន្ទុសិស្ស</span>
+                    <span>គ្រប់គ្រងពិន្ទុសិស្ស</span>
                   </div>
                 </button>
 
@@ -1216,7 +1179,7 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <ClipboardCheck size={16} />
-                    <span>វត្តមានសិស្សប្រចាំថ្ងៃ</span>
+                    <span>គ្រប់គ្រងវត្តមាន</span>
                   </div>
                 </button>
 
@@ -1239,24 +1202,6 @@ export default function App() {
 
                 <button
                   onClick={() => {
-                    setActiveView('mobile-portal');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
-                    activeView === 'mobile-portal'
-                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
-                      : 'text-amber-400 hover:bg-slate-800/40 hover:text-amber-200 font-bold'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Smartphone size={16} className={activeView === 'mobile-portal' ? 'text-blue-400' : 'text-amber-400'} />
-                    <span>📱 ផ្ទាំងទូរស័ព្ទ VIP (Mobile UI)</span>
-                  </div>
-                  <span className="px-1 bg-amber-500 text-slate-900 text-[8px] font-black rounded">NEW</span>
-                </button>
-
-                <button
-                  onClick={() => {
                     if (currentUser?.role === 'teacher') {
                       setActiveView('wizard');
                     } else {
@@ -1272,9 +1217,27 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <FileText size={16} />
-                    <span>ផ្ទាំងរបាយការណ៍សាលា</span>
+                    <span>គ្រប់គ្រងរបាយការណ៍</span>
                   </div>
                   {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveView('mobile-portal');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
+                    activeView === 'mobile-portal'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
+                      : 'text-amber-400 hover:bg-slate-800/40 hover:text-amber-200 font-bold'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Smartphone size={16} className={activeView === 'mobile-portal' ? 'text-blue-400' : 'text-amber-400'} />
+                    <span>📱 ផ្ទាំងទូរស័ព្ទ VIP (Mobile UI)</span>
+                  </div>
+                  <span className="px-1 bg-amber-500 text-slate-900 text-[8px] font-black rounded">NEW</span>
                 </button>
               </nav>
 
@@ -1519,7 +1482,7 @@ export default function App() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ duration: 0.15 }}
-                    className="fixed inset-0 z-50 bg-slate-900 w-full flex justify-center md:static md:z-auto md:bg-transparent"
+                    className="w-full flex justify-center"
                   >
                     <MobilePortal
                       students={students}

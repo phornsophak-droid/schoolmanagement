@@ -41,7 +41,7 @@ import ReportsHub from './ReportsHub';
 import Gradebook from './Gradebook';
 import DailyAttendance from './DailyAttendance';
 import Dashboard from './Dashboard';
-import schoolLogo from '../assets/logo.png';
+import { SchoolLogo } from './SchoolLogo';
 
 interface AttendanceRecord {
   id: string;
@@ -385,9 +385,9 @@ export default function MobilePortal({
   };
 
   return (
-    <div className="flex justify-center items-center w-full h-dvh md:h-full bg-slate-900 font-sans p-0 m-0 relative print:hidden">
-      {/* Smartphone wrapper: full-screen on real phones (default), decorative phone mockup on desktop (md+) */}
-      <div className="w-full h-full bg-[#F0FDF4] relative flex flex-col overflow-hidden text-slate-800 md:w-[390px] md:h-[780px] md:max-w-[100vw] md:rounded-[48px] md:border-8 md:border-slate-700 md:shadow-2xl">
+    <div className="flex justify-center items-center h-full w-full bg-slate-900 font-sans p-0 m-0 relative print:hidden">
+      {/* Smartphone Device Wrapper Mockup with light mint-green background */}
+      <div className="w-[390px] h-[780px] bg-[#F0FDF4] rounded-[48px] border-8 border-slate-700 shadow-2xl relative flex flex-col overflow-hidden max-w-[100vw] text-slate-800">
         
         {/* Elegant Mobile-Friendly Toast Notification */}
         <AnimatePresence>
@@ -405,7 +405,7 @@ export default function MobilePortal({
         </AnimatePresence>
 
         {/* Phone Notch/Island */}
-        <div className="absolute top-0 left-0 right-0 h-7 hidden md:flex justify-between items-center px-6 z-50 text-[11px] font-black text-slate-700">
+        <div className="absolute top-0 left-0 right-0 h-7 flex justify-between items-center px-6 z-50 text-[11px] font-black text-slate-700">
           <span>8:55</span>
           <div className="w-[110px] h-4 bg-black rounded-b-xl absolute left-1/2 -translate-x-1/2 top-0" />
           <div className="flex items-center gap-1">
@@ -415,7 +415,7 @@ export default function MobilePortal({
         </div>
 
         {/* 1. Header (Replica of mockup) */}
-        <header className="px-4 pt-4 md:pt-9 pb-3.5 bg-[#ECFDF5] flex items-center justify-between border-b border-emerald-100 shrink-0">
+        <header className="px-4 pt-9 pb-3.5 bg-[#ECFDF5] flex items-center justify-between border-b border-emerald-100 shrink-0">
           <div className="flex-1">
             <h1 className="text-2xl font-black tracking-tight text-[#064E3B] font-sans">
               សាលាសហគមន៍ច្បារច្រុះ
@@ -427,9 +427,9 @@ export default function MobilePortal({
 
           {/* Right Action Icons in the Header */}
           <div className="flex items-center gap-2">
-            {/* Chbar Chros Community School Emblem Logo */}
-            <div className="w-10 h-10 overflow-hidden flex items-center justify-center rounded-full bg-white border border-[#34D399]/40 shadow-2xs">
-              <img src={schoolLogo} alt="Chbar Chros Community School Logo" className="w-full h-full object-contain" />
+            {/* Cambodian Traditional School Emblem Logo */}
+            <div className="w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-xs border border-[#34D399]/40 overflow-hidden">
+              <SchoolLogo className="w-full h-full p-0.5" />
             </div>
 
             {/* Bell/Notification Icon */}

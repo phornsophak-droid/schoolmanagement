@@ -6,9 +6,3 @@ coverage/
 *.log
 .env*
 !.env.example
-
-# Claude Code local files
-.claude/
-
-# Local helper scripts (Windows)
-*.bat

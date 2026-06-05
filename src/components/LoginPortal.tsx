@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SchoolUser } from '../types';
 import { getPinForUser, setPinForUser } from '../utils/auth';
 import { syncUpsertSetting } from '../lib/supabase';
+import { SchoolLogo } from './SchoolLogo';
 import { 
   KeyRound, 
   ShieldAlert, 
