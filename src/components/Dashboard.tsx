@@ -84,6 +84,7 @@ export default function Dashboard({
 
   // Load Saved Attendance Records
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [reasonChartMode, setReasonChartMode] = useState<'daily' | 'monthly'>('daily');
 
   useEffect(() => {
     const saved = localStorage.getItem('school_daily_attendance');
@@ -277,6 +278,27 @@ export default function Dashboard({
       list
     };
   }, [attendanceRecords, students, latestAttendanceDate, selectedGrade]);
+
+  // Aggregate absence/lateness reasons for the chart (daily = latest recorded day, monthly = that whole month).
+  const absenceReasonStats = useMemo(() => {
+    const monthKey = (latestAttendanceDate || '').slice(0, 7); // YYYY-MM
+    const inScope = (d: string) => reasonChartMode === 'daily' ? d === latestAttendanceDate : d.slice(0, 7) === monthKey;
+    const counts: Record<string, number> = {};
+    let total = 0;
+    attendanceRecords.forEach(rec => {
+      if (!rec.studentStates || !inScope(rec.date)) return;
+      Object.entries(rec.studentStates).forEach(([sId, status]) => {
+        if (sId.endsWith('_reason')) return;
+        if (status !== 'late' && status !== 'permission' && status !== 'absent') return;
+        const reason = (((rec.studentStates as any)[sId + '_reason'] as string) || '').trim() || 'មិនបានបញ្ជាក់មូលហេតុ';
+        counts[reason] = (counts[reason] || 0) + 1;
+        total++;
+      });
+    });
+    const rows = Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count);
+    const max = rows.reduce((m, r) => Math.max(m, r.count), 0);
+    return { rows, total, max, monthKey };
+  }, [attendanceRecords, latestAttendanceDate, reasonChartMode]);
 
   // Generate a clean, branded printable daily-absentee report (Save as PDF) via a hidden iframe.
   const handleDownloadDailyPdf = () => {
@@ -613,6 +635,67 @@ export default function Dashboard({
           )}
         </div>
       </div>
+
+        {/* Absence Reasons Chart (principal only) */}
+        {currentUser?.role !== 'teacher' && (
+        <div id="panel_absence_reasons" className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+            <div className="flex items-start gap-4">
+              <div className="mt-1 w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex flex-shrink-0 items-center justify-center">
+                <AlertCircle size={20} />
+              </div>
+              <div>
+                <p className="text-indigo-600 font-bold text-sm uppercase tracking-wider mb-1">ស្ថិតិមូលហេតុ</p>
+                <h3 className="font-bold text-[#1e293b] text-2xl font-serif">មូលហេតុនៃការអវត្តមានសិស្ស</h3>
+                <p className="text-xs text-slate-400 mt-2">
+                  {reasonChartMode === 'daily'
+                    ? <>ប្រចាំថ្ងៃ • <span className="font-bold text-slate-500">{latestAttendanceDate}</span></>
+                    : <>ប្រចាំខែ • <span className="font-bold text-slate-500">{absenceReasonStats.monthKey}</span></>}
+                  {' '}• សរុប <span className="font-bold text-indigo-600">{absenceReasonStats.total}</span> ករណី
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl text-xs font-bold shrink-0">
+              <button
+                onClick={() => setReasonChartMode('daily')}
+                className={`px-4 py-2 rounded-lg transition-all ${reasonChartMode === 'daily' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >📅 ប្រចាំថ្ងៃ</button>
+              <button
+                onClick={() => setReasonChartMode('monthly')}
+                className={`px-4 py-2 rounded-lg transition-all ${reasonChartMode === 'monthly' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >🗓️ ប្រចាំខែ</button>
+            </div>
+          </div>
+
+          {absenceReasonStats.rows.length > 0 ? (
+            <div className="space-y-3">
+              {absenceReasonStats.rows.map((row, idx) => {
+                const palette = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#14b8a6'];
+                const color = palette[idx % palette.length];
+                const pct = absenceReasonStats.max > 0 ? (row.count / absenceReasonStats.max) * 100 : 0;
+                return (
+                  <div key={row.reason} className="flex items-center gap-3">
+                    <div className="w-[44%] md:w-[34%] shrink-0 text-[11.5px] font-semibold text-slate-700 text-right truncate" title={row.reason}>{row.reason}</div>
+                    <div className="flex-1 bg-slate-100 rounded-full h-6 overflow-hidden">
+                      <div
+                        className="h-full rounded-full flex items-center justify-end px-2 transition-all duration-500"
+                        style={{ width: `${Math.max(pct, 9)}%`, background: color }}
+                      >
+                        <span className="text-[11px] font-black text-white">{row.count}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-12 flex flex-col items-center justify-center text-slate-400 text-xs">
+              <CheckCircle size={36} className="text-emerald-300 mb-2" />
+              <p className="font-semibold text-slate-500">គ្មានសិស្សអវត្តមាន{reasonChartMode === 'daily' ? 'នៅថ្ងៃនេះ' : 'ក្នុងខែនេះ'}ទេ! 🎉</p>
+            </div>
+          )}
+        </div>
+        )}
 
         {/* Daily Absent Students Report Panel (Restored) */}
       <div id="panel_daily_absent" className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
