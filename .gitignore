@@ -9,3 +9,6 @@ coverage/
 
 # Claude Code local files
 .claude/
+
+# Local helper scripts (Windows)
+*.bat

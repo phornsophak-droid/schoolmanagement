@@ -41,6 +41,7 @@ import ReportsHub from './ReportsHub';
 import Gradebook from './Gradebook';
 import DailyAttendance from './DailyAttendance';
 import Dashboard from './Dashboard';
+import schoolLogo from '../assets/logo.png';
 
 interface AttendanceRecord {
   id: string;
@@ -426,16 +427,9 @@ export default function MobilePortal({
 
           {/* Right Action Icons in the Header */}
           <div className="flex items-center gap-2">
-            {/* Cambodian Traditional School Emblem Logo */}
-            <div className="w-[45px] h-[34px] overflow-hidden flex items-center justify-center p-0.5 border border-[#34D399]/40 rounded-lg bg-white shadow-2xs">
-              <svg viewBox="0 0 100 100" className="w-full h-full text-emerald-700">
-                <path d="M50 5 L90 35 L50 42 L10 35 Z" fill="#D1FAE5" stroke="#10B981" strokeWidth="2.5" />
-                <rect x="25" y="42" width="50" height="35" fill="#FFFFFF" stroke="#10B981" strokeWidth="2" />
-                <path d="M50 45 L50 77 M35 55 L65 55" stroke="#F59E0B" strokeWidth="2" />
-                <circle cx="50" cy="55" r="8" fill="#FEF3C7" stroke="#D97706" strokeWidth="2" />
-                <text x="50" y="58" fontSize="10" textAnchor="middle" fill="#B45309" fontWeight="bold">ឧ</text>
-                <path d="M15 65 C10 85 45 95 50 90 C55 95 90 85 85 65" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" />
-              </svg>
+            {/* Chbar Chros Community School Emblem Logo */}
+            <div className="w-10 h-10 overflow-hidden flex items-center justify-center rounded-full bg-white border border-[#34D399]/40 shadow-2xs">
+              <img src={schoolLogo} alt="Chbar Chros Community School Logo" className="w-full h-full object-contain" />
             </div>
 
             {/* Bell/Notification Icon */}
