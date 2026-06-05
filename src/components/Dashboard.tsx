@@ -125,7 +125,7 @@ export default function Dashboard({
       totalPermission,
       totalAbsent,
       overallRate,
-      activeDaysCount: filteredAttendance.length
+      activeDaysCount: filteredAttendance.length > 0 ? filteredAttendance.length : 0
     };
   }, [filteredAttendance]);
 
@@ -211,6 +211,94 @@ export default function Dashboard({
       failStroke
     };
   }, [stats]);
+
+  // Find the latest attendance date
+  const latestAttendanceDate = useMemo(() => {
+    if (attendanceRecords.length === 0) return new Date().toISOString().split('T')[0];
+    const dates = attendanceRecords.map(r => r.date).sort();
+    return dates[dates.length - 1];
+  }, [attendanceRecords]);
+
+  // Generate Daily Absent Report Data
+  const dailyAbsentReport = useMemo(() => {
+    // Cumulative stats
+    const cumulativeStats: Record<string, { late: number, permission: number, absent: number }> = {};
+    attendanceRecords.forEach(rec => {
+      // Don't filter grade for cumulative overall stats
+      if (rec.studentStates) {
+        Object.entries(rec.studentStates).forEach(([sId, status]) => {
+          if (sId.endsWith('_reason')) return;
+          if (!cumulativeStats[sId]) {
+            cumulativeStats[sId] = { late: 0, permission: 0, absent: 0 };
+          }
+          if (status === 'late') cumulativeStats[sId].late += 1;
+          else if (status === 'permission') cumulativeStats[sId].permission += 1;
+          else if (status === 'absent') cumulativeStats[sId].absent += 1;
+        });
+      }
+    });
+
+    const uniqueStudentsMap = new Map<string, StudentScore>();
+    students.forEach(s => {
+      if (!uniqueStudentsMap.has(s.id)) {
+        uniqueStudentsMap.set(s.id, s);
+      }
+    });
+
+    // Today's records (All classes, no grade filter)
+    const todayRecords = attendanceRecords.filter(r => r.date === latestAttendanceDate);
+    
+    let todayLateCount = 0;
+    let todayPermissionCount = 0;
+    let todayAbsentCount = 0;
+
+    const list: any[] = [];
+    
+    todayRecords.forEach(rec => {
+      if (rec.studentStates) {
+        Object.entries(rec.studentStates).forEach(([sId, status]) => {
+          if (sId.endsWith('_reason')) return;
+          
+          if (status === 'late') todayLateCount++;
+          else if (status === 'permission') todayPermissionCount++;
+          else if (status === 'absent') todayAbsentCount++;
+
+          if (status === 'late' || status === 'permission' || status === 'absent') {
+            const stu = uniqueStudentsMap.get(sId);
+            const stats = cumulativeStats[sId] || { late: 0, permission: 0, absent: 0 };
+            const reason = (rec.studentStates as any)[sId + '_reason'] || '';
+            
+            list.push({
+              id: sId,
+              name: stu ? stu.name : 'មិនស្គាល់ឈ្មោះ',
+              grade: rec.grade,
+              gender: stu ? stu.gender : 'Unknown',
+              cumulativeLate: stats.late,
+              cumulativePermission: stats.permission,
+              cumulativeAbsent: stats.absent,
+              todayStatus: status,
+              reason: reason
+            });
+          }
+        });
+      }
+    });
+
+    // sort list by grade then name
+    list.sort((a, b) => {
+      if (a.grade !== b.grade) return a.grade.localeCompare(b.grade, 'km');
+      return a.name.localeCompare(b.name, 'km');
+    });
+
+    return {
+      date: latestAttendanceDate,
+      lateCount: todayLateCount,
+      permissionCount: todayPermissionCount,
+      absentCount: todayAbsentCount,
+      totalAbsences: todayPermissionCount + todayAbsentCount,
+      list
+    };
+  }, [attendanceRecords, students, latestAttendanceDate, selectedGrade]);
 
   return (
     <div className="space-y-8">
@@ -471,6 +559,117 @@ export default function Dashboard({
               </button>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Daily Absent Students Report Panel (Restored) */}
+      <div id="panel_daily_absent" className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+          <div className="flex items-start gap-4">
+            <div className="mt-1 w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex flex-shrink-0 items-center justify-center">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <p className="text-rose-600 font-bold text-sm uppercase tracking-wider mb-1 flex items-center gap-2">
+                បញ្ជីសិស្សអវត្តមាន
+              </p>
+              <h3 className="font-bold text-[#1e293b] text-2xl font-serif">តារាងសិស្សអវត្តមានប្រចាំថ្ងៃ</h3>
+              <p className="text-xs text-slate-400 mt-2">
+                បញ្ជីសិស្សអវត្តមានទាំងអស់គ្រប់ថ្នាក់ • ថ្ងៃទី <span className="font-bold text-slate-500">{dailyAbsentReport.date}</span>
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => window.print()}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-sm font-bold transition duration-200 cursor-pointer shadow-md shadow-rose-200"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            ទាញយករបាយការណ៍ប្រចាំថ្ងៃ (PDF)
+          </button>
+        </div>
+
+        {/* 4 Cards Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-[#FFFDF7] py-6 px-4 rounded-xl border border-amber-200 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(251,191,36,0.05)]">
+            <h4 className="text-4xl font-black text-amber-500 font-mono leading-none">{dailyAbsentReport.lateCount}</h4>
+            <p className="text-xs text-amber-600 font-black mt-3.5 uppercase tracking-wider">យឺតសរុប</p>
+          </div>
+          <div className="bg-[#F0F5FF] py-6 px-4 rounded-xl border border-blue-200 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(59,130,246,0.05)]">
+            <h4 className="text-4xl font-black text-blue-600 font-mono leading-none">{dailyAbsentReport.permissionCount}</h4>
+            <p className="text-xs text-blue-600 font-black mt-3.5 uppercase tracking-wider">ច្បាប់សរុប</p>
+          </div>
+          <div className="bg-[#FFF5F5] py-6 px-4 rounded-xl border border-rose-100 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
+            <h4 className="text-4xl font-black text-rose-500 font-mono leading-none">{dailyAbsentReport.absentCount}</h4>
+            <p className="text-xs text-rose-500 font-black mt-3.5 uppercase tracking-wider">អត់ច្បាប់សរុប</p>
+          </div>
+          <div className="bg-white py-6 px-4 rounded-xl border border-[#334155] flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+            <h4 className="text-4xl font-black text-[#334155] font-mono leading-none">{dailyAbsentReport.totalAbsences}</h4>
+            <p className="text-xs text-[#64748b] font-black mt-3.5 uppercase tracking-wider">អវត្តមានសរុប</p>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-hidden mt-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-[#334155]">
+              <thead className="border-b border-slate-200 text-[#64748b] font-bold text-[11px] uppercase tracking-wider">
+                <tr>
+                  <th className="px-5 py-4 text-center w-12 font-bold">ល.រ</th>
+                  <th className="px-5 py-4 font-bold">ឈ្មោះសិស្ស</th>
+                  <th className="px-5 py-4 font-bold">ថ្នាក់រៀន</th>
+                  <th className="px-5 py-4 font-bold">ភេទ</th>
+                  <th className="px-4 py-4 text-center font-bold">សរុបយឺត</th>
+                  <th className="px-4 py-4 text-center font-bold">សរុបច្បាប់</th>
+                  <th className="px-4 py-4 text-center text-rose-600 font-bold">សរុបអត់ច្បាប់</th>
+                  <th className="px-4 py-4 text-center text-slate-700 font-bold">សរុបអវត្តមាន</th>
+                  <th className="px-5 py-4 text-center font-bold">ស្ថានភាពថ្ងៃនេះ</th>
+                  <th className="px-5 py-4 font-bold">មូលហេតុ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {dailyAbsentReport.list.length > 0 ? (
+                  dailyAbsentReport.list.map((student, idx) => {
+                    const totalAbsent = student.cumulativePermission + student.cumulativeAbsent;
+                    return (
+                      <tr key={idx} className="hover:bg-slate-50 transition-all font-medium">
+                        <td className="px-5 py-5 text-center text-slate-400 font-mono text-xs">{idx + 1}</td>
+                        <td className="px-5 py-5">
+                          <p className="text-sm font-black text-[#1e293b]">{student.name}</p>
+                          <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase">ID: {student.id.substring(0, 5)}</p>
+                        </td>
+                        <td className="px-5 py-5 font-black text-[#475569]">{student.grade}</td>
+                        <td className="px-5 py-5 text-[#475569]">{student.gender}</td>
+                        <td className="px-4 py-5 text-center text-amber-500 font-black font-mono">{student.cumulativeLate}</td>
+                        <td className="px-4 py-5 text-center text-blue-600 font-black font-mono">{student.cumulativePermission}</td>
+                        <td className="px-4 py-5 text-center text-rose-600 font-black font-mono">{student.cumulativeAbsent}</td>
+                        <td className="px-4 py-5 text-center font-black text-[#0f172a] font-mono">{totalAbsent}</td>
+                        <td className="px-5 py-5 text-center">
+                          {student.todayStatus === 'late' && (
+                            <span className="text-[11px] font-black tracking-wide text-amber-500">ចូលរៀនយឺត</span>
+                          )}
+                          {student.todayStatus === 'permission' && (
+                            <span className="text-[11px] font-black tracking-wide text-blue-600">មានច្បាប់</span>
+                          )}
+                          {student.todayStatus === 'absent' && (
+                            <span className="text-[11px] font-black tracking-wide text-rose-600">អត់ច្បាប់</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-5 text-[#64748b] text-[12px]">
+                          {student.reason || 'ខ្ជិល'}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={10} className="px-5 py-12 text-center text-slate-400 font-medium bg-slate-50 border-b border-slate-100">
+                      មិនមានសិស្សអវត្តមានទេនៅថ្ងៃនេះ! រីករាយណាស់! 🎉
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
