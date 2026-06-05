@@ -129,6 +129,61 @@ export default function Dashboard({
     };
   }, [filteredAttendance]);
 
+  // Build the daily absentee name list for the table below.
+  // Teachers only see their own class; the principal sees every class.
+  const dailyAbsentees = useMemo(() => {
+    const isTeacher = currentUser?.role === 'teacher';
+    const teacherGrade = currentUser?.grade;
+
+    // Map student id -> name/grade for fast name lookup
+    const idMap = new Map<string, { name: string; grade: string }>();
+    students.forEach(s => {
+      if (!idMap.has(s.id)) idMap.set(s.id, { name: s.name, grade: s.grade });
+    });
+
+    // Role/grade scoped records
+    const scoped = attendanceRecords.filter(rec => {
+      if (isTeacher && teacherGrade) return rec.grade === teacherGrade;
+      if (selectedGrade !== 'ទាំងអស់') return rec.grade === selectedGrade;
+      return true;
+    });
+
+    type AbsRow = { id: string; name: string; grade: string; status: 'late' | 'permission' | 'absent'; reason: string };
+    if (scoped.length === 0) {
+      return { date: null as string | null, rows: [] as AbsRow[], late: 0, permission: 0, absent: 0 };
+    }
+
+    // Latest recorded date within scope = "today"
+    const latestDate = scoped.reduce((m, r) => (r.date > m ? r.date : m), scoped[0].date);
+    const dayRecords = scoped.filter(r => r.date === latestDate);
+
+    const rows: AbsRow[] = [];
+    let late = 0, permission = 0, absent = 0;
+
+    dayRecords.forEach(rec => {
+      Object.keys(rec.studentStates).forEach(key => {
+        if (key.endsWith('_reason')) return;
+        const status = rec.studentStates[key];
+        if (status !== 'late' && status !== 'permission' && status !== 'absent') return;
+        const reason = (((rec.studentStates as any)[key + '_reason'] as string) || '').trim() || '—';
+        const info = idMap.get(key);
+        rows.push({ id: key, name: info ? info.name : '(មិនស្គាល់ឈ្មោះ)', grade: rec.grade, status, reason });
+        if (status === 'late') late++;
+        else if (status === 'permission') permission++;
+        else absent++;
+      });
+    });
+
+    const order: Record<string, number> = { absent: 0, permission: 1, late: 2 };
+    rows.sort((a, b) =>
+      (order[a.status] - order[b.status]) ||
+      a.grade.localeCompare(b.grade, 'km') ||
+      a.name.localeCompare(b.name, 'km')
+    );
+
+    return { date: latestDate, rows, late, permission, absent };
+  }, [attendanceRecords, students, currentUser, selectedGrade]);
+
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
@@ -624,6 +679,85 @@ export default function Dashboard({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Daily Absentee Name List Table */}
+      <div id="panel_daily_absentees" className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2 text-rose-600 font-bold mb-1">
+              <AlertCircle className="w-5 h-5 text-rose-500" />
+              <span className="text-xs uppercase tracking-wider font-bold">បញ្ជីសិស្សអវត្តមាន</span>
+            </div>
+            <h3 className="font-bold text-slate-800 text-base font-serif">តារាងសិស្សអវត្តមានប្រចាំថ្ងៃ</h3>
+            <p className="text-xs text-slate-400 mt-1">
+              {currentUser?.role === 'teacher'
+                ? `សិស្សអវត្តមានក្នុងថ្នាក់ ${currentUser?.grade || ''}`
+                : 'បញ្ជីសិស្សអវត្តមានទាំងអស់គ្រប់ថ្នាក់'}
+              {dailyAbsentees.date ? ` • ថ្ងៃទី ${dailyAbsentees.date}` : ''}
+            </p>
+          </div>
+
+          {/* Summary chips: late / permission / no-permission */}
+          <div className="flex items-center gap-2 text-[11px] font-bold">
+            <span className="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-100 flex items-center gap-1.5">
+              យឺត <span className="font-mono">{dailyAbsentees.late}</span>
+            </span>
+            <span className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1.5">
+              ច្បាប់ <span className="font-mono">{dailyAbsentees.permission}</span>
+            </span>
+            <span className="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-100 flex items-center gap-1.5">
+              អត់ច្បាប់ <span className="font-mono">{dailyAbsentees.absent}</span>
+            </span>
+          </div>
+        </div>
+
+        {dailyAbsentees.rows.length > 0 ? (
+          <div className="border border-slate-100 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-600">
+                <thead>
+                  <tr className="bg-slate-50/40 border-b border-slate-150 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                    <th className="px-4 py-2.5">ល.រ</th>
+                    <th className="px-4 py-2.5">ឈ្មោះសិស្ស</th>
+                    <th className="px-4 py-2.5">ថ្នាក់រៀន</th>
+                    <th className="px-4 py-2.5 text-center">ស្ថានភាព</th>
+                    <th className="px-4 py-2.5">មូលហេតុនៃអវត្តមាន</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {dailyAbsentees.rows.map((row, idx) => {
+                    const badge = row.status === 'absent'
+                      ? { label: 'អត់ច្បាប់', cls: 'bg-rose-50 text-rose-700' }
+                      : row.status === 'permission'
+                      ? { label: 'ច្បាប់', cls: 'bg-blue-50 text-blue-700' }
+                      : { label: 'យឺត', cls: 'bg-amber-50 text-amber-700' };
+                    return (
+                      <tr key={row.id + '_' + idx} className="hover:bg-slate-50/50 transition-all">
+                        <td className="px-4 py-3 font-mono text-slate-400">{idx + 1}</td>
+                        <td className="px-4 py-3 font-bold text-slate-800 font-sans">{row.name}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-600 font-sans">{row.grade}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badge.cls}`}>{badge.label}</span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 font-sans">{row.reason}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="py-12 flex flex-col items-center justify-center text-slate-400 text-xs">
+            <UserCheck size={36} className="text-emerald-300 mb-2" />
+            <p className="font-semibold text-slate-500">
+              {dailyAbsentees.date
+                ? 'អបអរសាទរ! គ្មានសិស្សអវត្តមាននៅថ្ងៃនេះទេ 🎉'
+                : 'មិនទាន់មានទិន្នន័យវត្តមានប្រចាំថ្ងៃត្រូវបានកត់ត្រានៅឡើយទេ'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
