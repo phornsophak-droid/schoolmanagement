@@ -22,6 +22,7 @@ import {
   Clock
 } from 'lucide-react';
 import { SchoolReport, StudentScore, SchoolUser } from '../types';
+import schoolLogo from '../assets/logo.png';
 
 interface AttendanceRecord {
   id: string;
@@ -276,6 +277,105 @@ export default function Dashboard({
       list
     };
   }, [attendanceRecords, students, latestAttendanceDate, selectedGrade]);
+
+  // Generate a clean, branded printable daily-absentee report (Save as PDF) via a hidden iframe.
+  const handleDownloadDailyPdf = () => {
+    const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+    const { date, lateCount, permissionCount, absentCount, totalAbsences, list } = dailyAbsentReport;
+    const scopeLabel = currentUser?.role === 'teacher' ? `ថ្នាក់៖ ${currentUser?.grade || ''}` : 'គ្រប់ថ្នាក់ទាំងអស់';
+
+    const rowsHtml = list.length > 0
+      ? list.map((r: any, i: number) => {
+          const label = r.todayStatus === 'absent' ? 'អត់ច្បាប់' : r.todayStatus === 'permission' ? 'មានច្បាប់' : 'ចូលរៀនយឺត';
+          const bg = r.todayStatus === 'absent' ? '#ffe4e6' : r.todayStatus === 'permission' ? '#dbeafe' : '#fef3c7';
+          const fg = r.todayStatus === 'absent' ? '#be123c' : r.todayStatus === 'permission' ? '#1d4ed8' : '#b45309';
+          const totAbs = (r.cumulativePermission || 0) + (r.cumulativeAbsent || 0);
+          return `<tr><td style="text-align:center;color:#94a3b8">${i + 1}</td><td style="font-weight:bold">${esc(r.name)}</td><td>${esc(r.grade)}</td><td>${esc(r.gender)}</td><td style="text-align:center;color:#d97706;font-weight:bold">${r.cumulativeLate || 0}</td><td style="text-align:center;color:#2563eb;font-weight:bold">${r.cumulativePermission || 0}</td><td style="text-align:center;color:#e11d48;font-weight:bold">${r.cumulativeAbsent || 0}</td><td style="text-align:center;font-weight:bold;color:#0f172a">${totAbs}</td><td style="text-align:center"><span class="pill" style="background:${bg};color:${fg}">${label}</span></td><td>${esc(r.reason) || '—'}</td></tr>`;
+        }).join('')
+      : `<tr><td colspan="10" style="text-align:center;padding:22px;color:#16a34a">មិនមានសិស្សអវត្តមានទេនៅថ្ងៃនេះ! 🎉</td></tr>`;
+
+    const html = `<!doctype html><html lang="km"><head><meta charset="utf-8">
+      <title>របាយការណ៍អវត្តមាន ${date || ''}</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700&display=swap" rel="stylesheet">
+      <style>
+        *{font-family:'Noto Sans Khmer','Khmer OS',sans-serif;box-sizing:border-box}
+        html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{margin:24px;color:#1e293b;font-size:11px}
+        .header{display:flex;flex-direction:column;align-items:center;border-bottom:2px solid #1e3a8a;padding-bottom:9px;margin-bottom:4px}
+        .logo{width:60px;height:60px;margin-bottom:4px}
+        h1{font-size:16px;margin:0;text-align:center;color:#1e3a8a;font-weight:bold}
+        .sub{text-align:center;color:#475569;font-size:11px;margin:2px 0 0}
+        .meta{display:flex;justify-content:space-between;font-size:11px;margin:12px 0 9px;font-weight:bold;color:#334155}
+        .meta .date{color:#1d4ed8}
+        .totals{display:flex;gap:8px;margin:0 0 12px}
+        .box{flex:1;border:1px solid;border-radius:8px;padding:7px 8px;text-align:center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        .box .n{font-size:17px;font-weight:bold;line-height:1}
+        .box .l{font-size:9px;margin-top:2px;font-weight:bold}
+        .b-late{background:#fffbeb;border-color:#fde68a}.b-late .n,.b-late .l{color:#b45309}
+        .b-perm{background:#eff6ff;border-color:#bfdbfe}.b-perm .n,.b-perm .l{color:#1d4ed8}
+        .b-abs{background:#fff1f2;border-color:#fecdd3}.b-abs .n,.b-abs .l{color:#be123c}
+        .b-tot{background:#eef2ff;border-color:#c7d2fe}.b-tot .n,.b-tot .l{color:#4338ca}
+        table{width:100%;border-collapse:collapse;font-size:9.5px;border:1px solid #e2e8f0}
+        th{background:#1e3a8a;color:#fff;padding:5px 7px;text-align:left;font-size:9px;font-weight:bold;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        td{border-top:1px solid #e2e8f0;padding:4px 7px;text-align:left}
+        tbody tr:nth-child(even){background:#f8fafc}
+        .pill{padding:2px 7px;border-radius:999px;font-weight:bold;font-size:9px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        .foot{margin-top:16px;font-size:9px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:7px}
+        .foot b{color:#f59e0b}
+        @page{margin:12mm}
+      </style></head>
+      <body>
+        <div class="header">
+          <div class="logo"><img src="${schoolLogo}" alt="logo" style="width:60px;height:60px;object-fit:contain"/></div>
+          <h1>សាលាសហគមន៍ច្បារច្រុះ</h1>
+          <div class="sub">របាយការណ៍សិស្សអវត្តមានប្រចាំថ្ងៃ</div>
+        </div>
+        <div class="meta"><span>${scopeLabel}</span><span class="date">កាលបរិច្ឆេទ៖ ${date || '—'}</span></div>
+        <div class="totals">
+          <div class="box b-late"><div class="n">${lateCount}</div><div class="l">យឺតសរុប</div></div>
+          <div class="box b-perm"><div class="n">${permissionCount}</div><div class="l">ច្បាប់សរុប</div></div>
+          <div class="box b-abs"><div class="n">${absentCount}</div><div class="l">អត់ច្បាប់សរុប</div></div>
+          <div class="box b-tot"><div class="n">${totalAbsences}</div><div class="l">អវត្តមានសរុប</div></div>
+        </div>
+        <table>
+          <thead><tr><th style="width:30px;text-align:center">ល.រ</th><th>ឈ្មោះសិស្ស</th><th>ថ្នាក់រៀន</th><th>ភេទ</th><th style="text-align:center">សរុបយឺត</th><th style="text-align:center">សរុបច្បាប់</th><th style="text-align:center">សរុបអត់ច្បាប់</th><th style="text-align:center">សរុបអវត្តមាន</th><th>ស្ថានភាព</th><th>មូលហេតុ</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+        <div class="foot">បង្កើតដោយ<b>ប្រព័ន្ធគ្រប់គ្រងសាលា</b> • ${new Date().toLocaleString('en-GB')}</div>
+      </body></html>`;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (!doc) { iframe.remove(); return; }
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    // Wait for the logo image to finish loading before printing so it appears in the PDF.
+    let printed = false;
+    const finishAndPrint = () => {
+      if (printed) return;
+      printed = true;
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error('Daily report print failed', err);
+      }
+      setTimeout(() => iframe.remove(), 1000);
+    };
+    const logoImg = doc.querySelector('img');
+    if (logoImg && !logoImg.complete) {
+      logoImg.addEventListener('load', () => setTimeout(finishAndPrint, 200));
+      logoImg.addEventListener('error', () => setTimeout(finishAndPrint, 200));
+      setTimeout(finishAndPrint, 2000); // safety fallback
+    } else {
+      setTimeout(finishAndPrint, 400);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -532,7 +632,7 @@ export default function Dashboard({
             </div>
           </div>
           <button 
-            onClick={() => window.print()}
+            onClick={handleDownloadDailyPdf}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-sm font-bold transition duration-200 cursor-pointer shadow-md shadow-rose-200"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
