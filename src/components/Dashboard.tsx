@@ -226,9 +226,9 @@ export default function Dashboard({
       ? rows.map((r, i) => {
           const label = r.status === 'absent' ? 'អត់ច្បាប់' : r.status === 'permission' ? 'ច្បាប់' : 'យឺត';
           const color = r.status === 'absent' ? '#e11d48' : r.status === 'permission' ? '#2563eb' : '#d97706';
-          return `<tr><td style="text-align:center">${i + 1}</td><td>${esc(r.name)}<div style="font-size:10px;color:#94a3b8">${esc(r.grade)}</div></td><td>${esc(r.gender)}</td><td style="color:${color};font-weight:bold">${label}</td><td style="text-align:center">${r.totLate}</td><td style="text-align:center">${r.totPermission}</td><td style="text-align:center">${r.totAbsent}</td><td style="text-align:center;font-weight:bold">${r.totAbsence}</td><td>${esc(r.reason)}</td></tr>`;
+          return `<tr><td style="text-align:center">${i + 1}</td><td>${esc(r.name)}</td><td>${esc(r.grade)}</td><td>${esc(r.gender)}</td><td style="text-align:center">${r.totLate}</td><td style="text-align:center">${r.totPermission}</td><td style="text-align:center">${r.totAbsent}</td><td style="text-align:center;font-weight:bold">${r.totAbsence}</td><td style="color:${color};font-weight:bold">${label}</td><td>${esc(r.reason)}</td></tr>`;
         }).join('')
-      : `<tr><td colspan="9" style="text-align:center;padding:24px;color:#16a34a">គ្មានសិស្សអវត្តមាននៅថ្ងៃនេះទេ 🎉</td></tr>`;
+      : `<tr><td colspan="10" style="text-align:center;padding:24px;color:#16a34a">គ្មានសិស្សអវត្តមាននៅថ្ងៃនេះទេ 🎉</td></tr>`;
 
     const html = `<!doctype html><html lang="km"><head><meta charset="utf-8">
       <title>របាយការណ៍អវត្តមាន ${date || ''}</title>
@@ -261,7 +261,7 @@ export default function Dashboard({
           <div class="box"><div class="n">${rows.length}</div><div class="l">អវត្តមានសរុប</div></div>
         </div>
         <table>
-          <thead><tr><th style="width:36px;text-align:center">ល.រ</th><th>ឈ្មោះសិស្ស</th><th>ភេទ</th><th>ស្ថានភាព</th><th style="text-align:center">សរុបយឺត</th><th style="text-align:center">សរុបច្បាប់</th><th style="text-align:center">សរុបអត់ច្បាប់</th><th style="text-align:center">សរុបអវត្តមាន</th><th>មូលហេតុ</th></tr></thead>
+          <thead><tr><th style="width:32px;text-align:center">ល.រ</th><th>ឈ្មោះសិស្ស</th><th>ថ្នាក់រៀន</th><th>ភេទ</th><th style="text-align:center">សរុបយឺត</th><th style="text-align:center">សរុបច្បាប់</th><th style="text-align:center">សរុបអត់ច្បាប់</th><th style="text-align:center">សរុបអវត្តមាន</th><th>ស្ថានភាព</th><th>មូលហេតុ</th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
         <div class="foot">បង្កើតដោយប្រព័ន្ធគ្រប់គ្រងសាលា • ${new Date().toLocaleString('en-GB')}</div>
@@ -840,12 +840,13 @@ export default function Dashboard({
                   <tr className="bg-slate-50/40 border-b border-slate-150 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                     <th className="px-4 py-2.5">ល.រ</th>
                     <th className="px-4 py-2.5">ឈ្មោះសិស្ស</th>
+                    <th className="px-4 py-2.5">ថ្នាក់រៀន</th>
                     <th className="px-4 py-2.5">ភេទ</th>
-                    <th className="px-4 py-2.5 text-center">ស្ថានភាពថ្ងៃនេះ</th>
                     <th className="px-4 py-2.5 text-center">សរុបយឺត</th>
                     <th className="px-4 py-2.5 text-center">សរុបច្បាប់</th>
                     <th className="px-4 py-2.5 text-center">សរុបអត់ច្បាប់</th>
                     <th className="px-4 py-2.5 text-center">សរុបអវត្តមាន</th>
+                    <th className="px-4 py-2.5 text-center">ស្ថានភាពថ្ងៃនេះ</th>
                     <th className="px-4 py-2.5">មូលហេតុ</th>
                   </tr>
                 </thead>
@@ -861,16 +862,17 @@ export default function Dashboard({
                         <td className="px-4 py-3 font-mono text-slate-400">{idx + 1}</td>
                         <td className="px-4 py-3">
                           <div className="font-bold text-slate-800 font-sans">{row.name}</div>
-                          <div className="text-[10px] text-slate-400 font-sans">{row.grade} • ID: {row.id.slice(-5)}</div>
+                          <div className="text-[10px] text-slate-400 font-sans">ID: {row.id.slice(-5)}</div>
                         </td>
+                        <td className="px-4 py-3 font-semibold text-slate-700 font-sans">{row.grade}</td>
                         <td className="px-4 py-3 font-semibold text-slate-600 font-sans">{row.gender || '—'}</td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badge.cls}`}>{badge.label}</span>
-                        </td>
                         <td className="px-4 py-3 text-center font-mono font-bold text-amber-600">{row.totLate}</td>
                         <td className="px-4 py-3 text-center font-mono font-bold text-blue-600">{row.totPermission}</td>
                         <td className="px-4 py-3 text-center font-mono font-bold text-rose-600">{row.totAbsent}</td>
                         <td className="px-4 py-3 text-center font-mono font-bold text-slate-800">{row.totAbsence}</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${badge.cls}`}>{badge.label}</span>
+                        </td>
                         <td className="px-4 py-3 text-slate-600 font-sans">{row.reason}</td>
                       </tr>
                     );
