@@ -77,8 +77,14 @@ export default function App() {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Supabase connection panel active states
-  const [isSupabasePanelExpanded, setIsSupabasePanelExpanded] = useState(true);
+  // Supabase connection panel active states.
+  // Default to the small collapsed pill (less intrusive); remember the user's choice.
+  const [isSupabasePanelExpanded, setIsSupabasePanelExpanded] = useState<boolean>(
+    () => localStorage.getItem('school_supabase_panel_expanded') === 'true'
+  );
+  useEffect(() => {
+    localStorage.setItem('school_supabase_panel_expanded', String(isSupabasePanelExpanded));
+  }, [isSupabasePanelExpanded]);
 
   // User session state
   const [currentUser, setCurrentUser] = useState<SchoolUser | null>(null);
