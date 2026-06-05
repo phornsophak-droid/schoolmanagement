@@ -239,27 +239,27 @@ export default function Dashboard({
       <style>
         *{font-family:'Noto Sans Khmer','Khmer OS',sans-serif;box-sizing:border-box}
         html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-        body{margin:28px;color:#1e293b}
-        .header{display:flex;flex-direction:column;align-items:center;border-bottom:3px solid #1e3a8a;padding-bottom:14px;margin-bottom:6px}
-        .logo{height:66px;width:66px;object-fit:contain;margin-bottom:6px}
-        h1{font-size:22px;margin:0;text-align:center;color:#1e3a8a;font-weight:bold}
-        .sub{text-align:center;color:#475569;font-size:13px;margin:3px 0 0}
-        .meta{display:flex;justify-content:space-between;font-size:13px;margin:16px 0 14px;font-weight:bold;color:#334155}
+        body{margin:24px;color:#1e293b;font-size:11px}
+        .header{display:flex;flex-direction:column;align-items:center;border-bottom:2px solid #1e3a8a;padding-bottom:9px;margin-bottom:4px}
+        .logo{height:50px;width:50px;object-fit:contain;margin-bottom:4px}
+        h1{font-size:16px;margin:0;text-align:center;color:#1e3a8a;font-weight:bold}
+        .sub{text-align:center;color:#475569;font-size:11px;margin:2px 0 0}
+        .meta{display:flex;justify-content:space-between;font-size:11px;margin:12px 0 9px;font-weight:bold;color:#334155}
         .meta .date{color:#1d4ed8}
-        .totals{display:flex;gap:10px;margin:0 0 18px}
-        .box{flex:1;border:1px solid;border-radius:12px;padding:12px;text-align:center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-        .box .n{font-size:24px;font-weight:bold;line-height:1}
-        .box .l{font-size:11px;margin-top:4px;font-weight:bold}
+        .totals{display:flex;gap:8px;margin:0 0 12px}
+        .box{flex:1;border:1px solid;border-radius:8px;padding:7px 8px;text-align:center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        .box .n{font-size:17px;font-weight:bold;line-height:1}
+        .box .l{font-size:9px;margin-top:2px;font-weight:bold}
         .b-late{background:#fffbeb;border-color:#fde68a}.b-late .n,.b-late .l{color:#b45309}
         .b-perm{background:#eff6ff;border-color:#bfdbfe}.b-perm .n,.b-perm .l{color:#1d4ed8}
         .b-abs{background:#fff1f2;border-color:#fecdd3}.b-abs .n,.b-abs .l{color:#be123c}
         .b-tot{background:#eef2ff;border-color:#c7d2fe}.b-tot .n,.b-tot .l{color:#4338ca}
-        table{width:100%;border-collapse:collapse;font-size:12.5px;border:1px solid #e2e8f0}
-        th{background:#1e3a8a;color:#fff;padding:9px 10px;text-align:left;font-size:12px;font-weight:bold;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-        td{border-top:1px solid #e2e8f0;padding:8px 10px;text-align:left}
+        table{width:100%;border-collapse:collapse;font-size:9.5px;border:1px solid #e2e8f0}
+        th{background:#1e3a8a;color:#fff;padding:5px 7px;text-align:left;font-size:9px;font-weight:bold;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        td{border-top:1px solid #e2e8f0;padding:4px 7px;text-align:left}
         tbody tr:nth-child(even){background:#f8fafc}
-        .pill{padding:3px 10px;border-radius:999px;font-weight:bold;font-size:11px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-        .foot{margin-top:22px;font-size:11px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px}
+        .pill{padding:2px 7px;border-radius:999px;font-weight:bold;font-size:9px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+        .foot{margin-top:16px;font-size:9px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:7px}
         .foot b{color:#f59e0b}
         @page{margin:13mm}
       </style></head>
