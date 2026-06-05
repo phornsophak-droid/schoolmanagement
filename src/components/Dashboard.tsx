@@ -189,29 +189,6 @@ export default function Dashboard({
     };
   }, [filteredStudents]);
 
-  // Donut chart calculations
-  const donutData = useMemo(() => {
-    const total = stats.totalRecordCount;
-    if (total === 0) return null;
-
-    const r = 50;
-    const circumference = 2 * Math.PI * r;
-    const passPercent = (stats.passCount / total) * 100;
-    const failPercent = (stats.failCount / total) * 100;
-
-    const passStroke = (passPercent / 100) * circumference;
-    const failStroke = (failPercent / 100) * circumference;
-
-    return {
-      r,
-      circumference,
-      passPercent,
-      failPercent,
-      passStroke,
-      failStroke
-    };
-  }, [stats]);
-
   // Find the latest attendance date
   const latestAttendanceDate = useMemo(() => {
     if (attendanceRecords.length === 0) return new Date().toISOString().split('T')[0];
@@ -357,7 +334,7 @@ export default function Dashboard({
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {/* KPI 1: Reports Count */}
         <div id="kpi_reports" className="relative overflow-hidden bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
@@ -381,299 +358,11 @@ export default function Dashboard({
             <p className="text-xs text-slate-500 mt-1">ស្រី៖ <span className="font-bold text-emerald-600">{stats.femaleCount}</span> នាក់</p>
           </div>
         </div>
-
-        {/* KPI 3: Global Average */}
-        <div id="kpi_gpa" className="relative overflow-hidden bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-            <Award size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-400">សិស្សជាប់មធ្យមភាគ</p>
-            <h3 className="text-2xl font-bold text-amber-600 mt-1 font-mono">
-              {stats.passCount} <span className="text-sm font-normal text-slate-500">នាក់</span>
-            </h3>
-            <p className="text-[10px] text-slate-400 mt-1.5">ផ្អែកលើការវាយតម្លៃគ្រប់មុខវិជ្ជា</p>
-          </div>
-        </div>
-
-        {/* KPI 4: Failed Students */}
-        <div id="kpi_failing" className="relative overflow-hidden bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-          <div className="p-3 bg-rose-50 text-rose-500 rounded-xl">
-            <AlertCircle size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-400">សិស្សធ្លាក់ (មធ្យមភាគ &lt; ៥)</p>
-            <h3 className="text-2xl font-bold text-rose-600 mt-1 font-mono">{stats.failCount} <span className="text-sm font-normal text-slate-500">នាក់</span></h3>
-            <p className="text-[10px] text-rose-500/80 mt-1.5">ត្រូវការយកចិត្តទុកដាក់ខ្ពស់</p>
-          </div>
-        </div>
       </div>
 
       {/* Main Analytics Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Pass/Fail Proportion Pie/Donut Chart */}
-        <div id="panel_pie_chart" className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="font-semibold text-slate-800 text-base">សមាមាត្រសិស្ស ជាប់ និងធ្លាក់</h3>
-            <p className="text-xs text-slate-400 mt-1">គិតជាភាគរយនៃសិស្សទាំងអស់ដែលបានចម្រោះរួច</p>
-          </div>
-
-          <div className="flex flex-col items-center justify-center py-6">
-            {donutData ? (
-              <div className="relative w-44 h-44">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                  {/* Background Track circle */}
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r={donutData.r}
-                    fill="transparent"
-                    stroke="#f1f5f9"
-                    strokeWidth="12"
-                  />
-                  {/* Passed Slice */}
-                  {stats.passCount > 0 && (
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r={donutData.r}
-                      fill="transparent"
-                      stroke="#10b981" // emerald-500
-                      strokeWidth="12"
-                      strokeDasharray={`${donutData.passStroke} ${donutData.circumference}`}
-                    />
-                  )}
-                  {/* Failed Slice */}
-                  {stats.failCount > 0 && (
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r={donutData.r}
-                      fill="transparent"
-                      stroke="#f43f5e" // rose-500
-                      strokeWidth="12"
-                      strokeDasharray={`${donutData.failStroke} ${donutData.circumference}`}
-                      strokeDashoffset={-donutData.passStroke}
-                    />
-                  )}
-                </svg>
-                {/* Donut Center texts */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-xs font-medium text-slate-400">ជាប់</span>
-                  <span className="text-xl font-bold text-emerald-600 font-mono">
-                    {donutData.passPercent.toFixed(0)}%
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="h-44 flex flex-col items-center justify-center text-slate-400 text-xs">
-                <FolderOpen className="mx-auto text-slate-300 mb-2" size={32} />
-                គ្មានទិន្នន័យសម្រាប់គូរក្រាហ្វិកទេ
-              </div>
-            )}
-          </div>
-
-          {/* Legend Items */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-emerald-500" />
-              <div>
-                <p className="text-slate-400 text-[10px]">សិស្សជាប់</p>
-                <p className="font-semibold text-slate-800 mt-0.5">{stats.passCount} នាក់</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-rose-500" />
-              <div>
-                <p className="text-slate-400 text-[10px]">សិស្សធ្លាក់</p>
-                <p className="font-semibold text-slate-800 mt-0.5">{stats.failCount} នាក់</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Reports Registry Listing */}
-        <div id="panel_report_list" className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-slate-800 text-base">បញ្ជីរបាយការណ៍ដែលបានរក្សាទុក</h3>
-              <p className="text-xs text-slate-400 mt-1">របាយការណ៍ប្រចាំខែផ្លូវការរបស់គ្រូបន្ទុកថ្នាក់</p>
-            </div>
-            <span className="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-mono text-xs border border-slate-100">
-              សរុប {filteredReports.length}
-            </span>
-          </div>
-
-          {filteredReports.length > 0 ? (
-            <div className="flex-1 overflow-y-auto max-h-[300px] pr-1 space-y-2.5">
-              {filteredReports.map((report) => (
-                <div 
-                  key={report.id}
-                  className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl hover:border-blue-100 hover:bg-blue-50/20 transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                      <Calendar size={18} />
-                    </div>
-                    <div>
-                      <h4 className="text-slate-800 font-medium text-sm">
-                        របាយការណ៍ {report.generalInfo.month} - {report.generalInfo.grade}
-                      </h4>
-                      <p className="text-xs text-slate-500 mt-1">
-                        គ្រូ៖ {report.generalInfo.teacherName} | ឆ្នាំសិក្សា៖ {report.generalInfo.academicYear}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onViewReport(report)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-semibold text-blue-700 hover:bg-blue-50 hover:border-blue-200 transition-colors"
-                      title="មើលលម្អិត និងបោះពុម្ព"
-                    >
-                      <Eye size={13} />
-                      ព័ត៌មានលម្អិត
-                    </button>
-                    {currentUser?.role !== 'teacher' && (
-                      <button
-                        onClick={() => onDeleteReport(report.id)}
-                        className="p-1.5 bg-white border border-rose-100 rounded-md text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors"
-                        title="លុបរបាយការណ៍"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-12">
-              <FolderOpen size={40} className="text-slate-300 mb-2" />
-              <p className="text-sm">មិនទាន់មានរបាយការណ៍ដែលត្រូវនឹងការស្វែងរករបស់អ្នកនៅឡើយទេ</p>
-              <button 
-                onClick={onCreateReportClick}
-                className="mt-4 px-4 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-xs font-semibold hover:bg-blue-100/50 transition-colors"
-              >
-                ចុចទីនេះដើម្បីសរសេររបាយការណ៍ឥឡូវនេះ
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Daily Absent Students Report Panel (Restored) */}
-      <div id="panel_daily_absent" className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
-          <div className="flex items-start gap-4">
-            <div className="mt-1 w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex flex-shrink-0 items-center justify-center">
-              <AlertCircle size={20} />
-            </div>
-            <div>
-              <p className="text-rose-600 font-bold text-sm uppercase tracking-wider mb-1 flex items-center gap-2">
-                បញ្ជីសិស្សអវត្តមាន
-              </p>
-              <h3 className="font-bold text-[#1e293b] text-2xl font-serif">តារាងសិស្សអវត្តមានប្រចាំថ្ងៃ</h3>
-              <p className="text-xs text-slate-400 mt-2">
-                បញ្ជីសិស្សអវត្តមានទាំងអស់គ្រប់ថ្នាក់ • ថ្ងៃទី <span className="font-bold text-slate-500">{dailyAbsentReport.date}</span>
-              </p>
-            </div>
-          </div>
-          <button 
-            onClick={() => window.print()}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-sm font-bold transition duration-200 cursor-pointer shadow-md shadow-rose-200"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            ទាញយករបាយការណ៍ប្រចាំថ្ងៃ (PDF)
-          </button>
-        </div>
-
-        {/* 4 Cards Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-[#FFFDF7] py-6 px-4 rounded-xl border border-amber-200 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(251,191,36,0.05)]">
-            <h4 className="text-4xl font-black text-amber-500 font-mono leading-none">{dailyAbsentReport.lateCount}</h4>
-            <p className="text-xs text-amber-600 font-black mt-3.5 uppercase tracking-wider">យឺតសរុប</p>
-          </div>
-          <div className="bg-[#F0F5FF] py-6 px-4 rounded-xl border border-blue-200 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(59,130,246,0.05)]">
-            <h4 className="text-4xl font-black text-blue-600 font-mono leading-none">{dailyAbsentReport.permissionCount}</h4>
-            <p className="text-xs text-blue-600 font-black mt-3.5 uppercase tracking-wider">ច្បាប់សរុប</p>
-          </div>
-          <div className="bg-[#FFF5F5] py-6 px-4 rounded-xl border border-rose-100 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
-            <h4 className="text-4xl font-black text-rose-500 font-mono leading-none">{dailyAbsentReport.absentCount}</h4>
-            <p className="text-xs text-rose-500 font-black mt-3.5 uppercase tracking-wider">អត់ច្បាប់សរុប</p>
-          </div>
-          <div className="bg-white py-6 px-4 rounded-xl border border-[#334155] flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
-            <h4 className="text-4xl font-black text-[#334155] font-mono leading-none">{dailyAbsentReport.totalAbsences}</h4>
-            <p className="text-xs text-[#64748b] font-black mt-3.5 uppercase tracking-wider">អវត្តមានសរុប</p>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-hidden mt-6">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-[#334155]">
-              <thead className="border-b border-slate-200 text-[#64748b] font-bold text-[11px] uppercase tracking-wider">
-                <tr>
-                  <th className="px-5 py-4 text-center w-12 font-bold">ល.រ</th>
-                  <th className="px-5 py-4 font-bold">ឈ្មោះសិស្ស</th>
-                  <th className="px-5 py-4 font-bold">ថ្នាក់រៀន</th>
-                  <th className="px-5 py-4 font-bold">ភេទ</th>
-                  <th className="px-4 py-4 text-center font-bold">សរុបយឺត</th>
-                  <th className="px-4 py-4 text-center font-bold">សរុបច្បាប់</th>
-                  <th className="px-4 py-4 text-center text-rose-600 font-bold">សរុបអត់ច្បាប់</th>
-                  <th className="px-4 py-4 text-center text-slate-700 font-bold">សរុបអវត្តមាន</th>
-                  <th className="px-5 py-4 text-center font-bold">ស្ថានភាពថ្ងៃនេះ</th>
-                  <th className="px-5 py-4 font-bold">មូលហេតុ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {dailyAbsentReport.list.length > 0 ? (
-                  dailyAbsentReport.list.map((student, idx) => {
-                    const totalAbsent = student.cumulativePermission + student.cumulativeAbsent;
-                    return (
-                      <tr key={idx} className="hover:bg-slate-50 transition-all font-medium">
-                        <td className="px-5 py-5 text-center text-slate-400 font-mono text-xs">{idx + 1}</td>
-                        <td className="px-5 py-5">
-                          <p className="text-sm font-black text-[#1e293b]">{student.name}</p>
-                          <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase">ID: {student.id.substring(0, 5)}</p>
-                        </td>
-                        <td className="px-5 py-5 font-black text-[#475569]">{student.grade}</td>
-                        <td className="px-5 py-5 text-[#475569]">{student.gender}</td>
-                        <td className="px-4 py-5 text-center text-amber-500 font-black font-mono">{student.cumulativeLate}</td>
-                        <td className="px-4 py-5 text-center text-blue-600 font-black font-mono">{student.cumulativePermission}</td>
-                        <td className="px-4 py-5 text-center text-rose-600 font-black font-mono">{student.cumulativeAbsent}</td>
-                        <td className="px-4 py-5 text-center font-black text-[#0f172a] font-mono">{totalAbsent}</td>
-                        <td className="px-5 py-5 text-center">
-                          {student.todayStatus === 'late' && (
-                            <span className="text-[11px] font-black tracking-wide text-amber-500">ចូលរៀនយឺត</span>
-                          )}
-                          {student.todayStatus === 'permission' && (
-                            <span className="text-[11px] font-black tracking-wide text-blue-600">មានច្បាប់</span>
-                          )}
-                          {student.todayStatus === 'absent' && (
-                            <span className="text-[11px] font-black tracking-wide text-rose-600">អត់ច្បាប់</span>
-                          )}
-                        </td>
-                        <td className="px-5 py-5 text-[#64748b] text-[12px]">
-                          {student.reason || 'ខ្ជិល'}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={10} className="px-5 py-12 text-center text-slate-400 font-medium bg-slate-50 border-b border-slate-100">
-                      មិនមានសិស្សអវត្តមានទេនៅថ្ងៃនេះ! រីករាយណាស់! 🎉
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Daily Attendance Summary Executive Report Panel */}
+      <div className="flex flex-col gap-8">
+        {/* Daily Attendance Summary Executive Report Panel */}
       <div id="panel_attendance_summary" className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-100 pb-4">
           <div>
@@ -820,6 +509,187 @@ export default function Dashboard({
                   ➕ ចុចទីនេះដើម្បីចាប់ផ្តើមកត់វត្តមានដំបូង
                 </button>
               )}
+            </div>
+          )}
+        </div>
+      </div>
+
+        {/* Daily Absent Students Report Panel (Restored) */}
+      <div id="panel_daily_absent" className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+          <div className="flex items-start gap-4">
+            <div className="mt-1 w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex flex-shrink-0 items-center justify-center">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <p className="text-rose-600 font-bold text-sm uppercase tracking-wider mb-1 flex items-center gap-2">
+                បញ្ជីសិស្សអវត្តមាន
+              </p>
+              <h3 className="font-bold text-[#1e293b] text-2xl font-serif">តារាងសិស្សអវត្តមានប្រចាំថ្ងៃ</h3>
+              <p className="text-xs text-slate-400 mt-2">
+                បញ្ជីសិស្សអវត្តមានទាំងអស់គ្រប់ថ្នាក់ • ថ្ងៃទី <span className="font-bold text-slate-500">{dailyAbsentReport.date}</span>
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => window.print()}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-sm font-bold transition duration-200 cursor-pointer shadow-md shadow-rose-200"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            ទាញយករបាយការណ៍ប្រចាំថ្ងៃ (PDF)
+          </button>
+        </div>
+
+        {/* 4 Cards Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-[#FFFDF7] py-6 px-4 rounded-xl border border-amber-200 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(251,191,36,0.05)]">
+            <h4 className="text-4xl font-black text-amber-500 font-mono leading-none">{dailyAbsentReport.lateCount}</h4>
+            <p className="text-xs text-amber-600 font-black mt-3.5 uppercase tracking-wider">យឺតសរុប</p>
+          </div>
+          <div className="bg-[#F0F5FF] py-6 px-4 rounded-xl border border-blue-200 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(59,130,246,0.05)]">
+            <h4 className="text-4xl font-black text-blue-600 font-mono leading-none">{dailyAbsentReport.permissionCount}</h4>
+            <p className="text-xs text-blue-600 font-black mt-3.5 uppercase tracking-wider">ច្បាប់សរុប</p>
+          </div>
+          <div className="bg-[#FFF5F5] py-6 px-4 rounded-xl border border-rose-100 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
+            <h4 className="text-4xl font-black text-rose-500 font-mono leading-none">{dailyAbsentReport.absentCount}</h4>
+            <p className="text-xs text-rose-500 font-black mt-3.5 uppercase tracking-wider">អត់ច្បាប់សរុប</p>
+          </div>
+          <div className="bg-white py-6 px-4 rounded-xl border border-[#334155] flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
+            <h4 className="text-4xl font-black text-[#334155] font-mono leading-none">{dailyAbsentReport.totalAbsences}</h4>
+            <p className="text-xs text-[#64748b] font-black mt-3.5 uppercase tracking-wider">អវត្តមានសរុប</p>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-hidden mt-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-[#334155]">
+              <thead className="border-b border-slate-200 text-[#64748b] font-bold text-[11px] uppercase tracking-wider">
+                <tr>
+                  <th className="px-5 py-4 text-center w-12 font-bold">ល.រ</th>
+                  <th className="px-5 py-4 font-bold">ឈ្មោះសិស្ស</th>
+                  <th className="px-5 py-4 font-bold">ថ្នាក់រៀន</th>
+                  <th className="px-5 py-4 font-bold">ភេទ</th>
+                  <th className="px-4 py-4 text-center font-bold">សរុបយឺត</th>
+                  <th className="px-4 py-4 text-center font-bold">សរុបច្បាប់</th>
+                  <th className="px-4 py-4 text-center text-rose-600 font-bold">សរុបអត់ច្បាប់</th>
+                  <th className="px-4 py-4 text-center text-slate-700 font-bold">សរុបអវត្តមាន</th>
+                  <th className="px-5 py-4 text-center font-bold">ស្ថានភាពថ្ងៃនេះ</th>
+                  <th className="px-5 py-4 font-bold">មូលហេតុ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {dailyAbsentReport.list.length > 0 ? (
+                  dailyAbsentReport.list.map((student, idx) => {
+                    const totalAbsent = student.cumulativePermission + student.cumulativeAbsent;
+                    return (
+                      <tr key={idx} className="hover:bg-slate-50 transition-all font-medium">
+                        <td className="px-5 py-5 text-center text-slate-400 font-mono text-xs">{idx + 1}</td>
+                        <td className="px-5 py-5">
+                          <p className="text-sm font-black text-[#1e293b]">{student.name}</p>
+                          <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase">ID: {student.id.substring(0, 5)}</p>
+                        </td>
+                        <td className="px-5 py-5 font-black text-[#475569]">{student.grade}</td>
+                        <td className="px-5 py-5 text-[#475569]">{student.gender}</td>
+                        <td className="px-4 py-5 text-center text-amber-500 font-black font-mono">{student.cumulativeLate}</td>
+                        <td className="px-4 py-5 text-center text-blue-600 font-black font-mono">{student.cumulativePermission}</td>
+                        <td className="px-4 py-5 text-center text-rose-600 font-black font-mono">{student.cumulativeAbsent}</td>
+                        <td className="px-4 py-5 text-center font-black text-[#0f172a] font-mono">{totalAbsent}</td>
+                        <td className="px-5 py-5 text-center">
+                          {student.todayStatus === 'late' && (
+                            <span className="text-[11px] font-black tracking-wide text-amber-500">ចូលរៀនយឺត</span>
+                          )}
+                          {student.todayStatus === 'permission' && (
+                            <span className="text-[11px] font-black tracking-wide text-blue-600">មានច្បាប់</span>
+                          )}
+                          {student.todayStatus === 'absent' && (
+                            <span className="text-[11px] font-black tracking-wide text-rose-600">អត់ច្បាប់</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-5 text-[#64748b] text-[12px]">
+                          {student.reason || 'ខ្ជិល'}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={10} className="px-5 py-12 text-center text-slate-400 font-medium bg-slate-50 border-b border-slate-100">
+                      មិនមានសិស្សអវត្តមានទេនៅថ្ងៃនេះ! រីករាយណាស់! 🎉
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+        {/* Reports Registry Listing */}
+        <div id="panel_report_list" className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-slate-800 text-base">បញ្ជីរបាយការណ៍ដែលបានរក្សាទុក</h3>
+              <p className="text-xs text-slate-400 mt-1">របាយការណ៍ប្រចាំខែផ្លូវការរបស់គ្រូបន្ទុកថ្នាក់</p>
+            </div>
+            <span className="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-mono text-xs border border-slate-100">
+              សរុប {filteredReports.length}
+            </span>
+          </div>
+
+          {filteredReports.length > 0 ? (
+            <div className="flex-1 overflow-y-auto max-h-[300px] pr-1 space-y-2.5">
+              {filteredReports.map((report) => (
+                <div 
+                  key={report.id}
+                  className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl hover:border-blue-100 hover:bg-blue-50/20 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                      <Calendar size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-slate-800 font-medium text-sm">
+                        របាយការណ៍ {report.generalInfo.month} - {report.generalInfo.grade}
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        គ្រូ៖ {report.generalInfo.teacherName} | ឆ្នាំសិក្សា៖ {report.generalInfo.academicYear}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onViewReport(report)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-xs font-semibold text-blue-700 hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                      title="មើលលម្អិត និងបោះពុម្ព"
+                    >
+                      <Eye size={13} />
+                      ព័ត៌មានលម្អិត
+                    </button>
+                    {currentUser?.role !== 'teacher' && (
+                      <button
+                        onClick={() => onDeleteReport(report.id)}
+                        className="p-1.5 bg-white border border-rose-100 rounded-md text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors"
+                        title="លុបរបាយការណ៍"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-12">
+              <FolderOpen size={40} className="text-slate-300 mb-2" />
+              <p className="text-sm">មិនទាន់មានរបាយការណ៍ដែលត្រូវនឹងការស្វែងរករបស់អ្នកនៅឡើយទេ</p>
+              <button 
+                onClick={onCreateReportClick}
+                className="mt-4 px-4 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg text-xs font-semibold hover:bg-blue-100/50 transition-colors"
+              >
+                ចុចទីនេះដើម្បីសរសេររបាយការណ៍ឥឡូវនេះ
+              </button>
             </div>
           )}
         </div>
