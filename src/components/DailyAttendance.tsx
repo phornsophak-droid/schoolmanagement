@@ -490,10 +490,11 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     if (client) {
       syncUpsertStudentAttendance(newRecord).catch(err => {
         console.warn('Supabase student attendance save failed', err);
+        triggerToast('⚠️ រក្សាទុកក្នុងម៉ាស៊ីន — ភ្ជាប់ Cloud បរាជ័យ', 'error');
       });
     }
 
-    triggerToast(`💾 រក្សាទុកវត្តមានជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់`, 'success');
+    triggerToast(`💾 រក្សាទុកវត្តមានជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់${client ? ' ☁️ ភ្ជាប់ Supabase ✓' : ' (មិនបានភ្ជាប់ Cloud)'}`, 'success');
   };
 
   // Filter teachers matching search query and role-based access
@@ -600,10 +601,11 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     if (client) {
       syncUpsertTeacherAttendance(newRecord).catch(err => {
         console.warn('Supabase teacher attendance save failed', err);
+        triggerToast('⚠️ រក្សាទុកក្នុងម៉ាស៊ីន — ភ្ជាប់ Cloud បរាជ័យ', 'error');
       });
     }
 
-    triggerToast(`💾 រក្សាទុកវត្តមានគ្រូជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់`, 'success');
+    triggerToast(`💾 រក្សាទុកវត្តមានគ្រូជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់${client ? ' ☁️ ភ្ជាប់ Supabase ✓' : ' (មិនបានភ្ជាប់ Cloud)'}`, 'success');
   };
 
   return (

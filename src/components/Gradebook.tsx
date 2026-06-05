@@ -129,25 +129,20 @@ export default function Gradebook({
   // Filter registered students in the active grade to select from when creating scores
   const registeredStudentsInFormGrade = useMemo(() => {
     const uniqueNames = new Set<string>();
-    
-    // 1. Get all unique students in this grade (from any month)
+
+    // Show every registered student in this grade so the entry list always equals the
+    // full class roster. Students who already have a record for the selected month stay
+    // selectable and are edited in place (see handleFormSubmit upsert) — this fixes the
+    // empty dropdown for the registration month (e.g. មេសា).
     students.forEach(s => {
       if (s.grade === formGrade) {
         uniqueNames.add(s.name.trim());
       }
     });
 
-    // 2. Remove students who already have a score entry for the currently selected formMonth
-    students.forEach(s => {
-      // If we are currently editing their record, do not remove them from the dropdown!
-      if (s.grade === formGrade && s.month === formMonth && s.id !== editingStudentId) {
-        uniqueNames.delete(s.name.trim());
-      }
-    });
-
     // Return the sorted list alphabetically
     return Array.from(uniqueNames).sort((a, b) => a.localeCompare(b, 'km'));
-  }, [students, formGrade, formMonth, editingStudentId]);
+  }, [students, formGrade]);
 
   // Filter students based on top filter selections
   const filteredStudents = useMemo(() => {
@@ -460,6 +455,26 @@ export default function Gradebook({
     setIsFormOpen(true);
   };
 
+  // Fill the score inputs from an existing record (or clear them when none exists), so
+  // picking a student who already has a score for the month edits it instead of wiping it.
+  const applyRecordScoresToForm = (record?: StudentScore | null) => {
+    setKhmerListening(record?.khmer?.listening != null ? record.khmer.listening.toString() : '');
+    setKhmerWriting(record?.khmer?.writing != null ? record.khmer.writing.toString() : '');
+    setKhmerReading(record?.khmer?.reading != null ? record.khmer.reading.toString() : '');
+    setKhmerSpeaking(record?.khmer?.speaking != null ? record.khmer.speaking.toString() : '');
+    setMathNumbers(record?.math?.numbers != null ? record.math.numbers.toString() : '');
+    setMathMeasurement(record?.math?.measurement != null ? record.math.measurement.toString() : '');
+    setMathGeometry(record?.math?.geometry != null ? record.math.geometry.toString() : '');
+    setMathAlgebra(record?.math?.algebra != null ? record.math.algebra.toString() : '');
+    setMathStatistics(record?.math?.statistics != null ? record.math.statistics.toString() : '');
+    setScience(record?.science != null ? record.science.toString() : '');
+    setSocialStudies(record?.socialStudies != null ? record.socialStudies.toString() : '');
+    setPhysicalEducation(record?.physicalEducation != null ? record.physicalEducation.toString() : '');
+    setHealth(record?.health != null ? record.health.toString() : '');
+    setLifeSkills(record?.lifeSkills != null ? record.lifeSkills.toString() : '');
+    setForeignLanguage(record?.foreignLanguage != null ? record.foreignLanguage.toString() : '');
+  };
+
   // Action: Save or Update student
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -469,8 +484,15 @@ export default function Gradebook({
       return;
     }
 
+    // Upsert: when not explicitly editing, reuse the student's existing record for this
+    // month so re-entering scores updates it instead of creating a duplicate.
+    const existingMonthRecord = !editingStudentId
+      ? students.find(s => s.name.trim() === formName.trim() && s.grade === formGrade && s.month === formMonth)
+      : null;
+    const targetId = editingStudentId || existingMonthRecord?.id || generateUniqueId();
+
     const payload: Omit<StudentScore, 'khmerAvg' | 'mathAvg' | 'overallAvg' | 'gradeLetter' | 'result'> = {
-      id: editingStudentId || generateUniqueId(),
+      id: targetId,
       name: formName.trim(),
       gender: formGender,
       grade: formGrade,
@@ -499,12 +521,13 @@ export default function Gradebook({
     const calculatedPayload = calculateStudentFields(payload);
 
     let updatedList: StudentScore[];
-    if (editingStudentId) {
-      // Edit standard record
-      updatedList = students.map(s => s.id === editingStudentId ? calculatedPayload : s);
+    if (editingStudentId || existingMonthRecord) {
+      // Edit / upsert an existing record in place (no duplicates)
+      const idToReplace = editingStudentId || existingMonthRecord!.id;
+      updatedList = students.map(s => s.id === idToReplace ? calculatedPayload : s);
     } else {
-      // Add standard record
-      updatedList = [...students, { ...calculatedPayload, id: generateUniqueId() }];
+      // Add a brand-new record
+      updatedList = [...students, calculatedPayload];
     }
 
     onSaveStudents(updatedList);
@@ -731,6 +754,9 @@ export default function Gradebook({
                         if (sRecord) {
                           setFormGender(sRecord.gender);
                         }
+                        // Pre-fill any existing scores for this month so re-entry edits instead of wiping
+                        const monthRecord = students.find(s => s.name.trim() === selectedName.trim() && s.grade === formGrade && s.month === formMonth);
+                        applyRecordScoresToForm(monthRecord || null);
                       }}
                       className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-800 font-sans"
                     >
@@ -780,7 +806,14 @@ export default function Gradebook({
                 <label className="block text-xs font-semibold text-slate-500 mb-1">សម្រាប់ខែ / ឆមាស</label>
                 <select
                   value={formMonth}
-                  onChange={(e) => setFormMonth(e.target.value)}
+                  onChange={(e) => {
+                    const newMonth = e.target.value;
+                    setFormMonth(newMonth);
+                    if (!editingStudentId && formName.trim()) {
+                      const monthRecord = students.find(s => s.name.trim() === formName.trim() && s.grade === formGrade && s.month === newMonth);
+                      applyRecordScoresToForm(monthRecord || null);
+                    }
+                  }}
                   className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-medium text-slate-800 font-sans"
                 >
                   <optgroup label="ពិន្ទុប្រចាំខែ (Monthly Scores)">

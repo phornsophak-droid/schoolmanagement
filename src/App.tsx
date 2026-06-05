@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   GraduationCap, 
@@ -79,7 +79,13 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Supabase connection panel active states
-  const [isSupabasePanelExpanded, setIsSupabasePanelExpanded] = useState(true);
+  // Default to the small collapsed pill (less intrusive); remember the user's choice across sessions.
+  const [isSupabasePanelExpanded, setIsSupabasePanelExpanded] = useState<boolean>(
+    () => localStorage.getItem('school_supabase_panel_expanded') === 'true'
+  );
+  useEffect(() => {
+    localStorage.setItem('school_supabase_panel_expanded', String(isSupabasePanelExpanded));
+  }, [isSupabasePanelExpanded]);
 
   // User session state
   const [currentUser, setCurrentUser] = useState<SchoolUser | null>(null);
@@ -615,6 +621,15 @@ export default function App() {
     alert('ផ្លាស់ប្តូរលេខកូដសម្ងាត់ (PIN) បានជោគជ័យ!');
   };
 
+  // Cloud-save confirmation toast (auto-hides)
+  const [cloudToast, setCloudToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const cloudToastTimer = useRef<number | null>(null);
+  const showCloudToast = (msg: string, ok: boolean) => {
+    setCloudToast({ msg, ok });
+    if (cloudToastTimer.current) window.clearTimeout(cloudToastTimer.current);
+    cloudToastTimer.current = window.setTimeout(() => setCloudToast(null), 2800);
+  };
+
   // 4. Sync Mutated States to LocalStorage & Supabase Cloud
   const handleSaveStudents = async (updatedList: StudentScore[]) => {
     const deletedStudentIds = students
@@ -634,9 +649,13 @@ export default function App() {
         if (updatedList.length > 0) {
           await syncUpsertStudentsBulk(updatedList);
         }
+        showCloudToast('បានរក្សាទុក និងភ្ជាប់ទៅ Supabase ដោយជោគជ័យ ✓', true);
       } catch (err) {
         console.warn('Supabase students backup sync failed', err);
+        showCloudToast('បានរក្សាទុកក្នុងម៉ាស៊ីន — ភ្ជាប់ Cloud បរាជ័យ', false);
       }
+    } else {
+      showCloudToast('បានរក្សាទុកក្នុងម៉ាស៊ីន (មិនបានភ្ជាប់ Cloud)', false);
     }
   };
 
@@ -907,7 +926,22 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F4F7FA] text-slate-800 font-sans flex selection:bg-blue-105 selection:text-blue-900 overflow-hidden w-full">
-      
+
+      {/* Cloud-save confirmation toast */}
+      <AnimatePresence>
+        {cloudToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold print:hidden ${cloudToast.ok ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-amber-500 text-white border-amber-400'}`}
+          >
+            <span className="text-base">{cloudToast.ok ? '☁️' : '⚠️'}</span>
+            {cloudToast.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 1. Desktop Sidebar (Hidden on mobile and in print) */}
       <aside className="w-64 md:w-72 bg-[#1E293B] text-white flex flex-col shrink-0 hidden md:flex border-r border-slate-800/80 print:hidden h-full">
         {/* Sidebar Brand Header */}
