@@ -297,8 +297,12 @@ export default function App() {
 
             // Realtime Auto-Sync setup
             try {
-              const channel = client.channel('app_sync_channel');
-              
+              // Remove any prior channel first so a re-run (e.g. React StrictMode
+              // re-mount) doesn't reuse an already-subscribed channel, which throws
+              // when adding `postgres_changes` listeners after subscribe().
+              client.removeAllChannels();
+              const channel = client.channel('app_sync_channel_' + Date.now());
+
               const refreshData = () => {
                 syncFetchAll().then(newData => {
                   if (newData.students) {
