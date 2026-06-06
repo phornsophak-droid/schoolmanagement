@@ -79,13 +79,8 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Supabase connection panel active states
-  // Default to the small collapsed pill (less intrusive); remember the user's choice across sessions.
-  const [isSupabasePanelExpanded, setIsSupabasePanelExpanded] = useState<boolean>(
-    () => localStorage.getItem('school_supabase_panel_expanded') === 'true'
-  );
-  useEffect(() => {
-    localStorage.setItem('school_supabase_panel_expanded', String(isSupabasePanelExpanded));
-  }, [isSupabasePanelExpanded]);
+  // The Supabase panel now opens from the menu (no floating pill); always start closed on load.
+  const [isSupabasePanelExpanded, setIsSupabasePanelExpanded] = useState(false);
 
   // User session state
   const [currentUser, setCurrentUser] = useState<SchoolUser | null>(null);
@@ -1059,6 +1054,17 @@ export default function App() {
             </div>
             <span className="px-1.5 py-0.5 bg-amber-500 text-slate-900 text-[8.5px] font-extrabold rounded-md shadow-xs animate-pulse">NEW</span>
           </button>
+
+          <button
+            onClick={() => setIsSupabasePanelExpanded(true)}
+            className="w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold text-slate-300 hover:bg-slate-800/50 hover:text-white"
+          >
+            <div className="flex items-center gap-3">
+              <Database size={16} className="text-[#3ECF8E]" />
+              <span>ស្ថានភាព Supabase (Cloud)</span>
+            </div>
+            <span className={`h-2 w-2 rounded-full ${supabaseStatus === 'connected' ? 'bg-emerald-500' : supabaseStatus === 'syncing' ? 'bg-blue-500 animate-pulse' : supabaseStatus === 'error' ? 'bg-rose-500' : 'bg-slate-500'}`}></span>
+          </button>
         </nav>
 
         {/* Info Box */}
@@ -1293,6 +1299,20 @@ export default function App() {
                     <span>📱 ផ្ទាំងទូរស័ព្ទ VIP (Mobile UI)</span>
                   </div>
                   <span className="px-1 bg-amber-500 text-slate-900 text-[8px] font-black rounded">NEW</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsSupabasePanelExpanded(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium text-slate-300 hover:bg-slate-800/40 hover:text-white"
+                >
+                  <div className="flex items-center gap-3">
+                    <Database size={16} className="text-[#3ECF8E]" />
+                    <span>ស្ថានភាព Supabase (Cloud)</span>
+                  </div>
+                  <span className={`h-2 w-2 rounded-full ${supabaseStatus === 'connected' ? 'bg-emerald-500' : supabaseStatus === 'syncing' ? 'bg-blue-500 animate-pulse' : supabaseStatus === 'error' ? 'bg-rose-500' : 'bg-slate-500'}`}></span>
                 </button>
               </nav>
 
@@ -1608,49 +1628,8 @@ export default function App() {
 
       {/* 5. Supabase Connection Status Panel / Toggler */}
       <div id="supabase_status_panel" className="fixed top-[72px] right-4 z-40 print:hidden font-sans">
-        <AnimatePresence mode="wait">
-          {!isSupabasePanelExpanded ? (
-            <motion.button
-              key="collapsed_supabase"
-              initial={{ scale: 0.9, opacity: 0, y: -10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: -10 }}
-              onClick={() => setIsSupabasePanelExpanded(true)}
-              className="px-4 py-2.5 bg-[#0F172A] hover:bg-[#1E293B] border border-slate-700/60 rounded-xl shadow-lg flex items-center gap-2.5 text-xs font-bold text-slate-100 transition-all group cursor-pointer"
-            >
-              <span className="relative flex h-2 w-2">
-                {supabaseStatus === 'connected' && (
-                  <>
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </>
-                )}
-                {supabaseStatus === 'syncing' && (
-                  <>
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                  </>
-                )}
-                {supabaseStatus === 'error' && (
-                  <>
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                  </>
-                )}
-                {supabaseStatus === 'unconfigured' && (
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-500 animate-pulse"></span>
-                )}
-              </span>
-              <Database size={13} className={`${supabaseStatus === 'syncing' ? 'animate-spin' : ''} text-[#3ECF8E]`} />
-              <span>
-                {supabaseStatus === 'connected' && 'ទិន្នន័យ៖ Supabase រួចរាល់'}
-                {supabaseStatus === 'syncing' && 'កំពុងធ្វើសមកាលកម្ម...'}
-                {supabaseStatus === 'error' && 'បញ្ហាតភ្ជាប់ Supabase'}
-                {supabaseStatus === 'unconfigured' && 'មិនទាន់តភ្ជាប់ Supabase'}
-              </span>
-              <ChevronUp size={14} className="text-slate-400" />
-            </motion.button>
-          ) : (
+        <AnimatePresence>
+          {!isSupabasePanelExpanded ? null : (
             <motion.div
               key="expanded_supabase"
               initial={{ y: -20, opacity: 0, scale: 0.95 }}
