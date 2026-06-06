@@ -1316,7 +1316,7 @@ export default function Gradebook({
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
                   <th className="px-3 py-3 text-center">ចំណាត់ថ្នាក់</th>
-                  <th className="px-3 py-3">ឈ្មោះសិស្ស</th>
+                  <th className="px-3 py-3 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
                   <th className="px-3 py-3 text-center">ភេទ</th>
                   <th className="px-3 py-3 text-center">ថ្នាក់សិក្សា</th>
                   {(selectedSemester === '1' ? SEMESTER_1_MONTHS : SEMESTER_2_MONTHS).map(m => (
@@ -1350,7 +1350,7 @@ export default function Gradebook({
                         <td className="px-3 py-3.5 text-center font-bold text-slate-550 font-mono">
                           {st.ranking}
                         </td>
-                        <td className="px-3 py-3.5 font-bold text-slate-800">{st.name}</td>
+                        <td className="px-3 py-3.5 font-bold text-slate-800 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{st.name}</td>
                         <td className="px-3 py-3.5 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             st.gender === 'ស្រី' 
@@ -1424,7 +1424,7 @@ export default function Gradebook({
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
                   <th className="px-4 py-3.5 text-center">ចំណាត់ថ្នាក់ប្រចាំឆ្នាំ</th>
-                  <th className="px-4 py-3.5">ឈ្មោះសិស្ស</th>
+                  <th className="px-4 py-3.5 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
                   <th className="px-4 py-3.5 text-center">ភេទ</th>
                   <th className="px-4 py-3.5 text-center">ថ្នាក់សិក្សា</th>
                   <th className="px-4 py-3.5 text-center bg-indigo-50/30 text-indigo-700">មធ្យមភាគ ឆមាសទី ១</th>
@@ -1452,7 +1452,7 @@ export default function Gradebook({
                         <td className="px-4 py-4 text-center font-bold text-slate-600 font-mono text-xs">
                           {st.ranking === 1 ? '🏆 ' : ''}{st.ranking}
                         </td>
-                        <td className="px-4 py-4 font-bold text-slate-800">{st.name}</td>
+                        <td className="px-4 py-4 font-bold text-slate-800 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{st.name}</td>
                         <td className="px-4 py-4 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             st.gender === 'ស្រី' 

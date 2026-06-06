@@ -1518,7 +1518,7 @@ export default function ClassStudentMgmt({
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500">
-                          <th className="px-4 py-3">ឈ្មោះសិស្ស</th>
+                          <th className="px-4 py-3 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
                           <th className="px-4 py-3 text-center">ភេទ</th>
                           <th className="px-4 py-3 text-center">ថ្នាក់សិក្សា</th>
                           <th className="px-4 py-3 text-center">ស្ថានភាព</th>
@@ -1530,7 +1530,7 @@ export default function ClassStudentMgmt({
                           filteredProfiles.map((p, index) => {
                             return (
                               <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-4 py-3 font-bold text-slate-800 flex items-center gap-2">
+                                <td className="px-4 py-3 font-bold text-slate-800 flex items-center gap-2 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">
                                   <span className="w-7 h-7 bg-indigo-50 text-indigo-650 rounded-full flex items-center justify-center font-sans font-black text-[11px] border border-indigo-100">
                                     {index + 1}
                                   </span>

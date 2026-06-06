@@ -750,7 +750,7 @@ export default function Dashboard({
               <thead className="border-b border-slate-200 text-[#64748b] font-bold text-[11px] uppercase tracking-wider">
                 <tr>
                   <th className="px-5 py-4 text-center w-12 font-bold">ល.រ</th>
-                  <th className="px-5 py-4 font-bold">ឈ្មោះសិស្ស</th>
+                  <th className="px-5 py-4 font-bold sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
                   <th className="px-5 py-4 font-bold">ថ្នាក់រៀន</th>
                   <th className="px-5 py-4 font-bold">ភេទ</th>
                   <th className="px-4 py-4 text-center font-bold">សរុបយឺត</th>
@@ -768,7 +768,7 @@ export default function Dashboard({
                     return (
                       <tr key={idx} className="hover:bg-slate-50 transition-all font-medium">
                         <td className="px-5 py-5 text-center text-slate-400 font-mono text-xs">{idx + 1}</td>
-                        <td className="px-5 py-5">
+                        <td className="px-5 py-5 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)]">
                           <p className="text-sm font-black text-[#1e293b]">{student.name}</p>
                           <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase">ID: {student.id.substring(0, 5)}</p>
                         </td>
