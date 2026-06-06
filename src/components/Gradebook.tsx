@@ -1206,8 +1206,8 @@ export default function Gradebook({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
-                  <th className="px-4 py-3 text-center">លេខរៀង/ចំណាត់ថ្នាក់</th>
-                  <th className="px-4 py-3">ឈ្មោះសិស្ស</th>
+                  <th className="px-2 py-3 text-center sticky left-0 z-20 bg-slate-50 w-12 min-w-12">ល.រ</th>
+                  <th className="px-3 py-3 sticky left-12 z-20 bg-slate-50 shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
                   <th className="px-4 py-3 text-center">ភេទ</th>
                   <th className="px-4 py-3 text-center">ថ្នាក់សិក្សា</th>
                   <th className="px-4 py-3 text-center">ខែ</th>
@@ -1241,10 +1241,10 @@ export default function Gradebook({
 
                     return (
                       <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-3 text-center font-semibold font-mono text-slate-500">
+                        <td className="px-2 py-3 text-center font-semibold font-mono text-slate-500 sticky left-0 z-10 bg-white w-12 min-w-12">
                           {st.ranking ? `${st.ranking}` : '-'}
                         </td>
-                        <td className="px-4 py-3 font-semibold text-slate-800">{st.name}</td>
+                        <td className="px-3 py-3 font-semibold text-slate-800 sticky left-12 z-10 bg-white shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">{st.name}</td>
                         <td className="px-4 py-3 text-center">{st.gender}</td>
                         <td className="px-4 py-3 text-center text-slate-500">{st.grade}</td>
                         <td className="px-4 py-3 text-center text-slate-500 font-medium">{st.month}</td>
