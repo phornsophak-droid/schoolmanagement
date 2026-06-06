@@ -824,6 +824,14 @@ export default function App() {
     setActiveView('wizard');
   };
 
+  // Show/hide the data backup (export/import) tools — hidden by default, remembered across sessions.
+  const [showBackupTools, setShowBackupTools] = useState<boolean>(
+    () => localStorage.getItem('school_show_backup_tools') === 'true'
+  );
+  useEffect(() => {
+    localStorage.setItem('school_show_backup_tools', String(showBackupTools));
+  }, [showBackupTools]);
+
   // Systems Database Backup / Portability Module
   const handleExportDatabase = () => {
     const customTeachersSaved = localStorage.getItem('school_custom_teachers_v2');
@@ -1061,29 +1069,42 @@ export default function App() {
 
         {/* Database Transfer & Portability Box */}
         <div className="mx-4 mb-4 p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 flex flex-col gap-2">
-          <div className="flex items-center gap-1.5 text-slate-300 text-[10px] font-bold">
-            <Smartphone size={13} className="text-blue-400 animate-pulse" />
-            <span>ផ្ទេរទិន្នន័យទៅឧបករណ៍ផ្សេង (ទូរស័ព្ទ)</span>
-          </div>
-          <p className="text-[9px] text-slate-400 leading-normal font-sans">
-            ដើម្បីបើកទិន្នន័យនេះលើទូរស័ព្ទដៃ ឬឧបករណ៍ផ្សេងទៀត៖
-          </p>
-          <div className="grid grid-cols-2 gap-1.5 mt-1">
+          <div className="flex items-center justify-between gap-1.5 text-slate-300 text-[10px] font-bold">
+            <div className="flex items-center gap-1.5">
+              <Smartphone size={13} className="text-blue-400" />
+              <span>ផ្ទេរ និងរក្សាទុកទិន្នន័យ</span>
+            </div>
             <button
-              onClick={handleExportDatabase}
-              className="px-2 py-1.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/10 rounded-lg text-[9.5px] font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer"
-              title="ទាញយកឯកសារចម្លងស្វ័យប្រវត្ត"
+              onClick={() => setShowBackupTools(v => !v)}
+              className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors cursor-pointer"
+              title="លាក់ / បង្ហាញ ឧបករណ៍ backup"
             >
-              📥 នាំចេញទិន្នន័យ
-            </button>
-            <button
-              onClick={handleTriggerImportDatabase}
-              className="px-2 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/10 rounded-lg text-[9.5px] font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer"
-              title="នាំចូលទិន្នន័យពីទូរស័ព្ទ ឬម៉ាស៊ីនផ្សេង"
-            >
-              📤 នាំចូលទិន្នន័យ
+              {showBackupTools ? '▲ លាក់' : '▼ បង្ហាញ'}
             </button>
           </div>
+          {showBackupTools && (
+            <>
+              <p className="text-[9px] text-slate-400 leading-normal font-sans">
+                ដើម្បីបើកទិន្នន័យនេះលើទូរស័ព្ទដៃ ឬឧបករណ៍ផ្សេងទៀត៖
+              </p>
+              <div className="grid grid-cols-2 gap-1.5 mt-1">
+                <button
+                  onClick={handleExportDatabase}
+                  className="px-2 py-1.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/10 rounded-lg text-[9.5px] font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer"
+                  title="ទាញយកឯកសារចម្លងស្វ័យប្រវត្ត"
+                >
+                  📥 នាំចេញទិន្នន័យ
+                </button>
+                <button
+                  onClick={handleTriggerImportDatabase}
+                  className="px-2 py-1.5 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-500/10 rounded-lg text-[9.5px] font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer"
+                  title="នាំចូលទិន្នន័យពីទូរស័ព្ទ ឬម៉ាស៊ីនផ្សេង"
+                >
+                  📤 នាំចូលទិន្នន័យ
+                </button>
+              </div>
+            </>
+          )}
           <input
             type="file"
             id="database_import_file"
@@ -1277,27 +1298,40 @@ export default function App() {
 
               {/* Mobile Backup / Restore Transfer widget */}
               <div className="px-4 py-3 border-t border-slate-700/50 bg-[#151D2E]/50 shrink-0">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-300 mb-1.5">
-                  <Smartphone size={12} className="text-blue-400" />
-                  <span>ការផ្ទេរ និងរក្សាទុកទិន្នន័យចម្លង</span>
-                </div>
-                <p className="text-[8.5px] text-slate-400 leading-normal mb-2">
-                  ទាញយកឯកសារចម្លងពីកុំព្យូទ័រ រួចយកមក «នាំចូល» ក្នុងទូរស័ព្ទនេះ។
-                </p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center justify-between gap-1.5 text-[10px] font-bold text-slate-300 mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Smartphone size={12} className="text-blue-400" />
+                    <span>ការផ្ទេរ និងរក្សាទុកទិន្នន័យ</span>
+                  </div>
                   <button
-                    onClick={handleExportDatabase}
-                    className="px-2 py-1.5 bg-blue-600/25 text-blue-400 hover:bg-blue-600/35 border border-blue-500/10 rounded-lg text-[9.5px] font-bold text-center flex items-center justify-center gap-1 cursor-pointer"
+                    onClick={() => setShowBackupTools(v => !v)}
+                    className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors cursor-pointer"
+                    title="លាក់ / បង្ហាញ"
                   >
-                    📥 នាំចេញ
-                  </button>
-                  <button
-                    onClick={handleTriggerImportDatabase}
-                    className="px-2 py-1.5 bg-emerald-600/25 text-emerald-400 hover:bg-emerald-600/35 border border-emerald-500/10 rounded-lg text-[9.5px] font-bold text-center flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    📤 នាំចូល
+                    {showBackupTools ? '▲ លាក់' : '▼ បង្ហាញ'}
                   </button>
                 </div>
+                {showBackupTools && (
+                  <>
+                    <p className="text-[8.5px] text-slate-400 leading-normal mb-2">
+                      ទាញយកឯកសារចម្លងពីកុំព្យូទ័រ រួចយកមក «នាំចូល» ក្នុងទូរស័ព្ទនេះ។
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={handleExportDatabase}
+                        className="px-2 py-1.5 bg-blue-600/25 text-blue-400 hover:bg-blue-600/35 border border-blue-500/10 rounded-lg text-[9.5px] font-bold text-center flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        📥 នាំចេញ
+                      </button>
+                      <button
+                        onClick={handleTriggerImportDatabase}
+                        className="px-2 py-1.5 bg-emerald-600/25 text-emerald-400 hover:bg-emerald-600/35 border border-emerald-500/10 rounded-lg text-[9.5px] font-bold text-center flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        📤 នាំចូល
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="p-4 border-t border-slate-700/50 bg-[#151D2A] shrink-0">
