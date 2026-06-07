@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SchoolUser } from '../types';
 import { getPinForUser, setPinForUser } from '../utils/auth';
-import { syncUpsertSetting } from '../lib/supabase';
+import { syncUpsertSetting, syncGradesBulk } from '../lib/supabase';
 import { SchoolLogo } from './SchoolLogo';
 import { 
   KeyRound, 
@@ -249,6 +249,21 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
     savedUsers.push(newUser);
     localStorage.setItem('school_custom_users', JSON.stringify(savedUsers));
     syncUpsertSetting('school_custom_users', savedUsers).catch(console.error);
+
+    // Also register the new class in the global grades list so it shows up across
+    // every page (Dashboard, scores, attendance, reports, class management).
+    try {
+      const gradesStr = localStorage.getItem('school_grades_v2');
+      let gradesArr = gradesStr ? JSON.parse(gradesStr) : [];
+      if (!Array.isArray(gradesArr)) gradesArr = [];
+      if (!gradesArr.includes(cleanClass)) {
+        gradesArr.push(cleanClass);
+        localStorage.setItem('school_grades_v2', JSON.stringify(gradesArr));
+        syncGradesBulk(gradesArr).catch(console.error);
+      }
+    } catch (err) {
+      console.error('Failed to register new class grade', err);
+    }
 
     // Save custom PIN if provided
     if (newPinCode && newPinCode !== '1234') {
