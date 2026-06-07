@@ -188,6 +188,10 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
   const [newClassName, setNewClassName] = useState('');
   const [newTeacherName, setNewTeacherName] = useState('');
   const [newPinCode, setNewPinCode] = useState('1234');
+  // Category for the new class: 'general' (មត្តេយ្យ–ទី៦) or 'extra' (after-hours skill classes).
+  const [newClassCategory, setNewClassCategory] = useState<'general' | 'extra'>('general');
+  // Known after-hours subjects — chosen from a list so the name always classifies as "extra".
+  const EXTRA_CLASS_OPTIONS = ['ថ្នាក់ភាសាអង់គ្លេស', 'ថ្នាក់គំនូរ', 'ថ្នាក់កុំព្យូទ័រ', 'ថ្នាក់កីឡា និងអប់រំកាយ', 'ថ្នាក់អប់រំសុខភាព'];
 
   const handleSelectUser = (user: SchoolUser) => {
     setSelectedUser(user);
@@ -249,6 +253,7 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
     setNewClassName('');
     setNewTeacherName('');
     setNewPinCode('1234');
+    setNewClassCategory('general');
   };
 
   return (
@@ -455,15 +460,50 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
             </div>
             <form onSubmit={handleAddClassSubmit} className="p-5 space-y-4">
               <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">ប្រភេទថ្នាក់</label>
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => { setNewClassCategory('general'); setNewClassName(''); }}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${newClassCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    📘 ថ្នាក់ចំណេះទូទៅ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setNewClassCategory('extra'); setNewClassName(EXTRA_CLASS_OPTIONS[0]); }}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${newClassCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    🎨 ថ្នាក់ក្រៅម៉ោង
+                  </button>
+                </div>
+              </div>
+              <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ថ្នាក់សិក្សា</label>
-                <input
-                  type="text"
-                  placeholder="ឧទាហរណ៍៖ ថ្នាក់ទី ៧ក"
-                  required
-                  value={newClassName}
-                  onChange={e => setNewClassName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500"
-                />
+                {newClassCategory === 'extra' ? (
+                  <select
+                    required
+                    value={newClassName}
+                    onChange={e => setNewClassName(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500"
+                  >
+                    {EXTRA_CLASS_OPTIONS.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="ឧទាហរណ៍៖ ថ្នាក់ទី ៧ក"
+                    required
+                    value={newClassName}
+                    onChange={e => setNewClassName(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500"
+                  />
+                )}
+                {newClassCategory === 'extra' && (
+                  <p className="text-[10px] text-slate-400 mt-1">ជ្រើសរើសមុខវិជ្ជាក្រៅម៉ោងពីបញ្ជី ដើម្បីឱ្យប្រព័ន្ធចាត់ថ្នាក់បានត្រឹមត្រូវ។</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ឈ្មោះលោកគ្រូ-អ្នកគ្រូ</label>
