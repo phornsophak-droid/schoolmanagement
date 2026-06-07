@@ -3,6 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// The 8 scoring categories for the after-hours English class (each 0-10).
+export const ENGLISH_SUBJECTS: { key: string; en: string; km: string }[] = [
+  { key: 'listening', en: 'Listening', km: 'ស្តាប់' },
+  { key: 'speaking', en: 'Speaking', km: 'និយាយ' },
+  { key: 'reading', en: 'Reading', km: 'អាន' },
+  { key: 'writing', en: 'Writing', km: 'សរសេរ' },
+  { key: 'vocabulary', en: 'Vocabulary', km: 'វាក្យសព្ទ' },
+  { key: 'grammar', en: 'Grammar', km: 'វេយ្យាករណ៍' },
+  { key: 'participation', en: 'Class Participation', km: 'ការចូលរួម' },
+  { key: 'homework', en: 'Homework & Projects', km: 'កិច្ចការផ្ទះ' },
+];
+
+// True when a class name belongs to the English after-hours subject.
+export const isEnglishClass = (grade: string) => (grade || '').includes('អង់គ្លេស');
+
 export interface KhmerScore {
   listening: number | null; // ស្ដាប់ (0-10)
   writing: number | null;   // សរសេរ (0-10)
@@ -32,7 +47,12 @@ export interface StudentScore {
   health: number | null;         // សុខភាព (0-10)
   lifeSkills: number | null;     // បំណិនជីវិត (0-10)
   foreignLanguage: number | null; // ភាសាបរទេស (0-10)
-  
+
+  // After-hours English class scores (Listening, Speaking, Reading, Writing,
+  // Vocabulary, Grammar, Class Participation, Homework). Each 0-10. Present only
+  // for English classes; when set, the overall average is computed from these.
+  englishScores?: Record<string, number | null>;
+
   // Computed values
   khmerAvg: number | null;
   mathAvg: number | null;

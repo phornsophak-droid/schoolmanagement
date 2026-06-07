@@ -16,7 +16,7 @@ import {
   GraduationCap, 
   HelpCircle 
 } from 'lucide-react';
-import { StudentScore, KhmerScore, MathScore, SchoolUser } from '../types';
+import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, isEnglishClass } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
 
 interface GradebookProps {
@@ -87,6 +87,8 @@ export default function Gradebook({
   const teacherSubjectGrades = isExtraTeacher
     ? (grades || DEFAULT_GRADES_LIST).filter(g => g.includes(getSubjectKey(currentUser!.grade)))
     : [];
+  // When a specific English class is in view, the monthly table shows the 8 English columns.
+  const viewingEnglish = isEnglishClass(selectedGrade);
   const [newClassName, setNewClassName] = useState('');
   const [isClassManagerOpen, setIsClassManagerOpen] = useState(false);
   // Lock grade selection (and category) to teacher's own class
@@ -140,6 +142,10 @@ export default function Gradebook({
   const [health, setHealth] = useState('');
   const [lifeSkills, setLifeSkills] = useState('');
   const [foreignLanguage, setForeignLanguage] = useState('');
+
+  // English class scores (keyed by ENGLISH_SUBJECTS[].key), stored as strings while editing.
+  const [englishScores, setEnglishScores] = useState<Record<string, string>>({});
+  const formIsEnglish = isEnglishClass(formGrade);
 
   // Filter registered students in the active grade to select from when creating scores
   const registeredStudentsInFormGrade = useMemo(() => {
@@ -437,7 +443,8 @@ export default function Gradebook({
     setHealth('');
     setLifeSkills('');
     setForeignLanguage('');
-    
+    setEnglishScores({});
+
     setIsFormOpen(true);
   };
 
@@ -468,6 +475,13 @@ export default function Gradebook({
     setLifeSkills(student.lifeSkills !== null ? student.lifeSkills.toString() : '');
     setForeignLanguage(student.foreignLanguage !== null ? student.foreignLanguage.toString() : '');
 
+    const es: Record<string, string> = {};
+    ENGLISH_SUBJECTS.forEach(s => {
+      const v = student.englishScores?.[s.key];
+      es[s.key] = v != null ? v.toString() : '';
+    });
+    setEnglishScores(es);
+
     setIsFormOpen(true);
   };
 
@@ -489,6 +503,13 @@ export default function Gradebook({
     setHealth(record?.health != null ? record.health.toString() : '');
     setLifeSkills(record?.lifeSkills != null ? record.lifeSkills.toString() : '');
     setForeignLanguage(record?.foreignLanguage != null ? record.foreignLanguage.toString() : '');
+    // English categories
+    const es: Record<string, string> = {};
+    ENGLISH_SUBJECTS.forEach(s => {
+      const v = record?.englishScores?.[s.key];
+      es[s.key] = v != null ? v.toString() : '';
+    });
+    setEnglishScores(es);
   };
 
   // Action: Save or Update student
@@ -534,7 +555,24 @@ export default function Gradebook({
       foreignLanguage: foreignLanguage === '' ? null : clampScore(parseFloat(foreignLanguage) || 0)
     };
 
-    const calculatedPayload = calculateStudentFields(payload);
+    // For English classes, store the 8 English categories and null out the general
+    // subjects so the overall average comes from the English scores only.
+    const finalPayload = formIsEnglish
+      ? {
+          ...payload,
+          khmer: { listening: null, writing: null, reading: null, speaking: null },
+          math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
+          science: null, socialStudies: null, physicalEducation: null,
+          health: null, lifeSkills: null, foreignLanguage: null,
+          englishScores: ENGLISH_SUBJECTS.reduce((acc, s) => {
+            const v = englishScores[s.key];
+            acc[s.key] = (v === undefined || v === '') ? null : clampScore(parseFloat(v) || 0);
+            return acc;
+          }, {} as Record<string, number | null>),
+        }
+      : payload;
+
+    const calculatedPayload = calculateStudentFields(finalPayload);
 
     let updatedList: StudentScore[];
     if (editingStudentId || existingMonthRecord) {
@@ -885,7 +923,8 @@ export default function Gradebook({
               </div>
             </div>
 
-            {/* Column 2: Key split subjects with sub-scores */}
+            {/* Column 2: Key split subjects with sub-scores (hidden for English classes) */}
+            {!formIsEnglish && (
             <div className="space-y-5 p-4 bg-slate-50/50 border border-slate-100 rounded-xl">
               <h4 className="font-medium text-slate-700 text-sm border-b border-slate-100 pb-2">២. ភាសាខ្មែរ និងគណិតវិទ្យា (ពិន្ទុរង)</h4>
               
@@ -1011,11 +1050,34 @@ export default function Gradebook({
                 </div>
               </div>
             </div>
+            )}
 
-            {/* Column 3: Secondary Subjects */}
+            {/* Column 3: English categories (8) OR the general secondary subjects (6) */}
             <div className="space-y-4 p-4 bg-slate-50/50 border border-slate-100 rounded-xl">
+              {formIsEnglish ? (
+                <>
+                  <h4 className="font-medium text-slate-700 text-sm border-b border-slate-100 pb-2">មុខវិជ្ជាភាសាអង់គ្លេស (៨ ផ្នែក)</h4>
+                  <div className="grid grid-cols-2 gap-4 text-xs font-medium text-slate-600">
+                    {ENGLISH_SUBJECTS.map(s => (
+                      <div key={s.key}>
+                        <label className="block text-slate-500 mb-1">{s.en} ({s.km})</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="10"
+                          step="0.1"
+                          value={englishScores[s.key] ?? ''}
+                          onChange={(e) => setEnglishScores(prev => ({ ...prev, [s.key]: e.target.value }))}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-center"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+              <>
               <h4 className="font-medium text-slate-700 text-sm border-b border-slate-100 pb-2">៣. មុខវិជ្ជាបន្ថែមទាំង ៦</h4>
-              
+
               <div className="grid grid-cols-2 gap-4 text-xs font-medium text-slate-600">
                 <div>
                   <label className="block text-slate-500 mb-1">វិទ្យាសាស្ត្រ</label>
@@ -1095,6 +1157,8 @@ export default function Gradebook({
                   />
                 </div>
               </div>
+              </>
+              )}
 
               {/* Form Save Button Action */}
               <div className="pt-6 border-t border-slate-100 flex items-center justify-end gap-3">
@@ -1259,14 +1323,22 @@ export default function Gradebook({
                   <th className="px-4 py-3 text-center">ភេទ</th>
                   <th className="px-4 py-3 text-center">ថ្នាក់សិក្សា</th>
                   <th className="px-4 py-3 text-center">ខែ</th>
-                  <th className="px-4 py-3 text-center">ភាសាខ្មែរ (មធ្យម)</th>
-                  <th className="px-4 py-3 text-center">គណិត (មធ្យម)</th>
-                  <th className="px-4 py-3 text-center">វិទ្យាសាស្ត្រ</th>
-                  <th className="px-4 py-3 text-center">សិក្សាសង្គម</th>
-                  <th className="px-4 py-3 text-center">អប់រំកាយកីឡា</th>
-                  <th className="px-4 py-3 text-center">សុខភាព</th>
-                  <th className="px-4 py-3 text-center">បំណិនជីវិត</th>
-                  <th className="px-4 py-3 text-center">ភាសាបរទេស</th>
+                  {viewingEnglish ? (
+                    ENGLISH_SUBJECTS.map(s => (
+                      <th key={s.key} className="px-4 py-3 text-center whitespace-nowrap">{s.en}<span className="block text-[9px] text-slate-400 font-normal">{s.km}</span></th>
+                    ))
+                  ) : (
+                    <>
+                      <th className="px-4 py-3 text-center">ភាសាខ្មែរ (មធ្យម)</th>
+                      <th className="px-4 py-3 text-center">គណិត (មធ្យម)</th>
+                      <th className="px-4 py-3 text-center">វិទ្យាសាស្ត្រ</th>
+                      <th className="px-4 py-3 text-center">សិក្សាសង្គម</th>
+                      <th className="px-4 py-3 text-center">អប់រំកាយកីឡា</th>
+                      <th className="px-4 py-3 text-center">សុខភាព</th>
+                      <th className="px-4 py-3 text-center">បំណិនជីវិត</th>
+                      <th className="px-4 py-3 text-center">ភាសាបរទេស</th>
+                    </>
+                  )}
                   <th className="px-4 py-3 text-center text-blue-600 bg-blue-50/50 rounded-tl-md">ពិន្ទុសរុប</th>
                   <th className="px-4 py-3 text-center text-blue-600 bg-blue-50/50 rounded-tr-md">មធ្យមភាគរួម</th>
                   <th className="px-4 py-3 text-center">និទ្ទេស</th>
@@ -1296,8 +1368,17 @@ export default function Gradebook({
                         <td className="px-4 py-3 text-center">{st.gender}</td>
                         <td className="px-4 py-3 text-center text-slate-500">{st.grade}</td>
                         <td className="px-4 py-3 text-center text-slate-500 font-medium">{st.month}</td>
+                        {viewingEnglish ? (
+                          ENGLISH_SUBJECTS.map(sub => {
+                            const v = st.englishScores?.[sub.key];
+                            return (
+                              <td key={sub.key} className="px-4 py-3 text-center font-mono text-slate-500">{v !== null && v !== undefined ? v : '-'}</td>
+                            );
+                          })
+                        ) : (
+                          <>
                         <td className="px-4 py-3 text-center font-mono">
-                          {[st.khmer.listening, st.khmer.writing, st.khmer.reading, st.khmer.speaking].some(s => s !== null && s !== undefined) ? st.khmerAvg : '-'} 
+                          {[st.khmer.listening, st.khmer.writing, st.khmer.reading, st.khmer.speaking].some(s => s !== null && s !== undefined) ? st.khmerAvg : '-'}
                           <span className="text-[9px] text-slate-400 block font-normal">
                             ({st.khmer.listening !== null && st.khmer.listening !== undefined ? st.khmer.listening : '-'}/{st.khmer.writing !== null && st.khmer.writing !== undefined ? st.khmer.writing : '-'}/{st.khmer.reading !== null && st.khmer.reading !== undefined ? st.khmer.reading : '-'}/{st.khmer.speaking !== null && st.khmer.speaking !== undefined ? st.khmer.speaking : '-'})
                           </span>
@@ -1314,6 +1395,8 @@ export default function Gradebook({
                         <td className="px-4 py-3 text-center font-mono text-slate-500">{st.health !== null && st.health !== undefined ? st.health : '-'}</td>
                         <td className="px-4 py-3 text-center font-mono text-slate-500">{st.lifeSkills !== null && st.lifeSkills !== undefined ? st.lifeSkills : '-'}</td>
                         <td className="px-4 py-3 text-center font-mono text-slate-500">{st.foreignLanguage !== null && st.foreignLanguage !== undefined ? st.foreignLanguage : '-'}</td>
+                          </>
+                        )}
                         <td className="px-4 py-3 text-center font-mono font-bold text-blue-600 bg-blue-50/30">
                           {st.totalScore !== undefined ? st.totalScore : '-'}
                         </td>

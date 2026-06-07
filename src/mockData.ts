@@ -35,11 +35,16 @@ export function calculateStudentFields(
   const mathAvg = mathScores.length > 0 ? clampScore(mathScores.reduce((a, b) => a + b, 0) / mathScores.length) : null;
 
   const validSubjects: (number | null)[] = [];
-  if (khmerAvg !== null) validSubjects.push(khmerAvg);
-  else validSubjects.push(null);
-  if (mathAvg !== null) validSubjects.push(mathAvg);
-  else validSubjects.push(null);
-  validSubjects.push(student.science, student.socialStudies, student.physicalEducation, student.health, student.lifeSkills, student.foreignLanguage);
+  if (student.englishScores) {
+    // English class: the overall is the average of the 8 English categories.
+    Object.values(student.englishScores).forEach(v => validSubjects.push(v ?? null));
+  } else {
+    if (khmerAvg !== null) validSubjects.push(khmerAvg);
+    else validSubjects.push(null);
+    if (mathAvg !== null) validSubjects.push(mathAvg);
+    else validSubjects.push(null);
+    validSubjects.push(student.science, student.socialStudies, student.physicalEducation, student.health, student.lifeSkills, student.foreignLanguage);
+  }
 
   const subjects = validSubjects.filter(s => s !== null && s !== undefined) as number[];
 
