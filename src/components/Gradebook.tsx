@@ -1060,7 +1060,7 @@ export default function Gradebook({
                   <div className="grid grid-cols-2 gap-4 text-xs font-medium text-slate-600">
                     {ENGLISH_SUBJECTS.map(s => (
                       <div key={s.key}>
-                        <label className="block text-slate-500 mb-1">{s.en} ({s.km})</label>
+                        <label className="block text-slate-500 mb-1">{s.km} ({s.en.toLowerCase()})</label>
                         <input
                           type="number"
                           min="0"
@@ -1325,7 +1325,7 @@ export default function Gradebook({
                   <th className="px-4 py-3 text-center">ខែ</th>
                   {viewingEnglish ? (
                     ENGLISH_SUBJECTS.map(s => (
-                      <th key={s.key} className="px-4 py-3 text-center whitespace-nowrap">{s.en}<span className="block text-[9px] text-slate-400 font-normal">{s.km}</span></th>
+                      <th key={s.key} className="px-4 py-3 text-center whitespace-nowrap">{s.km}<span className="block text-[9px] text-slate-400 font-normal">({s.en.toLowerCase()})</span></th>
                     ))
                   ) : (
                     <>
