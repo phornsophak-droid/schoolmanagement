@@ -27,6 +27,10 @@ import {
   syncUpsertTeacherAttendance
 } from '../lib/supabase';
 
+// Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
+const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+
 // Structured absence / lateness reasons (5 categories + free-text "Other").
 const ABSENCE_REASON_GROUPS: { label: string; options: string[] }[] = [
   { label: '១. បញ្ហាសុខភាព', options: [
@@ -108,6 +112,13 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     }
     return grades[0] || 'ថ្នាក់ទី ១ក';
   });
+
+  // Class category (general / extra) — initialised to match the default selected grade.
+  const [classCategory, setClassCategory] = useState<'general' | 'extra'>(() => {
+    const g = currentUser?.grade && currentUser.grade !== 'ទាំងអស់' ? currentUser.grade : (grades[0] || '');
+    return isExtraClass(g) ? 'extra' : 'general';
+  });
+  const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
 
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -791,6 +802,32 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       <div className="flex flex-col gap-6 items-start w-full">
         {/* Top Controls: Filters */}
         <div className="w-full">
+          {activeTab === 'student' && currentUser?.role !== 'teacher' && (
+            <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-3xs border border-slate-200 w-full mb-4">
+              <button
+                onClick={() => {
+                  setClassCategory('general');
+                  const f = grades.find(g => !isExtraClass(g));
+                  if (f) setSelectedGrade(f);
+                  setSearchQuery('');
+                }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                📘 ថ្នាក់ចំណេះទូទៅ
+              </button>
+              <button
+                onClick={() => {
+                  setClassCategory('extra');
+                  const f = grades.find(g => isExtraClass(g));
+                  if (f) setSelectedGrade(f);
+                  setSearchQuery('');
+                }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                🎨 ថ្នាក់ក្រៅម៉ោង
+              </button>
+            </div>
+          )}
           {activeTab === 'student' ? (
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex flex-wrap md:flex-row gap-6 items-center lg:justify-between w-full">
               <div className="flex flex-col md:flex-row items-center gap-6 grow w-full lg:w-auto">
@@ -810,7 +847,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                     }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-3xs"
                   >
-                    {grades.map(g => (
+                    {grades.filter(g => inCat(g)).map(g => (
                       <option key={g} value={g}>{g}</option>
                     ))}
                   </select>
