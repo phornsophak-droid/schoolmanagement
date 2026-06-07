@@ -60,6 +60,10 @@ const DEFAULT_GRADES_LIST = [
   'ថ្នាក់អប់រំសុខភាព'
 ];
 
+// Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
+const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+
 export default function Gradebook({
   students,
   selectedMonth,
@@ -72,13 +76,17 @@ export default function Gradebook({
   onAddGrade,
   onDeleteGrade
 }: GradebookProps) {
-  const gradesList = grades || DEFAULT_GRADES_LIST;
+  // Class category (general = មត្តេយ្យ–ទី៦; extra = after-hours skill classes)
+  const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
+  const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
+  const gradesList = (grades || DEFAULT_GRADES_LIST).filter(g => inCat(g));
   const [newClassName, setNewClassName] = useState('');
   const [isClassManagerOpen, setIsClassManagerOpen] = useState(false);
-  // Lock grade selection to teacher's grade if teacher role
+  // Lock grade selection (and category) to teacher's own class
   useEffect(() => {
     if (currentUser && currentUser.role === 'teacher') {
       setSelectedGrade(currentUser.grade);
+      setClassCategory(isExtraClass(currentUser.grade) ? 'extra' : 'general');
     }
   }, [currentUser, setSelectedGrade]);
 
@@ -152,6 +160,7 @@ export default function Gradebook({
         if (student.month === 'ប្រឡងឆមាសទី១' || student.month === 'ប្រឡងឆមាសទី២') {
           return false;
         }
+        if (!inCat(student.grade)) return false;
         const matchMonth = selectedMonth === 'ទាំងអស់' ? true : student.month === selectedMonth;
         return matchMonth;
       });
@@ -170,7 +179,7 @@ export default function Gradebook({
       }
       const matchMonth = selectedMonth === 'ទាំងអស់' ? true : student.month === selectedMonth;
       const matchGrade = selectedGrade === 'ទាំងអស់' ? true : student.grade === selectedGrade;
-      return matchMonth && matchGrade;
+      return matchMonth && matchGrade && inCat(student.grade);
     });
 
     let list = [...monthlyRecords];
@@ -182,13 +191,13 @@ export default function Gradebook({
 
     // 3. Compute rankings inside the filtered group
     return rankStudents(list);
-  }, [students, selectedMonth, selectedGrade, searchTerm]);
+  }, [students, selectedMonth, selectedGrade, searchTerm, classCategory]);
 
   // Semester aggregation values
   const semesterStudents = useMemo(() => {
     const uniqueStudentsMap = new Map<string, { name: string; gender: 'ប្រុស' | 'ស្រី'; grade: string }>();
     students.forEach(s => {
-      if (selectedGrade === 'ទាំងអស់' || s.grade === selectedGrade) {
+      if ((selectedGrade === 'ទាំងអស់' || s.grade === selectedGrade) && inCat(s.grade)) {
         if (s.month !== 'ប្រឡងឆមាសទី១' && s.month !== 'ប្រឡងឆមាសទី២') {
           const key = `${s.name.trim()}_${s.grade}`;
           if (!uniqueStudentsMap.has(key)) {
@@ -269,7 +278,7 @@ export default function Gradebook({
       ...student,
       ranking: idx + 1
     }));
-  }, [students, selectedGrade, selectedSemester]);
+  }, [students, selectedGrade, selectedSemester, classCategory]);
 
   const filteredSemesterStudents = useMemo(() => {
     let list = semesterStudents;
@@ -283,7 +292,7 @@ export default function Gradebook({
   const annualStudents = useMemo(() => {
     const uniqueStudentsMap = new Map<string, { name: string; gender: 'ប្រុស' | 'ស្រី'; grade: string }>();
     students.forEach(s => {
-      if (selectedGrade === 'ទាំងអស់' || s.grade === selectedGrade) {
+      if ((selectedGrade === 'ទាំងអស់' || s.grade === selectedGrade) && inCat(s.grade)) {
         if (s.month !== 'ប្រឡងឆមាសទី១' && s.month !== 'ប្រឡងឆមាសទី២') {
           const key = `${s.name.trim()}_${s.grade}`;
           if (!uniqueStudentsMap.has(key)) {
@@ -382,7 +391,7 @@ export default function Gradebook({
       ...student,
       ranking: idx + 1
     }));
-  }, [students, selectedGrade]);
+  }, [students, selectedGrade, classCategory]);
 
   const filteredAnnualStudents = useMemo(() => {
     let list = annualStudents;
@@ -592,6 +601,26 @@ export default function Gradebook({
 
   return (
     <div className="space-y-6">
+      {/* Class category tabs (principal): General vs Extra */}
+      {currentUser?.role !== 'teacher' && (
+        <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-sm border border-slate-100 w-full">
+          <button
+            onClick={() => { setClassCategory('general'); setSelectedGrade('ទាំងអស់'); }}
+            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            📘 ថ្នាក់ចំណេះទូទៅ
+            <span className="hidden sm:inline text-[11px] font-medium opacity-80">(មត្តេយ្យ–ទី៦)</span>
+          </button>
+          <button
+            onClick={() => { setClassCategory('extra'); setSelectedGrade('ទាំងអស់'); }}
+            className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            🎨 ថ្នាក់ក្រៅម៉ោង
+            <span className="hidden sm:inline text-[11px] font-medium opacity-80">(ភាសា/គំនូរ/កុំព្យូទ័រ...)</span>
+          </button>
+        </div>
+      )}
+
       {/* Search and Top Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
         <div>
