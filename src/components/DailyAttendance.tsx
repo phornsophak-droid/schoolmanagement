@@ -123,11 +123,18 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
 
   // An after-hours teacher (e.g. English) teaches several groups (3A, 3B...) within one subject.
-  const isExtraTeacher = currentUser?.role === 'teacher' && isExtraClass(currentUser.grade || '');
-  // Grade options for the class dropdown: an extra teacher only sees their own subject's groups.
+  const isTeacher = currentUser?.role === 'teacher';
+  const isExtraTeacher = isTeacher && isExtraClass(currentUser!.grade || '');
+  const isGeneralTeacher = isTeacher && !isExtraTeacher; // locked to their single class
+  // Grade options for the class dropdown:
+  //  - general teacher → locked to their own class
+  //  - extra teacher   → only their own subject's groups
+  //  - admin           → every class in the selected category
   const gradeOptions = isExtraTeacher
     ? grades.filter(g => g.includes(getSubjectKey(currentUser!.grade)))
-    : grades.filter(g => inCat(g));
+    : isGeneralTeacher
+      ? [currentUser!.grade]
+      : grades.filter(g => inCat(g));
 
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -847,14 +854,17 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                 
                 {/* Grade filter */}
                 <div className="space-y-1.5 flex-1 w-full min-w-[200px]">
-                  <label className="block text-[10.5px] text-slate-500 font-bold">ជ្រើសរើសតម្រងថ្នាក់</label>
+                  <label className="block text-[10.5px] text-slate-500 font-bold">
+                    ជ្រើសរើសតម្រងថ្នាក់{isGeneralTeacher && ' 🔒'}
+                  </label>
                   <select
                     value={selectedGrade}
+                    disabled={isGeneralTeacher}
                     onChange={(e) => {
                       setSelectedGrade(e.target.value);
                       setSearchQuery('');
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-3xs"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-3xs disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   >
                     {gradeOptions.map(g => (
                       <option key={g} value={g}>{g}</option>
