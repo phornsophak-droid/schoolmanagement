@@ -190,8 +190,12 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
   const [newPinCode, setNewPinCode] = useState('1234');
   // Category for the new class: 'general' (មត្តេយ្យ–ទី៦) or 'extra' (after-hours skill classes).
   const [newClassCategory, setNewClassCategory] = useState<'general' | 'extra'>('general');
+  // Group within an after-hours subject (e.g. ភាសាអង់គ្លេស 3A, 3B, 4A ...).
+  const [newClassGroup, setNewClassGroup] = useState('1A');
   // Known after-hours subjects — chosen from a list so the name always classifies as "extra".
   const EXTRA_CLASS_OPTIONS = ['ថ្នាក់ភាសាអង់គ្លេស', 'ថ្នាក់គំនូរ', 'ថ្នាក់កុំព្យូទ័រ', 'ថ្នាក់កីឡា និងអប់រំកាយ', 'ថ្នាក់អប់រំសុខភាព'];
+  // Group options (grades 1–6, sections A & B) for after-hours classes.
+  const EXTRA_GROUP_OPTIONS = ['1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B', '6A', '6B'];
 
   const handleSelectUser = (user: SchoolUser) => {
     setSelectedUser(user);
@@ -214,7 +218,10 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
 
   const handleAddClassSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanClass = newClassName.trim();
+    // For extra classes, the final class name combines the subject + the group (e.g. "ថ្នាក់ភាសាអង់គ្លេស 3A").
+    const cleanClass = (newClassCategory === 'extra' && newClassGroup)
+      ? `${newClassName.trim()} ${newClassGroup}`.trim()
+      : newClassName.trim();
     const cleanTeacher = newTeacherName.trim();
     if (!cleanClass || !cleanTeacher) return;
 
@@ -254,6 +261,7 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
     setNewTeacherName('');
     setNewPinCode('1234');
     setNewClassCategory('general');
+    setNewClassGroup('1A');
   };
 
   return (
@@ -471,27 +479,45 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setNewClassCategory('extra'); setNewClassName(EXTRA_CLASS_OPTIONS[0]); }}
+                    onClick={() => { setNewClassCategory('extra'); setNewClassName(EXTRA_CLASS_OPTIONS[0]); setNewClassGroup('1A'); }}
                     className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${newClassCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
                   >
                     🎨 ថ្នាក់ក្រៅម៉ោង
                   </button>
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ថ្នាក់សិក្សា</label>
-                {newClassCategory === 'extra' ? (
-                  <select
-                    required
-                    value={newClassName}
-                    onChange={e => setNewClassName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500"
-                  >
-                    {EXTRA_CLASS_OPTIONS.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                ) : (
+              {newClassCategory === 'extra' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">មុខវិជ្ជា និងក្រុម</label>
+                  <div className="flex gap-2">
+                    <select
+                      required
+                      value={newClassName}
+                      onChange={e => setNewClassName(e.target.value)}
+                      className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500"
+                    >
+                      {EXTRA_CLASS_OPTIONS.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                    <select
+                      required
+                      value={newClassGroup}
+                      onChange={e => setNewClassGroup(e.target.value)}
+                      className="w-24 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500 font-mono"
+                    >
+                      {EXTRA_GROUP_OPTIONS.map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    ឈ្មោះថ្នាក់៖ <span className="font-bold text-indigo-600">{newClassName} {newClassGroup}</span>
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">ថ្នាក់សិក្សា</label>
                   <input
                     type="text"
                     placeholder="ឧទាហរណ៍៖ ថ្នាក់ទី ៧ក"
@@ -500,11 +526,8 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
                     onChange={e => setNewClassName(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500"
                   />
-                )}
-                {newClassCategory === 'extra' && (
-                  <p className="text-[10px] text-slate-400 mt-1">ជ្រើសរើសមុខវិជ្ជាក្រៅម៉ោងពីបញ្ជី ដើម្បីឱ្យប្រព័ន្ធចាត់ថ្នាក់បានត្រឹមត្រូវ។</p>
-                )}
-              </div>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">ឈ្មោះលោកគ្រូ-អ្នកគ្រូ</label>
                 <input
