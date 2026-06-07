@@ -41,6 +41,10 @@ function normalizeGradeName(g: string | undefined | null): string {
     .trim();
 }
 
+// Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
+const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+
 interface ClassStudentMgmtProps {
   students: StudentScore[];
   grades: string[];
@@ -116,6 +120,14 @@ export default function ClassStudentMgmt({
     currentUser?.role === 'teacher' ? currentUser.grade : (grades[0] || 'ថ្នាក់ទី៦')
   );
 
+  // Class category (general / extra) — scopes the KPI cards, grade dropdown, roster & class list.
+  const [classCategory, setClassCategory] = useState<'general' | 'extra'>(() => {
+    const g = currentUser?.role === 'teacher' ? currentUser.grade : (grades[0] || '');
+    return isExtraClass(g) ? 'extra' : 'general';
+  });
+  const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
+  const categoryGrades = grades.filter(g => inCat(g));
+
   // Hidden file input ref for CSV IMPORT
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -132,10 +144,11 @@ export default function ClassStudentMgmt({
   const [studentFormGrade, setStudentFormGrade] = useState<string>(grades[0] || 'ថ្នាក់ទី៦');
   const [studentFormStatus, setStudentFormStatus] = useState<'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់'>('ធម្មតា');
 
-  // Stats calculation
-  const totalStudents = students.length;
-  const femaleStudents = students.filter(s => s.gender === 'ស្រី').length;
-  const maleStudents = students.filter(s => s.gender === 'ប្រុស').length;
+  // Stats calculation (scoped to the selected class category)
+  const categoryStudents = students.filter(s => inCat(s.grade));
+  const totalStudents = categoryStudents.length;
+  const femaleStudents = categoryStudents.filter(s => s.gender === 'ស្រី').length;
+  const maleStudents = categoryStudents.filter(s => s.gender === 'ប្រុស').length;
   
   // Dynamic map count of students per grade
   const gradeStats = useMemo(() => {
@@ -167,8 +180,8 @@ export default function ClassStudentMgmt({
 
   // Filter students profile list
   const filteredProfiles = useMemo(() => {
-    let list = uniqueStudentProfiles;
-    
+    let list = uniqueStudentProfiles.filter(s => inCat(s.grade));
+
     if (selectedRosterGrade !== 'ទាំងអស់') {
       list = list.filter(s => s.grade === selectedRosterGrade);
     }
@@ -185,7 +198,7 @@ export default function ClassStudentMgmt({
     }
     
     return list;
-  }, [uniqueStudentProfiles, selectedRosterGrade, studentSearch, sortOrder]);
+  }, [uniqueStudentProfiles, selectedRosterGrade, studentSearch, sortOrder, classCategory]);
 
   const handleAddClassLocal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1005,6 +1018,32 @@ export default function ClassStudentMgmt({
 
   return (
     <div className="space-y-6">
+      {/* Class-category selector (general / extra) — scopes every card, list & dropdown below */}
+      {currentUser?.role !== 'teacher' && (
+        <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-3xs border border-slate-200 w-full">
+          <button
+            onClick={() => {
+              setClassCategory('general');
+              setSelectedRosterGrade(grades.find(g => !isExtraClass(g)) || 'ទាំងអស់');
+              setStudentSearch('');
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            📘 ថ្នាក់ចំណេះទូទៅ
+          </button>
+          <button
+            onClick={() => {
+              setClassCategory('extra');
+              setSelectedRosterGrade(grades.find(g => isExtraClass(g)) || 'ទាំងអស់');
+              setStudentSearch('');
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            🎨 ថ្នាក់ក្រៅម៉ោង
+          </button>
+        </div>
+      )}
+
       {/* Overview stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl shadow-3xs border border-slate-100 flex items-center gap-4">
@@ -1013,7 +1052,7 @@ export default function ClassStudentMgmt({
           </div>
           <div>
             <span className="text-xs font-semibold text-slate-500 block">ថ្នាក់រៀនសរុប</span>
-            <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{grades.length} ថ្នាក់</span>
+            <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{categoryGrades.length} ថ្នាក់</span>
           </div>
         </div>
 
@@ -1061,7 +1100,7 @@ export default function ClassStudentMgmt({
                   : 'hover:text-slate-800'
               }`}
             >
-              👤 បញ្ជីឈ្មោះ និងគ្រប់គ្រងសិស្ស ({uniqueStudentProfiles.length})
+              👤 បញ្ជីឈ្មោះ និងគ្រប់គ្រងសិស្ស ({uniqueStudentProfiles.filter(s => inCat(s.grade)).length})
             </button>
             <button
               id="tab_class_listings"
@@ -1072,7 +1111,7 @@ export default function ClassStudentMgmt({
                   : 'hover:text-slate-800'
               }`}
             >
-              📚 គ្រប់គ្រងថ្នាក់រៀន ({grades.length})
+              📚 គ្រប់គ្រងថ្នាក់រៀន ({categoryGrades.length})
             </button>
           </div>
 
@@ -1156,7 +1195,7 @@ export default function ClassStudentMgmt({
                   <h3 className="font-bold text-slate-800 text-sm">បញ្ជីថ្នាក់រៀនបច្ចុប្បន្ន</h3>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[350px] overflow-y-auto p-1 text-xs">
-                    {grades.map((g) => {
+                    {categoryGrades.map((g) => {
                       const stats = gradeStats[g] || { total: 0, female: 0, male: 0 };
                       const isEditingThis = editingClassName === g;
 
@@ -1314,7 +1353,7 @@ export default function ClassStudentMgmt({
                         className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-blue-500 font-semibold"
                       >
                         <option value="ទាំងអស់">គ្រប់ថ្នាក់ទាំងអស់</option>
-                        {grades.map(g => (
+                        {categoryGrades.map(g => (
                           <option key={g} value={g}>{g}</option>
                         ))}
                       </select>
@@ -1475,7 +1514,7 @@ export default function ClassStudentMgmt({
                             onChange={(e) => setStudentFormGrade(e.target.value)}
                             className="w-full px-3 py-1.5 bg-white disabled:bg-slate-50 disabled:text-slate-400 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
                           >
-                            {grades.map(g => (
+                            {categoryGrades.map(g => (
                               <option key={g} value={g}>{g}</option>
                             ))}
                           </select>
