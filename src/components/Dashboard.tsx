@@ -178,6 +178,7 @@ export default function Dashboard({
     const uniqueProfiles = Array.from(uniqueStudentsMap.values());
     const totalCount = uniqueProfiles.length;
     const femaleCount = uniqueProfiles.filter(s => s.gender === 'ស្រី').length;
+    const maleCount = totalCount - femaleCount;
     
     let totalScoreSum = 0;
     let failCount = 0;
@@ -196,6 +197,7 @@ export default function Dashboard({
     return {
       totalCount,
       femaleCount,
+      maleCount,
       averageScore,
       failCount,
       passCount,
@@ -508,7 +510,11 @@ export default function Dashboard({
           <div>
             <p className="text-xs font-medium text-slate-400">សិស្សសរុបរួម</p>
             <h3 className="text-2xl font-bold text-slate-800 mt-1 font-mono">{stats.totalCount} <span className="text-sm font-normal text-slate-500">នាក់</span></h3>
-            <p className="text-xs text-slate-500 mt-1">ស្រី៖ <span className="font-bold text-emerald-600">{stats.femaleCount}</span> នាក់</p>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-xs text-slate-500">ស្រី៖ <span className="font-bold text-rose-500">{stats.femaleCount}</span> នាក់</span>
+              <span className="text-slate-300">|</span>
+              <span className="text-xs text-slate-500">ប្រុស៖ <span className="font-bold text-blue-600">{stats.maleCount}</span> នាក់</span>
+            </div>
           </div>
         </div>
       </div>
