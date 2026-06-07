@@ -24,6 +24,10 @@ import {
 import { SchoolReport, StudentScore, SchoolUser } from '../types';
 import schoolLogo from '../assets/logo.png';
 
+// Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
+const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+
 interface AttendanceRecord {
   id: string;
   date: string;
@@ -78,9 +82,14 @@ export default function Dashboard({
   currentUser
 }: DashboardProps) {
 
+  // Selected class category (general = មត្តេយ្យ–ទី៦; extra = after-hours skill classes).
+  const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
+  const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
+
   const gradesList = useMemo(() => {
-    return ['ទាំងអស់', ...(grades || ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦'])];
-  }, [grades]);
+    const all = grades || ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦'];
+    return ['ទាំងអស់', ...all.filter(g => inCat(g))];
+  }, [grades, classCategory]);
 
   // Load Saved Attendance Records
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
@@ -99,10 +108,11 @@ export default function Dashboard({
 
   const filteredAttendance = useMemo(() => {
     return attendanceRecords.filter(rec => {
+      if (!inCat(rec.grade)) return false;
       const matchGrade = selectedGrade === 'boldsymbol' || selectedGrade === 'ទាំងអស់' ? true : rec.grade === selectedGrade;
       return matchGrade;
     });
-  }, [attendanceRecords, selectedGrade]);
+  }, [attendanceRecords, selectedGrade, classCategory]);
 
   const attendanceAggregates = useMemo(() => {
     let totalPresent = 0;
@@ -134,20 +144,22 @@ export default function Dashboard({
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
+      if (!inCat(student.grade)) return false;
       const matchMonth = selectedMonth === 'ទាំងអស់' ? true : student.month === selectedMonth;
       const matchGrade = selectedGrade === 'ទាំងអស់' ? true : student.grade === selectedGrade;
       return matchMonth && matchGrade;
     });
-  }, [students, selectedMonth, selectedGrade]);
+  }, [students, selectedMonth, selectedGrade, classCategory]);
 
   // Filter reports based on selection
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
+      if (!inCat(report.generalInfo.grade)) return false;
       const matchMonth = selectedMonth === 'ទាំងអស់' ? true : report.generalInfo.month === selectedMonth;
       const matchGrade = selectedGrade === 'ទាំងអស់' ? true : report.generalInfo.grade === selectedGrade;
       return matchMonth && matchGrade;
     });
-  }, [reports, selectedMonth, selectedGrade]);
+  }, [reports, selectedMonth, selectedGrade, classCategory]);
 
   // Calculate statistics based on filtered students
   const stats = useMemo(() => {
@@ -191,19 +203,20 @@ export default function Dashboard({
     };
   }, [filteredStudents]);
 
-  // Find the latest attendance date
+  // Find the latest attendance date within the selected class category
   const latestAttendanceDate = useMemo(() => {
-    if (attendanceRecords.length === 0) return new Date().toISOString().split('T')[0];
-    const dates = attendanceRecords.map(r => r.date).sort();
+    const catRecords = attendanceRecords.filter(r => inCat(r.grade));
+    if (catRecords.length === 0) return new Date().toISOString().split('T')[0];
+    const dates = catRecords.map(r => r.date).sort();
     return dates[dates.length - 1];
-  }, [attendanceRecords]);
+  }, [attendanceRecords, classCategory]);
 
   // Generate Daily Absent Report Data
   const dailyAbsentReport = useMemo(() => {
     // Cumulative stats
     const cumulativeStats: Record<string, { late: number, permission: number, absent: number }> = {};
     attendanceRecords.forEach(rec => {
-      // Don't filter grade for cumulative overall stats
+      if (!inCat(rec.grade)) return; // cumulative stays within the selected category
       if (rec.studentStates) {
         Object.entries(rec.studentStates).forEach(([sId, status]) => {
           if (sId.endsWith('_reason')) return;
@@ -225,7 +238,7 @@ export default function Dashboard({
     });
 
     // Today's records (All classes, no grade filter)
-    const todayRecords = attendanceRecords.filter(r => r.date === latestAttendanceDate);
+    const todayRecords = attendanceRecords.filter(r => r.date === latestAttendanceDate && inCat(r.grade));
     
     let todayLateCount = 0;
     let todayPermissionCount = 0;
@@ -277,7 +290,7 @@ export default function Dashboard({
       totalAbsences: todayPermissionCount + todayAbsentCount,
       list
     };
-  }, [attendanceRecords, students, latestAttendanceDate, selectedGrade]);
+  }, [attendanceRecords, students, latestAttendanceDate, selectedGrade, classCategory]);
 
   // Aggregate absence/lateness reasons for the chart (daily = latest recorded day, monthly = that whole month).
   const absenceReasonStats = useMemo(() => {
@@ -286,7 +299,7 @@ export default function Dashboard({
     const counts: Record<string, number> = {};
     let total = 0;
     attendanceRecords.forEach(rec => {
-      if (!rec.studentStates || !inScope(rec.date)) return;
+      if (!rec.studentStates || !inScope(rec.date) || !inCat(rec.grade)) return;
       Object.entries(rec.studentStates).forEach(([sId, status]) => {
         if (sId.endsWith('_reason')) return;
         if (status !== 'late' && status !== 'permission' && status !== 'absent') return;
@@ -298,7 +311,7 @@ export default function Dashboard({
     const rows = Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count);
     const max = rows.reduce((m, r) => Math.max(m, r.count), 0);
     return { rows, total, max, monthKey };
-  }, [attendanceRecords, latestAttendanceDate, reasonChartMode]);
+  }, [attendanceRecords, latestAttendanceDate, reasonChartMode, classCategory]);
 
   // Generate a clean, branded printable daily-absentee report (Save as PDF) via a hidden iframe.
   const handleDownloadDailyPdf = () => {
@@ -401,6 +414,24 @@ export default function Dashboard({
 
   return (
     <div className="space-y-8">
+      {/* Class category tabs: General (មត្តេយ្យ–ទី៦) vs Extra (after-hours skill classes) */}
+      <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-sm border border-slate-100 w-full">
+        <button
+          onClick={() => { setClassCategory('general'); setSelectedGrade('ទាំងអស់'); }}
+          className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
+        >
+          📘 ថ្នាក់ចំណេះទូទៅ
+          <span className="hidden sm:inline text-[11px] font-medium opacity-80">(មត្តេយ្យ–ទី៦)</span>
+        </button>
+        <button
+          onClick={() => { setClassCategory('extra'); setSelectedGrade('ទាំងអស់'); }}
+          className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
+        >
+          🎨 ថ្នាក់ក្រៅម៉ោង
+          <span className="hidden sm:inline text-[11px] font-medium opacity-80">(ភាសា/គំនូរ/កុំព្យូទ័រ...)</span>
+        </button>
+      </div>
+
       {/* Upper Filter & Navigation Panel */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
         <div>
