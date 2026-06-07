@@ -30,6 +30,8 @@ import {
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
 const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+// The subject keyword inside an after-hours class name, used to group its sections (3A, 3B...).
+const getSubjectKey = (grade: string) => EXTRA_CLASS_KEYWORDS.find(k => (grade || '').includes(k)) || '';
 
 // Structured absence / lateness reasons (5 categories + free-text "Other").
 const ABSENCE_REASON_GROUPS: { label: string; options: string[] }[] = [
@@ -119,6 +121,13 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     return isExtraClass(g) ? 'extra' : 'general';
   });
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
+
+  // An after-hours teacher (e.g. English) teaches several groups (3A, 3B...) within one subject.
+  const isExtraTeacher = currentUser?.role === 'teacher' && isExtraClass(currentUser.grade || '');
+  // Grade options for the class dropdown: an extra teacher only sees their own subject's groups.
+  const gradeOptions = isExtraTeacher
+    ? grades.filter(g => g.includes(getSubjectKey(currentUser!.grade)))
+    : grades.filter(g => inCat(g));
 
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -847,7 +856,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                     }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-3xs"
                   >
-                    {grades.filter(g => inCat(g)).map(g => (
+                    {gradeOptions.map(g => (
                       <option key={g} value={g}>{g}</option>
                     ))}
                   </select>

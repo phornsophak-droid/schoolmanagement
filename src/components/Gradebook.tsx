@@ -63,6 +63,8 @@ const DEFAULT_GRADES_LIST = [
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
 const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+// The subject keyword inside an after-hours class name, used to group its sections (3A, 3B...).
+const getSubjectKey = (grade: string) => EXTRA_CLASS_KEYWORDS.find(k => (grade || '').includes(k)) || '';
 
 export default function Gradebook({
   students,
@@ -80,6 +82,11 @@ export default function Gradebook({
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
   const gradesList = (grades || DEFAULT_GRADES_LIST).filter(g => inCat(g));
+  // An after-hours teacher (e.g. English) teaches several groups (3A, 3B...) within their subject.
+  const isExtraTeacher = currentUser?.role === 'teacher' && isExtraClass(currentUser.grade);
+  const teacherSubjectGrades = isExtraTeacher
+    ? (grades || DEFAULT_GRADES_LIST).filter(g => g.includes(getSubjectKey(currentUser!.grade)))
+    : [];
   const [newClassName, setNewClassName] = useState('');
   const [isClassManagerOpen, setIsClassManagerOpen] = useState(false);
   // Lock grade selection (and category) to teacher's own class
@@ -406,7 +413,7 @@ export default function Gradebook({
     setEditingStudentId(null);
     setFormName('');
     setFormGender('ប្រុស');
-    setFormGrade(currentUser && currentUser.role === 'teacher' ? currentUser.grade : (selectedGrade === 'ទាំងអស់' ? (gradesList[0] || 'ថ្នាក់ទី៦') : selectedGrade));
+    setFormGrade(currentUser && currentUser.role === 'teacher' ? (selectedGrade !== 'ទាំងអស់' ? selectedGrade : currentUser.grade) : (selectedGrade === 'ទាំងអស់' ? (gradesList[0] || 'ថ្នាក់ទី៦') : selectedGrade));
     
     if (activeMode === 'semester') {
       setFormMonth(selectedSemester === '1' ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២');
@@ -1210,9 +1217,21 @@ export default function Gradebook({
               )}
 
               {currentUser?.role === 'teacher' ? (
-                <span className="px-3 py-1 text-[11px] bg-blue-50 text-blue-700/90 font-bold border-l border-slate-200 font-sans">
-                  ថ្នាក់៖ {currentUser.grade} 🔒
-                </span>
+                isExtraTeacher && teacherSubjectGrades.length > 1 ? (
+                  <select
+                    value={selectedGrade}
+                    onChange={(e) => setSelectedGrade(e.target.value)}
+                    className="px-2 py-1 text-[11px] bg-blue-50 text-blue-700 font-bold border-l border-slate-200 outline-none font-sans rounded-r-md"
+                  >
+                    {teacherSubjectGrades.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="px-3 py-1 text-[11px] bg-blue-50 text-blue-700/90 font-bold border-l border-slate-200 font-sans">
+                    ថ្នាក់៖ {currentUser.grade} 🔒
+                  </span>
+                )
               ) : (
                 <select
                   value={selectedGrade}
