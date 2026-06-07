@@ -42,9 +42,13 @@ const SEMESTER_1_MONTHS = ['ធ្នូ', 'មករា', 'កុម្ភៈ',
 const SEMESTER_2_MONTHS = ['ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
 
 const KHMER_MONTHS_LIST = [
-  'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 
+  'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា',
   'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'
 ];
+
+// Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
+const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
 
 export default function ReportsHub({
   reports,
@@ -93,6 +97,11 @@ export default function ReportsHub({
   const [selectedPeriod, setSelectedPeriod] = useState<string>('ប្រចាំឆ្នាំ'); // month, exam, or annual ('ប្រចាំឆ្នាំ')
   const [academicSearchName, setAcademicSearchName] = useState('');
 
+  // Class category (general / extra) — scopes every grade dropdown & report list.
+  const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
+  const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
+  const categoryGrades = gradesList.filter(g => inCat(g));
+
   // Clamp helper
   const clampScore = (score: number) => {
     return Math.max(0, Math.min(10, parseFloat(score.toFixed(2))));
@@ -118,11 +127,12 @@ export default function ReportsHub({
   // Filter progress reports
   const filteredProgressReports = useMemo(() => {
     return reports.filter(r => {
+      if (!inCat(r.generalInfo.grade)) return false;
       const matchGrade = progressSearchGrade === 'ទាំងអស់' ? true : r.generalInfo.grade === progressSearchGrade;
       const matchMonth = progressSearchMonth === 'ទាំងអស់' ? true : r.generalInfo.month === progressSearchMonth;
       return matchGrade && matchMonth;
     });
-  }, [reports, progressSearchGrade, progressSearchMonth]);
+  }, [reports, progressSearchGrade, progressSearchMonth, classCategory]);
 
   // ==========================================
   // ACADEMIC REPORTS ENGINE
@@ -133,7 +143,7 @@ export default function ReportsHub({
 
     // Filter students by grade if needed
     const baseRosterStudents = students.filter(s => {
-      if (targetGrade === 'ទាំងអស់') return true;
+      if (targetGrade === 'ទាំងអស់') return inCat(s.grade);
       return s.grade === targetGrade;
     });
 
@@ -282,7 +292,7 @@ export default function ReportsHub({
     } else {
       // 2. PERIOD-SPECIFIC PERFORMANCE (Month or Semester Exam)
       const periodStudents = students.filter(s => {
-        const matchGrade = targetGrade === 'All' || targetGrade === 'ទាំងអស់' ? true : s.grade === targetGrade;
+        const matchGrade = targetGrade === 'All' || targetGrade === 'ទាំងអស់' ? inCat(s.grade) : s.grade === targetGrade;
         return matchGrade && s.month === selectedPeriod;
       });
 
@@ -313,7 +323,7 @@ export default function ReportsHub({
       const sorted = roster.sort((a, b) => b.overallAvg - a.overallAvg);
       return sorted.map((st, i) => ({ ...st, ranking: i + 1 }));
     }
-  }, [students, scopeType, selectedGrade, selectedPeriod]);
+  }, [students, scopeType, selectedGrade, selectedPeriod, classCategory]);
 
   // Filter roster by student search input
   const filteredAcademicRoster = useMemo(() => {
@@ -460,6 +470,30 @@ export default function ReportsHub({
         </button>
       </div>
 
+      {/* Class-category selector (general / extra) — scopes all report data (Hidden in print) */}
+      <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-sm border border-slate-200 max-w-xl mx-auto w-full print:hidden">
+        <button
+          onClick={() => {
+            setClassCategory('general');
+            setSelectedGrade(gradesList.find(g => !isExtraClass(g)) || '');
+            setProgressSearchGrade('ទាំងអស់');
+          }}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          📘 ថ្នាក់ចំណេះទូទៅ
+        </button>
+        <button
+          onClick={() => {
+            setClassCategory('extra');
+            setSelectedGrade(gradesList.find(g => isExtraClass(g)) || '');
+            setProgressSearchGrade('ទាំងអស់');
+          }}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          🎨 ថ្នាក់ក្រៅម៉ោង
+        </button>
+      </div>
+
       {/* ========================================================== */}
       {/* TAB 1: MONTHLY PROGRESS REPORT WIZARD */}
       {/* ========================================================== */}
@@ -537,7 +571,7 @@ export default function ReportsHub({
                         className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-600 font-medium cursor-pointer"
                       >
                         <option value="ទាំងអស់">ទាំងអស់</option>
-                        {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
+                        {categoryGrades.map(g => <option key={g} value={g}>{g}</option>)}
                       </select>
                     </div>
 
@@ -718,7 +752,7 @@ export default function ReportsHub({
                     onChange={(e) => setSelectedGrade(e.target.value)}
                     className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-pointer focus:border-blue-500 outline-none transition-colors"
                   >
-                    {gradesList.map(g => <option key={g} value={g}>{g}</option>)}
+                    {categoryGrades.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                 ) : (
                   <div className="w-full px-3 py-1.5 text-xs bg-slate-100 border border-slate-200 rounded-lg text-slate-450 font-bold flex items-center gap-1">
