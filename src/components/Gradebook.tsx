@@ -3,21 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  X, 
-  Check, 
-  UserPlus, 
-  FolderLock, 
-  Search, 
-  GraduationCap, 
-  HelpCircle 
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import {
+  Plus,
+  Trash2,
+  Edit3,
+  X,
+  Check,
+  UserPlus,
+  FolderLock,
+  Search,
+  GraduationCap,
+  HelpCircle,
+  Download,
+  Upload
 } from 'lucide-react';
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, isEnglishClass } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
+import * as XLSX from 'xlsx';
 
 interface GradebookProps {
   students: StudentScore[];
@@ -89,6 +92,98 @@ export default function Gradebook({
     : [];
   // When a specific English class is in view, the monthly table shows the 8 English columns.
   const viewingEnglish = isEnglishClass(selectedGrade);
+
+  // ---- Score import / template (Excel/CSV) ----
+  const scoreFileRef = useRef<HTMLInputElement>(null);
+  // Subject column headers (after Name & Gender) for the import template / parser.
+  const GENERAL_SCORE_HEADERS = ['ស្តាប់', 'និយាយ', 'អាន', 'សរសេរ', 'ចំនួន', 'រង្វាស់រង្វាល់', 'ធរណីមាត្រ', 'ពិជគណិត', 'ស្ថិតិ', 'វិទ្យាសាស្ត្រ', 'សិក្សាសង្គម', 'កាយ-កីឡា', 'សុខភាព', 'បំណិនជីវិត', 'ភាសាបរទេស'];
+  const scoreHeaders = viewingEnglish ? ENGLISH_SUBJECTS.map(s => s.km) : GENERAL_SCORE_HEADERS;
+
+  // Build a StudentScore record from a row's numeric values (order matches scoreHeaders).
+  const buildScoreRecord = (name: string, gender: 'ប្រុស' | 'ស្រី', vals: (number | null)[], month: string, existingId?: string): StudentScore => {
+    const base = {
+      id: existingId || generateUniqueId(),
+      name, gender, grade: selectedGrade, month,
+      khmer: { listening: null, writing: null, reading: null, speaking: null },
+      math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
+      science: null, socialStudies: null, physicalEducation: null, health: null, lifeSkills: null, foreignLanguage: null,
+    };
+    if (viewingEnglish) {
+      const englishScores: Record<string, number | null> = {};
+      ENGLISH_SUBJECTS.forEach((s, i) => { englishScores[s.key] = vals[i] ?? null; });
+      return calculateStudentFields({ ...base, englishScores });
+    }
+    return calculateStudentFields({
+      ...base,
+      khmer: { listening: vals[0], speaking: vals[1], reading: vals[2], writing: vals[3] },
+      math: { numbers: vals[4], measurement: vals[5], geometry: vals[6], algebra: vals[7], statistics: vals[8] },
+      science: vals[9], socialStudies: vals[10], physicalEducation: vals[11], health: vals[12], lifeSkills: vals[13], foreignLanguage: vals[14],
+    });
+  };
+
+  // Download a pre-filled Excel template (registered students + blank score columns) for the selected class.
+  const handleDownloadScoreTemplate = () => {
+    if (selectedGrade === 'ទាំងអស់') { alert('សូមជ្រើសរើសថ្នាក់ជាក់លាក់មុនទាញយកគំរូ!'); return; }
+    const header = ['ឈ្មោះ', 'ភេទ', ...scoreHeaders];
+    const names = Array.from(new Set(students.filter(s => s.grade === selectedGrade).map(s => s.name.trim()))).sort((a, b) => a.localeCompare(b, 'km'));
+    const body = names.map(n => {
+      const rec = students.find(s => s.grade === selectedGrade && s.name.trim() === n);
+      return [n, rec?.gender || '', ...scoreHeaders.map(() => '')];
+    });
+    const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'ពិន្ទុ');
+    XLSX.writeFile(wb, `គំរូពិន្ទុ_${selectedGrade}.xlsx`);
+  };
+
+  // Import scores from an uploaded Excel/CSV file into the selected class + month.
+  const handleImportScores = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (selectedGrade === 'ទាំងអស់') { alert('សូមជ្រើសរើសថ្នាក់ជាក់លាក់មុននាំចូល!'); e.target.value = ''; return; }
+    const targetMonth = selectedMonth !== 'ទាំងអស់' ? selectedMonth : 'មេសា';
+    const num = (v: any): number | null => {
+      if (v === '' || v === null || v === undefined) return null;
+      const n = parseFloat(String(v).trim());
+      return isNaN(n) ? null : clampScore(n);
+    };
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = new Uint8Array(ev.target!.result as ArrayBuffer);
+        const wb = XLSX.read(data, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, blankrows: false });
+        let updated = [...students];
+        let count = 0;
+        for (let i = 1; i < rows.length; i++) { // row 0 = header
+          const row = rows[i];
+          if (!row || !Array.isArray(row)) continue;
+          const name = String(row[0] ?? '').replace(/[﻿​]/g, '').replace(/\s+/g, ' ').trim();
+          if (!name || name === 'ឈ្មោះ' || name === 'ឈ្មោះសិស្ស') continue;
+          const rawGender = String(row[1] ?? '').trim().toLowerCase();
+          const gender: 'ប្រុស' | 'ស្រី' = (rawGender.includes('ស្រី') || rawGender === 'f' || rawGender === 'female') ? 'ស្រី' : 'ប្រុស';
+          const vals = scoreHeaders.map((_, idx) => num(row[2 + idx]));
+          const existing = updated.find(s => s.name.trim() === name && s.grade === selectedGrade && s.month === targetMonth);
+          const rec = buildScoreRecord(name, gender, vals, targetMonth, existing?.id);
+          updated = existing ? updated.map(s => s.id === existing.id ? rec : s) : [...updated, rec];
+          count++;
+        }
+        if (count > 0) {
+          onSaveStudents(updated);
+          alert(`បាននាំចូលពិន្ទុ ${count} សិស្ស សម្រាប់ «${selectedGrade}» ខែ «${targetMonth}» ✓`);
+        } else {
+          alert('រកមិនឃើញទិន្នន័យត្រឹមត្រូវក្នុងឯកសារ! សូមប្រើគំរូដែលបានទាញយក។');
+        }
+      } catch (err) {
+        console.error('Score import failed', err);
+        alert('មានបញ្ហាក្នុងការអានឯកសារ! សូមប្រាកដថាប្រើគំរូ Excel/CSV ដែលបានទាញយក។');
+      }
+      e.target.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   const [newClassName, setNewClassName] = useState('');
   const [isClassManagerOpen, setIsClassManagerOpen] = useState(false);
   // Lock grade selection (and category) to teacher's own class
@@ -689,6 +784,34 @@ export default function Gradebook({
               <Plus size={16} />
               បន្ថែមថ្នាក់ថ្មី
             </button>
+          )}
+
+          {activeMode === 'monthly' && (
+            <>
+              <button
+                onClick={handleDownloadScoreTemplate}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white text-slate-700 font-semibold hover:bg-slate-50 border border-slate-200 rounded-xl text-sm transition-all"
+                title="ទាញយកគំរូ Excel"
+              >
+                <Download size={16} />
+                គំរូ
+              </button>
+              <button
+                onClick={() => scoreFileRef.current?.click()}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-emerald-600 text-white font-semibold hover:bg-emerald-700 rounded-xl text-sm transition-all shadow-md shadow-emerald-500/10"
+                title="នាំចូលពិន្ទុពី Excel/CSV"
+              >
+                <Upload size={16} />
+                នាំចូលពីកុំព្យូទ័រ
+              </button>
+              <input
+                ref={scoreFileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={handleImportScores}
+              />
+            </>
           )}
 
           <button
