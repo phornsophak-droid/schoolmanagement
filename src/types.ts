@@ -18,6 +18,22 @@ export const ENGLISH_SUBJECTS: { key: string; en: string; km: string }[] = [
 // True when a class name belongs to the English after-hours subject.
 export const isEnglishClass = (grade: string) => (grade || '').includes('អង់គ្លេស');
 
+// Sub-subjects of វិទ្យាសាស្ត្រ (Science), each 0-10.
+export const SCIENCE_SUBJECTS: { key: string; km: string }[] = [
+  { key: 'physics', km: 'រូបវិទ្យា' },
+  { key: 'chemistry', km: 'គីមីវិទ្យា' },
+  { key: 'biology', km: 'ជីវវិទ្យា' },
+  { key: 'earth', km: 'ផែនដី និងបរិស្ថានវិទ្យា' },
+];
+
+// Sub-subjects of សិក្សាសង្គម (Social Studies), each 0-10.
+export const SOCIAL_SUBJECTS: { key: string; km: string }[] = [
+  { key: 'morality', km: 'សីលធម៌-ពលរដ្ឋ' },
+  { key: 'geography', km: 'ភូមិវិទ្យា' },
+  { key: 'history', km: 'ប្រវត្តិវិទ្យា' },
+  { key: 'home', km: 'គេហៈវិទ្យា-អប់រំសិល្បៈ' },
+];
+
 export interface KhmerScore {
   listening: number | null; // ស្ដាប់ (0-10)
   writing: number | null;   // សរសេរ (0-10)
@@ -39,10 +55,14 @@ export interface StudentScore {
   gender: 'ប្រុស' | 'ស្រី';
   grade: string; // ថ្នាក់ទី១ ដល់ ថ្នាក់ទី៦
   month: string; // ខែ (មករា, កុម្ភៈ, ...)
+  studentId?: string;  // អត្តលេខ (official student ID, optional)
   khmer: KhmerScore;
   math: MathScore;
-  science: number | null;        // វិទ្យាសាស្ត្រ (0-10)
-  socialStudies: number | null;  // សិក្សាសង្គម (0-10)
+  science: number | null;        // វិទ្យាសាស្ត្រ (average of scienceScores, 0-10)
+  socialStudies: number | null;  // សិក្សាសង្គម (average of socialScores, 0-10)
+  scienceScores?: Record<string, number | null>; // sub-subjects of Science (SCIENCE_SUBJECTS)
+  socialScores?: Record<string, number | null>;  // sub-subjects of Social Studies (SOCIAL_SUBJECTS)
+  note?: string;  // ផ្សេងៗ (free-text notes)
   physicalEducation: number | null; // កាយ-កីឡា (0-10)
   health: number | null;         // សុខភាព (0-10)
   lifeSkills: number | null;     // បំណិនជីវិត (0-10)

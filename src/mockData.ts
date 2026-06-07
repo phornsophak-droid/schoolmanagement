@@ -34,16 +34,30 @@ export function calculateStudentFields(
   const mathScores = [student.math.numbers, student.math.measurement, student.math.geometry, student.math.algebra, student.math.statistics].filter(s => s !== null && s !== undefined) as number[];
   const mathAvg = mathScores.length > 0 ? clampScore(mathScores.reduce((a, b) => a + b, 0) / mathScores.length) : null;
 
+  // Science & Social Studies may carry sub-subject scores; their averages replace the single value.
+  const avgOf = (obj?: Record<string, number | null>): number | null => {
+    if (!obj) return null;
+    const vals = Object.values(obj).filter(v => v !== null && v !== undefined) as number[];
+    return vals.length > 0 ? clampScore(vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+  };
+  const scienceVal = student.scienceScores ? avgOf(student.scienceScores) : student.science;
+  const socialVal = student.socialScores ? avgOf(student.socialScores) : student.socialStudies;
+
   const validSubjects: (number | null)[] = [];
   if (student.englishScores) {
-    // English class: the overall is the average of the 8 English categories.
+    // English class: overall = sum of the 8 English categories ÷ count with scores.
     Object.values(student.englishScores).forEach(v => validSubjects.push(v ?? null));
   } else {
-    if (khmerAvg !== null) validSubjects.push(khmerAvg);
-    else validSubjects.push(null);
-    if (mathAvg !== null) validSubjects.push(mathAvg);
-    else validSubjects.push(null);
-    validSubjects.push(student.science, student.socialStudies, student.physicalEducation, student.health, student.lifeSkills, student.foreignLanguage);
+    // General class: every individual sub-subject counts (Khmer 4, Math 5, Science 4,
+    // Social 4, plus PE, Health, Life-skills, Foreign-language). The overall is the
+    // SUM of all entered sub-scores ÷ the number of sub-subjects that have a score.
+    validSubjects.push(
+      student.khmer.listening, student.khmer.writing, student.khmer.reading, student.khmer.speaking,
+      student.math.numbers, student.math.measurement, student.math.geometry, student.math.algebra, student.math.statistics,
+      ...(student.scienceScores ? Object.values(student.scienceScores) : [student.science]),
+      ...(student.socialScores ? Object.values(student.socialScores) : [student.socialStudies]),
+      student.physicalEducation, student.health, student.lifeSkills, student.foreignLanguage,
+    );
   }
 
   const subjects = validSubjects.filter(s => s !== null && s !== undefined) as number[];
@@ -68,6 +82,8 @@ export function calculateStudentFields(
 
   return {
     ...student,
+    science: scienceVal,
+    socialStudies: socialVal,
     khmerAvg,
     mathAvg,
     overallAvg,
