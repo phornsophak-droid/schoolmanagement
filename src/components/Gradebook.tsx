@@ -1358,7 +1358,7 @@ export default function Gradebook({
               }
             </h3>
             <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded-md font-mono text-xs border border-slate-200">
-              សរុប {activeMode === 'monthly' ? filteredStudents.length : activeMode === 'semester' ? filteredSemesterStudents.length : filteredAnnualStudents.length} នាក់
+              សរុប {activeMode === 'monthly' ? new Set(filteredStudents.map(s => `${s.name.trim()}_${s.grade}`)).size : activeMode === 'semester' ? filteredSemesterStudents.length : filteredAnnualStudents.length} នាក់
             </span>
           </div>
 
@@ -1440,38 +1440,63 @@ export default function Gradebook({
           {activeMode === 'monthly' ? (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
-                  <th className="px-2 py-3 text-center sticky left-0 z-20 bg-slate-50 w-12 min-w-12">ល.រ</th>
-                  <th className="px-3 py-3 sticky left-12 z-20 bg-slate-50 shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
-                  <th className="px-4 py-3 text-center">ភេទ</th>
-                  <th className="px-4 py-3 text-center">ថ្នាក់សិក្សា</th>
-                  <th className="px-4 py-3 text-center">ខែ</th>
-                  {viewingEnglish ? (
-                    ENGLISH_SUBJECTS.map(s => (
+                {viewingEnglish ? (
+                  <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
+                    <th className="px-2 py-3 text-center sticky left-0 z-20 bg-slate-50 w-12 min-w-12">ល.រ</th>
+                    <th className="px-3 py-3 sticky left-12 z-20 bg-slate-50 shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
+                    <th className="px-4 py-3 text-center">ភេទ</th>
+                    <th className="px-4 py-3 text-center">ថ្នាក់សិក្សា</th>
+                    <th className="px-4 py-3 text-center">ខែ</th>
+                    {ENGLISH_SUBJECTS.map(s => (
                       <th key={s.key} className="px-4 py-3 text-center whitespace-nowrap">{s.km}<span className="block text-[9px] text-slate-400 font-normal">({s.en.toLowerCase()})</span></th>
-                    ))
-                  ) : (
-                    <>
-                      <th className="px-4 py-3 text-center">ភាសាខ្មែរ (មធ្យម)</th>
-                      <th className="px-4 py-3 text-center">គណិត (មធ្យម)</th>
-                      <th className="px-4 py-3 text-center">វិទ្យាសាស្ត្រ</th>
-                      <th className="px-4 py-3 text-center">សិក្សាសង្គម</th>
-                      <th className="px-4 py-3 text-center">អប់រំកាយកីឡា</th>
-                      <th className="px-4 py-3 text-center">សុខភាព</th>
-                      <th className="px-4 py-3 text-center">បំណិនជីវិត</th>
-                      <th className="px-4 py-3 text-center">ភាសាបរទេស</th>
-                    </>
-                  )}
-                  <th className="px-4 py-3 text-center text-blue-600 bg-blue-50/50 rounded-tl-md">ពិន្ទុសរុប</th>
-                  <th className="px-4 py-3 text-center text-blue-600 bg-blue-50/50 rounded-tr-md">មធ្យមភាគរួម</th>
-                  <th className="px-4 py-3 text-center">និទ្ទេស</th>
-                  <th className="px-4 py-3 text-center">លទ្ធផល</th>
-                  <th className="px-4 py-3 text-right">សកម្មភាព</th>
-                </tr>
+                    ))}
+                    <th className="px-4 py-3 text-center text-blue-600 bg-blue-50/50">ពិន្ទុសរុប</th>
+                    <th className="px-4 py-3 text-center text-blue-600 bg-blue-50/50">មធ្យមភាគរួម</th>
+                    <th className="px-4 py-3 text-center">ចំណាត់ថ្នាក់</th>
+                    <th className="px-4 py-3 text-center">និទ្ទេស</th>
+                    <th className="px-4 py-3 text-center">លទ្ធផល</th>
+                    <th className="px-4 py-3 text-right">សកម្មភាព</th>
+                  </tr>
+                ) : (
+                  <>
+                  <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
+                    <th rowSpan={2} className="px-2 py-3 text-center sticky left-0 z-20 bg-slate-50 w-12 min-w-12">ល.រ</th>
+                    <th rowSpan={2} className="px-3 py-3 sticky left-12 z-20 bg-slate-50 shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">គោត្តនាម និងនាម</th>
+                    <th rowSpan={2} className="px-4 py-3 text-center">ភេទ</th>
+                    <th rowSpan={2} className="px-4 py-3 text-center">ថ្នាក់</th>
+                    <th rowSpan={2} className="px-4 py-3 text-center">ខែ</th>
+                    <th colSpan={4} className="px-2 py-2 text-center border-l border-slate-200 text-blue-600">ភាសាខ្មែរ</th>
+                    <th colSpan={5} className="px-2 py-2 text-center border-l border-slate-200 text-blue-600">គណិតវិទ្យា</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center border-l border-slate-200">វិទ្យា<br/>សាស្ត្រ</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center">សិក្សា<br/>សង្គម</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center">កាយ-<br/>កីឡា</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center">សុខភាព</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center">បំណិន<br/>ជីវិត</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center">ភាសា<br/>បរទេស</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center text-blue-600 bg-blue-50/50">ពិន្ទុ<br/>សរុប</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center text-blue-600 bg-blue-50/50">មធ្យម<br/>ភាគ</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center">ចំណាត់<br/>ថ្នាក់</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center">និទ្ទេស</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center">លទ្ធផល</th>
+                    <th rowSpan={2} className="px-4 py-3 text-right">សកម្មភាព</th>
+                  </tr>
+                  <tr className="bg-slate-50/60 border-b border-slate-100 text-[10px] font-semibold text-slate-400">
+                    <th className="px-2 py-2 text-center border-l border-slate-200 font-normal">ស្តាប់</th>
+                    <th className="px-2 py-2 text-center font-normal">និយាយ</th>
+                    <th className="px-2 py-2 text-center font-normal">អាន</th>
+                    <th className="px-2 py-2 text-center font-normal">សរសេរ</th>
+                    <th className="px-2 py-2 text-center border-l border-slate-200 font-normal">ចំនួន</th>
+                    <th className="px-2 py-2 text-center font-normal">រង្វាស់</th>
+                    <th className="px-2 py-2 text-center font-normal">ធរណី</th>
+                    <th className="px-2 py-2 text-center font-normal">ពិជគណិត</th>
+                    <th className="px-2 py-2 text-center font-normal">ស្ថិតិ</th>
+                  </tr>
+                  </>
+                )}
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs text-slate-700">
                 {filteredStudents.length > 0 ? (
-                  filteredStudents.map((st) => {
+                  filteredStudents.map((st, idx) => {
                     let badgeColors = 'bg-rose-50 text-rose-600 border-rose-200';
                     if (st.result === 'ជាប់') {
                       badgeColors = 'bg-emerald-50 text-emerald-600 border-emerald-200';
@@ -1485,7 +1510,7 @@ export default function Gradebook({
                     return (
                       <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-2 py-3 text-center font-semibold font-mono text-slate-500 sticky left-0 z-10 bg-white w-12 min-w-12">
-                          {st.ranking ? `${st.ranking}` : '-'}
+                          {idx + 1}
                         </td>
                         <td className="px-3 py-3 font-semibold text-slate-800 sticky left-12 z-10 bg-white shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">{st.name}</td>
                         <td className="px-4 py-3 text-center">{st.gender}</td>
@@ -1500,24 +1525,21 @@ export default function Gradebook({
                           })
                         ) : (
                           <>
-                        <td className="px-4 py-3 text-center font-mono">
-                          {[st.khmer.listening, st.khmer.writing, st.khmer.reading, st.khmer.speaking].some(s => s !== null && s !== undefined) ? st.khmerAvg : '-'}
-                          <span className="text-[9px] text-slate-400 block font-normal">
-                            ({st.khmer.listening !== null && st.khmer.listening !== undefined ? st.khmer.listening : '-'}/{st.khmer.writing !== null && st.khmer.writing !== undefined ? st.khmer.writing : '-'}/{st.khmer.reading !== null && st.khmer.reading !== undefined ? st.khmer.reading : '-'}/{st.khmer.speaking !== null && st.khmer.speaking !== undefined ? st.khmer.speaking : '-'})
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono">
-                          {[st.math.numbers, st.math.measurement, st.math.geometry, st.math.algebra, st.math.statistics].some(s => s !== null && s !== undefined) ? st.mathAvg : '-'}
-                          <span className="text-[9px] text-slate-400 block font-normal">
-                            ({st.math.numbers !== null && st.math.numbers !== undefined ? st.math.numbers : '-'}/{st.math.measurement !== null && st.math.measurement !== undefined ? st.math.measurement : '-'}/{st.math.geometry !== null && st.math.geometry !== undefined ? st.math.geometry : '-'}/{st.math.algebra !== null && st.math.algebra !== undefined ? st.math.algebra : '-'}/{st.math.statistics !== null && st.math.statistics !== undefined ? st.math.statistics : '-'})
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.science !== null && st.science !== undefined ? st.science : '-'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.socialStudies !== null && st.socialStudies !== undefined ? st.socialStudies : '-'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.physicalEducation !== null && st.physicalEducation !== undefined ? st.physicalEducation : '-'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.health !== null && st.health !== undefined ? st.health : '-'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.lifeSkills !== null && st.lifeSkills !== undefined ? st.lifeSkills : '-'}</td>
-                        <td className="px-4 py-3 text-center font-mono text-slate-500">{st.foreignLanguage !== null && st.foreignLanguage !== undefined ? st.foreignLanguage : '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-600 border-l border-slate-100">{st.khmer.listening ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.khmer.speaking ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.khmer.reading ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.khmer.writing ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-600 border-l border-slate-100">{st.math.numbers ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.math.measurement ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.math.geometry ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.math.algebra ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.math.statistics ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-500 border-l border-slate-100">{st.science ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-500">{st.socialStudies ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-500">{st.physicalEducation ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-500">{st.health ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-500">{st.lifeSkills ?? '-'}</td>
+                            <td className="px-3 py-3 text-center font-mono text-slate-500">{st.foreignLanguage ?? '-'}</td>
                           </>
                         )}
                         <td className="px-4 py-3 text-center font-mono font-bold text-blue-600 bg-blue-50/30">
@@ -1526,6 +1548,7 @@ export default function Gradebook({
                         <td className="px-4 py-3 text-center font-mono font-bold text-blue-600 bg-blue-50/10">
                           {st.totalScore !== undefined ? st.overallAvg : '-'}
                         </td>
+                        <td className="px-4 py-3 text-center font-mono font-semibold text-slate-700">{st.ranking ?? '-'}</td>
                         <td className={`px-4 py-3 text-center ${gradeColor}`}>{st.gradeLetter}</td>
                         <td className="px-4 py-3 text-center">
                           <span className={`px-2 py-0.5 border text-[10px] font-bold rounded-full ${badgeColors}`}>
@@ -1557,7 +1580,7 @@ export default function Gradebook({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={17} className="px-4 py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={viewingEnglish ? 19 : 26} className="px-4 py-12 text-center text-slate-400 font-medium">
                       <FolderLock size={32} className="mx-auto text-slate-300 mb-2" />
                       គ្មានទិន្នន័យពិន្ទុទេ សូមចុច «បញ្ចូលពិន្ទុ» ដើម្បីបន្ថែមពិន្ទុសម្រាប់សិស្សដែលមានស្រាប់ក្នុងថ្នាក់!
                     </td>
