@@ -144,11 +144,20 @@ export default function ClassStudentMgmt({
   const [studentFormGrade, setStudentFormGrade] = useState<string>(grades[0] || 'ថ្នាក់ទី៦');
   const [studentFormStatus, setStudentFormStatus] = useState<'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់'>('ធម្មតា');
 
-  // Stats calculation (scoped to the selected class category)
-  const categoryStudents = students.filter(s => inCat(s.grade));
-  const totalStudents = categoryStudents.length;
-  const femaleStudents = categoryStudents.filter(s => s.gender === 'ស្រី').length;
-  const maleStudents = categoryStudents.filter(s => s.gender === 'ប្រុស').length;
+  // Stats calculation — count UNIQUE students (by name+grade, not monthly records),
+  // scoped to the selected class category. Matches the Dashboard totals.
+  const categoryProfiles = useMemo(() => {
+    const map = new Map<string, StudentScore>();
+    students.forEach(s => {
+      if (!inCat(s.grade)) return;
+      const key = `${s.name.trim()}_${s.grade}`;
+      if (!map.has(key)) map.set(key, s);
+    });
+    return Array.from(map.values());
+  }, [students, classCategory]);
+  const totalStudents = categoryProfiles.length;
+  const femaleStudents = categoryProfiles.filter(s => s.gender === 'ស្រី').length;
+  const maleStudents = categoryProfiles.filter(s => s.gender === 'ប្រុស').length;
   
   // Dynamic map count of students per grade
   const gradeStats = useMemo(() => {
@@ -156,7 +165,11 @@ export default function ClassStudentMgmt({
     grades.forEach(g => {
       stats[g] = { total: 0, female: 0, male: 0 };
     });
+    const seen = new Set<string>();
     students.forEach(s => {
+      const key = `${s.name.trim()}_${s.grade}`;
+      if (seen.has(key)) return; // count each student once, not per-month
+      seen.add(key);
       if (stats[s.grade]) {
         stats[s.grade].total += 1;
         if (s.gender === 'ស្រី') stats[s.grade].female += 1;
@@ -1061,7 +1074,7 @@ export default function ClassStudentMgmt({
             <Users size={24} />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500 block">សិស្សសរុបរាល់ខែ</span>
+            <span className="text-xs font-semibold text-slate-500 block">សិស្សសរុប</span>
             <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{totalStudents} នាក់</span>
           </div>
         </div>
@@ -1260,7 +1273,7 @@ export default function ClassStudentMgmt({
 
                           <div className="space-y-1.5 pt-2 border-t border-slate-50">
                             <div className="flex justify-between items-center text-slate-500 text-[11px]">
-                              <span>ចំនួនសិស្សសរុបរាល់ខែ៖</span>
+                              <span>ចំនួនសិស្សសរុប៖</span>
                               <span className="font-black text-slate-700">{stats.total} នាក់</span>
                             </div>
                             <div className="flex justify-between items-center text-slate-400 text-[10px]">
