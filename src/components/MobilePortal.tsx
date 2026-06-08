@@ -43,10 +43,28 @@ import DailyAttendance from './DailyAttendance';
 import Dashboard from './Dashboard';
 import { SchoolLogo } from './SchoolLogo';
 
+// Morning / afternoon session split — general (non-extra) classes only.
+const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+type Session = 'morning' | 'afternoon';
+const MP_SESSIONS: { key: Session; km: string; icon: string }[] = [
+  { key: 'morning', km: 'វេនព្រឹក', icon: '🌅' },
+  { key: 'afternoon', km: 'វេនរសៀល', icon: '🌇' },
+];
+// Session encoded in the id so shifts stay separate without a schema change.
+const makeAttendanceId = (date: string, grade: string, session: Session) =>
+  isExtraClass(grade) ? `att-${date}-${grade}` : `att-${session}-${date}-${grade}`;
+const recordSession = (r: { id?: string; session?: string }): Session | undefined => {
+  if (r.session === 'morning' || r.session === 'afternoon') return r.session;
+  const p = (r.id || '').split('-');
+  return p[1] === 'morning' || p[1] === 'afternoon' ? (p[1] as Session) : undefined;
+};
+
 interface AttendanceRecord {
   id: string;
   date: string;
   grade: string;
+  session?: Session;
   presentCount: number;
   lateCount?: number;
   permissionCount: number;
@@ -98,6 +116,7 @@ export default function MobilePortal({
     return currentUser?.grade !== 'ទាំងអស់' ? currentUser?.grade || 'ថ្នាក់ទី១' : 'ថ្នាក់ទី១';
   });
   const [attendanceSearchQuery, setAttendanceSearchQuery] = useState('');
+  const [attendanceSession, setAttendanceSession] = useState<Session>(() => new Date().getHours() < 12 ? 'morning' : 'afternoon');
   const [activeAttendanceMap, setActiveAttendanceMap] = useState<{ [studentId: string]: 'present' | 'late' | 'permission' | 'absent' }>({});
 
   const [savedAttendanceRecords, setSavedAttendanceRecords] = useState<AttendanceRecord[]>(() => {
@@ -140,8 +159,9 @@ export default function MobilePortal({
 
   // Load saved states for selected date & grade, or initialize to 'present' for every student
   useEffect(() => {
+    const extraSel = isExtraClass(selectedAttendanceGrade);
     const existing = savedAttendanceRecords.find(
-      r => r.date === selectedAttendanceDate && r.grade === selectedAttendanceGrade
+      r => r.date === selectedAttendanceDate && r.grade === selectedAttendanceGrade && (extraSel || recordSession(r) === attendanceSession)
     );
     if (existing && existing.studentStates && Object.keys(existing.studentStates).length > 0) {
       setActiveAttendanceMap(existing.studentStates);
@@ -153,7 +173,7 @@ export default function MobilePortal({
       });
       setActiveAttendanceMap(initialMap);
     }
-  }, [selectedAttendanceDate, selectedAttendanceGrade, savedAttendanceRecords, students]);
+  }, [selectedAttendanceDate, selectedAttendanceGrade, attendanceSession, savedAttendanceRecords, students]);
 
   // Save the current roll call state to savedAttendanceRecords
   const handleSaveAttendance = () => {
@@ -178,11 +198,13 @@ export default function MobilePortal({
       else if (state === 'absent') absent++;
     });
 
-    const recordId = `att-${selectedAttendanceDate}-${selectedAttendanceGrade}`;
+    const extraSel = isExtraClass(selectedAttendanceGrade);
+    const recordId = makeAttendanceId(selectedAttendanceDate, selectedAttendanceGrade, attendanceSession);
     const newRecord: AttendanceRecord = {
       id: recordId,
       date: selectedAttendanceDate,
       grade: selectedAttendanceGrade,
+      session: extraSel ? undefined : attendanceSession,
       presentCount: present,
       lateCount: late,
       permissionCount: permission,
@@ -192,7 +214,7 @@ export default function MobilePortal({
 
     const updated = [
       newRecord,
-      ...savedAttendanceRecords.filter(r => !(r.date === selectedAttendanceDate && r.grade === selectedAttendanceGrade))
+      ...savedAttendanceRecords.filter(r => !(r.date === selectedAttendanceDate && r.grade === selectedAttendanceGrade && (extraSel || recordSession(r) === attendanceSession)))
     ];
 
     setSavedAttendanceRecords(updated);
@@ -1087,6 +1109,21 @@ export default function MobilePortal({
                             </select>
                           </div>
                         </div>
+
+                        {/* Morning / afternoon shift — general classes only */}
+                        {!isExtraClass(selectedAttendanceGrade) && (
+                          <div className="flex items-center gap-1 bg-blue-950/50 rounded-lg p-0.5">
+                            {MP_SESSIONS.map(s => (
+                              <button
+                                key={s.key}
+                                onClick={() => setAttendanceSession(s.key)}
+                                className={`flex-1 py-1 rounded-md text-[8.5px] font-bold transition-all ${attendanceSession === s.key ? 'bg-blue-600 text-white shadow' : 'text-slate-400'}`}
+                              >
+                                {s.icon} {s.km}
+                              </button>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Search keyword */}
                         <div className="relative flex items-center bg-blue-950/70 border border-blue-900/40 rounded px-2 py-0.5 text-[8.5px]">
