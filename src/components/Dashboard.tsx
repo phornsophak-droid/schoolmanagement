@@ -121,10 +121,15 @@ export default function Dashboard({
     return Array.from(new Set<string>(filteredAttendance.map(r => r.date))).sort((a, b) => b.localeCompare(a));
   }, [filteredAttendance]);
 
-  // The day actually shown: the user's pick when it still exists, else the latest day.
-  const effectiveAttDate = (selectedAttDate && availableDates.includes(selectedAttDate))
-    ? selectedAttDate
-    : (availableDates[0] || null);
+  // The day actually shown: the user's calendar pick, else the latest recorded day.
+  // A picked day is respected even if it has no records (shows an empty report).
+  const effectiveAttDate = selectedAttDate || availableDates[0] || null;
+
+  // Reset back to the latest day when the class filter changes, so the summary
+  // doesn't get stuck on a date that belongs to a different class category.
+  useEffect(() => {
+    setSelectedAttDate(null);
+  }, [classCategory, selectedGrade]);
 
   // The selected day's records (one row per class), sorted by class name — used by
   // both the KPI cards and the records table so they always agree.
@@ -562,20 +567,29 @@ export default function Dashboard({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Day picker — review the report for any recorded day. */}
+            {/* Calendar day picker — review the report for any day. */}
             {availableDates.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <Calendar size={15} className="text-slate-400" />
-                <select
+                <input
+                  type="date"
                   value={effectiveAttDate || ''}
-                  onChange={(e) => setSelectedAttDate(e.target.value)}
+                  max={availableDates[0]}
+                  onChange={(e) => setSelectedAttDate(e.target.value || null)}
                   className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-700 cursor-pointer focus:border-blue-500 outline-none transition-colors"
                   title="ជ្រើសរើសថ្ងៃដើម្បីពិនិត្យរបាយការណ៍"
-                >
-                  {availableDates.map((d, i) => (
-                    <option key={d} value={d}>{d}{i === 0 ? ' (ថ្ងៃចុងក្រោយ)' : ''}</option>
-                  ))}
-                </select>
+                />
+                {effectiveAttDate === availableDates[0] ? (
+                  <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded whitespace-nowrap">ថ្ងៃចុងក្រោយ</span>
+                ) : (
+                  <button
+                    onClick={() => setSelectedAttDate(null)}
+                    className="text-[9px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap transition-colors"
+                    title="ត្រឡប់ទៅថ្ងៃចុងក្រោយ"
+                  >
+                    ↺ ថ្ងៃចុងក្រោយ
+                  </button>
+                )}
               </div>
             )}
 
