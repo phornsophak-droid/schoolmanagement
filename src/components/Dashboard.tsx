@@ -93,7 +93,7 @@ export default function Dashboard({
 
   // Load Saved Attendance Records
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [reasonChartMode, setReasonChartMode] = useState<'daily' | 'monthly'>('daily');
+  const [reasonChartMode, setReasonChartMode] = useState<'daily' | 'monthly' | 'yearly'>('daily');
   // Attendance summary period + the picked value for each (null = follow the latest).
   const [reportPeriod, setReportPeriod] = useState<'day' | 'month' | 'year'>('day');
   const [selectedAttDate, setSelectedAttDate] = useState<string | null>(null);   // YYYY-MM-DD
@@ -370,10 +370,16 @@ export default function Dashboard({
     };
   }, [attendanceRecords, students, latestAttendanceDate, selectedGrade, classCategory]);
 
-  // Aggregate absence/lateness reasons for the chart (daily = latest recorded day, monthly = that whole month).
+  // Aggregate absence/lateness reasons for the chart, scoped to the latest
+  // recorded day / month / year depending on the chosen mode.
   const absenceReasonStats = useMemo(() => {
     const monthKey = (latestAttendanceDate || '').slice(0, 7); // YYYY-MM
-    const inScope = (d: string) => reasonChartMode === 'daily' ? d === latestAttendanceDate : d.slice(0, 7) === monthKey;
+    const yearKey = (latestAttendanceDate || '').slice(0, 4);  // YYYY
+    const inScope = (d: string) => reasonChartMode === 'daily' ? d === latestAttendanceDate
+      : reasonChartMode === 'monthly' ? d.slice(0, 7) === monthKey
+      : d.slice(0, 4) === yearKey;
+    const scopeLabel = reasonChartMode === 'daily' ? (latestAttendanceDate || '—')
+      : reasonChartMode === 'monthly' ? monthKey : yearKey;
     const counts: Record<string, number> = {};
     let total = 0;
     attendanceRecords.forEach(rec => {
@@ -388,7 +394,7 @@ export default function Dashboard({
     });
     const rows = Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count);
     const max = rows.reduce((m, r) => Math.max(m, r.count), 0);
-    return { rows, total, max, monthKey };
+    return { rows, total, max, monthKey, scopeLabel };
   }, [attendanceRecords, latestAttendanceDate, reasonChartMode, classCategory]);
 
   // Generate a clean, branded printable daily-absentee report (Save as PDF) via a hidden iframe.
@@ -904,9 +910,8 @@ export default function Dashboard({
                 <p className="text-indigo-600 font-bold text-sm uppercase tracking-wider mb-1">ស្ថិតិមូលហេតុ</p>
                 <h3 className="font-bold text-[#1e293b] text-2xl font-serif">មូលហេតុនៃការអវត្តមានសិស្ស</h3>
                 <p className="text-xs text-slate-400 mt-2">
-                  {reasonChartMode === 'daily'
-                    ? <>ប្រចាំថ្ងៃ • <span className="font-bold text-slate-500">{latestAttendanceDate}</span></>
-                    : <>ប្រចាំខែ • <span className="font-bold text-slate-500">{absenceReasonStats.monthKey}</span></>}
+                  {reasonChartMode === 'daily' ? 'ប្រចាំថ្ងៃ' : reasonChartMode === 'monthly' ? 'ប្រចាំខែ' : 'ប្រចាំឆ្នាំ'}
+                  {' '}• <span className="font-bold text-slate-500">{absenceReasonStats.scopeLabel}</span>
                   {' '}• សរុប <span className="font-bold text-indigo-600">{absenceReasonStats.total}</span> ករណី
                 </p>
               </div>
@@ -920,6 +925,10 @@ export default function Dashboard({
                 onClick={() => setReasonChartMode('monthly')}
                 className={`px-4 py-2 rounded-lg transition-all ${reasonChartMode === 'monthly' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >🗓️ ប្រចាំខែ</button>
+              <button
+                onClick={() => setReasonChartMode('yearly')}
+                className={`px-4 py-2 rounded-lg transition-all ${reasonChartMode === 'yearly' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >📆 ប្រចាំឆ្នាំ</button>
             </div>
           </div>
 
@@ -947,7 +956,7 @@ export default function Dashboard({
           ) : (
             <div className="py-12 flex flex-col items-center justify-center text-slate-400 text-xs">
               <CheckCircle size={36} className="text-emerald-300 mb-2" />
-              <p className="font-semibold text-slate-500">គ្មានសិស្សអវត្តមាន{reasonChartMode === 'daily' ? 'នៅថ្ងៃនេះ' : 'ក្នុងខែនេះ'}ទេ! 🎉</p>
+              <p className="font-semibold text-slate-500">គ្មានសិស្សអវត្តមាន{reasonChartMode === 'daily' ? 'នៅថ្ងៃនេះ' : reasonChartMode === 'monthly' ? 'ក្នុងខែនេះ' : 'ក្នុងឆ្នាំនេះ'}ទេ! 🎉</p>
             </div>
           )}
         </div>
