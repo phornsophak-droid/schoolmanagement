@@ -261,10 +261,14 @@ export function mapStudentAttendanceToDB(r: any) {
 }
 
 export function mapDBToStudentAttendance(db: any): any {
+  // Morning/afternoon session is encoded in the id (`att-<session>-<date>-<grade>`).
+  const idParts = String(db.id || '').split('-');
+  const session = idParts[1] === 'morning' || idParts[1] === 'afternoon' ? idParts[1] : undefined;
   return {
     id: db.id,
     date: db.date,
     grade: db.grade,
+    session,
     presentCount: Number(db.present_count ?? 0),
     lateCount: Number(db.late_count ?? 0),
     permissionCount: Number(db.permission_count ?? 0),

@@ -25,13 +25,14 @@ import { SchoolReport, StudentScore, SchoolUser } from '../types';
 import schoolLogo from '../assets/logo.png';
 
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
-const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
 
 interface AttendanceRecord {
   id: string;
   date: string;
   grade: string;
+  session?: 'morning' | 'afternoon';
   presentCount: number;
   lateCount?: number;
   permissionCount: number;
@@ -86,6 +87,18 @@ export default function Dashboard({
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
 
+  // Morning/afternoon shift — only meaningful for general classes (extra classes
+  // are single-session and always pass the filter). Reports stay separate per shift.
+  const [selectedDashSession, setSelectedDashSession] = useState<'morning' | 'afternoon'>(() => new Date().getHours() < 12 ? 'morning' : 'afternoon');
+  const recSession = (r: AttendanceRecord): 'morning' | 'afternoon' => {
+    if (r.session === 'morning' || r.session === 'afternoon') return r.session;
+    const p = String(r.id || '').split('-');
+    return p[1] === 'afternoon' ? 'afternoon' : 'morning'; // legacy / no-session → morning
+  };
+  const inSession = (r: AttendanceRecord) => classCategory !== 'general' ? true : recSession(r) === selectedDashSession;
+  // Khmer shift label, shown only for general classes (extra classes are single-session).
+  const sessionKm = classCategory !== 'general' ? '' : (selectedDashSession === 'morning' ? 'វេនព្រឹក' : 'វេនរសៀល');
+
   const gradesList = useMemo(() => {
     const all = grades || ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦'];
     return ['ទាំងអស់', ...all.filter(g => inCat(g))];
@@ -114,10 +127,11 @@ export default function Dashboard({
   const filteredAttendance = useMemo(() => {
     return attendanceRecords.filter(rec => {
       if (!inCat(rec.grade)) return false;
+      if (!inSession(rec)) return false;
       const matchGrade = selectedGrade === 'boldsymbol' || selectedGrade === 'ទាំងអស់' ? true : rec.grade === selectedGrade;
       return matchGrade;
     });
-  }, [attendanceRecords, selectedGrade, classCategory]);
+  }, [attendanceRecords, selectedGrade, classCategory, selectedDashSession]);
 
   // Recorded days / months / years for the current class filter, newest first.
   const availableDates = useMemo(() => {
@@ -281,20 +295,20 @@ export default function Dashboard({
     };
   }, [filteredStudents]);
 
-  // Find the latest attendance date within the selected class category
+  // Find the latest attendance date within the selected class category + session
   const latestAttendanceDate = useMemo(() => {
-    const catRecords = attendanceRecords.filter(r => inCat(r.grade));
+    const catRecords = attendanceRecords.filter(r => inCat(r.grade) && inSession(r));
     if (catRecords.length === 0) return new Date().toISOString().split('T')[0];
     const dates = catRecords.map(r => r.date).sort();
     return dates[dates.length - 1];
-  }, [attendanceRecords, classCategory]);
+  }, [attendanceRecords, classCategory, selectedDashSession]);
 
   // Generate Daily Absent Report Data
   const dailyAbsentReport = useMemo(() => {
     // Cumulative stats
     const cumulativeStats: Record<string, { late: number, permission: number, absent: number }> = {};
     attendanceRecords.forEach(rec => {
-      if (!inCat(rec.grade)) return; // cumulative stays within the selected category
+      if (!inCat(rec.grade) || !inSession(rec)) return; // cumulative stays within the selected category + session
       if (rec.studentStates) {
         Object.entries(rec.studentStates).forEach(([sId, status]) => {
           if (sId.endsWith('_reason')) return;
@@ -316,7 +330,7 @@ export default function Dashboard({
     });
 
     // Today's records (All classes, no grade filter)
-    const todayRecords = attendanceRecords.filter(r => r.date === latestAttendanceDate && inCat(r.grade));
+    const todayRecords = attendanceRecords.filter(r => r.date === latestAttendanceDate && inCat(r.grade) && inSession(r));
     
     let todayLateCount = 0;
     let todayPermissionCount = 0;
@@ -368,7 +382,7 @@ export default function Dashboard({
       totalAbsences: todayPermissionCount + todayAbsentCount,
       list
     };
-  }, [attendanceRecords, students, latestAttendanceDate, selectedGrade, classCategory]);
+  }, [attendanceRecords, students, latestAttendanceDate, selectedGrade, classCategory, selectedDashSession]);
 
   // Aggregate absence/lateness reasons for the chart, scoped to the latest
   // recorded day / month / year depending on the chosen mode.
@@ -383,7 +397,7 @@ export default function Dashboard({
     const counts: Record<string, number> = {};
     let total = 0;
     attendanceRecords.forEach(rec => {
-      if (!rec.studentStates || !inScope(rec.date) || !inCat(rec.grade)) return;
+      if (!rec.studentStates || !inScope(rec.date) || !inCat(rec.grade) || !inSession(rec)) return;
       Object.entries(rec.studentStates).forEach(([sId, status]) => {
         if (sId.endsWith('_reason')) return;
         if (status !== 'late' && status !== 'permission' && status !== 'absent') return;
@@ -395,7 +409,7 @@ export default function Dashboard({
     const rows = Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count);
     const max = rows.reduce((m, r) => Math.max(m, r.count), 0);
     return { rows, total, max, monthKey, scopeLabel };
-  }, [attendanceRecords, latestAttendanceDate, reasonChartMode, classCategory]);
+  }, [attendanceRecords, latestAttendanceDate, reasonChartMode, classCategory, selectedDashSession]);
 
   // Generate a clean, branded printable daily-absentee report (Save as PDF) via a hidden iframe.
   // Render branded report HTML to a hidden iframe and trigger the print/Save-as-PDF
@@ -435,7 +449,8 @@ export default function Dashboard({
   const handleDownloadDailyPdf = () => {
     const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
     const { date, lateCount, permissionCount, absentCount, totalAbsences, list } = dailyAbsentReport;
-    const scopeLabel = currentUser?.role === 'teacher' ? `ថ្នាក់៖ ${currentUser?.grade || ''}` : 'គ្រប់ថ្នាក់ទាំងអស់';
+    const baseScope = currentUser?.role === 'teacher' ? `ថ្នាក់៖ ${currentUser?.grade || ''}` : 'គ្រប់ថ្នាក់ទាំងអស់';
+    const scopeLabel = sessionKm ? `${baseScope} • ${sessionKm}` : baseScope;
 
     const rowsHtml = list.length > 0
       ? list.map((r: any, i: number) => {
@@ -507,7 +522,8 @@ export default function Dashboard({
     const A = attendanceAggregates;
     const periodName = reportPeriod === 'day' ? 'ប្រចាំថ្ងៃ' : reportPeriod === 'month' ? 'ប្រចាំខែ' : 'ប្រចាំឆ្នាំ';
     const dateLabel = `${periodName} ៖ ${periodLabel}${reportPeriod !== 'day' ? ` (${periodDaysCount} ថ្ងៃ)` : ''}`;
-    const scopeLabel = currentUser?.role === 'teacher' ? `ថ្នាក់៖ ${currentUser?.grade || ''}` : 'គ្រប់ថ្នាក់ទាំងអស់';
+    const baseScope = currentUser?.role === 'teacher' ? `ថ្នាក់៖ ${currentUser?.grade || ''}` : 'គ្រប់ថ្នាក់ទាំងអស់';
+    const scopeLabel = sessionKm ? `${baseScope} • ${sessionKm}` : baseScope;
     const unit = reportPeriod === 'day' ? '' : ' (នាក់-ដង)';
 
     const rowsHtml = periodByClass.length > 0
@@ -691,10 +707,26 @@ export default function Dashboard({
               ទិន្នន័យសម្រាប់រយៈពេលដែលបានជ្រើស
               {attendanceAggregates.latestDate ? <span className="font-bold text-slate-500"> ៖ {attendanceAggregates.latestDate}</span> : ''}
               {reportPeriod !== 'day' && periodDaysCount > 0 ? <span className="text-slate-400"> ({periodDaysCount} ថ្ងៃ)</span> : ''}
+              {sessionKm ? <span className="font-bold text-blue-500"> • {sessionKm}</span> : ''}
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Morning / afternoon shift — general classes only (separate reports) */}
+            {classCategory === 'general' && (
+              <div className="flex bg-slate-100 p-0.5 rounded-lg">
+                {([['morning', '🌅 ព្រឹក'], ['afternoon', '🌇 រសៀល']] as const).map(([s, label]) => (
+                  <button
+                    key={s}
+                    onClick={() => setSelectedDashSession(s)}
+                    className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-colors whitespace-nowrap ${selectedDashSession === s ? 'bg-white text-blue-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Period mode: day / month / year */}
             <div className="flex bg-slate-100 p-0.5 rounded-lg">
               {([['day', 'ថ្ងៃ'], ['month', 'ខែ'], ['year', 'ឆ្នាំ']] as const).map(([mode, label]) => (
@@ -976,6 +1008,7 @@ export default function Dashboard({
               <h3 className="font-bold text-[#1e293b] text-2xl font-serif">តារាងសិស្សអវត្តមានប្រចាំថ្ងៃ</h3>
               <p className="text-xs text-slate-400 mt-2">
                 បញ្ជីសិស្សអវត្តមានទាំងអស់គ្រប់ថ្នាក់ • ថ្ងៃទី <span className="font-bold text-slate-500">{dailyAbsentReport.date}</span>
+                {sessionKm ? <span className="font-bold text-blue-500"> • {sessionKm}</span> : ''}
               </p>
             </div>
           </div>

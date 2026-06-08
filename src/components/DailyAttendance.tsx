@@ -34,6 +34,24 @@ const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade ||
 // The subject keyword inside an after-hours class name, used to group its sections (3A, 3B...).
 const getSubjectKey = (grade: string) => EXTRA_CLASS_KEYWORDS.find(k => (grade || '').includes(k)) || '';
 
+// Morning / afternoon session split — applies to general (non-extra) classes only.
+type Session = 'morning' | 'afternoon';
+const SESSIONS: { key: Session; km: string; icon: string }[] = [
+  { key: 'morning', km: 'វេនព្រឹក', icon: '🌅' },
+  { key: 'afternoon', km: 'វេនរសៀល', icon: '🌇' },
+];
+// Session is encoded in the record id so the two shifts stay separate records
+// without needing a Supabase schema change: `att-<session>-<date>-<grade>`.
+// Extra (after-hours) classes keep the single-session id `att-<date>-<grade>`.
+const makeAttendanceId = (date: string, grade: string, session: Session) =>
+  isExtraClass(grade) ? `att-${date}-${grade}` : `att-${session}-${date}-${grade}`;
+// Recover the session from a record (explicit field first, else parsed from the id).
+const recordSession = (r: { id?: string; session?: string }): Session | undefined => {
+  if (r.session === 'morning' || r.session === 'afternoon') return r.session;
+  const p = (r.id || '').split('-');
+  return p[1] === 'morning' || p[1] === 'afternoon' ? (p[1] as Session) : undefined;
+};
+
 // Structured absence / lateness reasons (5 categories + free-text "Other").
 const ABSENCE_REASON_GROUPS: { label: string; options: string[] }[] = [
   { label: '១. បញ្ហាសុខភាព', options: [
@@ -73,6 +91,7 @@ interface AttendanceRecord {
   id: string;
   date: string;
   grade: string;
+  session?: Session; // morning/afternoon for general classes; undefined for extra
   presentCount: number;
   lateCount?: number;
   permissionCount: number;
@@ -115,6 +134,9 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     }
     return grades[0] || 'ថ្នាក់ទី ១ក';
   });
+
+  // Morning/afternoon shift for general classes — defaults to the current half-day.
+  const [selectedSession, setSelectedSession] = useState<Session>(() => new Date().getHours() < 12 ? 'morning' : 'afternoon');
 
   // Class category (general / extra) — initialised to match the default selected grade.
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>(() => {
@@ -332,9 +354,10 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     return stats;
   }, [records, uniqueStudentsList, selectedDate, selectedGrade, activeAttendanceMap]);
 
-  // Sync student state mapping when date, grade, or records modify
+  // Sync student state mapping when date, grade, session, or records modify
   useEffect(() => {
-    const existing = records.find(r => r.date === selectedDate && r.grade === selectedGrade);
+    const extraSel = isExtraClass(selectedGrade);
+    const existing = records.find(r => r.date === selectedDate && r.grade === selectedGrade && (extraSel || recordSession(r) === selectedSession));
     const gradeStudents = uniqueStudentsList.filter(s => s.grade === selectedGrade);
     
     if (existing && existing.studentStates && Object.keys(existing.studentStates).length > 0) {
@@ -358,7 +381,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       setActiveAttendanceMap(map);
       setStudentReasonsMap(reasons);
     }
-  }, [selectedDate, selectedGrade, records, uniqueStudentsList]);
+  }, [selectedDate, selectedGrade, selectedSession, records, uniqueStudentsList]);
 
   // Sync teacher state mapping when date or teacherRecords modify
   useEffect(() => {
@@ -493,11 +516,13 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       else if (status === 'absent') a++;
     });
 
-    const recordId = `att-${selectedDate}-${selectedGrade}`;
+    const extraSel = isExtraClass(selectedGrade);
+    const recordId = makeAttendanceId(selectedDate, selectedGrade, selectedSession);
     const newRecord: AttendanceRecord = {
       id: recordId,
       date: selectedDate,
       grade: selectedGrade,
+      session: extraSel ? undefined : selectedSession,
       presentCount: p,
       lateCount: y,
       permissionCount: l,
@@ -507,7 +532,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
     const updated = [
       newRecord,
-      ...records.filter(r => !(r.date === selectedDate && r.grade === selectedGrade))
+      ...records.filter(r => !(r.date === selectedDate && r.grade === selectedGrade && (extraSel || recordSession(r) === selectedSession)))
     ];
 
     setRecords(updated);
@@ -667,9 +692,25 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           </p>
         </div>
 
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 self-start md:self-auto">
+        {/* Morning / afternoon shift selector — general classes only */}
+        {activeTab === 'student' && !isExtraClass(selectedGrade) && (
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            {SESSIONS.map(s => (
+              <button
+                key={s.key}
+                onClick={() => setSelectedSession(s.key)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${selectedSession === s.key ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                {s.icon} {s.km}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Quick Date Control widget */}
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-xl shrink-0 self-start md:self-auto">
-          <button 
+        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-xl">
+          <button
             onClick={() => shiftDay(-1)}
             className="p-1.5 hover:bg-white rounded-lg border border-transparent hover:border-slate-300 text-slate-600 transition-all cursor-pointer"
             title="ថ្ងៃមុន"
@@ -694,6 +735,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           >
             <ArrowRight size={14} />
           </button>
+        </div>
         </div>
       </div>
 
