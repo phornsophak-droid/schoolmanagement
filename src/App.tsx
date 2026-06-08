@@ -260,13 +260,20 @@ export default function App() {
       localStorage.setItem('school_reports_v2', JSON.stringify([]));
     }
 
-    // Auto-sync from Supabase cloud database if connection keys are active
-    setTimeout(() => {
+    // Auto-sync from Supabase cloud database if connection keys are active.
+    // `cancelled` + `activeChannel` let the cleanup below tear everything down,
+    // which prevents the "callbacks after subscribe()" error when React
+    // StrictMode mounts the effect twice and reuses the same named channel.
+    let cancelled = false;
+    let activeChannel: any = null;
+
+    const initTimeout = setTimeout(() => {
       const client = getSupabaseClient();
       if (client) {
         setSupabaseStatus('syncing');
         syncFetchAll()
           .then(data => {
+            if (cancelled) return;
             if (data.students && data.students.length > 0) {
               const dedupedStuds = deduplicateStudents(data.students);
               setStudents(dedupedStuds);
@@ -299,7 +306,15 @@ export default function App() {
 
             // Realtime Auto-Sync setup
             try {
+              // Drop any stale channel of the same topic left over from a previous
+              // mount, otherwise re-adding callbacks to an already-subscribed
+              // channel throws "cannot add callbacks after subscribe()".
+              client.getChannels().forEach(ch => {
+                if (ch.topic === 'realtime:app_sync_channel') client.removeChannel(ch);
+              });
+
               const channel = client.channel('app_sync_channel');
+              activeChannel = channel;
 
               // Debounce: bulk changes (e.g. marking 50 students' attendance at once)
               // fire one realtime event per row. Without debouncing, each event would
@@ -364,6 +379,18 @@ export default function App() {
         setSupabaseStatus('unconfigured');
       }
     }, 150);
+
+    // Cleanup: cancel a pending init and detach the realtime channel so the
+    // next mount can re-subscribe cleanly (and we don't leak channels).
+    return () => {
+      cancelled = true;
+      clearTimeout(initTimeout);
+      if (activeChannel) {
+        const client = getSupabaseClient();
+        if (client) client.removeChannel(activeChannel);
+        activeChannel = null;
+      }
+    };
   }, []);
   const pullFromSupabase = async (quiet = false) => {
     const client = getSupabaseClient();
