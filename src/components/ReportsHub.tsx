@@ -399,60 +399,39 @@ export default function ReportsHub({
     return { total, female, male, pass, fail, avg, dist };
   }, [processedAcademicRoster]);
 
-  // Subject averages for report presentation
+  // Subject averages + per-subject A–F headcount for report presentation.
   const subjectAverages = useMemo(() => {
     const total = processedAcademicRoster.length;
     if (total === 0) return [];
 
-    const sums = {
-      khmer: 0,
-      math: 0,
-      science: 0,
-      socialStudies: 0,
-      physicalEducation: 0,
-      health: 0,
-      lifeSkills: 0,
-      foreignLanguage: 0
-    };
-
-    const counts = {
-      khmer: 0,
-      math: 0,
-      science: 0,
-      socialStudies: 0,
-      physicalEducation: 0,
-      health: 0,
-      lifeSkills: 0,
-      foreignLanguage: 0
-    };
-
-    processedAcademicRoster.forEach(s => {
-      if (s.subjects.khmer !== null && s.subjects.khmer !== undefined) { sums.khmer += s.subjects.khmer; counts.khmer++; }
-      if (s.subjects.math !== null && s.subjects.math !== undefined) { sums.math += s.subjects.math; counts.math++; }
-      if (s.subjects.science !== null && s.subjects.science !== undefined) { sums.science += s.subjects.science; counts.science++; }
-      if (s.subjects.socialStudies !== null && s.subjects.socialStudies !== undefined) { sums.socialStudies += s.subjects.socialStudies; counts.socialStudies++; }
-      if (s.subjects.physicalEducation !== null && s.subjects.physicalEducation !== undefined) { sums.physicalEducation += s.subjects.physicalEducation; counts.physicalEducation++; }
-      if (s.subjects.health !== null && s.subjects.health !== undefined) { sums.health += s.subjects.health; counts.health++; }
-      if (s.subjects.lifeSkills !== null && s.subjects.lifeSkills !== undefined) { sums.lifeSkills += s.subjects.lifeSkills; counts.lifeSkills++; }
-      if (s.subjects.foreignLanguage !== null && s.subjects.foreignLanguage !== undefined) { sums.foreignLanguage += s.subjects.foreignLanguage; counts.foreignLanguage++; }
-    });
-
-    // avg = mean of the sub-subjects; letter = the A–F band of that mean ('-' when no data).
-    const build = (name: string, sum: number, count: number, color: string) => {
-      const avg = count > 0 ? parseFloat((sum / count).toFixed(2)) : 0;
-      return { name, avg, letter: count > 0 ? scoreToLetter(avg) : '-', color };
-    };
-
-    return [
-      build('ភាសាខ្មែរ', sums.khmer, counts.khmer, 'from-blue-500 to-indigo-500'),
-      build('គណិតវិទ្យា', sums.math, counts.math, 'from-cyan-500 to-blue-500'),
-      build('វិទ្យាសាស្ត្រ', sums.science, counts.science, 'from-amber-500 to-orange-500'),
-      build('សិក្សាសង្គម', sums.socialStudies, counts.socialStudies, 'from-indigo-500 to-purple-500'),
-      build('លំហាត់កីឡា', sums.physicalEducation, counts.physicalEducation, 'from-teal-500 to-emerald-500'),
-      build('អប់រំសុខភាព', sums.health, counts.health, 'from-pink-500 to-rose-500'),
-      build('បំណិនជីវិត', sums.lifeSkills, counts.lifeSkills, 'from-emerald-500 to-emerald-600'),
-      build('ភាសាបរទេស', sums.foreignLanguage, counts.foreignLanguage, 'from-violet-500 to-purple-650')
+    const SUBJECT_DEFS: { key: string; name: string; color: string }[] = [
+      { key: 'khmer', name: 'ភាសាខ្មែរ', color: 'from-blue-500 to-indigo-500' },
+      { key: 'math', name: 'គណិតវិទ្យា', color: 'from-cyan-500 to-blue-500' },
+      { key: 'science', name: 'វិទ្យាសាស្ត្រ', color: 'from-amber-500 to-orange-500' },
+      { key: 'socialStudies', name: 'សិក្សាសង្គម', color: 'from-indigo-500 to-purple-500' },
+      { key: 'physicalEducation', name: 'លំហាត់កីឡា', color: 'from-teal-500 to-emerald-500' },
+      { key: 'health', name: 'អប់រំសុខភាព', color: 'from-pink-500 to-rose-500' },
+      { key: 'lifeSkills', name: 'បំណិនជីវិត', color: 'from-emerald-500 to-emerald-600' },
+      { key: 'foreignLanguage', name: 'ភាសាបរទេស', color: 'from-violet-500 to-purple-650' }
     ];
+
+    return SUBJECT_DEFS.map(def => {
+      let sum = 0;
+      let count = 0;
+      const dist: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
+      processedAcademicRoster.forEach(s => {
+        const v = (s.subjects as any)[def.key];
+        if (v !== null && v !== undefined) {
+          sum += v;
+          count++;
+          const letter = scoreToLetter(v);      // each student's A–F band for this subject
+          if (letter !== '-') dist[letter]++;
+        }
+      });
+      const avg = count > 0 ? parseFloat((sum / count).toFixed(2)) : 0;
+      // avg = mean of sub-subjects; letter = the band of that mean; dist = headcount per band.
+      return { name: def.name, avg, letter: count > 0 ? scoreToLetter(avg) : '-', color: def.color, dist, count };
+    });
   }, [processedAcademicRoster]);
 
   // Top students podium list
@@ -992,6 +971,21 @@ export default function ReportsHub({
                               className={`h-full bg-gradient-to-r ${subj.color} rounded-full`}
                               style={{ width: `${valuePct}%` }}
                             />
+                          </div>
+                          {/* Headcount of students per A–F band for this subject */}
+                          <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                            {(['A', 'B', 'C', 'D', 'E', 'F'] as const).map(band => {
+                              const n = subj.dist[band] || 0;
+                              return (
+                                <span
+                                  key={band}
+                                  title={`និទ្ទេស ${band}: ${n} នាក់`}
+                                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-mono ${n > 0 ? letterStyle[band] : 'bg-slate-50 text-slate-300'}`}
+                                >
+                                  {band} {n}
+                                </span>
+                              );
+                            })}
                           </div>
                         </div>
                       );
