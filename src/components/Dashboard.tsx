@@ -89,15 +89,19 @@ export default function Dashboard({
 
   // Morning/afternoon shift — only meaningful for general classes (extra classes
   // are single-session and always pass the filter). Reports stay separate per shift.
-  const [selectedDashSession, setSelectedDashSession] = useState<'morning' | 'afternoon'>(() => new Date().getHours() < 12 ? 'morning' : 'afternoon');
+  const [selectedDashSession, setSelectedDashSession] = useState<'morning' | 'afternoon' | 'all'>(() => new Date().getHours() < 12 ? 'morning' : 'afternoon');
   const recSession = (r: AttendanceRecord): 'morning' | 'afternoon' => {
     if (r.session === 'morning' || r.session === 'afternoon') return r.session;
     const p = String(r.id || '').split('-');
     return p[1] === 'afternoon' ? 'afternoon' : 'morning'; // legacy / no-session → morning
   };
-  const inSession = (r: AttendanceRecord) => classCategory !== 'general' ? true : recSession(r) === selectedDashSession;
+  // 'all' = both shifts combined for the whole day.
+  const inSession = (r: AttendanceRecord) => classCategory !== 'general' || selectedDashSession === 'all' ? true : recSession(r) === selectedDashSession;
   // Khmer shift label, shown only for general classes (extra classes are single-session).
-  const sessionKm = classCategory !== 'general' ? '' : (selectedDashSession === 'morning' ? 'វេនព្រឹក' : 'វេនរសៀល');
+  const sessionKm = classCategory !== 'general' ? ''
+    : selectedDashSession === 'morning' ? 'វេនព្រឹក'
+    : selectedDashSession === 'afternoon' ? 'វេនរសៀល'
+    : 'ប្រចាំថ្ងៃ (ទាំងពីរវេន)';
 
   const gradesList = useMemo(() => {
     const all = grades || ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣', 'ថ្នាក់ទី៤', 'ថ្នាក់ទី៥', 'ថ្នាក់ទី៦'];
@@ -715,7 +719,7 @@ export default function Dashboard({
             {/* Morning / afternoon shift — general classes only (separate reports) */}
             {classCategory === 'general' && (
               <div className="flex bg-slate-100 p-0.5 rounded-lg">
-                {([['morning', '🌅 ព្រឹក'], ['afternoon', '🌇 រសៀល']] as const).map(([s, label]) => (
+                {([['morning', '🌅 ព្រឹក'], ['afternoon', '🌇 រសៀល'], ['all', '📅 ប្រចាំថ្ងៃ']] as const).map(([s, label]) => (
                   <button
                     key={s}
                     onClick={() => setSelectedDashSession(s)}
