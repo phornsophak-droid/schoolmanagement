@@ -957,20 +957,18 @@ export default function ReportsHub({
                       };
                       return (
                         <div key={subj.name} className="space-y-1.5">
-                          <div className="flex items-center justify-between text-[11px] font-medium text-slate-600">
-                            <span className="font-bold">{subj.name}</span>
-                            <span className="flex items-center gap-1.5">
-                              <span className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold font-sans ${letterStyle[subj.letter] || letterStyle['-']}`}>
-                                និទ្ទេស {subj.letter}
-                              </span>
-                              <span className="font-bold font-mono text-slate-400 text-[10px]">({subj.avg}/១០)</span>
-                            </span>
-                          </div>
-                          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                          <div className="text-[11px] font-bold text-slate-600">{subj.name}</div>
+                          {/* Grade letter sits inside the bar; the overall average is not shown. */}
+                          <div className="relative w-full bg-slate-100 h-5 rounded-full overflow-hidden">
                             <div
-                              className={`h-full bg-gradient-to-r ${subj.color} rounded-full`}
+                              className={`absolute inset-y-0 left-0 bg-gradient-to-r ${subj.color}`}
                               style={{ width: `${valuePct}%` }}
                             />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold font-sans shadow-sm ${letterStyle[subj.letter] || letterStyle['-']}`}>
+                                និទ្ទេស {subj.letter}
+                              </span>
+                            </div>
                           </div>
                           {/* Headcount of students per A–F band for this subject */}
                           <div className="flex flex-wrap items-center gap-1 pt-0.5">
