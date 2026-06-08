@@ -94,8 +94,11 @@ export default function Dashboard({
   // Load Saved Attendance Records
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [reasonChartMode, setReasonChartMode] = useState<'daily' | 'monthly'>('daily');
-  // The day the attendance summary is showing; null = follow the latest recorded day.
-  const [selectedAttDate, setSelectedAttDate] = useState<string | null>(null);
+  // Attendance summary period + the picked value for each (null = follow the latest).
+  const [reportPeriod, setReportPeriod] = useState<'day' | 'month' | 'year'>('day');
+  const [selectedAttDate, setSelectedAttDate] = useState<string | null>(null);   // YYYY-MM-DD
+  const [selectedAttMonth, setSelectedAttMonth] = useState<string | null>(null); // YYYY-MM
+  const [selectedAttYear, setSelectedAttYear] = useState<string | null>(null);   // YYYY
 
   useEffect(() => {
     const saved = localStorage.getItem('school_daily_attendance');
@@ -116,40 +119,83 @@ export default function Dashboard({
     });
   }, [attendanceRecords, selectedGrade, classCategory]);
 
-  // All recorded days for the current class filter, newest first (drives the day picker).
+  // Recorded days / months / years for the current class filter, newest first.
   const availableDates = useMemo(() => {
     return Array.from(new Set<string>(filteredAttendance.map(r => r.date))).sort((a, b) => b.localeCompare(a));
   }, [filteredAttendance]);
+  const availableMonths = useMemo(() => {
+    return Array.from(new Set<string>(filteredAttendance.map(r => r.date.slice(0, 7)))).sort((a, b) => b.localeCompare(a));
+  }, [filteredAttendance]);
+  const availableYears = useMemo(() => {
+    return Array.from(new Set<string>(filteredAttendance.map(r => r.date.slice(0, 4)))).sort((a, b) => b.localeCompare(a));
+  }, [filteredAttendance]);
 
-  // The day actually shown: the user's calendar pick, else the latest recorded day.
-  // A picked day is respected even if it has no records (shows an empty report).
+  // The picked value per period, falling back to the latest recorded one.
   const effectiveAttDate = selectedAttDate || availableDates[0] || null;
+  const effectiveAttMonth = selectedAttMonth || availableMonths[0] || null;
+  const effectiveAttYear = selectedAttYear || availableYears[0] || null;
 
-  // Reset back to the latest day when the class filter changes, so the summary
-  // doesn't get stuck on a date that belongs to a different class category.
+  // A human label + the matcher for the period currently being viewed.
+  const periodLabel = reportPeriod === 'day' ? (effectiveAttDate || '—')
+    : reportPeriod === 'month' ? (effectiveAttMonth || '—')
+    : (effectiveAttYear || '—');
+
+  // Whether the viewed period is the latest recorded one (controls the reset chip).
+  const isLatestPeriod = reportPeriod === 'day' ? (!selectedAttDate || selectedAttDate === availableDates[0])
+    : reportPeriod === 'month' ? (!selectedAttMonth || selectedAttMonth === availableMonths[0])
+    : (!selectedAttYear || selectedAttYear === availableYears[0]);
+  const resetPeriodPick = () => { setSelectedAttDate(null); setSelectedAttMonth(null); setSelectedAttYear(null); };
+
+  // Reset picks back to the latest when the class filter changes, so the summary
+  // doesn't get stuck on a period that belongs to a different class category.
   useEffect(() => {
     setSelectedAttDate(null);
+    setSelectedAttMonth(null);
+    setSelectedAttYear(null);
   }, [classCategory, selectedGrade]);
 
-  // The selected day's records (one row per class), sorted by class name — used by
-  // both the KPI cards and the records table so they always agree.
-  const selectedDayRecords = useMemo(() => {
-    if (!effectiveAttDate) return [];
-    return filteredAttendance
-      .filter(r => r.date === effectiveAttDate)
+  // Records inside the selected period (day / month / year).
+  const periodRecords = useMemo(() => {
+    if (reportPeriod === 'day') return effectiveAttDate ? filteredAttendance.filter(r => r.date === effectiveAttDate) : [];
+    if (reportPeriod === 'month') return effectiveAttMonth ? filteredAttendance.filter(r => r.date.slice(0, 7) === effectiveAttMonth) : [];
+    return effectiveAttYear ? filteredAttendance.filter(r => r.date.slice(0, 4) === effectiveAttYear) : [];
+  }, [filteredAttendance, reportPeriod, effectiveAttDate, effectiveAttMonth, effectiveAttYear]);
+
+  // Per-class roll-up for the period — one row per class (day mode = one record each,
+  // month/year = summed across the period). Drives both the table and the PDF.
+  const periodByClass = useMemo(() => {
+    const map = new Map<string, { grade: string; present: number; late: number; permission: number; absent: number; days: Set<string> }>();
+    periodRecords.forEach(rec => {
+      const g = map.get(rec.grade) || { grade: rec.grade, present: 0, late: 0, permission: 0, absent: 0, days: new Set<string>() };
+      g.present += rec.presentCount;
+      g.late += rec.lateCount || 0;
+      g.permission += rec.permissionCount;
+      g.absent += rec.absentCount;
+      g.days.add(rec.date);
+      map.set(rec.grade, g);
+    });
+    return Array.from(map.values())
+      .map(g => {
+        const tracked = g.present + g.late + g.permission + g.absent;
+        const rate = tracked > 0 ? Math.round(((g.present + g.late) / tracked) * 100) : 100;
+        return { ...g, daysCount: g.days.size, present_total: g.present + g.late, rate };
+      })
       .sort((a, b) => a.grade.localeCompare(b.grade, 'km'));
-  }, [filteredAttendance, effectiveAttDate]);
+  }, [periodRecords]);
+
+  // Distinct recorded days within the period (clarifies the person-day unit).
+  const periodDaysCount = useMemo(() => new Set(periodRecords.map(r => r.date)).size, [periodRecords]);
 
   const attendanceAggregates = useMemo(() => {
-    // Real daily headcount for the selected day (not a cumulative person-day sum).
     // Present = arrived = on-time + late; excused (permission) and unexcused
-    // (absent) students are not counted as present.
+    // (absent) students are not counted as present. For month/year this is a
+    // cumulative person-day total; for a single day it is the real headcount.
     let totalPresent = 0;
     let totalLate = 0;
     let totalPermission = 0;
     let totalAbsent = 0;
 
-    selectedDayRecords.forEach(rec => {
+    periodRecords.forEach(rec => {
       totalPresent += rec.presentCount;
       totalLate += rec.lateCount || 0;
       totalPermission += rec.permissionCount;
@@ -166,10 +212,10 @@ export default function Dashboard({
       totalPermission,
       totalAbsent,
       overallRate,
-      latestDate: effectiveAttDate,
-      activeDaysCount: selectedDayRecords.length
+      latestDate: periodLabel,
+      activeDaysCount: periodRecords.length
     };
-  }, [selectedDayRecords, effectiveAttDate]);
+  }, [periodRecords, periodLabel]);
 
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
@@ -449,21 +495,20 @@ export default function Dashboard({
     printReportHtml(html);
   };
 
-  // Daily attendance SUMMARY report (per-class headcount) for the selected day.
+  // Attendance SUMMARY report (per-class headcount) for the selected day/month/year.
   const handleDownloadSummaryPdf = () => {
     const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
     const A = attendanceAggregates;
-    const dateLabel = A.latestDate || '—';
+    const periodName = reportPeriod === 'day' ? 'ប្រចាំថ្ងៃ' : reportPeriod === 'month' ? 'ប្រចាំខែ' : 'ប្រចាំឆ្នាំ';
+    const dateLabel = `${periodName} ៖ ${periodLabel}${reportPeriod !== 'day' ? ` (${periodDaysCount} ថ្ងៃ)` : ''}`;
     const scopeLabel = currentUser?.role === 'teacher' ? `ថ្នាក់៖ ${currentUser?.grade || ''}` : 'គ្រប់ថ្នាក់ទាំងអស់';
+    const unit = reportPeriod === 'day' ? '' : ' (នាក់-ដង)';
 
-    const rowsHtml = selectedDayRecords.length > 0
-      ? selectedDayRecords.map((rec, i) => {
-          const late = rec.lateCount || 0;
-          const tracked = rec.presentCount + late + rec.permissionCount + rec.absentCount;
-          const rate = tracked > 0 ? Math.round(((rec.presentCount + late) / tracked) * 100) : 100;
-          return `<tr><td style="text-align:center;color:#94a3b8">${i + 1}</td><td style="font-weight:bold">${esc(rec.grade)}</td><td style="text-align:center;color:#16a34a;font-weight:bold">${rec.presentCount + late}</td><td style="text-align:center;color:#2563eb;font-weight:bold">${rec.permissionCount}</td><td style="text-align:center;color:#e11d48;font-weight:bold">${rec.absentCount}</td><td style="text-align:center;font-weight:bold;color:#0f172a">${rate}%</td></tr>`;
+    const rowsHtml = periodByClass.length > 0
+      ? periodByClass.map((g, i) => {
+          return `<tr><td style="text-align:center;color:#94a3b8">${i + 1}</td><td style="font-weight:bold">${esc(g.grade)}</td><td style="text-align:center;color:#16a34a;font-weight:bold">${g.present_total}</td><td style="text-align:center;color:#2563eb;font-weight:bold">${g.permission}</td><td style="text-align:center;color:#e11d48;font-weight:bold">${g.absent}</td><td style="text-align:center;font-weight:bold;color:#0f172a">${g.rate}%</td></tr>`;
         }).join('')
-      : `<tr><td colspan="6" style="text-align:center;padding:22px;color:#94a3b8">មិនមានទិន្នន័យវត្តមាននៅថ្ងៃនេះទេ</td></tr>`;
+      : `<tr><td colspan="6" style="text-align:center;padding:22px;color:#94a3b8">មិនមានទិន្នន័យវត្តមាននៅរយៈពេលនេះទេ</td></tr>`;
 
     const html = `<!doctype html><html lang="km"><head><meta charset="utf-8">
       <title>របាយការណ៍សង្ខេបវត្តមាន ${dateLabel}</title>
@@ -499,17 +544,17 @@ export default function Dashboard({
         <div class="header">
           <div class="logo"><img src="${schoolLogo}" alt="logo" style="width:60px;height:60px;object-fit:contain"/></div>
           <h1>សាលាសហគមន៍ច្បារច្រុះ</h1>
-          <div class="sub">របាយការណ៍សង្ខេបវត្តមានសិស្សប្រចាំថ្ងៃ</div>
+          <div class="sub">របាយការណ៍សង្ខេបវត្តមានសិស្ស${periodName}</div>
         </div>
-        <div class="meta"><span>${scopeLabel}</span><span class="date">កាលបរិច្ឆេទ៖ ${dateLabel}</span></div>
+        <div class="meta"><span>${scopeLabel}</span><span class="date">${dateLabel}</span></div>
         <div class="totals">
           <div class="box b-rate"><div class="n">${A.overallRate}%</div><div class="l">អត្រាវត្តមាន</div></div>
-          <div class="box b-pres"><div class="n">${A.totalPresent}</div><div class="l">មានវត្តមាន</div></div>
-          <div class="box b-perm"><div class="n">${A.totalPermission}</div><div class="l">មានច្បាប់</div></div>
-          <div class="box b-abs"><div class="n">${A.totalAbsent}</div><div class="l">អត់ច្បាប់</div></div>
+          <div class="box b-pres"><div class="n">${A.totalPresent}</div><div class="l">មានវត្តមាន${unit}</div></div>
+          <div class="box b-perm"><div class="n">${A.totalPermission}</div><div class="l">មានច្បាប់${unit}</div></div>
+          <div class="box b-abs"><div class="n">${A.totalAbsent}</div><div class="l">អត់ច្បាប់${unit}</div></div>
         </div>
         <table>
-          <thead><tr><th style="width:30px;text-align:center">ល.រ</th><th>ថ្នាក់រៀន</th><th style="text-align:center">មានវត្តមាន</th><th style="text-align:center">មានច្បាប់</th><th style="text-align:center">អត់ច្បាប់</th><th style="text-align:center">អត្រាវត្តមាន</th></tr></thead>
+          <thead><tr><th style="width:30px;text-align:center">ល.រ</th><th>ថ្នាក់រៀន</th><th style="text-align:center">មានវត្តមាន${unit}</th><th style="text-align:center">មានច្បាប់</th><th style="text-align:center">អត់ច្បាប់</th><th style="text-align:center">អត្រាវត្តមាន</th></tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
         <div class="foot">បង្កើតដោយ<b>ប្រព័ន្ធគ្រប់គ្រងសាលា</b> • ${new Date().toLocaleString('en-GB')}</div>
@@ -633,45 +678,82 @@ export default function Dashboard({
               <ClipboardCheck className="w-5 h-5 text-blue-500" />
               <span className="text-xs uppercase tracking-wider font-bold">របាយការណ៍សង្ខេបវត្តមាន</span>
             </div>
-            <h3 className="font-bold text-slate-800 text-base font-serif">វត្តមានសិស្សប្រចាំថ្ងៃ</h3>
+            <h3 className="font-bold text-slate-800 text-base font-serif">
+              វត្តមានសិស្ស{reportPeriod === 'day' ? 'ប្រចាំថ្ងៃ' : reportPeriod === 'month' ? 'ប្រចាំខែ' : 'ប្រចាំឆ្នាំ'}
+            </h3>
             <p className="text-xs text-slate-400 mt-1">
-              ទិន្នន័យជាក់ស្តែងសម្រាប់ថ្ងៃដែលបានជ្រើស
+              ទិន្នន័យសម្រាប់រយៈពេលដែលបានជ្រើស
               {attendanceAggregates.latestDate ? <span className="font-bold text-slate-500"> ៖ {attendanceAggregates.latestDate}</span> : ''}
+              {reportPeriod !== 'day' && periodDaysCount > 0 ? <span className="text-slate-400"> ({periodDaysCount} ថ្ងៃ)</span> : ''}
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Calendar day picker — review the report for any day. */}
-            {availableDates.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Calendar size={15} className="text-slate-400" />
+            {/* Period mode: day / month / year */}
+            <div className="flex bg-slate-100 p-0.5 rounded-lg">
+              {([['day', 'ថ្ងៃ'], ['month', 'ខែ'], ['year', 'ឆ្នាំ']] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => setReportPeriod(mode)}
+                  className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-colors ${reportPeriod === mode ? 'bg-white text-slate-800 shadow-3xs' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Period value picker (calendar / month / year) */}
+            <div className="flex items-center gap-1.5">
+              <Calendar size={15} className="text-slate-400" />
+              {reportPeriod === 'day' && (
                 <input
                   type="date"
                   value={effectiveAttDate || ''}
                   max={availableDates[0]}
                   onChange={(e) => setSelectedAttDate(e.target.value || null)}
                   className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-700 cursor-pointer focus:border-blue-500 outline-none transition-colors"
-                  title="ជ្រើសរើសថ្ងៃដើម្បីពិនិត្យរបាយការណ៍"
+                  title="ជ្រើសរើសថ្ងៃ"
                 />
-                {effectiveAttDate === availableDates[0] ? (
-                  <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded whitespace-nowrap">ថ្ងៃចុងក្រោយ</span>
-                ) : (
-                  <button
-                    onClick={() => setSelectedAttDate(null)}
-                    className="text-[9px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap transition-colors"
-                    title="ត្រឡប់ទៅថ្ងៃចុងក្រោយ"
-                  >
-                    ↺ ថ្ងៃចុងក្រោយ
-                  </button>
-                )}
-              </div>
-            )}
+              )}
+              {reportPeriod === 'month' && (
+                <input
+                  type="month"
+                  value={effectiveAttMonth || ''}
+                  max={availableMonths[0]}
+                  onChange={(e) => setSelectedAttMonth(e.target.value || null)}
+                  className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-700 cursor-pointer focus:border-blue-500 outline-none transition-colors"
+                  title="ជ្រើសរើសខែ"
+                />
+              )}
+              {reportPeriod === 'year' && (
+                <select
+                  value={effectiveAttYear || ''}
+                  onChange={(e) => setSelectedAttYear(e.target.value || null)}
+                  className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-700 cursor-pointer focus:border-blue-500 outline-none transition-colors"
+                  title="ជ្រើសរើសឆ្នាំ"
+                >
+                  {availableYears.length === 0 && <option value="">—</option>}
+                  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              )}
+              {isLatestPeriod ? (
+                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded whitespace-nowrap">ថ្មីបំផុត</span>
+              ) : (
+                <button
+                  onClick={resetPeriodPick}
+                  className="text-[9px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap transition-colors"
+                  title="ត្រឡប់ទៅរយៈពេលថ្មីបំផុត"
+                >
+                  ↺ ថ្មីបំផុត
+                </button>
+              )}
+            </div>
 
             <button
               onClick={handleDownloadSummaryPdf}
-              disabled={selectedDayRecords.length === 0}
+              disabled={periodRecords.length === 0}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition duration-200 cursor-pointer shadow-3xs disabled:opacity-40 disabled:cursor-not-allowed"
-              title="ទាញយករបាយការណ៍សង្ខេបវត្តមានសម្រាប់ថ្ងៃនេះ"
+              title="ទាញយករបាយការណ៍សង្ខេបវត្តមាន"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               ទាញយករបាយការណ៍ (PDF)
@@ -707,7 +789,7 @@ export default function Dashboard({
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">សិស្សមានវត្តមាន</p>
               <h4 className="text-xl font-black text-emerald-600 mt-1 font-mono">
-                {attendanceAggregates.totalPresent} <span className="text-xs font-normal text-slate-500">នាក់</span>
+                {attendanceAggregates.totalPresent} <span className="text-xs font-normal text-slate-500">{reportPeriod === 'day' ? 'នាក់' : 'នាក់-ដង'}</span>
               </h4>
             </div>
             <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold font-mono text-xs">
@@ -719,7 +801,7 @@ export default function Dashboard({
             <div>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">សិស្សមានច្បាប់</p>
               <h4 className="text-xl font-black text-amber-600 mt-1 font-mono">
-                {attendanceAggregates.totalPermission} <span className="text-xs font-normal text-slate-500">នាក់</span>
+                {attendanceAggregates.totalPermission} <span className="text-xs font-normal text-slate-500">{reportPeriod === 'day' ? 'នាក់' : 'នាក់-ដង'}</span>
               </h4>
             </div>
             <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 font-bold font-mono text-xs">
@@ -731,7 +813,7 @@ export default function Dashboard({
             <div>
               <p className="text-[10px] text-[#EA4335] font-bold uppercase tracking-wider">អវត្តមានគ្មានច្បាប់</p>
               <h4 className="text-xl font-black text-rose-600 mt-1 font-mono">
-                {attendanceAggregates.totalAbsent} <span className="text-xs font-normal text-slate-500">នាក់</span>
+                {attendanceAggregates.totalAbsent} <span className="text-xs font-normal text-slate-500">{reportPeriod === 'day' ? 'នាក់' : 'នាក់-ដង'}</span>
               </h4>
             </div>
             <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 font-bold font-mono text-xs">
@@ -743,18 +825,17 @@ export default function Dashboard({
         {/* Detailed Records Tracker */}
         <div className="border border-slate-100 rounded-xl overflow-hidden">
           <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center">
-            <span className="text-xs font-bold text-slate-700">📜 កំណត់ត្រាវត្តមានតាមថ្នាក់ ប្រចាំថ្ងៃ</span>
-            <span className="text-[10.5px] text-slate-400 font-bold font-mono">សរុប {selectedDayRecords.length} ថ្នាក់</span>
+            <span className="text-xs font-bold text-slate-700">📜 កំណត់ត្រាវត្តមានតាមថ្នាក់ {reportPeriod === 'day' ? 'ប្រចាំថ្ងៃ' : reportPeriod === 'month' ? 'ប្រចាំខែ' : 'ប្រចាំឆ្នាំ'}</span>
+            <span className="text-[10.5px] text-slate-400 font-bold font-mono">សរុប {periodByClass.length} ថ្នាក់</span>
           </div>
 
-          {selectedDayRecords.length > 0 ? (
+          {periodByClass.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-600">
                 <thead>
                   <tr className="bg-slate-50/40 border-b border-slate-150 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
-                    <th className="px-4 py-2.5">កាលបរិច្ឆេទ</th>
                     <th className="px-4 py-2.5">ថ្នាក់រៀន</th>
-                    <th className="px-4 py-2.5 text-center">វត្តមាន</th>
+                    <th className="px-4 py-2.5 text-center">មានវត្តមាន{reportPeriod !== 'day' ? ' (នាក់-ដង)' : ''}</th>
                     <th className="px-4 py-2.5 text-center">ច្បាប់</th>
                     <th className="px-4 py-2.5 text-center">អវត្តមាន</th>
                     <th className="px-4 py-2.5 text-center">អត្រាវត្តមាន</th>
@@ -762,49 +843,42 @@ export default function Dashboard({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {selectedDayRecords.map((rec) => {
-                    const totalTracked = rec.presentCount + (rec.lateCount || 0) + rec.permissionCount + rec.absentCount;
-                    const r = totalTracked > 0 ? Math.round(((rec.presentCount + (rec.lateCount || 0)) / totalTracked) * 100) : 100;
-                    return (
-                      <tr key={rec.id} className="hover:bg-slate-50/50 transition-all">
-                        <td className="px-4 py-3 font-semibold text-slate-705">
-                          <div className="flex items-center gap-1.5 font-mono text-slate-600">
-                            <Clock size={12} className="text-slate-400" />
-                            {rec.date}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-bold text-slate-800">{rec.grade}</td>
-                        <td className="px-4 py-3 text-center text-emerald-600 font-bold font-mono">{rec.presentCount}</td>
-                        <td className="px-4 py-3 text-center text-amber-600 font-bold font-mono">{rec.permissionCount}</td>
-                        <td className="px-4 py-3 text-center text-rose-600 font-bold font-mono">{rec.absentCount}</td>
-                        <td className="px-4 py-3 text-center">
-                          <div className="inline-flex items-center gap-1.5">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
-                              r >= 90 ? 'bg-emerald-50 text-emerald-700' : r >= 75 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
-                            }`}>
-                              {r}%
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={onOpenAttendanceClick}
-                            className="text-blue-600 hover:text-blue-800 text-[11px] font-bold transition-all cursor-pointer inline-flex items-center gap-1"
-                          >
-                            <span>ពិនិត្យឡើងវិញ</span>
-                            <ArrowRight size={11} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {periodByClass.map((g) => (
+                    <tr key={g.grade} className="hover:bg-slate-50/50 transition-all">
+                      <td className="px-4 py-3 font-bold text-slate-800">
+                        {g.grade}
+                        {reportPeriod !== 'day' && <span className="ml-2 text-[10px] font-normal text-slate-400 font-mono">({g.daysCount} ថ្ងៃ)</span>}
+                      </td>
+                      <td className="px-4 py-3 text-center text-emerald-600 font-bold font-mono">{g.present_total}</td>
+                      <td className="px-4 py-3 text-center text-amber-600 font-bold font-mono">{g.permission}</td>
+                      <td className="px-4 py-3 text-center text-rose-600 font-bold font-mono">{g.absent}</td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="inline-flex items-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+                            g.rate >= 90 ? 'bg-emerald-50 text-emerald-700' : g.rate >= 75 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
+                          }`}>
+                            {g.rate}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={onOpenAttendanceClick}
+                          className="text-blue-600 hover:text-blue-800 text-[11px] font-bold transition-all cursor-pointer inline-flex items-center gap-1"
+                        >
+                          <span>ពិនិត្យឡើងវិញ</span>
+                          <ArrowRight size={11} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           ) : (
             <div className="py-12 flex flex-col items-center justify-center text-slate-400 text-xs">
               <ClipboardCheck size={36} className="text-slate-350 mb-2" />
-              <p className="font-semibold text-slate-605">មិនទាន់មានទិន្នន័យវត្តមានប្រចាំថ្ងៃត្រូវបានកត់ត្រានៅឡើយទេ</p>
+              <p className="font-semibold text-slate-605">មិនមានទិន្នន័យវត្តមានសម្រាប់រយៈពេលដែលបានជ្រើសនោះទេ</p>
               {onOpenAttendanceClick && (
                 <button
                   onClick={onOpenAttendanceClick}
