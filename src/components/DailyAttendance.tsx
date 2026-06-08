@@ -132,16 +132,20 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     if (currentUser?.grade && currentUser.grade !== 'ទាំងអស់') {
       return currentUser.grade;
     }
-    return grades[0] || 'ថ្នាក់ទី ១ក';
+    // Non-teachers start on the first general class so the general panel shows first.
+    return grades.find(g => !isExtraClass(g)) || grades[0] || 'ថ្នាក់ទី ១ក';
   });
 
   // Morning/afternoon shift for general classes — defaults to the current half-day.
   const [selectedSession, setSelectedSession] = useState<Session>(() => new Date().getHours() < 12 ? 'morning' : 'afternoon');
 
-  // Class category (general / extra) — initialised to match the default selected grade.
+  // Class category (general / extra). Teachers follow their own class; everyone
+  // else always starts on the general panel.
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>(() => {
-    const g = currentUser?.grade && currentUser.grade !== 'ទាំងអស់' ? currentUser.grade : (grades[0] || '');
-    return isExtraClass(g) ? 'extra' : 'general';
+    if (currentUser?.grade && currentUser.grade !== 'ទាំងអស់') {
+      return isExtraClass(currentUser.grade) ? 'extra' : 'general';
+    }
+    return 'general';
   });
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
 
@@ -679,6 +683,35 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
         </div>
       )}
 
+      {/* Class-category selector (general / extra) at the very top — students only,
+          hidden for teachers who are locked to their own class. */}
+      {activeTab === 'student' && currentUser?.role !== 'teacher' && (
+        <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-3xs border border-slate-200 w-full">
+          <button
+            onClick={() => {
+              setClassCategory('general');
+              const f = grades.find(g => !isExtraClass(g));
+              if (f) setSelectedGrade(f);
+              setSearchQuery('');
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            📘 ថ្នាក់ចំណេះទូទៅ
+          </button>
+          <button
+            onClick={() => {
+              setClassCategory('extra');
+              const f = grades.find(g => isExtraClass(g));
+              if (f) setSelectedGrade(f);
+              setSearchQuery('');
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            🎨 ថ្នាក់ក្រៅម៉ោង
+          </button>
+        </div>
+      )}
+
       {/* Main Banner Header */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-3xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -861,32 +894,6 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       <div className="flex flex-col gap-6 items-start w-full">
         {/* Top Controls: Filters */}
         <div className="w-full">
-          {activeTab === 'student' && currentUser?.role !== 'teacher' && (
-            <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-3xs border border-slate-200 w-full mb-4">
-              <button
-                onClick={() => {
-                  setClassCategory('general');
-                  const f = grades.find(g => !isExtraClass(g));
-                  if (f) setSelectedGrade(f);
-                  setSearchQuery('');
-                }}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
-              >
-                📘 ថ្នាក់ចំណេះទូទៅ
-              </button>
-              <button
-                onClick={() => {
-                  setClassCategory('extra');
-                  const f = grades.find(g => isExtraClass(g));
-                  if (f) setSelectedGrade(f);
-                  setSearchQuery('');
-                }}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
-              >
-                🎨 ថ្នាក់ក្រៅម៉ោង
-              </button>
-            </div>
-          )}
           {activeTab === 'student' ? (
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex flex-wrap md:flex-row gap-6 items-center lg:justify-between w-full">
               <div className="flex flex-col md:flex-row items-center gap-6 grow w-full lg:w-auto">
