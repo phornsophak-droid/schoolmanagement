@@ -47,8 +47,24 @@ const KHMER_MONTHS_LIST = [
 ];
 
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
-const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+// 'គ្លេស' (the English-language root) catches spelling variants like អង់គ្លេស / អ់គ្លេស.
+const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+// The subject keyword an after-hours class belongs to (e.g. "អង់គ្លេស"), used to
+// group all of one teacher's class sections (3A, 3B...) under the same subject.
+const getExtraSubjectKey = (grade: string) => EXTRA_CLASS_KEYWORDS.find(k => (grade || '').includes(k)) || '';
+
+// Convert a 0–10 average into the official A–F grade band (same thresholds as
+// the per-student designation). Core-subject averages are shown as these letters.
+const scoreToLetter = (score: number | null | undefined): string => {
+  if (score === null || score === undefined) return '-';
+  if (score >= 9.0) return 'A';
+  if (score >= 8.0) return 'B';
+  if (score >= 7.0) return 'C';
+  if (score >= 6.0) return 'D';
+  if (score >= 5.0) return 'E';
+  return 'F';
+};
 
 export default function ReportsHub({
   reports,
@@ -91,16 +107,38 @@ export default function ReportsHub({
   const [progressSearchGrade, setProgressSearchGrade] = useState('ទាំងអស់');
   const [progressSearchMonth, setProgressSearchMonth] = useState('ទាំងអស់');
 
+  // Teacher accounts are locked to their own class; principals/admins see all.
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherGrade = currentUser?.grade || '';
+  const teacherLocked = isTeacher && teacherGrade !== '' && teacherGrade !== 'ទាំងអស់';
+  const isExtraTeacher = teacherLocked && isExtraClass(teacherGrade);
+  const isGeneralTeacher = teacherLocked && !isExtraTeacher;
+
   // Academic Report filters state
   const [scopeType, setScopeType] = useState<'class' | 'combined'>('class');
-  const [selectedGrade, setSelectedGrade] = useState<string>(gradesList[0] || 'ថ្នាក់ទី៦');
+  const [selectedGrade, setSelectedGrade] = useState<string>(
+    teacherLocked ? teacherGrade : (gradesList[0] || 'ថ្នាក់ទី៦')
+  );
   const [selectedPeriod, setSelectedPeriod] = useState<string>('ប្រចាំឆ្នាំ'); // month, exam, or annual ('ប្រចាំឆ្នាំ')
   const [academicSearchName, setAcademicSearchName] = useState('');
 
   // Class category (general / extra) — scopes every grade dropdown & report list.
-  const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
+  // A locked teacher's category follows the class they teach and cannot be changed.
+  const [classCategory, setClassCategory] = useState<'general' | 'extra'>(
+    teacherLocked && isExtraClass(teacherGrade) ? 'extra' : 'general'
+  );
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
   const categoryGrades = gradesList.filter(g => inCat(g));
+
+  // Grade dropdown options, restricted for locked teacher accounts:
+  //  - general teacher → only their own class
+  //  - extra teacher   → only their subject's sections (e.g. all English groups)
+  //  - principal/admin → every class in the selected category
+  const gradeOptions = isExtraTeacher
+    ? categoryGrades.filter(g => g.includes(getExtraSubjectKey(teacherGrade)))
+    : isGeneralTeacher
+      ? [teacherGrade]
+      : categoryGrades;
 
   // Clamp helper
   const clampScore = (score: number) => {
@@ -139,7 +177,8 @@ export default function ReportsHub({
   // ==========================================
   
   const processedAcademicRoster = useMemo(() => {
-    const targetGrade = scopeType === 'combined' ? 'ទាំងអស់' : selectedGrade;
+    // Locked teachers never get the combined (all-class) view — always their own class.
+    const targetGrade = (!teacherLocked && scopeType === 'combined') ? 'ទាំងអស់' : selectedGrade;
 
     // Filter students by grade if needed
     const baseRosterStudents = students.filter(s => {
@@ -323,7 +362,7 @@ export default function ReportsHub({
       const sorted = roster.sort((a, b) => b.overallAvg - a.overallAvg);
       return sorted.map((st, i) => ({ ...st, ranking: i + 1 }));
     }
-  }, [students, scopeType, selectedGrade, selectedPeriod, classCategory]);
+  }, [students, scopeType, selectedGrade, selectedPeriod, classCategory, teacherLocked]);
 
   // Filter roster by student search input
   const filteredAcademicRoster = useMemo(() => {
@@ -398,15 +437,21 @@ export default function ReportsHub({
       if (s.subjects.foreignLanguage !== null && s.subjects.foreignLanguage !== undefined) { sums.foreignLanguage += s.subjects.foreignLanguage; counts.foreignLanguage++; }
     });
 
+    // avg = mean of the sub-subjects; letter = the A–F band of that mean ('-' when no data).
+    const build = (name: string, sum: number, count: number, color: string) => {
+      const avg = count > 0 ? parseFloat((sum / count).toFixed(2)) : 0;
+      return { name, avg, letter: count > 0 ? scoreToLetter(avg) : '-', color };
+    };
+
     return [
-      { name: 'ភាសាខ្មែរ', avg: counts.khmer > 0 ? parseFloat((sums.khmer / counts.khmer).toFixed(2)) : 0, color: 'from-blue-500 to-indigo-500' },
-      { name: 'គណិតវិទ្យា', avg: counts.math > 0 ? parseFloat((sums.math / counts.math).toFixed(2)) : 0, color: 'from-cyan-500 to-blue-500' },
-      { name: 'វិទ្យាសាស្ត្រ', avg: counts.science > 0 ? parseFloat((sums.science / counts.science).toFixed(2)) : 0, color: 'from-amber-500 to-orange-500' },
-      { name: 'សិក្សាសង្គម', avg: counts.socialStudies > 0 ? parseFloat((sums.socialStudies / counts.socialStudies).toFixed(2)) : 0, color: 'from-indigo-500 to-purple-500' },
-      { name: 'លំហាត់កីឡា', avg: counts.physicalEducation > 0 ? parseFloat((sums.physicalEducation / counts.physicalEducation).toFixed(2)) : 0, color: 'from-teal-500 to-emerald-500' },
-      { name: 'អប់រំសុខភាព', avg: counts.health > 0 ? parseFloat((sums.health / counts.health).toFixed(2)) : 0, color: 'from-pink-500 to-rose-500' },
-      { name: 'បំណិនជីវិត', avg: counts.lifeSkills > 0 ? parseFloat((sums.lifeSkills / counts.lifeSkills).toFixed(2)) : 0, color: 'from-emerald-500 to-emerald-600' },
-      { name: 'ភាសាបរទេស', avg: counts.foreignLanguage > 0 ? parseFloat((sums.foreignLanguage / counts.foreignLanguage).toFixed(2)) : 0, color: 'from-violet-500 to-purple-650' }
+      build('ភាសាខ្មែរ', sums.khmer, counts.khmer, 'from-blue-500 to-indigo-500'),
+      build('គណិតវិទ្យា', sums.math, counts.math, 'from-cyan-500 to-blue-500'),
+      build('វិទ្យាសាស្ត្រ', sums.science, counts.science, 'from-amber-500 to-orange-500'),
+      build('សិក្សាសង្គម', sums.socialStudies, counts.socialStudies, 'from-indigo-500 to-purple-500'),
+      build('លំហាត់កីឡា', sums.physicalEducation, counts.physicalEducation, 'from-teal-500 to-emerald-500'),
+      build('អប់រំសុខភាព', sums.health, counts.health, 'from-pink-500 to-rose-500'),
+      build('បំណិនជីវិត', sums.lifeSkills, counts.lifeSkills, 'from-emerald-500 to-emerald-600'),
+      build('ភាសាបរទេស', sums.foreignLanguage, counts.foreignLanguage, 'from-violet-500 to-purple-650')
     ];
   }, [processedAcademicRoster]);
 
@@ -470,28 +515,36 @@ export default function ReportsHub({
         </button>
       </div>
 
-      {/* Class-category selector (general / extra) — scopes all report data (Hidden in print) */}
+      {/* Class-category selector (general / extra) — scopes all report data (Hidden in print).
+          Locked for teacher accounts, who only ever see their own class category. */}
       <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-sm border border-slate-200 max-w-xl mx-auto w-full print:hidden">
         <button
+          disabled={teacherLocked}
           onClick={() => {
             setClassCategory('general');
             setSelectedGrade(gradesList.find(g => !isExtraClass(g)) || '');
             setProgressSearchGrade('ទាំងអស់');
           }}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           📘 ថ្នាក់ចំណេះទូទៅ
         </button>
         <button
+          disabled={teacherLocked}
           onClick={() => {
             setClassCategory('extra');
             setSelectedGrade(gradesList.find(g => isExtraClass(g)) || '');
             setProgressSearchGrade('ទាំងអស់');
           }}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
+          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           🎨 ថ្នាក់ក្រៅម៉ោង
         </button>
+        {teacherLocked && (
+          <span className="hidden sm:flex items-center gap-1 px-2 text-[10px] font-bold text-slate-400 whitespace-nowrap">
+            <FolderLock size={12} /> ចាក់សោតាមថ្នាក់គ្រូ
+          </span>
+        )}
       </div>
 
       {/* ========================================================== */}
@@ -731,11 +784,12 @@ export default function ReportsHub({
                     តាមថ្នាក់នីមួយៗ
                   </button>
                   <button
+                    disabled={teacherLocked}
                     onClick={() => {
                       setScopeType('combined');
                     }}
-                    className={`flex-1 py-1 text-[11px] font-bold rounded-md transition-colors ${
-                      scopeType === 'combined' ? 'bg-white text-slate-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
+                    className={`flex-1 py-1 text-[11px] font-bold rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                      scopeType === 'combined' && !teacherLocked ? 'bg-white text-slate-700 shadow-3xs' : 'text-slate-500 hover:text-slate-700'
                     }`}
                   >
                     របាយការណ៍រួម (គ្រប់ថ្នាក់)
@@ -746,13 +800,14 @@ export default function ReportsHub({
               {/* Filter 2: Select Grade (conditional) */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 font-mono uppercase">ថ្នាក់សិក្សា</label>
-                {scopeType === 'class' ? (
+                {scopeType === 'class' || teacherLocked ? (
                   <select
                     value={selectedGrade}
                     onChange={(e) => setSelectedGrade(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-pointer focus:border-blue-500 outline-none transition-colors"
+                    disabled={isGeneralTeacher}
+                    className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold cursor-pointer focus:border-blue-500 outline-none transition-colors disabled:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-500"
                   >
-                    {categoryGrades.map(g => <option key={g} value={g}>{g}</option>)}
+                    {gradeOptions.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                 ) : (
                   <div className="w-full px-3 py-1.5 text-xs bg-slate-100 border border-slate-200 rounded-lg text-slate-450 font-bold flex items-center gap-1">
@@ -912,14 +967,28 @@ export default function ReportsHub({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     {subjectAverages.map(subj => {
                       const valuePct = (subj.avg / 10) * 100;
+                      const letterStyle: Record<string, string> = {
+                        A: 'bg-blue-100 text-blue-700',
+                        B: 'bg-indigo-100 text-indigo-700',
+                        C: 'bg-emerald-100 text-emerald-700',
+                        D: 'bg-teal-100 text-teal-700',
+                        E: 'bg-amber-100 text-amber-700',
+                        F: 'bg-rose-100 text-rose-700',
+                        '-': 'bg-slate-100 text-slate-400',
+                      };
                       return (
                         <div key={subj.name} className="space-y-1.5">
                           <div className="flex items-center justify-between text-[11px] font-medium text-slate-600">
                             <span className="font-bold">{subj.name}</span>
-                            <span className="font-bold font-mono text-blue-600">{subj.avg} /១០</span>
+                            <span className="flex items-center gap-1.5">
+                              <span className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold font-sans ${letterStyle[subj.letter] || letterStyle['-']}`}>
+                                និទ្ទេស {subj.letter}
+                              </span>
+                              <span className="font-bold font-mono text-slate-400 text-[10px]">({subj.avg}/១០)</span>
+                            </span>
                           </div>
                           <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className={`h-full bg-gradient-to-r ${subj.color} rounded-full`}
                               style={{ width: `${valuePct}%` }}
                             />
