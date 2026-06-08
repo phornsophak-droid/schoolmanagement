@@ -1097,13 +1097,14 @@ export default function MobilePortal({
                             />
                           </div>
                           <div>
-                            <label className="block text-[7.5px] text-slate-400 mb-0.5 font-bold">ថ្នាក់រៀន</label>
+                            <label className="block text-[7.5px] text-slate-400 mb-0.5 font-bold">ថ្នាក់រៀន{currentUser?.role === 'teacher' && ' 🔒'}</label>
                             <select
                               value={selectedAttendanceGrade}
                               onChange={e => setSelectedAttendanceGrade(e.target.value)}
-                              className="w-full bg-blue-950/70 border border-blue-900/40 text-slate-200 rounded px-1.5 py-1 text-[8.5px] outline-none font-bold"
+                              disabled={currentUser?.role === 'teacher'}
+                              className="w-full bg-blue-950/70 border border-blue-900/40 text-slate-200 rounded px-1.5 py-1 text-[8.5px] outline-none font-bold disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                              {grades.map(g => (
+                              {(currentUser?.role === 'teacher' ? [currentUser.grade] : grades).map(g => (
                                 <option key={g} value={g}>{g}</option>
                               ))}
                             </select>
@@ -1305,7 +1306,9 @@ export default function MobilePortal({
                       </p>
 
                       <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                        {savedAttendanceRecords.map((rec) => {
+                        {savedAttendanceRecords
+                          .filter(rec => currentUser?.role !== 'teacher' || rec.grade === currentUser.grade)
+                          .map((rec) => {
                           const total = rec.presentCount + (rec.lateCount || 0) + rec.permissionCount + rec.absentCount;
                           const percent = total > 0 ? Math.round(((rec.presentCount + (rec.lateCount || 0)) / total) * 105) : 100;
                           const displayPercent = percent > 100 ? 100 : percent;

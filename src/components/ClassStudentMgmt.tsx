@@ -1359,16 +1359,23 @@ export default function ClassStudentMgmt({
                   {/* Filter and dynamic roster count controls */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-150">
                     <div className="flex items-center gap-2 flex-wrap text-slate-700">
-                      <span className="text-xs font-bold text-slate-600">ថ្នាក់៖</span>
+                      <span className="text-xs font-bold text-slate-600">ថ្នាក់៖{currentUser?.role === 'teacher' && ' 🔒'}</span>
                       <select
                         value={selectedRosterGrade}
                         onChange={(e) => setSelectedRosterGrade(e.target.value)}
-                        className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-blue-500 font-semibold"
+                        disabled={currentUser?.role === 'teacher'}
+                        className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       >
-                        <option value="ទាំងអស់">គ្រប់ថ្នាក់ទាំងអស់</option>
-                        {categoryGrades.map(g => (
-                          <option key={g} value={g}>{g}</option>
-                        ))}
+                        {currentUser?.role === 'teacher' ? (
+                          <option value={currentUser.grade}>{currentUser.grade}</option>
+                        ) : (
+                          <>
+                            <option value="ទាំងអស់">គ្រប់ថ្នាក់ទាំងអស់</option>
+                            {categoryGrades.map(g => (
+                              <option key={g} value={g}>{g}</option>
+                            ))}
+                          </>
+                        )}
                       </select>
 
                       <div className="relative">

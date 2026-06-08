@@ -87,6 +87,18 @@ export default function Dashboard({
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
 
+  // Teacher accounts are hard-locked to their own class — they must never see or
+  // select another class. Principals/admins are unrestricted.
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherGrade = isTeacher ? (currentUser?.grade || '') : '';
+  const teacherLocked = isTeacher && teacherGrade !== '' && teacherGrade !== 'ទាំងអស់';
+  useEffect(() => {
+    if (teacherLocked) {
+      setClassCategory(isExtraClass(teacherGrade) ? 'extra' : 'general');
+      setSelectedGrade(teacherGrade);
+    }
+  }, [teacherLocked, teacherGrade]);
+
   // Morning/afternoon shift — only meaningful for general classes (extra classes
   // are single-session and always pass the filter). Reports stay separate per shift.
   const [selectedDashSession, setSelectedDashSession] = useState<'morning' | 'afternoon' | 'all'>(() => new Date().getHours() < 12 ? 'morning' : 'afternoon');
@@ -97,6 +109,8 @@ export default function Dashboard({
   };
   // 'all' = both shifts combined for the whole day.
   const inSession = (r: AttendanceRecord) => classCategory !== 'general' || selectedDashSession === 'all' ? true : recSession(r) === selectedDashSession;
+  // Restrict attendance records to the selected class (teachers see only their own).
+  const inGradeScope = (grade: string) => selectedGrade === 'ទាំងអស់' || selectedGrade === 'boldsymbol' || grade === selectedGrade;
   // Khmer shift label, shown only for general classes (extra classes are single-session).
   const sessionKm = classCategory !== 'general' ? ''
     : selectedDashSession === 'morning' ? 'វេនព្រឹក'
@@ -376,18 +390,18 @@ export default function Dashboard({
 
   // Find the latest attendance date within the selected class category + session
   const latestAttendanceDate = useMemo(() => {
-    const catRecords = attendanceRecords.filter(r => inCat(r.grade) && inSession(r));
+    const catRecords = attendanceRecords.filter(r => inCat(r.grade) && inSession(r) && inGradeScope(r.grade));
     if (catRecords.length === 0) return new Date().toISOString().split('T')[0];
     const dates = catRecords.map(r => r.date).sort();
     return dates[dates.length - 1];
-  }, [attendanceRecords, classCategory, selectedDashSession]);
+  }, [attendanceRecords, classCategory, selectedDashSession, selectedGrade]);
 
   // Generate Daily Absent Report Data
   const dailyAbsentReport = useMemo(() => {
     // Cumulative stats
     const cumulativeStats: Record<string, { late: number, permission: number, absent: number }> = {};
     attendanceRecords.forEach(rec => {
-      if (!inCat(rec.grade) || !inSession(rec)) return; // cumulative stays within the selected category + session
+      if (!inCat(rec.grade) || !inSession(rec) || !inGradeScope(rec.grade)) return; // category + session + class scope
       if (rec.studentStates) {
         Object.entries(rec.studentStates).forEach(([sId, status]) => {
           if (sId.endsWith('_reason')) return;
@@ -409,7 +423,7 @@ export default function Dashboard({
     });
 
     // Today's records (All classes, no grade filter)
-    const todayRecords = attendanceRecords.filter(r => r.date === latestAttendanceDate && inCat(r.grade) && inSession(r));
+    const todayRecords = attendanceRecords.filter(r => r.date === latestAttendanceDate && inCat(r.grade) && inSession(r) && inGradeScope(r.grade));
     
     let todayLateCount = 0;
     let todayPermissionCount = 0;
@@ -476,7 +490,7 @@ export default function Dashboard({
     const counts: Record<string, number> = {};
     let total = 0;
     attendanceRecords.forEach(rec => {
-      if (!rec.studentStates || !inScope(rec.date) || !inCat(rec.grade) || !inSession(rec)) return;
+      if (!rec.studentStates || !inScope(rec.date) || !inCat(rec.grade) || !inSession(rec) || !inGradeScope(rec.grade)) return;
       Object.entries(rec.studentStates).forEach(([sId, status]) => {
         if (sId.endsWith('_reason')) return;
         if (status !== 'late' && status !== 'permission' && status !== 'absent') return;
@@ -488,7 +502,7 @@ export default function Dashboard({
     const rows = Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count);
     const max = rows.reduce((m, r) => Math.max(m, r.count), 0);
     return { rows, total, max, monthKey, scopeLabel };
-  }, [attendanceRecords, latestAttendanceDate, reasonChartMode, classCategory, selectedDashSession]);
+  }, [attendanceRecords, latestAttendanceDate, reasonChartMode, classCategory, selectedDashSession, selectedGrade]);
 
   // Generate a clean, branded printable daily-absentee report (Save as PDF) via a hidden iframe.
   // Render branded report HTML to a hidden iframe and trigger the print/Save-as-PDF
@@ -669,15 +683,17 @@ export default function Dashboard({
       {/* Class category tabs: General (មត្តេយ្យ–ទី៦) vs Extra (after-hours skill classes) */}
       <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-sm border border-slate-100 w-full">
         <button
+          disabled={teacherLocked}
           onClick={() => { setClassCategory('general'); setSelectedGrade('ទាំងអស់'); }}
-          className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
+          className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
         >
           📘 ថ្នាក់ចំណេះទូទៅ
           <span className="hidden sm:inline text-[11px] font-medium opacity-80">(មត្តេយ្យ–ទី៦)</span>
         </button>
         <button
+          disabled={teacherLocked}
           onClick={() => { setClassCategory('extra'); setSelectedGrade('ទាំងអស់'); }}
-          className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
+          className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
         >
           🎨 ថ្នាក់ក្រៅម៉ោង
           <span className="hidden sm:inline text-[11px] font-medium opacity-80">(ភាសា/គំនូរ/កុំព្យូទ័រ...)</span>
@@ -706,13 +722,14 @@ export default function Dashboard({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-400 font-mono">ថ្នាក់៖</span>
+            <span className="text-xs font-medium text-slate-400 font-mono">ថ្នាក់៖{teacherLocked && ' 🔒'}</span>
             <select
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
-              className="px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-blue-500 transition-colors"
+              disabled={teacherLocked}
+              className="px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-blue-500 transition-colors disabled:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-500"
             >
-              {gradesList.map(grade => (
+              {(teacherLocked ? [teacherGrade] : gradesList).map(grade => (
                 <option key={grade} value={grade}>{grade}</option>
               ))}
             </select>
