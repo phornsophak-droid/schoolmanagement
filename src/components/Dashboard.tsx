@@ -179,11 +179,42 @@ export default function Dashboard({
     return effectiveAttYear ? filteredAttendance.filter(r => r.date.slice(0, 4) === effectiveAttYear) : [];
   }, [filteredAttendance, reportPeriod, effectiveAttDate, effectiveAttMonth, effectiveAttYear]);
 
+  // In the "ប្រចាំថ្ងៃ" (both shifts) view, collapse a class's morning + afternoon
+  // records for the same day into one, deduplicating students so nobody is counted
+  // twice. A student's daily status = best across shifts (present > late > permission
+  // > absent). Single-shift views pass through unchanged.
+  const periodRecordsMerged = useMemo(() => {
+    if (selectedDashSession !== 'all') return periodRecords;
+    const byKey = new Map<string, AttendanceRecord[]>();
+    periodRecords.forEach(r => {
+      const k = `${r.date}__${r.grade}`;
+      const arr = byKey.get(k);
+      if (arr) arr.push(r); else byKey.set(k, [r]);
+    });
+    const out: AttendanceRecord[] = [];
+    byKey.forEach((recs, k) => {
+      if (recs.length === 1) { out.push(recs[0]); return; }
+      const ids = new Set<string>();
+      recs.forEach(r => Object.keys(r.studentStates || {}).forEach(id => { if (!id.endsWith('_reason')) ids.add(id); }));
+      const states: { [id: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
+      let p = 0, y = 0, l = 0, a = 0;
+      ids.forEach(id => {
+        const ss = recs.map(r => r.studentStates?.[id]).filter(Boolean) as string[];
+        const s = ss.includes('present') ? 'present' : ss.includes('late') ? 'late' : ss.includes('permission') ? 'permission' : 'absent';
+        states[id] = s;
+        if (s === 'present') p++; else if (s === 'late') y++; else if (s === 'permission') l++; else a++;
+      });
+      const [date, grade] = k.split('__');
+      out.push({ id: `merged-${k}`, date, grade, presentCount: p, lateCount: y, permissionCount: l, absentCount: a, studentStates: states });
+    });
+    return out;
+  }, [periodRecords, selectedDashSession]);
+
   // Per-class roll-up for the period — one row per class (day mode = one record each,
   // month/year = summed across the period). Drives both the table and the PDF.
   const periodByClass = useMemo(() => {
     const map = new Map<string, { grade: string; present: number; late: number; permission: number; absent: number; days: Set<string> }>();
-    periodRecords.forEach(rec => {
+    periodRecordsMerged.forEach(rec => {
       const g = map.get(rec.grade) || { grade: rec.grade, present: 0, late: 0, permission: 0, absent: 0, days: new Set<string>() };
       g.present += rec.presentCount;
       g.late += rec.lateCount || 0;
@@ -199,10 +230,10 @@ export default function Dashboard({
         return { ...g, daysCount: g.days.size, present_total: g.present + g.late, rate };
       })
       .sort((a, b) => a.grade.localeCompare(b.grade, 'km'));
-  }, [periodRecords]);
+  }, [periodRecordsMerged]);
 
   // Distinct recorded days within the period (clarifies the person-day unit).
-  const periodDaysCount = useMemo(() => new Set(periodRecords.map(r => r.date)).size, [periodRecords]);
+  const periodDaysCount = useMemo(() => new Set(periodRecordsMerged.map(r => r.date)).size, [periodRecordsMerged]);
 
   const attendanceAggregates = useMemo(() => {
     // Present = arrived = on-time + late; excused (permission) and unexcused
@@ -213,7 +244,7 @@ export default function Dashboard({
     let totalPermission = 0;
     let totalAbsent = 0;
 
-    periodRecords.forEach(rec => {
+    periodRecordsMerged.forEach(rec => {
       totalPresent += rec.presentCount;
       totalLate += rec.lateCount || 0;
       totalPermission += rec.permissionCount;
@@ -231,9 +262,9 @@ export default function Dashboard({
       totalAbsent,
       overallRate,
       latestDate: periodLabel,
-      activeDaysCount: periodRecords.length
+      activeDaysCount: periodRecordsMerged.length
     };
-  }, [periodRecords, periodLabel]);
+  }, [periodRecordsMerged, periodLabel]);
 
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
