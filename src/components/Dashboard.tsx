@@ -344,36 +344,36 @@ export default function Dashboard({
     });
   }, [reports, selectedMonth, selectedGrade, classCategory]);
 
-  // Calculate statistics based on filtered students
+  // Calculate statistics. Enrolment counts (total/female/male) are independent of
+  // the selected month — a student is enrolled whether or not they have a score
+  // this month. Score metrics (average/pass/fail) use the month-filtered set.
   const stats = useMemo(() => {
-    const uniqueStudentsMap = new Map<string, StudentScore>();
-    
-    filteredStudents.forEach(s => {
-      // Group by name and grade to ensure we don't count a student multiple times across months
+    // Enrolment: unique students by name+grade in scope, across all months.
+    const enrolledMap = new Map<string, StudentScore>();
+    students.forEach(s => {
+      if (!inCat(s.grade)) return;
+      if (selectedGrade !== 'ទាំងអស់' && selectedGrade !== 'boldsymbol' && s.grade !== selectedGrade) return;
       const key = `${s.name.trim()}_${s.grade}`;
-      // For averages/results, we might need a more complex aggregate if 'ទាំងអស់' is selected, 
-      // but to keep it simple and accurate for "total counts", we just take the latest or any record.
-      if (!uniqueStudentsMap.has(key)) {
-        uniqueStudentsMap.set(key, s);
-      }
+      if (!enrolledMap.has(key)) enrolledMap.set(key, s);
     });
-
-    const uniqueProfiles = Array.from(uniqueStudentsMap.values());
-    const totalCount = uniqueProfiles.length;
-    const femaleCount = uniqueProfiles.filter(s => s.gender === 'ស្រី').length;
+    const enrolled = Array.from(enrolledMap.values());
+    const totalCount = enrolled.length;
+    const femaleCount = enrolled.filter(s => s.gender === 'ស្រី').length;
     const maleCount = totalCount - femaleCount;
-    
+
+    // Score metrics: this month's results only.
+    const uniqueStudentsMap = new Map<string, StudentScore>();
+    filteredStudents.forEach(s => {
+      const key = `${s.name.trim()}_${s.grade}`;
+      if (!uniqueStudentsMap.has(key)) uniqueStudentsMap.set(key, s);
+    });
+    const uniqueProfiles = Array.from(uniqueStudentsMap.values());
     let totalScoreSum = 0;
     let failCount = 0;
-    
-    // We will use uniqueProfiles for all metrics to ensure Total = Pass + Fail
     uniqueProfiles.forEach(s => {
-      totalScoreSum += s.overallAvg;
-      if (s.result === 'ធ្លាក់') {
-        failCount++;
-      }
+      totalScoreSum += s.overallAvg || 0;
+      if (s.result === 'ធ្លាក់') failCount++;
     });
-
     const averageScore = uniqueProfiles.length > 0 ? parseFloat((totalScoreSum / uniqueProfiles.length).toFixed(2)) : 0;
     const passCount = uniqueProfiles.length - failCount;
 
@@ -386,7 +386,7 @@ export default function Dashboard({
       passCount,
       totalRecordCount: uniqueProfiles.length
     };
-  }, [filteredStudents]);
+  }, [students, filteredStudents, selectedGrade, classCategory]);
 
   // Find the latest attendance date within the selected class category + session
   const latestAttendanceDate = useMemo(() => {
