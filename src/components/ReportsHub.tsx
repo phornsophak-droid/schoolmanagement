@@ -972,14 +972,15 @@ export default function ReportsHub({
                                 const n = subj.dist[band] || 0;
                                 if (n === 0) return null;
                                 const pct = (n / totalScored) * 100;
+                                const pctLabel = Math.round(pct);
                                 return (
                                   <div
                                     key={band}
-                                    title={`និទ្ទេស ${band}: ${n} នាក់`}
+                                    title={`និទ្ទេស ${band}: ${n} នាក់ (${pctLabel}%)`}
                                     style={{ width: `${pct}%` }}
                                     className={`flex items-center justify-center ${segColor[band]} text-white text-[9px] font-bold font-mono border-r border-white/40 last:border-r-0 overflow-hidden whitespace-nowrap`}
                                   >
-                                    {band} {n}
+                                    {band} {n}{pct >= 14 ? ` (${pctLabel}%)` : ''}
                                   </div>
                                 );
                               })
