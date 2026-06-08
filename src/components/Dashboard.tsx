@@ -210,61 +210,105 @@ export default function Dashboard({
     return out;
   }, [periodRecords, selectedDashSession]);
 
-  // Per-class roll-up for the period — one row per class (day mode = one record each,
-  // month/year = summed across the period). Drives both the table and the PDF.
-  const periodByClass = useMemo(() => {
-    const map = new Map<string, { grade: string; present: number; late: number; permission: number; absent: number; days: Set<string> }>();
-    periodRecordsMerged.forEach(rec => {
-      const g = map.get(rec.grade) || { grade: rec.grade, present: 0, late: 0, permission: 0, absent: 0, days: new Set<string>() };
-      g.present += rec.presentCount;
-      g.late += rec.lateCount || 0;
-      g.permission += rec.permissionCount;
-      g.absent += rec.absentCount;
-      g.days.add(rec.date);
-      map.set(rec.grade, g);
+  // Enrolled (unique) students per general class — the roster used so that
+  // unrecorded students/classes count as present (present = enrolled − absent).
+  const enrolledByClass = useMemo(() => {
+    const sets = new Map<string, Set<string>>();
+    students.forEach(s => {
+      if (isExtraClass(s.grade)) return;
+      const set = sets.get(s.grade) || new Set<string>();
+      set.add(s.name.trim());
+      sets.set(s.grade, set);
     });
-    return Array.from(map.values())
-      .map(g => {
-        const tracked = g.present + g.late + g.permission + g.absent;
-        const rate = tracked > 0 ? Math.round(((g.present + g.late) / tracked) * 100) : 100;
-        return { ...g, daysCount: g.days.size, present_total: g.present + g.late, rate };
-      })
-      .sort((a, b) => a.grade.localeCompare(b.grade, 'km'));
-  }, [periodRecordsMerged]);
+    const out = new Map<string, number>();
+    sets.forEach((set, g) => out.set(g, set.size));
+    return out;
+  }, [students]);
 
-  // Distinct recorded days within the period (clarifies the person-day unit).
+  // General classes in the current scope (all, or just the selected one).
+  const scopeClasses = useMemo(() => {
+    const all = Array.from(enrolledByClass.keys()) as string[];
+    const sel = (selectedGrade === 'ទាំងអស់' || selectedGrade === 'boldsymbol') ? all : all.filter(g => g === selectedGrade);
+    return sel.sort((a, b) => a.localeCompare(b, 'km'));
+  }, [enrolledByClass, selectedGrade]);
+  const scopeEnrolled = useMemo(() => scopeClasses.reduce((sum, g) => sum + (enrolledByClass.get(g) || 0), 0), [scopeClasses, enrolledByClass]);
+
+  // Distinct recorded ("operated") days within the period.
   const periodDaysCount = useMemo(() => new Set(periodRecordsMerged.map(r => r.date)).size, [periodRecordsMerged]);
 
-  const attendanceAggregates = useMemo(() => {
-    // Present = arrived = on-time + late; excused (permission) and unexcused
-    // (absent) students are not counted as present. For month/year this is a
-    // cumulative person-day total; for a single day it is the real headcount.
-    let totalPresent = 0;
-    let totalLate = 0;
-    let totalPermission = 0;
-    let totalAbsent = 0;
+  // Per-class roll-up for the period. For GENERAL classes every scoped class is
+  // listed and unrecorded ones count fully present (present = enrolled × operated
+  // days − recorded absences). EXTRA classes keep the recorded headcount only.
+  const periodByClass = useMemo(() => {
+    const operatedDays = periodDaysCount;
+    const rec = new Map<string, { present: number; late: number; permission: number; absent: number; days: Set<string> }>();
+    periodRecordsMerged.forEach(r => {
+      const g = rec.get(r.grade) || { present: 0, late: 0, permission: 0, absent: 0, days: new Set<string>() };
+      g.present += r.presentCount;
+      g.late += r.lateCount || 0;
+      g.permission += r.permissionCount;
+      g.absent += r.absentCount;
+      g.days.add(r.date);
+      rec.set(r.grade, g);
+    });
 
+    if (classCategory === 'general') {
+      if (operatedDays === 0) return [];
+      return scopeClasses.map(grade => {
+        const enrolled = enrolledByClass.get(grade) || 0;
+        const r = rec.get(grade);
+        const permission = r?.permission || 0;
+        const absent = r?.absent || 0;
+        const denom = enrolled * operatedDays;
+        const present_total = Math.max(0, denom - permission - absent);
+        const rate = denom > 0 ? Math.round((present_total / denom) * 100) : 100;
+        return { grade, present_total, permission, absent, daysCount: operatedDays, rate };
+      });
+    }
+
+    return Array.from(rec.entries())
+      .map(([grade, g]) => {
+        const tracked = g.present + g.late + g.permission + g.absent;
+        const rate = tracked > 0 ? Math.round(((g.present + g.late) / tracked) * 100) : 100;
+        return { grade, present_total: g.present + g.late, permission: g.permission, absent: g.absent, daysCount: g.days.size, rate };
+      })
+      .sort((a, b) => a.grade.localeCompare(b.grade, 'km'));
+  }, [periodRecordsMerged, periodDaysCount, classCategory, scopeClasses, enrolledByClass]);
+
+  const attendanceAggregates = useMemo(() => {
+    const operatedDays = periodDaysCount;
+    let recPresent = 0, recLate = 0, totalPermission = 0, totalAbsent = 0;
     periodRecordsMerged.forEach(rec => {
-      totalPresent += rec.presentCount;
-      totalLate += rec.lateCount || 0;
+      recPresent += rec.presentCount;
+      recLate += rec.lateCount || 0;
       totalPermission += rec.permissionCount;
       totalAbsent += rec.absentCount;
     });
 
-    const totalStudentsScheduled = totalPresent + totalLate + totalPermission + totalAbsent;
-    const overallRate = totalStudentsScheduled > 0
-      ? Math.round(((totalPresent + totalLate) / totalStudentsScheduled) * 100)
-      : 0;
+    let totalPresent: number;
+    let overallRate: number;
+    if (classCategory === 'general') {
+      // Unrecorded students/classes count as present: present = enrolled × operated
+      // days − recorded absences (excused + unexcused). Late students are present.
+      const denom = scopeEnrolled * operatedDays;
+      totalPresent = Math.max(0, denom - totalPermission - totalAbsent);
+      overallRate = denom > 0 ? Math.round((totalPresent / denom) * 100) : 0;
+    } else {
+      // Extra classes: recorded headcount only (present = arrived = on-time + late).
+      totalPresent = recPresent + recLate;
+      const scheduled = totalPresent + totalPermission + totalAbsent;
+      overallRate = scheduled > 0 ? Math.round((totalPresent / scheduled) * 100) : 0;
+    }
 
     return {
-      totalPresent: totalPresent + totalLate,
+      totalPresent,
       totalPermission,
       totalAbsent,
       overallRate,
       latestDate: periodLabel,
-      activeDaysCount: periodRecordsMerged.length
+      activeDaysCount: operatedDays
     };
-  }, [periodRecordsMerged, periodLabel]);
+  }, [periodRecordsMerged, periodDaysCount, classCategory, scopeEnrolled, periodLabel]);
 
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
