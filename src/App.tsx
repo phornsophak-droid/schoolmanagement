@@ -300,7 +300,13 @@ export default function App() {
             // Realtime Auto-Sync setup
             try {
               const channel = client.channel('app_sync_channel');
-              
+
+              // Debounce: bulk changes (e.g. marking 50 students' attendance at once)
+              // fire one realtime event per row. Without debouncing, each event would
+              // trigger a full re-fetch of every table, wasting egress bandwidth.
+              // Collapsing a burst into a single re-fetch keeps Supabase egress low.
+              let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
               const refreshData = () => {
                 syncFetchAll().then(newData => {
                   if (newData.students) {
@@ -330,13 +336,20 @@ export default function App() {
                 }).catch(err => console.error("Realtime sync failed", err));
               };
 
-              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'student_scores' }, refreshData);
-              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_reports' }, refreshData);
-              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_grades' }, refreshData);
-              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_settings' }, refreshData);
-              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'student_attendance' }, refreshData);
-              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'teacher_attendance' }, refreshData);
-              
+              // Wait 1.5s after the last change before re-fetching, so a burst of
+              // row events collapses into one sync instead of one per row.
+              const debouncedRefresh = () => {
+                if (refreshTimer) clearTimeout(refreshTimer);
+                refreshTimer = setTimeout(refreshData, 1500);
+              };
+
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'student_scores' }, debouncedRefresh);
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_reports' }, debouncedRefresh);
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_grades' }, debouncedRefresh);
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_settings' }, debouncedRefresh);
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'student_attendance' }, debouncedRefresh);
+              channel.on('postgres_changes', { event: '*', schema: 'public', table: 'teacher_attendance' }, debouncedRefresh);
+
               channel.subscribe();
             } catch (err) {
               console.error('Failed to setup realtime subscription', err);
