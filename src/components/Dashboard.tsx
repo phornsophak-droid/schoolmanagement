@@ -115,12 +115,19 @@ export default function Dashboard({
   }, [attendanceRecords, selectedGrade, classCategory]);
 
   const attendanceAggregates = useMemo(() => {
+    // Real daily headcount for the most recent recorded day (not a cumulative
+    // person-day sum). Present = arrived = on-time + late; excused (permission)
+    // and unexcused (absent) students are not counted as present.
+    const dates = filteredAttendance.map(r => r.date).sort();
+    const latestDate = dates.length > 0 ? dates[dates.length - 1] : null;
+    const dayRecords = latestDate ? filteredAttendance.filter(r => r.date === latestDate) : [];
+
     let totalPresent = 0;
     let totalLate = 0;
     let totalPermission = 0;
     let totalAbsent = 0;
 
-    filteredAttendance.forEach(rec => {
+    dayRecords.forEach(rec => {
       totalPresent += rec.presentCount;
       totalLate += rec.lateCount || 0;
       totalPermission += rec.permissionCount;
@@ -128,8 +135,8 @@ export default function Dashboard({
     });
 
     const totalStudentsScheduled = totalPresent + totalLate + totalPermission + totalAbsent;
-    const overallRate = totalStudentsScheduled > 0 
-      ? Math.round(((totalPresent + totalLate) / totalStudentsScheduled) * 100) 
+    const overallRate = totalStudentsScheduled > 0
+      ? Math.round(((totalPresent + totalLate) / totalStudentsScheduled) * 100)
       : 0;
 
     return {
@@ -137,7 +144,8 @@ export default function Dashboard({
       totalPermission,
       totalAbsent,
       overallRate,
-      activeDaysCount: filteredAttendance.length > 0 ? filteredAttendance.length : 0
+      latestDate,
+      activeDaysCount: dayRecords.length
     };
   }, [filteredAttendance]);
 
@@ -529,8 +537,11 @@ export default function Dashboard({
               <ClipboardCheck className="w-5 h-5 text-blue-500" />
               <span className="text-xs uppercase tracking-wider font-bold">របាយការណ៍សង្ខេបវត្តមាន</span>
             </div>
-            <h3 className="font-bold text-slate-800 text-base font-serif">វត្តមានសិស្សប្រចាំថ្ងៃសរុប</h3>
-            <p className="text-xs text-slate-400 mt-1">ផ្អែកលើទិន្នន័យដែលបានកត់ត្រា និងរក្សាទុកក្នុងប្រព័ន្ធ</p>
+            <h3 className="font-bold text-slate-800 text-base font-serif">វត្តមានសិស្សប្រចាំថ្ងៃ</h3>
+            <p className="text-xs text-slate-400 mt-1">
+              ទិន្នន័យជាក់ស្តែងសម្រាប់ថ្ងៃចុងក្រោយដែលបានកត់ត្រា
+              {attendanceAggregates.latestDate ? <span className="font-bold text-slate-500"> ៖ {attendanceAggregates.latestDate}</span> : ''}
+            </p>
           </div>
 
           {onOpenAttendanceClick && (
@@ -560,9 +571,9 @@ export default function Dashboard({
 
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">សិស្សមានវត្តមានសរុប</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">សិស្សមានវត្តមាន</p>
               <h4 className="text-xl font-black text-emerald-600 mt-1 font-mono">
-                {attendanceAggregates.totalPresent} <span className="text-xs font-normal text-slate-500">នាក់-ដង</span>
+                {attendanceAggregates.totalPresent} <span className="text-xs font-normal text-slate-500">នាក់</span>
               </h4>
             </div>
             <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold font-mono text-xs">
@@ -572,9 +583,9 @@ export default function Dashboard({
 
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">សិស្សមានច្បាប់សរុប</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">សិស្សមានច្បាប់</p>
               <h4 className="text-xl font-black text-amber-600 mt-1 font-mono">
-                {attendanceAggregates.totalPermission} <span className="text-xs font-normal text-slate-500">នាក់-ដង</span>
+                {attendanceAggregates.totalPermission} <span className="text-xs font-normal text-slate-500">នាក់</span>
               </h4>
             </div>
             <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 font-bold font-mono text-xs">
@@ -586,7 +597,7 @@ export default function Dashboard({
             <div>
               <p className="text-[10px] text-[#EA4335] font-bold uppercase tracking-wider">អវត្តមានគ្មានច្បាប់</p>
               <h4 className="text-xl font-black text-rose-600 mt-1 font-mono">
-                {attendanceAggregates.totalAbsent} <span className="text-xs font-normal text-slate-500">នាក់-ដង</span>
+                {attendanceAggregates.totalAbsent} <span className="text-xs font-normal text-slate-500">នាក់</span>
               </h4>
             </div>
             <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 font-bold font-mono text-xs">
