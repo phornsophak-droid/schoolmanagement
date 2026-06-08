@@ -94,6 +94,8 @@ export default function Dashboard({
   // Load Saved Attendance Records
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [reasonChartMode, setReasonChartMode] = useState<'daily' | 'monthly'>('daily');
+  // The day the attendance summary is showing; null = follow the latest recorded day.
+  const [selectedAttDate, setSelectedAttDate] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('school_daily_attendance');
@@ -114,20 +116,35 @@ export default function Dashboard({
     });
   }, [attendanceRecords, selectedGrade, classCategory]);
 
-  const attendanceAggregates = useMemo(() => {
-    // Real daily headcount for the most recent recorded day (not a cumulative
-    // person-day sum). Present = arrived = on-time + late; excused (permission)
-    // and unexcused (absent) students are not counted as present.
-    const dates = filteredAttendance.map(r => r.date).sort();
-    const latestDate = dates.length > 0 ? dates[dates.length - 1] : null;
-    const dayRecords = latestDate ? filteredAttendance.filter(r => r.date === latestDate) : [];
+  // All recorded days for the current class filter, newest first (drives the day picker).
+  const availableDates = useMemo(() => {
+    return Array.from(new Set<string>(filteredAttendance.map(r => r.date))).sort((a, b) => b.localeCompare(a));
+  }, [filteredAttendance]);
 
+  // The day actually shown: the user's pick when it still exists, else the latest day.
+  const effectiveAttDate = (selectedAttDate && availableDates.includes(selectedAttDate))
+    ? selectedAttDate
+    : (availableDates[0] || null);
+
+  // The selected day's records (one row per class), sorted by class name — used by
+  // both the KPI cards and the records table so they always agree.
+  const selectedDayRecords = useMemo(() => {
+    if (!effectiveAttDate) return [];
+    return filteredAttendance
+      .filter(r => r.date === effectiveAttDate)
+      .sort((a, b) => a.grade.localeCompare(b.grade, 'km'));
+  }, [filteredAttendance, effectiveAttDate]);
+
+  const attendanceAggregates = useMemo(() => {
+    // Real daily headcount for the selected day (not a cumulative person-day sum).
+    // Present = arrived = on-time + late; excused (permission) and unexcused
+    // (absent) students are not counted as present.
     let totalPresent = 0;
     let totalLate = 0;
     let totalPermission = 0;
     let totalAbsent = 0;
 
-    dayRecords.forEach(rec => {
+    selectedDayRecords.forEach(rec => {
       totalPresent += rec.presentCount;
       totalLate += rec.lateCount || 0;
       totalPermission += rec.permissionCount;
@@ -144,18 +161,10 @@ export default function Dashboard({
       totalPermission,
       totalAbsent,
       overallRate,
-      latestDate,
-      activeDaysCount: dayRecords.length
+      latestDate: effectiveAttDate,
+      activeDaysCount: selectedDayRecords.length
     };
-  }, [filteredAttendance]);
-
-  // Records for the "latest records" table — newest day first, then by class.
-  const recentAttendance = useMemo(() => {
-    return [...filteredAttendance].sort((a, b) => {
-      if (a.date !== b.date) return b.date.localeCompare(a.date);
-      return a.grade.localeCompare(b.grade, 'km');
-    });
-  }, [filteredAttendance]);
+  }, [selectedDayRecords, effectiveAttDate]);
 
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
@@ -547,20 +556,39 @@ export default function Dashboard({
             </div>
             <h3 className="font-bold text-slate-800 text-base font-serif">វត្តមានសិស្សប្រចាំថ្ងៃ</h3>
             <p className="text-xs text-slate-400 mt-1">
-              ទិន្នន័យជាក់ស្តែងសម្រាប់ថ្ងៃចុងក្រោយដែលបានកត់ត្រា
+              ទិន្នន័យជាក់ស្តែងសម្រាប់ថ្ងៃដែលបានជ្រើស
               {attendanceAggregates.latestDate ? <span className="font-bold text-slate-500"> ៖ {attendanceAggregates.latestDate}</span> : ''}
             </p>
           </div>
 
-          {onOpenAttendanceClick && (
-            <button
-              onClick={onOpenAttendanceClick}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition duration-250 cursor-pointer border border-blue-200/40 shadow-3xs"
-            >
-              <span>គ្រប់គ្រងវត្តមានឥឡូវនេះ</span>
-              <ArrowRight size={13} />
-            </button>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Day picker — review the report for any recorded day. */}
+            {availableDates.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Calendar size={15} className="text-slate-400" />
+                <select
+                  value={effectiveAttDate || ''}
+                  onChange={(e) => setSelectedAttDate(e.target.value)}
+                  className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-700 cursor-pointer focus:border-blue-500 outline-none transition-colors"
+                  title="ជ្រើសរើសថ្ងៃដើម្បីពិនិត្យរបាយការណ៍"
+                >
+                  {availableDates.map((d, i) => (
+                    <option key={d} value={d}>{d}{i === 0 ? ' (ថ្ងៃចុងក្រោយ)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {onOpenAttendanceClick && (
+              <button
+                onClick={onOpenAttendanceClick}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition duration-250 cursor-pointer border border-blue-200/40 shadow-3xs"
+              >
+                <span>គ្រប់គ្រងវត្តមានឥឡូវនេះ</span>
+                <ArrowRight size={13} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Aggregated Indicators and Stats Row */}
@@ -617,11 +645,11 @@ export default function Dashboard({
         {/* Detailed Records Tracker */}
         <div className="border border-slate-100 rounded-xl overflow-hidden">
           <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center">
-            <span className="text-xs font-bold text-slate-700">📜 កំណត់ត្រាវត្តមានចុងក្រោយសិក្សា</span>
-            <span className="text-[10.5px] text-slate-400 font-bold font-mono">សរុប {filteredAttendance.length} ថ្ងៃ</span>
+            <span className="text-xs font-bold text-slate-700">📜 កំណត់ត្រាវត្តមានតាមថ្នាក់ ប្រចាំថ្ងៃ</span>
+            <span className="text-[10.5px] text-slate-400 font-bold font-mono">សរុប {selectedDayRecords.length} ថ្នាក់</span>
           </div>
 
-          {filteredAttendance.length > 0 ? (
+          {selectedDayRecords.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-600">
                 <thead>
@@ -636,7 +664,7 @@ export default function Dashboard({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {recentAttendance.slice(0, 8).map((rec) => {
+                  {selectedDayRecords.map((rec) => {
                     const totalTracked = rec.presentCount + (rec.lateCount || 0) + rec.permissionCount + rec.absentCount;
                     const r = totalTracked > 0 ? Math.round(((rec.presentCount + (rec.lateCount || 0)) / totalTracked) * 100) : 100;
                     return (
