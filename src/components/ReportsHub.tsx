@@ -945,45 +945,45 @@ export default function ReportsHub({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     {subjectAverages.map(subj => {
-                      const valuePct = (subj.avg / 10) * 100;
-                      const letterStyle: Record<string, string> = {
-                        A: 'bg-blue-100 text-blue-700',
-                        B: 'bg-indigo-100 text-indigo-700',
-                        C: 'bg-emerald-100 text-emerald-700',
-                        D: 'bg-teal-100 text-teal-700',
-                        E: 'bg-amber-100 text-amber-700',
-                        F: 'bg-rose-100 text-rose-700',
-                        '-': 'bg-slate-100 text-slate-400',
+                      // Solid segment colour per A–F band (one stacked bar per subject).
+                      const segColor: Record<string, string> = {
+                        A: 'bg-blue-500',
+                        B: 'bg-indigo-500',
+                        C: 'bg-emerald-500',
+                        D: 'bg-teal-500',
+                        E: 'bg-amber-500',
+                        F: 'bg-rose-500',
                       };
+                      const totalScored = subj.count || 0;
                       return (
                         <div key={subj.name} className="space-y-1.5">
-                          <div className="text-[11px] font-bold text-slate-600">{subj.name}</div>
-                          {/* Grade letter sits inside the bar; the overall average is not shown. */}
-                          <div className="relative w-full bg-slate-100 h-5 rounded-full overflow-hidden">
-                            <div
-                              className={`absolute inset-y-0 left-0 bg-gradient-to-r ${subj.color}`}
-                              style={{ width: `${valuePct}%` }}
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold font-sans shadow-sm ${letterStyle[subj.letter] || letterStyle['-']}`}>
-                                និទ្ទេស {subj.letter}
-                              </span>
-                            </div>
+                          <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
+                            <span>{subj.name}</span>
+                            <span className="text-[10px] font-mono text-slate-400">សរុប {totalScored} នាក់</span>
                           </div>
-                          {/* Headcount of students per A–F band for this subject */}
-                          <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                            {(['A', 'B', 'C', 'D', 'E', 'F'] as const).map(band => {
-                              const n = subj.dist[band] || 0;
-                              return (
-                                <span
-                                  key={band}
-                                  title={`និទ្ទេស ${band}: ${n} នាក់`}
-                                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold font-mono ${n > 0 ? letterStyle[band] : 'bg-slate-50 text-slate-300'}`}
-                                >
-                                  {band} {n}
-                                </span>
-                              );
-                            })}
+                          {/* Stacked bar: each A–F band is a segment sized by its headcount. */}
+                          <div className="flex w-full h-6 rounded-lg overflow-hidden bg-slate-100">
+                            {totalScored === 0 ? (
+                              <div className="flex-1 flex items-center justify-center text-[9px] font-bold text-slate-300">
+                                គ្មានទិន្នន័យ
+                              </div>
+                            ) : (
+                              (['A', 'B', 'C', 'D', 'E', 'F'] as const).map(band => {
+                                const n = subj.dist[band] || 0;
+                                if (n === 0) return null;
+                                const pct = (n / totalScored) * 100;
+                                return (
+                                  <div
+                                    key={band}
+                                    title={`និទ្ទេស ${band}: ${n} នាក់`}
+                                    style={{ width: `${pct}%` }}
+                                    className={`flex items-center justify-center ${segColor[band]} text-white text-[9px] font-bold font-mono border-r border-white/40 last:border-r-0 overflow-hidden whitespace-nowrap`}
+                                  >
+                                    {band} {n}
+                                  </div>
+                                );
+                              })
+                            )}
                           </div>
                         </div>
                       );
