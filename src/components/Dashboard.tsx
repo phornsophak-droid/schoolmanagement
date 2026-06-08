@@ -149,6 +149,14 @@ export default function Dashboard({
     };
   }, [filteredAttendance]);
 
+  // Records for the "latest records" table — newest day first, then by class.
+  const recentAttendance = useMemo(() => {
+    return [...filteredAttendance].sort((a, b) => {
+      if (a.date !== b.date) return b.date.localeCompare(a.date);
+      return a.grade.localeCompare(b.grade, 'km');
+    });
+  }, [filteredAttendance]);
+
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
@@ -628,7 +636,7 @@ export default function Dashboard({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredAttendance.slice(0, 8).map((rec) => {
+                  {recentAttendance.slice(0, 8).map((rec) => {
                     const totalTracked = rec.presentCount + (rec.lateCount || 0) + rec.permissionCount + rec.absentCount;
                     const r = totalTracked > 0 ? Math.round(((rec.presentCount + (rec.lateCount || 0)) / totalTracked) * 100) : 100;
                     return (
