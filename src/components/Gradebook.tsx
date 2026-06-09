@@ -1515,6 +1515,7 @@ export default function Gradebook({
                     <th className="px-4 py-3 text-center">អត្តលេខ</th>
                     <th className="px-4 py-3 text-center">ភេទ</th>
                     <th className="px-4 py-3 text-center">ថ្នាក់សិក្សា</th>
+                    <th className="px-4 py-3 text-center">ក្រុម</th>
                     <th className="px-4 py-3 text-center">ខែ</th>
                     {(customSubjects || []).map(s => (
                       <th key={s.key} className="px-4 py-3 text-center whitespace-nowrap">{s.km}</th>
@@ -1594,6 +1595,11 @@ export default function Gradebook({
                         <td className="px-3 py-3 text-center font-mono text-slate-500">{st.studentId || '-'}</td>
                         <td className="px-4 py-3 text-center">{st.gender}</td>
                         <td className="px-4 py-3 text-center text-slate-500">{st.grade}</td>
+                        {customSubjects && (
+                          <td className="px-4 py-3 text-center">
+                            {st.group ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">{st.group}</span> : <span className="text-slate-300">-</span>}
+                          </td>
+                        )}
                         <td className="px-4 py-3 text-center text-slate-500 font-medium">{st.month}</td>
                         {customSubjects ? (
                           customSubjects.map(sub => {
@@ -1664,7 +1670,7 @@ export default function Gradebook({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={customSubjects ? 13 + customSubjects.length : 34} className="px-4 py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={customSubjects ? 14 + customSubjects.length : 34} className="px-4 py-12 text-center text-slate-400 font-medium">
                       <FolderLock size={32} className="mx-auto text-slate-300 mb-2" />
                       គ្មានទិន្នន័យពិន្ទុទេ សូមចុច «បញ្ចូលពិន្ទុ» ដើម្បីបន្ថែមពិន្ទុសម្រាប់សិស្សដែលមានស្រាប់ក្នុងថ្នាក់!
                     </td>
