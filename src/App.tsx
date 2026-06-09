@@ -49,6 +49,7 @@ import {
   syncUpsertTeacherAttendance,
   syncUpsertStudentAttendanceBulk,
   syncUpsertTeacherAttendanceBulk,
+  syncClearAllData,
   CUSTOM_URL_KEY,
   CUSTOM_ANON_KEY
 } from './lib/supabase';
@@ -118,6 +119,8 @@ export default function App() {
 
   // Database Backup Import reference
   const databaseImportRef = React.useRef<HTMLInputElement>(null);
+  // While a factory reset runs, ignore cloud fetches so they don't repopulate.
+  const factoryResetRef = React.useRef(false);
 
   // Clock ticks
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -222,6 +225,7 @@ export default function App() {
     // copy wipe the device. If the cloud has far fewer students than this device
     // (likely a failed/partial upload), keep local and re-push to repair the cloud.
     const applyCloudStudents = (rawStudents: StudentScore[]) => {
+      if (factoryResetRef.current) return; // a wipe is in progress; ignore cloud data
       const deduped = deduplicateStudents(rawStudents);
       let localPrev: StudentScore[] = [];
       try { localPrev = JSON.parse(localStorage.getItem('school_student_scores_v2') || '[]'); } catch { /* ignore */ }
@@ -978,6 +982,28 @@ export default function App() {
     e.target.value = '';
   };
 
+  // Factory reset — wipe all DATA (students, scores, attendance, reports) from this
+  // device and the cloud, while keeping every feature, the class list and teacher
+  // accounts. Two confirmations because it cannot be undone.
+  const handleFactoryReset = async () => {
+    if (!window.confirm('🚨 ព្រមាន៖ លុបទិន្នន័យ សិស្ស ពិន្ទុ វត្តមាន និងរបាយការណ៍ទាំងអស់ (ឧបករណ៍ + Cloud)?\n\nមុខងារ ថ្នាក់ និងគណនីគ្រូ នៅដដែល។ សូមប្រាកដថាបានបម្រុងទុក (Backup) រួចហើយ!')) return;
+    if (!window.confirm('តើប្រាកដជាចង់លុបមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ!')) return;
+
+    factoryResetRef.current = true; // stop cloud fetches from repopulating
+    try {
+      await syncClearAllData();
+    } catch (err) {
+      console.error('Factory reset cloud clear failed', err);
+    }
+    // Clear local data (keep grades + custom teachers/pins)
+    ['school_student_scores_v2', 'school_daily_attendance', 'school_teachers_daily_attendance', 'school_reports_v2']
+      .forEach(k => localStorage.removeItem(k));
+    setStudents([]);
+    setReports([]);
+    alert('បានលុបទិន្នន័យទាំងអស់រួចរាល់! មុខងារ ថ្នាក់ និងគណនីគ្រូ នៅដដែល។ ទំព័រនឹងដំណើរការឡើងវិញ។');
+    window.location.reload();
+  };
+
   // Clock format parameters
   const formattedTime = currentTime.toLocaleTimeString('en-US', { hour12: false });
   const formattedDate = currentTime.toLocaleDateString('kh-KH', { 
@@ -1173,6 +1199,15 @@ export default function App() {
                   📤 នាំចូលទិន្នន័យ
                 </button>
               </div>
+              {currentUser?.role === 'principal' && (
+                <button
+                  onClick={handleFactoryReset}
+                  className="w-full mt-1.5 px-2 py-1.5 bg-rose-600/15 text-rose-400 hover:bg-rose-600/25 border border-rose-500/20 rounded-lg text-[9.5px] font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer"
+                  title="លុបទិន្នន័យសិស្ស ពិន្ទុ វត្តមាន របាយការណ៍ទាំងអស់ (រក្សាមុខងារ ថ្នាក់ គណនីគ្រូ)"
+                >
+                  🗑️ លុបទិន្នន័យទាំងអស់ (Factory Reset)
+                </button>
+              )}
             </>
           )}
           <input

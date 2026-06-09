@@ -705,3 +705,23 @@ export async function syncUpsertSetting(key: string, value: any) {
   }
 }
 
+// 10. Factory reset — delete all student/score/attendance/report DATA from the
+// cloud. Class list (school_grades) and settings (teacher accounts) are kept.
+export async function syncClearAllData() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  const tables = [
+    'report_activities',
+    'struggling_students',
+    'challenges_solutions',
+    'school_reports',
+    'student_attendance',
+    'teacher_attendance',
+    'student_scores',
+  ];
+  for (const t of tables) {
+    const { error } = await supabase.from(t).delete().not('id', 'is', null);
+    if (error) console.warn(`Failed to clear table ${t}`, error);
+  }
+}
+
