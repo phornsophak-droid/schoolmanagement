@@ -118,6 +118,7 @@ export default function ClassStudentMgmt({
   const [classSearch, setClassSearch] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<'default' | 'asc' | 'desc'>('default');
+  const [selectedGroup, setSelectedGroup] = useState<string>('ទាំងអស់'); // group filter (after-hours)
   // Teacher access scope. A general teacher is locked to their one class; an
   // after-hours teacher (e.g. English) may pick among their subject's sections.
   const isTeacher = currentUser?.role === 'teacher';
@@ -216,20 +217,38 @@ export default function ClassStudentMgmt({
     if (selectedRosterGrade !== 'ទាំងអស់') {
       list = list.filter(s => s.grade === selectedRosterGrade);
     }
-    
+
+    if (classCategory === 'extra' && selectedGroup !== 'ទាំងអស់') {
+      list = list.filter(s => (s.group || '') === (selectedGroup === '(គ្មានក្រុម)' ? '' : selectedGroup));
+    }
+
     if (studentSearch.trim()) {
       const query = studentSearch.toLowerCase();
       list = list.filter(s => s.name.toLowerCase().includes(query));
     }
-    
+
     if (sortOrder === 'asc') {
       list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'km'));
     } else if (sortOrder === 'desc') {
       list = [...list].sort((a, b) => b.name.localeCompare(a.name, 'km'));
     }
-    
+
     return list;
-  }, [uniqueStudentProfiles, selectedRosterGrade, studentSearch, sortOrder, classCategory]);
+  }, [uniqueStudentProfiles, selectedRosterGrade, studentSearch, sortOrder, classCategory, selectedGroup]);
+
+  // Distinct groups within the current class scope (for the group filter dropdown).
+  const availableGroups = useMemo(() => {
+    const set = new Set<string>();
+    let hasUngrouped = false;
+    uniqueStudentProfiles.forEach(s => {
+      if (!inCat(s.grade)) return;
+      if (selectedRosterGrade !== 'ទាំងអស់' && s.grade !== selectedRosterGrade) return;
+      const g = (s.group || '').trim();
+      if (g) set.add(g); else hasUngrouped = true;
+    });
+    const list = Array.from(set).sort((a, b) => a.localeCompare(b, 'km'));
+    return hasUngrouped ? [...list, '(គ្មានក្រុម)'] : list;
+  }, [uniqueStudentProfiles, selectedRosterGrade, classCategory]);
 
   const handleAddClassLocal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1402,6 +1421,23 @@ export default function ClassStudentMgmt({
                           </>
                         )}
                       </select>
+
+                      {/* Group filter — only for after-hours classes that have groups. */}
+                      {classCategory === 'extra' && availableGroups.length > 0 && (
+                        <>
+                          <span className="text-xs font-bold text-slate-600">ក្រុម៖</span>
+                          <select
+                            value={selectedGroup}
+                            onChange={(e) => setSelectedGroup(e.target.value)}
+                            className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-indigo-700 outline-none focus:border-blue-500 font-semibold"
+                          >
+                            <option value="ទាំងអស់">គ្រប់ក្រុម</option>
+                            {availableGroups.map(g => (
+                              <option key={g} value={g}>{g}</option>
+                            ))}
+                          </select>
+                        </>
+                      )}
 
                       <div className="relative">
                         <input
