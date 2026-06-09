@@ -18,7 +18,7 @@ import {
   Download,
   Upload
 } from 'lucide-react';
-import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass } from '../types';
+import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
 import * as XLSX from 'xlsx';
 
@@ -90,8 +90,10 @@ export default function Gradebook({
   const teacherSubjectGrades = isExtraTeacher
     ? (grades || DEFAULT_GRADES_LIST).filter(g => g.includes(getSubjectKey(currentUser!.grade)))
     : [];
-  // When a specific English class is in view, the monthly table shows the 8 English columns.
-  const viewingEnglish = isEnglishClass(selectedGrade);
+  // Custom-criteria classes (English, Health…) show their own columns instead of
+  // the general subjects. `customSubjects` is null for general classes.
+  const customSubjects = getCustomSubjects(selectedGrade);
+  const viewingEnglish = !!customSubjects;
 
   // ---- Score import / template (Excel/CSV) ----
   const scoreFileRef = useRef<HTMLInputElement>(null);
@@ -103,7 +105,7 @@ export default function Gradebook({
     ...SOCIAL_SUBJECTS.map(s => s.km),
     'កាយ-កីឡា', 'សុខភាព', 'បំណិនជីវិត', 'ភាសាបរទេស',
   ];
-  const scoreHeaders = viewingEnglish ? ENGLISH_SUBJECTS.map(s => s.km) : GENERAL_SCORE_HEADERS;
+  const scoreHeaders = customSubjects ? customSubjects.map(s => s.km) : GENERAL_SCORE_HEADERS;
 
   // Build a StudentScore record from a row's numeric values (order matches scoreHeaders).
   const buildScoreRecord = (name: string, gender: 'ប្រុស' | 'ស្រី', vals: (number | null)[], month: string, existingId?: string): StudentScore => {
@@ -114,9 +116,9 @@ export default function Gradebook({
       math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
       science: null, socialStudies: null, physicalEducation: null, health: null, lifeSkills: null, foreignLanguage: null,
     };
-    if (viewingEnglish) {
+    if (customSubjects) {
       const englishScores: Record<string, number | null> = {};
-      ENGLISH_SUBJECTS.forEach((s, i) => { englishScores[s.key] = vals[i] ?? null; });
+      customSubjects.forEach((s, i) => { englishScores[s.key] = vals[i] ?? null; });
       return calculateStudentFields({ ...base, englishScores });
     }
     const scienceScores: Record<string, number | null> = {};
@@ -255,9 +257,10 @@ export default function Gradebook({
   const [scienceScores, setScienceScores] = useState<Record<string, string>>({});
   const [socialScores, setSocialScores] = useState<Record<string, string>>({});
 
-  // English class scores (keyed by ENGLISH_SUBJECTS[].key), stored as strings while editing.
+  // Custom-criteria class scores (keyed by the class's subject keys), strings while editing.
   const [englishScores, setEnglishScores] = useState<Record<string, string>>({});
-  const formIsEnglish = isEnglishClass(formGrade);
+  const formCustomSubjects = getCustomSubjects(formGrade);
+  const formIsEnglish = !!formCustomSubjects;
 
   // Filter registered students in the active grade to select from when creating scores
   const registeredStudentsInFormGrade = useMemo(() => {
@@ -596,7 +599,7 @@ export default function Gradebook({
     };
     setScienceScores(loadMap(SCIENCE_SUBJECTS, student.scienceScores));
     setSocialScores(loadMap(SOCIAL_SUBJECTS, student.socialScores));
-    setEnglishScores(loadMap(ENGLISH_SUBJECTS, student.englishScores));
+    setEnglishScores(loadMap(getCustomSubjects(student.grade) || ENGLISH_SUBJECTS, student.englishScores));
 
     setIsFormOpen(true);
   };
@@ -627,7 +630,7 @@ export default function Gradebook({
     };
     setScienceScores(loadMap(SCIENCE_SUBJECTS, record?.scienceScores));
     setSocialScores(loadMap(SOCIAL_SUBJECTS, record?.socialScores));
-    setEnglishScores(loadMap(ENGLISH_SUBJECTS, record?.englishScores));
+    setEnglishScores(loadMap(getCustomSubjects(record?.grade || formGrade) || ENGLISH_SUBJECTS, record?.englishScores));
   };
 
   // Action: Save or Update student
@@ -685,16 +688,16 @@ export default function Gradebook({
       foreignLanguage: foreignLanguage === '' ? null : clampScore(parseFloat(foreignLanguage) || 0)
     };
 
-    // For English classes, store the 8 English categories and null out the general
-    // subjects so the overall average comes from the English scores only.
-    const finalPayload = formIsEnglish
+    // For custom-criteria classes (English, Health…), store that class's criteria and
+    // null out the general subjects so the overall average comes from them only.
+    const finalPayload = formCustomSubjects
       ? {
           ...payload,
           khmer: { listening: null, writing: null, reading: null, speaking: null },
           math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
           science: null, socialStudies: null, scienceScores: undefined, socialScores: undefined,
           physicalEducation: null, health: null, lifeSkills: null, foreignLanguage: null,
-          englishScores: ENGLISH_SUBJECTS.reduce((acc, s) => {
+          englishScores: formCustomSubjects.reduce((acc, s) => {
             const v = englishScores[s.key];
             acc[s.key] = (v === undefined || v === '') ? null : clampScore(parseFloat(v) || 0);
             return acc;
@@ -1232,15 +1235,15 @@ export default function Gradebook({
             </div>
             )}
 
-            {/* Column 3: English categories (8) OR the general secondary subjects (6) */}
+            {/* Column 3: custom-criteria columns (English 8 / Health 5 …) OR general subjects */}
             <div className="space-y-4 p-4 bg-slate-50/50 border border-slate-100 rounded-xl">
-              {formIsEnglish ? (
+              {formCustomSubjects ? (
                 <>
-                  <h4 className="font-medium text-slate-700 text-sm border-b border-slate-100 pb-2">មុខវិជ្ជាភាសាអង់គ្លេស (៨ ផ្នែក)</h4>
+                  <h4 className="font-medium text-slate-700 text-sm border-b border-slate-100 pb-2">ផ្នែកវាយតម្លៃរបស់ថ្នាក់ ({formCustomSubjects.length} ផ្នែក)</h4>
                   <div className="grid grid-cols-2 gap-4 text-xs font-medium text-slate-600">
-                    {ENGLISH_SUBJECTS.map(s => (
+                    {formCustomSubjects.map(s => (
                       <div key={s.key}>
-                        <label className="block text-slate-500 mb-1">{s.km} ({s.en.toLowerCase()})</label>
+                        <label className="block text-slate-500 mb-1">{s.km}</label>
                         <input
                           type="number"
                           min="0"
@@ -1513,8 +1516,8 @@ export default function Gradebook({
                     <th className="px-4 py-3 text-center">ភេទ</th>
                     <th className="px-4 py-3 text-center">ថ្នាក់សិក្សា</th>
                     <th className="px-4 py-3 text-center">ខែ</th>
-                    {ENGLISH_SUBJECTS.map(s => (
-                      <th key={s.key} className="px-4 py-3 text-center whitespace-nowrap">{s.km}<span className="block text-[9px] text-slate-400 font-normal">({s.en.toLowerCase()})</span></th>
+                    {(customSubjects || []).map(s => (
+                      <th key={s.key} className="px-4 py-3 text-center whitespace-nowrap">{s.km}</th>
                     ))}
                     <th className="px-4 py-3 text-center text-blue-600 bg-blue-50/50">ពិន្ទុសរុប</th>
                     <th className="px-4 py-3 text-center text-blue-600 bg-blue-50/50">មធ្យមភាគរួម</th>
@@ -1592,8 +1595,8 @@ export default function Gradebook({
                         <td className="px-4 py-3 text-center">{st.gender}</td>
                         <td className="px-4 py-3 text-center text-slate-500">{st.grade}</td>
                         <td className="px-4 py-3 text-center text-slate-500 font-medium">{st.month}</td>
-                        {viewingEnglish ? (
-                          ENGLISH_SUBJECTS.map(sub => {
+                        {customSubjects ? (
+                          customSubjects.map(sub => {
                             const v = st.englishScores?.[sub.key];
                             return (
                               <td key={sub.key} className="px-4 py-3 text-center font-mono text-slate-500">{v !== null && v !== undefined ? v : '-'}</td>
@@ -1661,7 +1664,7 @@ export default function Gradebook({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={viewingEnglish ? 21 : 34} className="px-4 py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={customSubjects ? 13 + customSubjects.length : 34} className="px-4 py-12 text-center text-slate-400 font-medium">
                       <FolderLock size={32} className="mx-auto text-slate-300 mb-2" />
                       គ្មានទិន្នន័យពិន្ទុទេ សូមចុច «បញ្ចូលពិន្ទុ» ដើម្បីបន្ថែមពិន្ទុសម្រាប់សិស្សដែលមានស្រាប់ក្នុងថ្នាក់!
                     </td>

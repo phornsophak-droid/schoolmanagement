@@ -18,6 +18,26 @@ export const ENGLISH_SUBJECTS: { key: string; en: string; km: string }[] = [
 // True when a class name belongs to the English after-hours subject.
 export const isEnglishClass = (grade: string) => (grade || '').includes('អង់គ្លេស');
 
+// The 5 scoring criteria for the after-hours Health-education class (each 0-10).
+export const HEALTH_SUBJECTS: { key: string; km: string }[] = [
+  { key: 'bodyHygiene', km: 'អនាម័យរាង្គកាយ' },
+  { key: 'brushTeeth', km: 'ដុសធ្មេញ' },
+  { key: 'nutrition', km: 'ចំណីអាហារ' },
+  { key: 'uniform', km: 'ឯកសណ្ឋាន' },
+  { key: 'participation', km: 'ការចូលរួម' },
+];
+// True when a class name belongs to the Health-education after-hours subject.
+export const isHealthClass = (grade: string) => (grade || '').includes('អប់រំសុខភាព');
+
+// Classes that score on their own custom criteria instead of the general subjects.
+// The scores are stored in StudentScore.englishScores (a generic key→score map) and
+// the overall average is the mean of the entered criteria.
+export const getCustomSubjects = (grade: string): { key: string; km: string }[] | null => {
+  if (isEnglishClass(grade)) return ENGLISH_SUBJECTS.map(s => ({ key: s.key, km: s.km }));
+  if (isHealthClass(grade)) return HEALTH_SUBJECTS;
+  return null;
+};
+
 // Sub-subjects of វិទ្យាសាស្ត្រ (Science), each 0-10.
 export const SCIENCE_SUBJECTS: { key: string; km: string }[] = [
   { key: 'physics', km: 'រូបវិទ្យា' },
