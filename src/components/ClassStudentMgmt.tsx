@@ -561,16 +561,21 @@ export default function ClassStudentMgmt({
     let listToExport = filteredProfiles;
     
     if (exportTemplate) {
+      const tplGrade = selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦');
       listToExport = [
-        { id: '1', name: 'សុខ ម៉ារីហ្សា', gender: 'ស្រី', grade: selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦'), status: 'ធម្មតា' } as any,
-        { id: '2', name: 'លី ម៉េងហួរ', gender: 'ប្រុស', grade: selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦'), status: 'ធម្មតា' } as any
+        { id: '1', name: 'សុខ ម៉ារីហ្សា', gender: 'ស្រី', grade: tplGrade, group: classCategory === 'extra' ? 'A' : undefined, status: 'ធម្មតា' } as any,
+        { id: '2', name: 'លី ម៉េងហួរ', gender: 'ប្រុស', grade: tplGrade, group: classCategory === 'extra' ? 'B' : undefined, status: 'ធម្មតា' } as any
       ];
     }
 
-    const headers = "ល.រ,ឈ្មោះសិស្ស,ភេទ,ថ្នាក់,ស្ថានភាព";
+    // After-hours classes get an extra ក្រុម column.
+    const withGroup = classCategory === 'extra';
+    const headers = withGroup ? "ល.រ,ឈ្មោះសិស្ស,ភេទ,ថ្នាក់,ក្រុម,ស្ថានភាព" : "ល.រ,ឈ្មោះសិស្ស,ភេទ,ថ្នាក់,ស្ថានភាព";
     const rows = listToExport.map((s, idx) => {
       const statusStr = s.status || 'ធម្មតា';
-      return `${idx + 1},"${s.name}","${s.gender}","${s.grade}","${statusStr}"`;
+      return withGroup
+        ? `${idx + 1},"${s.name}","${s.gender}","${s.grade}","${s.group || ''}","${statusStr}"`
+        : `${idx + 1},"${s.name}","${s.gender}","${s.grade}","${statusStr}"`;
     });
     
     // We prepend the UTF-8 Byte Order Mark (BOM) so Microsoft Excel on Windows/macOS correctly parses Khmer font!
@@ -694,6 +699,7 @@ export default function ClassStudentMgmt({
         let gradeIndex = -1;
         let serialIndex = -1;
         let statusIndex = -1;
+        let groupIndex = -1;
 
         let bestHeaderRowIndex = -1;
         let bestHeaderScore = 0;
@@ -702,6 +708,7 @@ export default function ClassStudentMgmt({
         let bestGradeIdx = -1;
         let bestSerialIdx = -1;
         let bestStatusIdx = -1;
+        let bestGroupIdx = -1;
 
         for (let i = 0; i < Math.min(rows.length, 15); i++) {
           const rowVals = rows[i];
@@ -712,6 +719,7 @@ export default function ClassStudentMgmt({
           let tempGradeIdx = -1;
           let tempSerialIdx = -1;
           let tempStatusIdx = -1;
+          let tempGroupIdx = -1;
           let score = 0;
 
           for (let c = 0; c < rowVals.length; c++) {
@@ -749,6 +757,11 @@ export default function ClassStudentMgmt({
                 tempStatusIdx = c;
                 score += 1;
               }
+            } else if (val === "ក្រុម" || valLower === "group" || valLower === "grp") {
+              if (tempGroupIdx === -1) {
+                tempGroupIdx = c;
+                score += 1;
+              }
             }
           }
 
@@ -760,6 +773,7 @@ export default function ClassStudentMgmt({
             bestGradeIdx = tempGradeIdx;
             bestSerialIdx = tempSerialIdx;
             bestStatusIdx = tempStatusIdx;
+            bestGroupIdx = tempGroupIdx;
           }
         }
 
@@ -770,6 +784,7 @@ export default function ClassStudentMgmt({
           if (bestGradeIdx !== -1) gradeIndex = bestGradeIdx;
           if (bestSerialIdx !== -1) serialIndex = bestSerialIdx;
           if (bestStatusIdx !== -1) statusIndex = bestStatusIdx;
+          if (bestGroupIdx !== -1) groupIndex = bestGroupIdx;
         } else {
           // If no row scored a match, default to index 0 and rely on statistical column-classification helper below
           startIndex = 0;
@@ -993,12 +1008,18 @@ export default function ClassStudentMgmt({
             }
           }
 
+          // Parse group if present (after-hours classes)
+          const groupVal = groupIndex !== -1
+            ? String(row[groupIndex] ?? '').replace(/[﻿​]/g, '').trim() || undefined
+            : undefined;
+
           // Add clean record with default score template
           const payload = {
             id: generateUniqueId(),
             name: rawName,
             gender: gender,
             grade: gradeVal,
+            group: groupVal,
             status: statusVal,
             month: 'មេសា', // default fallback
             khmer: { listening: null, writing: null, reading: null, speaking: null },
