@@ -63,6 +63,10 @@ const SUBJECTS_FOR_EVAL = [
   'បំណិនជីវិត'
 ];
 
+// Khmer month order → numeric month, used to match the report month against
+// the YYYY-MM-DD dates in the daily-attendance records.
+const KHMER_MONTHS_ORDER = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
+
 export default function ReportWizard({
   onSaveReport,
   onCancel,
@@ -202,11 +206,13 @@ export default function ReportWizard({
     }
   }, [reportToEdit]);
 
-  // Try to automatically load statistics based on current gradebook scores
-  const handleAutoFillStats = () => {
+  // Pull statistics straight from each class's real data — gradebook scores for
+  // pass/slow/subject stats, and the recorded daily attendance for absences.
+  // `silent` is used by the auto-fill effect (no alert / no failure popup).
+  const handleAutoFillStats = (silent = false) => {
     const list = students.filter(s => s.grade === grade && s.month === month);
     if (list.length === 0) {
-      alert(`មិនឃើញមានទិន្នន័យពិន្ទុសិស្សថ្នាក់ «${grade}» សម្រាប់ខែ «${month}» នៅក្នុងសៀវភៅពិន្ទុឡើយ។ សូមបញ្ចូលពិន្ទុសិស្សជាមុន ឬបំពេញវាដោយដៃ។`);
+      if (!silent) alert(`មិនឃើញមានទិន្នន័យពិន្ទុសិស្សថ្នាក់ «${grade}» សម្រាប់ខែ «${month}» នៅក្នុងសៀវភៅពិន្ទុឡើយ។ សូមបញ្ចូលពិន្ទុសិស្សជាមុន ឬបំពេញវាដោយដៃ។`);
       return;
     }
 
@@ -218,12 +224,42 @@ export default function ReportWizard({
     const slowTotalVal = slowLearners.length;
     const slowFemaleVal = slowLearners.filter(s => s.gender === 'ស្រី').length;
 
+    // Start-of-year defaults to the current enrolment (the teacher can adjust it).
+    setStartYearTotal(currentTotalVal);
+    setStartYearFemale(currentFemaleVal);
     setCurrentTotal(currentTotalVal);
     setCurrentFemale(currentFemaleVal);
     setPassedTotal(passedTotalVal);
     setPassedFemale(passedFemaleVal);
     setSlowLearnerTotal(slowTotalVal);
     setSlowLearnerFemale(slowFemaleVal);
+
+    // Total absences (permission + unexcused) for this class during the month,
+    // counted from the recorded daily attendance.
+    try {
+      const raw = localStorage.getItem('school_daily_attendance');
+      const recs: any[] = raw ? JSON.parse(raw) : [];
+      const mIdx = KHMER_MONTHS_ORDER.indexOf(month);
+      const mm = mIdx >= 0 ? String(mIdx + 1).padStart(2, '0') : '';
+      const genderById = new Map(students.map(s => [s.id, s.gender]));
+      let absTotal = 0;
+      let absFemale = 0;
+      recs.forEach(r => {
+        if (r.grade !== grade) return;
+        if (mm && String(r.date || '').slice(5, 7) !== mm) return;
+        Object.entries(r.studentStates || {}).forEach(([sid, status]) => {
+          if (sid.endsWith('_reason')) return;
+          if (status === 'absent' || status === 'permission') {
+            absTotal++;
+            if (genderById.get(sid) === 'ស្រី') absFemale++;
+          }
+        });
+      });
+      setAbsentTotal(absTotal);
+      setAbsentFemale(absFemale);
+    } catch (e) {
+      // keep existing absence values if attendance data can't be read
+    }
 
     // Also auto-generate Step 5 list if slow learners are found!
     if (slowLearners.length > 0) {
@@ -277,8 +313,16 @@ export default function ReportWizard({
 
     setSubjectEvals(calculatedEvals);
 
-    alert(`បានទាញយកទិន្នន័យសិស្ស ${currentTotalVal} នាក់ ដំឡើងស្ថិតិជំហានទី២ និងទី៣ រួចរាល់ដោយស្វ័យប្រវត្ត!`);
+    if (!silent) alert(`បានទាញយកទិន្នន័យសិស្ស ${currentTotalVal} នាក់ ដំឡើងស្ថិតិជំហានទី២ និងទី៣ រួចរាល់ដោយស្វ័យប្រវត្ត!`);
   };
+
+  // Auto-fetch each class's stats whenever the class or month changes (not in edit
+  // mode, where the saved report's figures must be preserved).
+  useEffect(() => {
+    if (reportToEdit) return;
+    if (grade && month) handleAutoFillStats(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grade, month, students, reportToEdit]);
 
   const handleNext = () => {
     if (currentStep === 1 && !teacherName.trim()) {
@@ -564,13 +608,13 @@ export default function ReportWizard({
                 <Users className="text-indigo-600" size={18} />
                 ជំហានទី ២៖ ស្ថិតិសិស្សទូទៅរបស់ថ្នាក់រៀន
               </h4>
-              <button 
-                type="button" 
-                onClick={handleAutoFillStats}
+              <button
+                type="button"
+                onClick={() => handleAutoFillStats(false)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 hover:bg-slate-100 text-xs font-medium rounded-lg transition-colors"
               >
                 <RefreshCw size={13} />
-                ទាញពីសៀវភៅពិន្ទុឡើងវិញ
+                ទាញពីសៀវភៅពិន្ទុ និងវត្តមានឡើងវិញ
               </button>
             </div>
 
