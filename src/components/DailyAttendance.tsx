@@ -139,6 +139,9 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   // Morning/afternoon shift for general classes — defaults to the current half-day.
   const [selectedSession, setSelectedSession] = useState<Session>(() => new Date().getHours() < 12 ? 'morning' : 'afternoon');
 
+  // Group filter for after-hours classes split into groups ('ទាំងអស់' = all).
+  const [selectedAttGroup, setSelectedAttGroup] = useState<string>('ទាំងអស់');
+
   // Class category (general / extra). Teachers follow their own class; everyone
   // else always starts on the general panel.
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>(() => {
@@ -430,9 +433,15 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     setSelectedDate(`${yyyy}-${mm}-${dd}`);
   };
 
-  // Filter students matching grade and query
+  // Distinct groups within the selected class (drives the group filter for extra classes).
+  const availableAttGroups = Array.from(
+    new Set<string>(uniqueStudentsList.filter(s => s.grade === selectedGrade && s.group).map(s => s.group as string))
+  ).sort((a, b) => a.localeCompare(b, 'km'));
+
+  // Filter students matching grade, group and query
   const displayStudents = uniqueStudentsList
     .filter(s => s.grade === selectedGrade)
+    .filter(s => selectedAttGroup === 'ទាំងអស់' || (s.group || '') === selectedAttGroup)
     .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const totalInGrade = uniqueStudentsList.filter(s => s.grade === selectedGrade).length;
@@ -1006,9 +1015,25 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                   <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">📋 បញ្ជីឈ្មោះសិស្ស និងការចុះវត្តមាន ({selectedGrade})</h3>
                 </div>
-                <span className="text-[10.5px] text-slate-500 font-bold bg-white px-2.5 py-1 border border-slate-200 rounded-lg">
-                  សរុប៖ <b>{displayStudents.length}</b> នាក់
-                </span>
+                <div className="flex items-center gap-2">
+                  {/* Group filter — take attendance one group at a time. */}
+                  {isExtraClass(selectedGrade) && availableAttGroups.length > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-500">ក្រុម៖</span>
+                      <select
+                        value={selectedAttGroup}
+                        onChange={(e) => setSelectedAttGroup(e.target.value)}
+                        className="px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-indigo-700 font-bold outline-none focus:border-blue-500"
+                      >
+                        <option value="ទាំងអស់">គ្រប់ក្រុម</option>
+                        {availableAttGroups.map(g => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <span className="text-[10.5px] text-slate-500 font-bold bg-white px-2.5 py-1 border border-slate-200 rounded-lg">
+                    សរុប៖ <b>{displayStudents.length}</b> នាក់
+                  </span>
+                </div>
               </div>
 
               <div className="overflow-x-auto min-h-[300px]">
@@ -1039,7 +1064,10 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                             <td className="px-5 py-3.5 sticky left-0 z-10 bg-white group-hover:bg-slate-50/70 transition-all border-r border-slate-100 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">
                               <div className="flex items-center gap-2.5">
                                 <div>
-                                  <p className="font-bold text-slate-800">{std.name}</p>
+                                  <p className="font-bold text-slate-800 flex items-center gap-1.5">
+                                    {std.name}
+                                    {std.group && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">ក្រុម {std.group}</span>}
+                                  </p>
                                   <p className="text-[9.5px] text-slate-400 font-medium">ភេទ៖ {std.gender} | ID: {std.id.substring(0, 5)}</p>
                                 </div>
                               </div>
