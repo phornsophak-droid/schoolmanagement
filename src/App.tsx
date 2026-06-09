@@ -894,13 +894,16 @@ export default function App() {
       }
     }
 
+    const readJson = (key: string) => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } };
     const backupData = {
       version: "v2",
       exportedAt: new Date().toISOString(),
       students: students,
       reports: reports,
       grades: grades,
-      customTeachers: parsedTeachers
+      customTeachers: parsedTeachers,
+      studentAttendance: readJson('school_daily_attendance'),
+      teacherAttendance: readJson('school_teachers_daily_attendance')
     };
 
     const jsonString = JSON.stringify(backupData, null, 2);
@@ -955,6 +958,12 @@ export default function App() {
           }
           if (backupData.customTeachers) {
             localStorage.setItem('school_custom_teachers_v2', JSON.stringify(backupData.customTeachers));
+          }
+          if (backupData.studentAttendance) {
+            localStorage.setItem('school_daily_attendance', JSON.stringify(backupData.studentAttendance));
+          }
+          if (backupData.teacherAttendance) {
+            localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(backupData.teacherAttendance));
           }
 
           alert("បាននាំចូលទិន្នន័យចម្លង និងធ្វើសមទិន្នន័យប្រព័ន្ធដោយជោគជ័យ! ទំព័រនឹងដំណើរការឡើងវិញឥឡូវនេះ។");
