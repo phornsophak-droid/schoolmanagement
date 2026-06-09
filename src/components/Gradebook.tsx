@@ -211,6 +211,7 @@ export default function Gradebook({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGradeGroup, setSelectedGradeGroup] = useState('ទាំងអស់'); // group filter (after-hours)
 
   // Monthly vs Semester Mode declarations
   const [activeMode, setActiveMode] = useState<'monthly' | 'semester' | 'annual'>('monthly');
@@ -317,9 +318,21 @@ export default function Gradebook({
       list = list.filter(student => student.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
 
+    // 2b. Group filter (after-hours classes split into groups)
+    if (selectedGradeGroup !== 'ទាំងអស់') {
+      list = list.filter(student => (student.group || '') === selectedGradeGroup);
+    }
+
     // 3. Compute rankings inside the filtered group
     return rankStudents(list);
-  }, [students, selectedMonth, selectedGrade, searchTerm, classCategory]);
+  }, [students, selectedMonth, selectedGrade, searchTerm, classCategory, selectedGradeGroup]);
+
+  // Distinct groups in the selected class (drives the group filter for custom classes).
+  const availableGradeGroups = useMemo(() => {
+    return Array.from(new Set<string>(
+      students.filter(s => s.grade === selectedGrade && s.group).map(s => s.group as string)
+    )).sort((a, b) => a.localeCompare(b, 'km'));
+  }, [students, selectedGrade]);
 
   // Semester aggregation values
   const semesterStudents = useMemo(() => {
@@ -1442,6 +1455,21 @@ export default function Gradebook({
               />
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
             </div>
+
+            {/* Group filter — after-hours classes split into groups */}
+            {viewingEnglish && availableGradeGroups.length > 0 && (
+              <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-xl border border-slate-200">
+                <span className="text-[10px] font-bold text-slate-500">ក្រុម៖</span>
+                <select
+                  value={selectedGradeGroup}
+                  onChange={(e) => setSelectedGradeGroup(e.target.value)}
+                  className="px-1.5 py-0.5 text-[11px] bg-white border border-slate-200 rounded text-indigo-700 font-bold outline-none focus:border-blue-500"
+                >
+                  <option value="ទាំងអស់">គ្រប់ក្រុម</option>
+                  {availableGradeGroups.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+            )}
 
             {/* Quick selectors matching the upper selections */}
             <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200 text-xs">
