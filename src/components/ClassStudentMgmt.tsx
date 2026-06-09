@@ -42,8 +42,10 @@ function normalizeGradeName(g: string | undefined | null): string {
 }
 
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
-const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+// The subject keyword inside an after-hours class name, used to group its sections (3A, 3B...).
+const getSubjectKey = (grade: string) => EXTRA_CLASS_KEYWORDS.find(k => (grade || '').includes(k)) || '';
 
 interface ClassStudentMgmtProps {
   students: StudentScore[];
@@ -116,13 +118,28 @@ export default function ClassStudentMgmt({
   const [classSearch, setClassSearch] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<'default' | 'asc' | 'desc'>('default');
+  // Teacher access scope. A general teacher is locked to their one class; an
+  // after-hours teacher (e.g. English) may pick among their subject's sections.
+  const isTeacher = currentUser?.role === 'teacher';
+  const isExtraTeacher = isTeacher && isExtraClass(currentUser!.grade || '');
+  const teacherGradeOptions = isExtraTeacher
+    ? grades.filter(g => g.includes(getSubjectKey(currentUser!.grade)))
+    : (isTeacher ? [currentUser!.grade] : []);
+  // Whether a teacher may view/edit a given class: their own class, or — for an
+  // after-hours teacher — any section of the subject they teach.
+  const teacherCanAccessGrade = (g: string) => {
+    if (!isTeacher) return true;
+    if (isExtraTeacher) return (g || '').includes(getSubjectKey(currentUser!.grade));
+    return g === currentUser!.grade;
+  };
+
   const [selectedRosterGrade, setSelectedRosterGrade] = useState<string>(
-    currentUser?.role === 'teacher' ? currentUser.grade : (grades[0] || 'ថ្នាក់ទី៦')
+    isTeacher ? (teacherGradeOptions[0] || currentUser!.grade) : (grades[0] || 'ថ្នាក់ទី៦')
   );
 
   // Class category (general / extra) — scopes the KPI cards, grade dropdown, roster & class list.
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>(() => {
-    const g = currentUser?.role === 'teacher' ? currentUser.grade : (grades[0] || '');
+    const g = isTeacher ? currentUser!.grade : (grades[0] || '');
     return isExtraClass(g) ? 'extra' : 'general';
   });
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
@@ -269,7 +286,7 @@ export default function ClassStudentMgmt({
   const handleSaveStudentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (currentUser?.role === 'teacher') {
-      if (studentFormGrade !== currentUser.grade) {
+      if (!teacherCanAccessGrade(studentFormGrade)) {
         alert(`លោកអ្នកមានសិទ្ធិចុះឈ្មោះ ឬកែប្រែព័ត៌មានសិស្សបានតែក្នុងថ្នាក់ ${currentUser.grade} របស់លោកអ្នកប៉ុណ្ណោះ!`);
         return;
       }
@@ -344,7 +361,7 @@ export default function ClassStudentMgmt({
 
   const handleDeleteStudentProfile = (profile: StudentScore) => {
     if (currentUser?.role === 'teacher') {
-      if (profile.grade !== currentUser.grade) {
+      if (!teacherCanAccessGrade(profile.grade)) {
         alert(`លោកអ្នកមានសិទ្ធិលុបសិស្សបានតែក្នុងថ្នាក់ ${currentUser.grade} របស់លោកអ្នកប៉ុណ្ណោះ!`);
         return;
       }
@@ -357,7 +374,7 @@ export default function ClassStudentMgmt({
 
   const handleClearAllStudentsInActiveGrade = () => {
     if (currentUser?.role === 'teacher') {
-      if (selectedRosterGrade !== currentUser.grade) {
+      if (!teacherCanAccessGrade(selectedRosterGrade)) {
         alert(`លោកអ្នកមានសិទ្ធិលុបសិស្សបានតែក្នុងថ្នាក់ ${currentUser.grade} របស់លោកអ្នកប៉ុណ្ណោះ!`);
         return;
       }
@@ -386,7 +403,7 @@ export default function ClassStudentMgmt({
 
   const handleAddSampleStudents = () => {
     if (currentUser?.role === 'teacher') {
-      if (selectedRosterGrade !== currentUser.grade) {
+      if (!teacherCanAccessGrade(selectedRosterGrade)) {
         alert(`លោកអ្នកមានសិទ្ធិបន្ថែមសិស្សគំរូបានតែក្នុងថ្នាក់ ${currentUser.grade} របស់លោកអ្នកប៉ុណ្ណោះ!`);
         return;
       }
@@ -925,8 +942,8 @@ export default function ClassStudentMgmt({
             }
           }
 
-          // Role check: Teachers can only import into their own grade!
-          if (currentUser?.role === 'teacher' && gradeVal !== currentUser.grade) {
+          // Role check: Teachers can only import into their own class/sections!
+          if (currentUser?.role === 'teacher' && !teacherCanAccessGrade(gradeVal)) {
             rejectedTeacherCount++;
             continue;
           }
@@ -1359,15 +1376,18 @@ export default function ClassStudentMgmt({
                   {/* Filter and dynamic roster count controls */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-150">
                     <div className="flex items-center gap-2 flex-wrap text-slate-700">
-                      <span className="text-xs font-bold text-slate-600">ថ្នាក់៖{currentUser?.role === 'teacher' && ' 🔒'}</span>
+                      <span className="text-xs font-bold text-slate-600">ថ្នាក់៖{isTeacher && !isExtraTeacher && ' 🔒'}</span>
                       <select
                         value={selectedRosterGrade}
                         onChange={(e) => setSelectedRosterGrade(e.target.value)}
-                        disabled={currentUser?.role === 'teacher'}
+                        disabled={isTeacher && !isExtraTeacher}
                         className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-blue-500 font-semibold disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                       >
-                        {currentUser?.role === 'teacher' ? (
-                          <option value={currentUser.grade}>{currentUser.grade}</option>
+                        {isTeacher ? (
+                          // General teacher → only their class; extra teacher → their subject's sections.
+                          teacherGradeOptions.map(g => (
+                            <option key={g} value={g}>{g}</option>
+                          ))
                         ) : (
                           <>
                             <option value="ទាំងអស់">គ្រប់ថ្នាក់ទាំងអស់</option>
