@@ -203,12 +203,14 @@ export default function App() {
       localStorage.setItem('school_grades_v2', JSON.stringify(defaultGradesList));
     }
 
-    // Helper to remove duplicate names in Grade 6
+    // Remove only TRUE duplicates in Grade 6 (same student, same month). The key
+    // must include the month — otherwise every month's record except the first is
+    // dropped, making Grade 6 students vanish from the months being viewed.
     const deduplicateStudents = (students: StudentScore[]) => {
       const seen = new Set<string>();
       return students.map((s: any) => calculateStudentFields(s)).filter(s => {
         if (s.grade === 'ថ្នាក់ទី ៦' || s.grade === 'ថ្នាក់ទី៦') {
-          const key = `${s.name}_${s.gender}`;
+          const key = `${s.name}_${s.gender}_${s.month}`;
           if (seen.has(key)) return false;
           seen.add(key);
         }
