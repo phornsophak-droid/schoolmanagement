@@ -218,6 +218,26 @@ export default function App() {
       });
     };
 
+    // Apply a cloud fetch to the student list — but never let an incomplete cloud
+    // copy wipe the device. If the cloud has far fewer students than this device
+    // (likely a failed/partial upload), keep local and re-push to repair the cloud.
+    const applyCloudStudents = (rawStudents: StudentScore[]) => {
+      const deduped = deduplicateStudents(rawStudents);
+      let localPrev: StudentScore[] = [];
+      try { localPrev = JSON.parse(localStorage.getItem('school_student_scores_v2') || '[]'); } catch { /* ignore */ }
+      if (localPrev.length > 20 && deduped.length < localPrev.length * 0.8) {
+        console.warn(`Cloud student count (${deduped.length}) far below local (${localPrev.length}); keeping local and re-pushing to cloud.`);
+        setStudents(localPrev);
+        syncUpsertStudentsBulk(localPrev).catch(console.error);
+        return;
+      }
+      setStudents(deduped);
+      localStorage.setItem('school_student_scores_v2', JSON.stringify(deduped));
+      if (deduped.length !== rawStudents.length) {
+        syncUpsertStudentsBulk(deduped).catch(console.error);
+      }
+    };
+
     // Student Scores Hydration
     const cachedScores = localStorage.getItem('school_student_scores_v2');
     let memoryStudents: StudentScore[] = [];
@@ -277,12 +297,7 @@ export default function App() {
           .then(data => {
             if (cancelled) return;
             if (data.students && data.students.length > 0) {
-              const dedupedStuds = deduplicateStudents(data.students);
-              setStudents(dedupedStuds);
-              localStorage.setItem('school_student_scores_v2', JSON.stringify(dedupedStuds));
-              if (dedupedStuds.length !== data.students.length) {
-                syncUpsertStudentsBulk(dedupedStuds).catch(console.error);
-              }
+              applyCloudStudents(data.students);
             }
             if (data.reports && data.reports.length > 0) {
               setReports(data.reports);
@@ -327,9 +342,7 @@ export default function App() {
               const refreshData = () => {
                 syncFetchAll().then(newData => {
                   if (newData.students) {
-                    const dedupedStuds = deduplicateStudents(newData.students);
-                    setStudents(dedupedStuds);
-                    localStorage.setItem('school_student_scores_v2', JSON.stringify(dedupedStuds));
+                    applyCloudStudents(newData.students);
                   }
                   if (newData.reports) {
                     setReports(newData.reports);
