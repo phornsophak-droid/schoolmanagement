@@ -105,6 +105,16 @@ export function mapScoreToDB(score: StudentScore) {
     status: score.status || 'ធម្មតា',
     result: score.result || 'ធ្លាក់',
     ranking: score.ranking ?? null,
+    // Fields without their own column live here so they survive a cloud sync:
+    // group, note, official ID, and the custom/sub-subject score maps.
+    extra_data: {
+      group: score.group ?? null,
+      note: score.note ?? null,
+      studentId: score.studentId ?? null,
+      englishScores: score.englishScores ?? null,
+      scienceScores: score.scienceScores ?? null,
+      socialScores: score.socialScores ?? null,
+    },
     updated_at: new Date().toISOString()
   };
 }
@@ -147,7 +157,14 @@ export function mapDBToScore(db: any): StudentScore {
     gradeLetter: db.grade_letter ?? 'F',
     result: db.result ?? 'ធ្លាក់',
     status: db.status ?? 'ធម្មតា',
-    ranking: db.ranking !== null && db.ranking !== undefined ? Number(db.ranking) : undefined
+    ranking: db.ranking !== null && db.ranking !== undefined ? Number(db.ranking) : undefined,
+    // Restore the fields stored in the extra_data JSON column.
+    group: db.extra_data?.group ?? undefined,
+    note: db.extra_data?.note ?? undefined,
+    studentId: db.extra_data?.studentId ?? undefined,
+    englishScores: db.extra_data?.englishScores ?? undefined,
+    scienceScores: db.extra_data?.scienceScores ?? undefined,
+    socialScores: db.extra_data?.socialScores ?? undefined,
   };
 }
 

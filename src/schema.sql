@@ -72,11 +72,19 @@ CREATE TABLE IF NOT EXISTS public.student_scores (
     status VARCHAR(20) DEFAULT 'ធម្មតា',
     result VARCHAR(10) NOT NULL CHECK (result IN ('ជាប់', 'ធ្លាក់', '-')),
     ranking INTEGER DEFAULT NULL,
-    
+
+    -- Fields without a dedicated column (group, note, official ID, and the custom
+    -- English/Health + Science/Social sub-subject score maps) are kept here so they
+    -- survive a cloud sync. Existing DBs: run the ALTER below once.
+    extra_data JSONB DEFAULT NULL,
+
     -- Meta audit timelines
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Migration for databases created before extra_data existed:
+ALTER TABLE public.student_scores ADD COLUMN IF NOT EXISTS extra_data JSONB DEFAULT NULL;
 
 -- Optimize queries for gradebook filters, ranking matrices and monthly summaries
 CREATE INDEX IF NOT EXISTS idx_student_scores_grade_month ON public.student_scores(grade, month);
