@@ -160,6 +160,7 @@ export default function ClassStudentMgmt({
   const [studentFormGender, setStudentFormGender] = useState<'ប្រុស' | 'ស្រី'>('ប្រុស');
   const [studentFormGrade, setStudentFormGrade] = useState<string>(grades[0] || 'ថ្នាក់ទី៦');
   const [studentFormStatus, setStudentFormStatus] = useState<'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់'>('ធម្មតា');
+  const [studentFormGroup, setStudentFormGroup] = useState<string>(''); // ក្រុម (after-hours classes)
 
   // Stats calculation — count UNIQUE students (by name+grade, not monthly records),
   // scoped to the selected class category. Matches the Dashboard totals.
@@ -271,6 +272,7 @@ export default function ClassStudentMgmt({
     setStudentFormGender('ប្រុស');
     setStudentFormGrade(selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦'));
     setStudentFormStatus('ធម្មតា');
+    setStudentFormGroup('');
     setIsStudentFormOpen(true);
   };
 
@@ -280,6 +282,7 @@ export default function ClassStudentMgmt({
     setStudentFormGender(profile.gender);
     setStudentFormGrade(profile.grade);
     setStudentFormStatus(profile.status || 'ធម្មតា');
+    setStudentFormGroup(profile.group || '');
     setIsStudentFormOpen(true);
   };
 
@@ -310,6 +313,7 @@ export default function ClassStudentMgmt({
               name: name,
               gender: studentFormGender,
               grade: studentFormGrade,
+              group: studentFormGroup.trim() || undefined,
               status: studentFormStatus
             };
             return calculateStudentFields(payload);
@@ -339,6 +343,7 @@ export default function ClassStudentMgmt({
         name,
         gender: studentFormGender,
         grade: studentFormGrade,
+        group: studentFormGroup.trim() || undefined,
         status: studentFormStatus,
         month: 'មេសា',
         khmer: { listening: null, writing: null, reading: null, speaking: null },
@@ -1573,6 +1578,20 @@ export default function ClassStudentMgmt({
                           </select>
                         </div>
 
+                        {/* Group — only for after-hours classes, which split each class into groups. */}
+                        {isExtraClass(studentFormGrade) && (
+                          <div>
+                            <label className="block text-slate-500 mb-1">ក្រុម (Group)</label>
+                            <input
+                              type="text"
+                              value={studentFormGroup}
+                              onChange={(e) => setStudentFormGroup(e.target.value)}
+                              placeholder="ឧ. ក្រុម ១, A, ..."
+                              className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+                            />
+                          </div>
+                        )}
+
                         <div className="sm:col-span-4 pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
                           <button
                             type="button"
@@ -1600,6 +1619,7 @@ export default function ClassStudentMgmt({
                           <th className="px-4 py-3 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
                           <th className="px-4 py-3 text-center">ភេទ</th>
                           <th className="px-4 py-3 text-center">ថ្នាក់សិក្សា</th>
+                          {classCategory === 'extra' && <th className="px-4 py-3 text-center">ក្រុម</th>}
                           <th className="px-4 py-3 text-center">ស្ថានភាព</th>
                           <th className="px-4 py-3 text-right">សកម្មភាព</th>
                         </tr>
@@ -1625,6 +1645,11 @@ export default function ClassStudentMgmt({
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-center font-sans font-bold text-slate-500">{p.grade}</td>
+                                {classCategory === 'extra' && (
+                                  <td className="px-4 py-3 text-center font-bold text-indigo-600">
+                                    {p.group ? <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 border border-indigo-100">{p.group}</span> : <span className="text-slate-300">-</span>}
+                                  </td>
+                                )}
                                 <td className="px-4 py-3 text-center">
                                   {p.status === 'រៀនយឺត' ? (
                                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 border border-amber-105 text-amber-700">
@@ -1668,7 +1693,7 @@ export default function ClassStudentMgmt({
                           })
                         ) : (
                           <tr>
-                            <td colSpan={5} className="px-4 py-12 text-center text-slate-400 font-medium">
+                            <td colSpan={classCategory === 'extra' ? 6 : 5} className="px-4 py-12 text-center text-slate-400 font-medium">
                               <AlertTriangle size={32} className="mx-auto text-amber-500 mb-2" />
                               គ្មានគណនីសិស្សដែលស្វែងរកក្នុង {selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : 'ប្រព័ន្ធ'} ឡើយ។
                             </td>

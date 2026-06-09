@@ -74,6 +74,7 @@ export interface StudentScore {
   name: string;
   gender: 'ប្រុស' | 'ស្រី';
   grade: string; // ថ្នាក់ទី១ ដល់ ថ្នាក់ទី៦
+  group?: string; // ក្រុម — used by after-hours classes split into groups
   month: string; // ខែ (មករា, កុម្ភៈ, ...)
   studentId?: string;  // អត្តលេខ (official student ID, optional)
   khmer: KhmerScore;
