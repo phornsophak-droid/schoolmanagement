@@ -29,12 +29,23 @@ export const HEALTH_SUBJECTS: { key: string; km: string }[] = [
 // True when a class name belongs to the Health-education after-hours subject.
 export const isHealthClass = (grade: string) => (grade || '').includes('អប់រំសុខភាព');
 
+// The 4 scoring criteria for the after-hours Drawing class (each 0-10).
+export const DRAWING_SUBJECTS: { key: string; km: string }[] = [
+  { key: 'classActivity', km: 'សកម្មភាពក្នុងថ្នាក់' },
+  { key: 'homework', km: 'កិច្ចការផ្ទះ' },
+  { key: 'attendance', km: 'វត្តមាន' },
+  { key: 'exam', km: 'ការប្រឡង' },
+];
+// True when a class name belongs to the Drawing after-hours subject.
+export const isDrawingClass = (grade: string) => (grade || '').includes('គំនូរ');
+
 // Classes that score on their own custom criteria instead of the general subjects.
 // The scores are stored in StudentScore.englishScores (a generic key→score map) and
 // the overall average is the mean of the entered criteria.
 export const getCustomSubjects = (grade: string): { key: string; km: string }[] | null => {
   if (isEnglishClass(grade)) return ENGLISH_SUBJECTS.map(s => ({ key: s.key, km: s.km }));
   if (isHealthClass(grade)) return HEALTH_SUBJECTS;
+  if (isDrawingClass(grade)) return DRAWING_SUBJECTS;
   return null;
 };
 
