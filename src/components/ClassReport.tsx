@@ -6,6 +6,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Printer, X } from 'lucide-react';
 import { StudentScore } from '../types';
+import HealthClinicReport from './HealthClinicReport';
 
 const SCHOOL_NAME = 'សាលាសហគមន៍ច្បារច្រុះ';
 
@@ -103,10 +104,19 @@ const ART_TEMPLATE: ReportTemplate = {
   ],
 };
 
+// The Health class uses a bespoke clinic monthly report (rendered by
+// HealthClinicReport); only the key is needed here to route to it.
+const HEALTH_TEMPLATE: ReportTemplate = {
+  key: 'health',
+  title: 'របាយការណ៍ប្រចាំខែ គិលានុបដ្ឋាក/យិកា',
+  blocks: [],
+};
+
 // Return the report template that fits a class, or null if it uses the default report.
 export function getReportTemplate(grade: string): ReportTemplate | null {
   const g = grade || '';
   if (g.includes('អង់គ្លេស')) return ENGLISH_TEMPLATE;
+  if (g.includes('អប់រំសុខភាព')) return HEALTH_TEMPLATE;
   if (g.includes('កីឡា') || g.includes('អប់រំកាយ')) return SPORTS_TEMPLATE;
   if (g.includes('គំនូរ')) return ART_TEMPLATE;
   return null;
@@ -194,6 +204,11 @@ export default function ClassReport({ template, students, grade, period, teacher
     });
     return { total: byStudent.size, dist };
   }, [students, grade, template]);
+
+  // The Health class has a bespoke clinic form rather than the block layout.
+  if (template.key === 'health') {
+    return <HealthClinicReport grade={grade} period={period} teacherName={teacherName} onClose={onClose} />;
+  }
 
   const lineInput = 'border-b border-slate-300 outline-none focus:border-blue-500 bg-transparent px-1';
 
