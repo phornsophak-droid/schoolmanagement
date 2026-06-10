@@ -515,15 +515,23 @@ export async function syncDeleteTeacherAttendance(id: string) {
   }
 }
 
+// Upsert score rows, retrying without extra_data if that column doesn't exist
+// (database not yet migrated) so the core score data still saves.
+async function upsertScoreRows(supabase: SupabaseClient, rows: any[]) {
+  let { error } = await supabase.from('student_scores').upsert(rows);
+  if (error && /extra_data/i.test(error.message || '')) {
+    const stripped = rows.map(({ extra_data, ...rest }: any) => rest);
+    ({ error } = await supabase.from('student_scores').upsert(stripped));
+  }
+  return error;
+}
+
 // 6. Push single student score directly
 export async function syncUpsertStudent(student: StudentScore) {
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
-  const row = mapScoreToDB(student);
-  const { error } = await supabase
-    .from('student_scores')
-    .upsert(row);
+  const error = await upsertScoreRows(supabase, [mapScoreToDB(student)]);
   if (error) {
     console.error(`Failed to upsert student score ${student.name} to Supabase`, error);
     throw error;
@@ -542,10 +550,7 @@ export async function syncUpsertStudentsBulk(students: StudentScore[]) {
   }
 
   for (const chunk of chunks) {
-    const rows = chunk.map(mapScoreToDB);
-    const { error } = await supabase
-      .from('student_scores')
-      .upsert(rows);
+    const error = await upsertScoreRows(supabase, chunk.map(mapScoreToDB));
     if (error) {
       console.error('Failed to upsert students batch to Supabase', error);
       throw error;
