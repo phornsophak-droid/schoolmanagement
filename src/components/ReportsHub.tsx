@@ -23,7 +23,7 @@ import {
   Sparkles,
   ChevronRight
 } from 'lucide-react';
-import { SchoolReport, StudentScore, SchoolUser } from '../types';
+import { SchoolReport, StudentScore, SchoolUser, getCustomSubjects } from '../types';
 import { motion } from 'motion/react';
 import ReportWizard from './ReportWizard';
 
@@ -175,7 +175,17 @@ export default function ReportsHub({
   // ==========================================
   // ACADEMIC REPORTS ENGINE
   // ==========================================
-  
+
+  // After-hours classes (English, Health) score on their own criteria stored in
+  // englishScores, not the general subjects. When a single such class is selected,
+  // the report uses those custom subjects and a simple average instead of the
+  // semester/exam model that only applies to general academic classes.
+  const reportCustomSubjects = useMemo(() => {
+    const targetGrade = (!teacherLocked && scopeType === 'combined') ? 'ទាំងអស់' : selectedGrade;
+    if (targetGrade === 'ទាំងអស់') return null;
+    return getCustomSubjects(targetGrade);
+  }, [scopeType, selectedGrade, teacherLocked]);
+
   const processedAcademicRoster = useMemo(() => {
     // Locked teachers never get the combined (all-class) view — always their own class.
     const targetGrade = (!teacherLocked && scopeType === 'combined') ? 'ទាំងអស់' : selectedGrade;
@@ -202,6 +212,39 @@ export default function ReportsHub({
     // 1. ANNUAL PERFORMANCE CALCULATION
     if (selectedPeriod === 'ប្រចាំឆ្នាំ') {
       const roster = uniqueStudentsList.map(student => {
+        // After-hours custom class (English/Health): no semester/exam model — the
+        // annual figure is simply the mean of the entered criteria across records.
+        const customSubs = getCustomSubjects(student.grade);
+        if (customSubs) {
+          const recs = students.filter(s => s.name.trim() === student.name && s.grade === student.grade);
+          const overallVals = recs.map(r => r.overallAvg).filter((v): v is number => v !== null && v !== undefined);
+          const annualAvg = overallVals.length > 0 ? clampScore(overallVals.reduce((a, b) => a + b, 0) / overallVals.length) : null;
+          const customSubjects: Record<string, number | null> = {};
+          customSubs.forEach(sub => {
+            const vs = recs.map(r => r.englishScores?.[sub.key]).filter((v): v is number => v !== null && v !== undefined);
+            customSubjects[sub.key] = vs.length > 0 ? clampScore(vs.reduce((a, b) => a + b, 0) / vs.length) : null;
+          });
+          let gradeLetter = '-';
+          let result = '-';
+          if (annualAvg !== null) {
+            gradeLetter = annualAvg >= 9.0 ? 'A' : annualAvg >= 8.0 ? 'B' : annualAvg >= 7.0 ? 'C' : annualAvg >= 6.0 ? 'D' : annualAvg >= 5.0 ? 'E' : 'F';
+            result = annualAvg >= 5.0 ? 'ជាប់' : 'ធ្លាក់';
+          }
+          return {
+            id: `${student.name}_${student.grade}_annual`,
+            name: student.name,
+            gender: student.gender,
+            grade: student.grade,
+            overallAvg: annualAvg,
+            gradeLetter,
+            result,
+            s1Avg: null as number | null,
+            s2Avg: null as number | null,
+            subjects: { khmer: null, math: null, science: null, socialStudies: null, physicalEducation: null, health: null, lifeSkills: null, foreignLanguage: null },
+            customSubjects,
+          };
+        }
+
         // Semester 1 calculation
         const mRecords1 = students.filter(s =>
           s.name.trim() === student.name &&
@@ -320,7 +363,8 @@ export default function ReportsHub({
             health: getSubjAnnAvg('health'),
             lifeSkills: getSubjAnnAvg('lifeSkills'),
             foreignLanguage: getSubjAnnAvg('foreignLanguage'),
-          }
+          },
+          customSubjects: null as Record<string, number | null> | null,
         };
       });
 
@@ -336,6 +380,13 @@ export default function ReportsHub({
       });
 
       const roster = periodStudents.map(student => {
+        // For after-hours classes, expose the custom criteria for this month's record.
+        const customSubs = getCustomSubjects(student.grade);
+        let customSubjects: Record<string, number | null> | null = null;
+        if (customSubs) {
+          customSubjects = {};
+          customSubs.forEach(sub => { customSubjects![sub.key] = student.englishScores?.[sub.key] ?? null; });
+        }
         return {
           id: student.id,
           name: student.name,
@@ -344,8 +395,8 @@ export default function ReportsHub({
           overallAvg: student.overallAvg,
           gradeLetter: student.gradeLetter,
           result: student.result,
-          s1Avg: 0,
-          s2Avg: 0,
+          s1Avg: 0 as number | null,
+          s2Avg: 0 as number | null,
           subjects: {
             khmer: student.khmerAvg,
             math: student.mathAvg,
@@ -355,7 +406,8 @@ export default function ReportsHub({
             health: student.health,
             lifeSkills: student.lifeSkills,
             foreignLanguage: student.foreignLanguage
-          }
+          },
+          customSubjects,
         };
       });
 
@@ -375,16 +427,22 @@ export default function ReportsHub({
   // Combined statistics
   const reportStats = useMemo(() => {
     const total = processedAcademicRoster.length;
-    if (total === 0) return { total: 0, female: 0, male: 0, pass: 0, fail: 0, avg: 0, dist: { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 } };
+    if (total === 0) return { total: 0, female: 0, male: 0, pass: 0, fail: 0, scored: 0, avg: 0, dist: { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 } };
 
     const female = processedAcademicRoster.filter(s => s.gender === 'ស្រី').length;
     const male = total - female;
+    // Pass/fail only count students who actually have a result; students with no
+    // scores yet ('-') are excluded so the rates aren't skewed to 100% fail.
     const pass = processedAcademicRoster.filter(s => s.result === 'ជាប់').length;
-    const fail = total - pass;
-    
+    const fail = processedAcademicRoster.filter(s => s.result === 'ធ្លាក់').length;
+    const scoredResults = pass + fail;
+
     let sumScore = 0;
-    processedAcademicRoster.forEach(s => sumScore += s.overallAvg);
-    const avg = parseFloat((sumScore / total).toFixed(2));
+    let scored = 0;
+    processedAcademicRoster.forEach(s => {
+      if (s.overallAvg !== null && s.overallAvg !== undefined) { sumScore += s.overallAvg; scored++; }
+    });
+    const avg = scored > 0 ? parseFloat((sumScore / scored).toFixed(2)) : 0;
 
     const dist = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
     processedAcademicRoster.forEach(s => {
@@ -393,10 +451,10 @@ export default function ReportsHub({
       else if (s.gradeLetter === 'C') dist.C++;
       else if (s.gradeLetter === 'D') dist.D++;
       else if (s.gradeLetter === 'E') dist.E++;
-      else dist.F++;
+      else if (s.gradeLetter === 'F') dist.F++; // '-' (no scores) is not counted as a fail
     });
 
-    return { total, female, male, pass, fail, avg, dist };
+    return { total, female, male, pass, fail, scored: scoredResults, avg, dist };
   }, [processedAcademicRoster]);
 
   // Subject averages + per-subject A–F headcount for report presentation.
@@ -404,7 +462,15 @@ export default function ReportsHub({
     const total = processedAcademicRoster.length;
     if (total === 0) return [];
 
-    const SUBJECT_DEFS: { key: string; name: string; color: string }[] = [
+    // After-hours classes report on their own criteria (English/Health); general
+    // classes report on the standard subjects. The values are read from the
+    // matching map on each roster row (customSubjects vs subjects).
+    const CUSTOM_COLORS = [
+      'from-blue-500 to-indigo-500', 'from-cyan-500 to-blue-500', 'from-amber-500 to-orange-500',
+      'from-indigo-500 to-purple-500', 'from-teal-500 to-emerald-500', 'from-pink-500 to-rose-500',
+      'from-emerald-500 to-emerald-600', 'from-violet-500 to-purple-650',
+    ];
+    const GENERAL_DEFS: { key: string; name: string; color: string }[] = [
       { key: 'khmer', name: 'ភាសាខ្មែរ', color: 'from-blue-500 to-indigo-500' },
       { key: 'math', name: 'គណិតវិទ្យា', color: 'from-cyan-500 to-blue-500' },
       { key: 'science', name: 'វិទ្យាសាស្ត្រ', color: 'from-amber-500 to-orange-500' },
@@ -414,13 +480,18 @@ export default function ReportsHub({
       { key: 'lifeSkills', name: 'បំណិនជីវិត', color: 'from-emerald-500 to-emerald-600' },
       { key: 'foreignLanguage', name: 'ភាសាបរទេស', color: 'from-violet-500 to-purple-650' }
     ];
+    const useCustom = !!reportCustomSubjects;
+    const SUBJECT_DEFS = useCustom
+      ? reportCustomSubjects!.map((s, i) => ({ key: s.key, name: s.km, color: CUSTOM_COLORS[i % CUSTOM_COLORS.length] }))
+      : GENERAL_DEFS;
 
     return SUBJECT_DEFS.map(def => {
       let sum = 0;
       let count = 0;
       const dist: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
       processedAcademicRoster.forEach(s => {
-        const v = (s.subjects as any)[def.key];
+        const source = useCustom ? (s.customSubjects || {}) : s.subjects;
+        const v = (source as any)[def.key];
         if (v !== null && v !== undefined) {
           sum += v;
           count++;
@@ -432,7 +503,7 @@ export default function ReportsHub({
       // avg = mean of sub-subjects; letter = the band of that mean; dist = headcount per band.
       return { name: def.name, avg, letter: count > 0 ? scoreToLetter(avg) : '-', color: def.color, dist, count };
     });
-  }, [processedAcademicRoster]);
+  }, [processedAcademicRoster, reportCustomSubjects]);
 
   // Top students podium list
   const topStudents = useMemo(() => {
@@ -857,7 +928,7 @@ export default function ReportsHub({
                   <div>
                     <p className="text-[10px] text-slate-400 font-semibold font-serif leading-none">អត្រាប្រឡងជាប់</p>
                     <h4 className="text-base font-bold text-emerald-600 font-mono mt-1">
-                      {((reportStats.pass / reportStats.total) * 100).toFixed(0)}%
+                      {reportStats.scored > 0 ? ((reportStats.pass / reportStats.scored) * 100).toFixed(0) : 0}%
                     </h4>
                     <p className="text-[9px] text-slate-400 mt-0.5">សរុបជាប់ {reportStats.pass} នាក់</p>
                   </div>
@@ -870,7 +941,7 @@ export default function ReportsHub({
                   <div>
                     <p className="text-[10px] text-slate-400 font-semibold font-serif leading-none">អត្រាធ្លាក់</p>
                     <h4 className="text-base font-bold text-rose-500 font-mono mt-1">
-                      {((reportStats.fail / reportStats.total) * 100).toFixed(0)}%
+                      {reportStats.scored > 0 ? ((reportStats.fail / reportStats.scored) * 100).toFixed(0) : 0}%
                     </h4>
                     <p className="text-[9px] text-slate-400 mt-0.5">សរុបធ្លាក់ {reportStats.fail} នាក់</p>
                   </div>
