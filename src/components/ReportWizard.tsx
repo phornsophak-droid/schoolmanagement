@@ -28,11 +28,10 @@ import {
   StrugglingStudent, 
   ChallengeItem, 
   StudentScore,
-  SchoolUser,
-  isEnglishClass
+  SchoolUser
 } from '../types';
 import { generateUniqueId } from '../mockData';
-import EnglishClassReport from './EnglishClassReport';
+import ClassReport, { getReportTemplate } from './ClassReport';
 
 interface ReportWizardProps {
   onSaveReport: (report: SchoolReport) => void;
@@ -463,9 +462,10 @@ export default function ReportWizard({
     setSubjectEvals(updated);
   };
 
-  // English classes use the dedicated English Class Report template instead of
-  // the generic 6-step monthly-report wizard.
-  if (isEnglishClass(grade)) {
+  // Classes with a dedicated report template (English, Sports...) use that
+  // fillable template instead of the generic 6-step monthly-report wizard.
+  const reportTemplate = getReportTemplate(grade);
+  if (reportTemplate) {
     return (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="bg-slate-50/50 p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-end justify-between gap-4 print:hidden">
@@ -501,7 +501,8 @@ export default function ReportWizard({
           </button>
         </div>
         <div className="p-6">
-          <EnglishClassReport
+          <ClassReport
+            template={reportTemplate}
             students={students}
             grade={grade}
             period={month}

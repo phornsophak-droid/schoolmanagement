@@ -26,7 +26,7 @@ import {
 import { SchoolReport, StudentScore, SchoolUser, getCustomSubjects } from '../types';
 import { motion } from 'motion/react';
 import ReportWizard from './ReportWizard';
-import EnglishClassReport from './EnglishClassReport';
+import ClassReport, { getReportTemplate } from './ClassReport';
 
 interface ReportsHubProps {
   reports: SchoolReport[];
@@ -785,8 +785,9 @@ export default function ReportsHub({
       {activeTab === 'academic' && (
         <div className="space-y-6">
 
-          {showEnglishTemplate ? (
-            <EnglishClassReport
+          {showEnglishTemplate && getReportTemplate(selectedGrade) ? (
+            <ClassReport
+              template={getReportTemplate(selectedGrade)!}
               students={students}
               grade={selectedGrade}
               period={selectedPeriod}
@@ -825,13 +826,13 @@ export default function ReportsHub({
               </div>
 
               <div className="flex items-center gap-2">
-                {classCategory === 'extra' && selectedGrade.includes('អង់គ្លេស') && (
+                {classCategory === 'extra' && getReportTemplate(selectedGrade) && (
                   <button
                     onClick={() => setShowEnglishTemplate(true)}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-indigo-500/10 transition-colors"
                   >
                     <FileText size={13} />
-                    គម្រូរបាយការណ៍ (English Report)
+                    គម្រូរបាយការណ៍
                   </button>
                 )}
                 <button
