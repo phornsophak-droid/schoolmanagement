@@ -17,13 +17,17 @@ type Block =
   | { kind: 'attendance'; num: string; title: string; totalLabel: string; avgLabel: string; absenceLabel?: string; rateLabel: string; commentsLabel: string }
   | { kind: 'studyResult'; num: string; title: string; commentsLabel: string }
   | { kind: 'text'; num: string; title: string; label?: string; field: string; default?: string; rows?: number }
-  | { kind: 'progress'; num: string; title: string; strengthsLabel: string; improvementsLabel: string; defaultStrengths?: string; defaultImprovements?: string };
+  | { kind: 'progress'; num: string; title: string; strengthsLabel: string; improvementsLabel: string; defaultStrengths?: string; defaultImprovements?: string }
+  | { kind: 'multiText'; num: string; title: string; items: { label: string; field: string; rows?: number }[] }
+  | { kind: 'levelTable'; valueHeader: string; rows: { label: string; field: string }[] };
 
 export interface ReportTemplate {
   key: string;
   title: string;
   subtitle?: string;
   aggregateKeyword?: string; // when the base label is chosen, aggregate all sections sharing this keyword
+  showHeaderTotal?: boolean; // show the auto student count in the header
+  signatureStyle?: 'simple' | 'approval';
   blocks: Block[];
 }
 
@@ -67,11 +71,44 @@ const SPORTS_TEMPLATE: ReportTemplate = {
   ],
 };
 
+// Art after-hours class report (all Khmer; competency-level table instead of A-F).
+const ART_TEMPLATE: ReportTemplate = {
+  key: 'art',
+  title: 'របាយការណ៍សកម្មភាព និងលទ្ធផលសិក្សាថ្នាក់គំនូរ',
+  subtitle: 'Art Class Activity & Result Report',
+  showHeaderTotal: true,
+  signatureStyle: 'approval',
+  blocks: [
+    { kind: 'multiText', num: '១', title: 'សេចក្តីផ្តើម និងគោលបំណង (Introduction & Objectives)', items: [
+      { label: 'សេចក្តីផ្តើម៖', field: 'introduction', rows: 2 },
+      { label: 'គោលបំណង៖', field: 'objectives', rows: 3 },
+    ]},
+    { kind: 'text', num: '២', title: 'ខ្លឹមសារមេរៀន និងសកម្មភាពអនុវត្ត (Key Activities)', field: 'activities', rows: 4 },
+    { kind: 'multiText', num: '៣', title: 'លទ្ធផល និងវឌ្ឍនភាពរបស់សិស្ស (Results & Progress)', items: [
+      { label: 'ការចូលរួម៖', field: 'participation', rows: 2 },
+      { label: 'ជំនាញបច្ចេកទេស៖', field: 'techSkills', rows: 2 },
+      { label: 'ភាពច្នៃប្រឌិត៖', field: 'creativity', rows: 2 },
+    ]},
+    { kind: 'levelTable', valueHeader: 'កម្រិតសមត្ថភាព / ការវាយតម្លៃ', rows: [
+      { label: 'កម្រិតខ្ពស់ (ពូកែ និងមានគំនិតច្នៃប្រឌិតខ្ពស់)', field: 'levelHigh' },
+      { label: 'កម្រិតមធ្យម (យល់បច្ចេកទេស និងគូរបានល្អ)', field: 'levelMid' },
+      { label: 'កម្រិតមូលដ្ឋាន (ត្រូវការការណែនាំបន្ថែម)', field: 'levelBasic' },
+    ]},
+    { kind: 'multiText', num: '៤', title: 'បញ្ហាប្រឈម និងដំណោះស្រាយ (Challenges & Solutions)', items: [
+      { label: 'បញ្ហាប្រឈម៖', field: 'challenges', rows: 2 },
+      { label: 'ដំណោះស្រាយ៖', field: 'solutions', rows: 2 },
+    ]},
+    { kind: 'text', num: '៥', title: 'ទិសដៅអនុវត្តបន្ត (Future Plans)', field: 'futurePlans', rows: 3 },
+    { kind: 'text', num: '៦', title: 'សេចក្តីសន្និដ្ឋាន (Conclusion)', field: 'conclusion', rows: 3 },
+  ],
+};
+
 // Return the report template that fits a class, or null if it uses the default report.
 export function getReportTemplate(grade: string): ReportTemplate | null {
   const g = grade || '';
   if (g.includes('អង់គ្លេស')) return ENGLISH_TEMPLATE;
   if (g.includes('កីឡា') || g.includes('អប់រំកាយ')) return SPORTS_TEMPLATE;
+  if (g.includes('គំនូរ')) return ART_TEMPLATE;
   return null;
 }
 
@@ -107,6 +144,8 @@ export default function ClassReport({ template, students, grade, period, teacher
     template.blocks.forEach(b => {
       if (b.kind === 'text') d[b.field] = b.default || '';
       if (b.kind === 'progress') { d.strengths = b.defaultStrengths || ''; d.improvements = b.defaultImprovements || ''; }
+      if (b.kind === 'multiText') b.items.forEach(it => { d[it.field] = ''; });
+      if (b.kind === 'levelTable') b.rows.forEach(r => { d[`${r.field}Count`] = ''; d[`${r.field}Pct`] = ''; });
     });
     return d;
   }, [template]);
@@ -194,6 +233,9 @@ export default function ClassReport({ template, students, grade, period, teacher
             <span className="font-bold whitespace-nowrap">កាលបរិច្ឆេទ៖</span>
             <input value={fields.date} onChange={e => update('date', e.target.value)} className={`${lineInput} w-40`} />
           </div>
+          {template.showHeaderTotal && (
+            <div className="flex gap-2"><span className="font-bold whitespace-nowrap">ចំនួនសិស្សសរុប៖</span><span className="font-bold">{stats.total} នាក់</span></div>
+          )}
         </div>
 
         {template.blocks.map(block => {
@@ -238,6 +280,48 @@ export default function ClassReport({ template, students, grade, period, teacher
               </div>
             );
           }
+          if (block.kind === 'multiText') {
+            return (
+              <div key={block.num}>
+                <SectionTitle n={block.num} title={block.title} />
+                {block.items.map(it => (
+                  <div key={it.field}>
+                    <FieldArea label={it.label} value={fields[it.field] ?? ''} onChange={v => update(it.field, v)} rows={it.rows || 2} />
+                  </div>
+                ))}
+              </div>
+            );
+          }
+          if (block.kind === 'levelTable') {
+            const totalCount = block.rows.reduce((sum, r) => sum + (parseFloat(fields[`${r.field}Count`] || '') || 0), 0);
+            return (
+              <table key="levelTable" className="w-full border-collapse text-[13px] mb-4 mt-1">
+                <thead>
+                  <tr className="bg-slate-700 text-white">
+                    <th className="border border-slate-300 px-2 py-2 w-12 font-bold">ល.រ</th>
+                    <th className="border border-slate-300 px-2 py-2 text-left font-bold">{block.valueHeader}</th>
+                    <th className="border border-slate-300 px-2 py-2 w-32 font-bold">ចំនួនសិស្ស (នាក់)</th>
+                    <th className="border border-slate-300 px-2 py-2 w-24 font-bold">ភាគរយ (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.rows.map((r, i) => (
+                    <tr key={r.field}>
+                      <td className="border border-slate-300 px-2 py-2 text-center">{['១', '២', '៣', '៤', '៥'][i] || i + 1}</td>
+                      <td className="border border-slate-300 px-2 py-2">{r.label}</td>
+                      <td className="border border-slate-300 px-2 py-2 text-center"><input value={fields[`${r.field}Count`] ?? ''} onChange={e => update(`${r.field}Count`, e.target.value)} className={`${lineInput} w-16 text-center`} /></td>
+                      <td className="border border-slate-300 px-2 py-2 text-center"><input value={fields[`${r.field}Pct`] ?? ''} onChange={e => update(`${r.field}Pct`, e.target.value)} className={`${lineInput} w-12 text-center`} /></td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-50 font-bold">
+                    <td className="border border-slate-300 px-2 py-2 text-center" colSpan={2}>សរុប</td>
+                    <td className="border border-slate-300 px-2 py-2 text-center">{totalCount || '—'}</td>
+                    <td className="border border-slate-300 px-2 py-2 text-center">១០០%</td>
+                  </tr>
+                </tbody>
+              </table>
+            );
+          }
           // text
           return (
             <div key={block.num}>
@@ -248,15 +332,31 @@ export default function ClassReport({ template, students, grade, period, teacher
         })}
 
         {/* Signature */}
-        <div className="grid grid-cols-2 gap-8 mt-10 text-[13px]">
-          <div className="space-y-1">
-            <p><span className="font-bold">ឈ្មោះគ្រូ៖</span> {teacherName || '__________________'}</p>
-            <p className="pt-6"><span className="font-bold">ហត្ថលេខា៖</span> __________________</p>
+        {template.signatureStyle === 'approval' ? (
+          <div className="grid grid-cols-2 gap-8 mt-12 text-[13px] text-center">
+            <div className="space-y-1">
+              <p className="font-bold">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</p>
+              <p className="font-bold">នាយកសាលា/ប្រធានស្ថាប័ន</p>
+              <p className="text-slate-400 pt-12">(ហត្ថលេខា និងឈ្មោះ)</p>
+            </div>
+            <div className="space-y-1">
+              <p>ថ្ងៃ.......... ខែ.......... ឆ្នាំ២០....</p>
+              <p className="font-bold">អ្នកធ្វើរបាយការណ៍</p>
+              <p className="font-bold">គ្រូបង្រៀន {teacherName ? `៖ ${teacherName}` : ''}</p>
+              <p className="text-slate-400 pt-8">(ហត្ថលេខា និងឈ្មោះ)</p>
+            </div>
           </div>
-          <div className="text-right space-y-1">
-            <p className="pt-6"><span className="font-bold">កាលបរិច្ឆេទ៖</span> {fields.date}</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-8 mt-10 text-[13px]">
+            <div className="space-y-1">
+              <p><span className="font-bold">ឈ្មោះគ្រូ៖</span> {teacherName || '__________________'}</p>
+              <p className="pt-6"><span className="font-bold">ហត្ថលេខា៖</span> __________________</p>
+            </div>
+            <div className="text-right space-y-1">
+              <p className="pt-6"><span className="font-bold">កាលបរិច្ឆេទ៖</span> {fields.date}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
