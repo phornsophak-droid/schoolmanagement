@@ -77,7 +77,12 @@ export default function EnglishClassReport({ students, grade, period, teacherNam
   // Auto-computed roster stats for this class: unique students + A–F distribution
   // from each student's mean score across the available records.
   const stats = useMemo(() => {
-    const recs = students.filter(s => s.grade === grade);
+    // When given the whole-subject label (e.g. the monthly-report wizard passes
+    // "ថ្នាក់ភាសាអង់គ្លេស"), aggregate every English section; otherwise match the
+    // exact section the academic tab selected.
+    const baseLabels = ['ថ្នាក់ភាសាអង់គ្លេស', 'ថ្នាក់ភាសាអង់គ្លេស (រួម)'];
+    const aggregate = baseLabels.includes(grade.trim());
+    const recs = students.filter(s => aggregate ? s.grade.includes('អង់គ្លេស') : s.grade === grade);
     const byStudent = new Map<string, number[]>();
     recs.forEach(s => {
       const key = `${s.name.trim()}_${s.gender}`;
