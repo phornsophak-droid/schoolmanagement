@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 
 import { StudentScore, SchoolReport, SchoolUser } from './types';
-import { initialStudents, initialReports, calculateStudentFields } from './mockData';
+import { initialStudents, initialReports, calculateStudentFields, studentRecordId } from './mockData';
 import { 
   getSupabaseConfig, 
   getSupabaseClient, 
@@ -230,7 +230,12 @@ export default function App() {
         if (!existing) { best.set(key, s); order.push(key); }
         else if (recordRichness(s) > recordRichness(existing)) { best.set(key, s); }
       });
-      return order.map(k => best.get(k));
+      // Stamp each record with its deterministic id so the same student maps to
+      // the same row on every device and can never accumulate duplicate copies.
+      return order.map(k => {
+        const s = best.get(k);
+        return { ...s, id: studentRecordId(s.name, s.gender, s.grade, s.month) };
+      });
     };
 
     // Apply a cloud fetch to the student list — but never let an incomplete cloud
@@ -695,6 +700,15 @@ export default function App() {
 
   // 4. Sync Mutated States to LocalStorage & Supabase Cloud
   const handleSaveStudents = async (updatedList: StudentScore[]) => {
+    // Re-stamp every record with its deterministic id (name+gender+grade+month)
+    // so duplicates can never be created in the cloud. If a student's name/class
+    // was edited, the id changes too, so the old row is treated as deleted below
+    // and removed — keeping the cloud clean instead of leaving an orphan copy.
+    updatedList = updatedList.map(s => ({
+      ...s,
+      id: studentRecordId(s.name, s.gender, (s as any).grade, (s as any).month),
+    }));
+
     const deletedStudentIds = students
       .filter(prevS => !updatedList.some(currS => currS.id === prevS.id))
       .map(prevS => prevS.id);

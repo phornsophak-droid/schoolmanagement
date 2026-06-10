@@ -24,6 +24,23 @@ export function generateUniqueId(): string {
   });
 }
 
+// Deterministic id for a student score record, derived from its natural key
+// (name + gender + grade + month). The SAME student always maps to the SAME id
+// on every device, so cloud upserts overwrite in place and can never pile up
+// duplicate rows. Must stay byte-for-byte identical to the cloud-dedupe script.
+export function studentRecordId(name: string, gender: string, grade: string, month: string): string {
+  const key = [name, gender, grade, month]
+    .map(x => (x ?? '').toString().trim().toLowerCase().replace(/\s+/g, ' '))
+    .join('|');
+  const h = (seed: number): string => {
+    let v = seed >>> 0;
+    for (let i = 0; i < key.length; i++) { v ^= key.charCodeAt(i); v = Math.imul(v, 16777619) >>> 0; }
+    return ('00000000' + (v >>> 0).toString(16)).slice(-8);
+  };
+  const hex = h(0x811c9dc5) + h(0x01000193) + h(0xdeadbeef) + h(0xcafebabe);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
 // Calculate nested average and other properties for student scores
 export function calculateStudentFields(
   student: Omit<StudentScore, 'khmerAvg' | 'mathAvg' | 'overallAvg' | 'totalScore' | 'gradeLetter' | 'result'>
