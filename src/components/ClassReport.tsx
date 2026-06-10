@@ -7,6 +7,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Printer, X } from 'lucide-react';
 import { StudentScore } from '../types';
 import HealthClinicReport from './HealthClinicReport';
+import GeneralClassReport from './GeneralClassReport';
 
 const SCHOOL_NAME = 'សាលាសហគមន៍ច្បារច្រុះ';
 
@@ -112,6 +113,19 @@ const HEALTH_TEMPLATE: ReportTemplate = {
   blocks: [],
 };
 
+// General-knowledge classes (មត្តេយ្យ–ទី៦) use a bespoke monthly report rendered
+// by GeneralClassReport; only the key is needed to route to it.
+const GENERAL_TEMPLATE: ReportTemplate = {
+  key: 'general',
+  title: 'របាយការណ៍ប្រចាំខែថ្នាក់ចំណេះដឹងទូទៅ',
+  blocks: [],
+};
+
+// After-hours subject keywords. A class matching one of these but with no
+// bespoke template (e.g. Computer) keeps the generic wizard rather than the
+// general-knowledge report.
+const EXTRA_KEYWORDS = ['អង់គ្លេស', 'អប់រំសុខភាព', 'កីឡា', 'អប់រំកាយ', 'គំនូរ', 'កុំព្យូទ័រ'];
+
 // Return the report template that fits a class, or null if it uses the default report.
 export function getReportTemplate(grade: string): ReportTemplate | null {
   const g = grade || '';
@@ -119,7 +133,8 @@ export function getReportTemplate(grade: string): ReportTemplate | null {
   if (g.includes('អប់រំសុខភាព')) return HEALTH_TEMPLATE;
   if (g.includes('កីឡា') || g.includes('អប់រំកាយ')) return SPORTS_TEMPLATE;
   if (g.includes('គំនូរ')) return ART_TEMPLATE;
-  return null;
+  if (EXTRA_KEYWORDS.some(k => g.includes(k))) return null; // other after-hours class → wizard
+  return GENERAL_TEMPLATE; // general-knowledge classes
 }
 
 // ===========================================================================
@@ -208,6 +223,10 @@ export default function ClassReport({ template, students, grade, period, teacher
   // The Health class has a bespoke clinic form rather than the block layout.
   if (template.key === 'health') {
     return <HealthClinicReport grade={grade} period={period} teacherName={teacherName} onClose={onClose} />;
+  }
+  // General-knowledge classes use their own statistics-rich monthly report.
+  if (template.key === 'general') {
+    return <GeneralClassReport students={students} grade={grade} period={period} teacherName={teacherName} onClose={onClose} />;
   }
 
   const lineInput = 'border-b border-slate-300 outline-none focus:border-blue-500 bg-transparent px-1';
