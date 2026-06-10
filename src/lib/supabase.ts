@@ -319,16 +319,34 @@ export function mapDBToTeacherAttendance(db: any): any {
   };
 }
 
+// Fetch every row of a table, paging past PostgREST's 1000-row response cap.
+// Without this, tables with more than 1000 rows return only the first page,
+// so students beyond row 1000 silently vanish and re-saved data "reverts".
+async function fetchAllRows(supabase: SupabaseClient, table: string) {
+  const pageSize = 1000;
+  let from = 0;
+  let all: any[] = [];
+  for (;;) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
 // 5. Database Interaction Module API
 export async function syncFetchAll() {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase client is not configured');
 
-  // Fetch student scores
-  const { data: rawScores, error: scoresErr } = await supabase
-    .from('student_scores')
-    .select('*');
-  if (scoresErr) throw scoresErr;
+  // Fetch student scores (paginated — there can be far more than 1000 rows)
+  const rawScores = await fetchAllRows(supabase, 'student_scores');
 
   // Fetch school reports
   const { data: rawReports, error: reportsErr } = await supabase

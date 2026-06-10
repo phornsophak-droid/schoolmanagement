@@ -206,19 +206,31 @@ export default function App() {
       localStorage.setItem('school_grades_v2', JSON.stringify(defaultGradesList));
     }
 
-    // Remove only TRUE duplicates in Grade 6 (same student, same month). The key
-    // must include the month — otherwise every month's record except the first is
-    // dropped, making Grade 6 students vanish from the months being viewed.
+    // Collapse duplicate records for the same student (same name+gender+grade+month).
+    // The cloud can accumulate many copies of one student because each import/save
+    // used a fresh random id; without this the same name shows up several times and
+    // counts are wrong. The key must include grade (general vs after-hours classes
+    // are separate records) and month (each month is its own record). When copies
+    // exist we keep the one carrying the most data (filled-in scores / a group).
+    const recordRichness = (s: any) => {
+      let n = 0;
+      if (s.group) n++;
+      const vals = [s.science, s.socialStudies, s.physicalEducation, s.health, s.lifeSkills, s.foreignLanguage];
+      vals.forEach(v => { if (v !== null && v !== undefined && v !== '') n++; });
+      ['khmer', 'math'].forEach(k => { const o = s[k]; if (o) Object.values(o).forEach(v => { if (v !== null && v !== undefined && v !== '') n++; }); });
+      if (s.englishScores) n += Object.keys(s.englishScores).length;
+      return n;
+    };
     const deduplicateStudents = (students: StudentScore[]) => {
-      const seen = new Set<string>();
-      return students.map((s: any) => calculateStudentFields(s)).filter(s => {
-        if (s.grade === 'ថ្នាក់ទី ៦' || s.grade === 'ថ្នាក់ទី៦') {
-          const key = `${s.name}_${s.gender}_${s.month}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-        }
-        return true;
+      const best = new Map<string, any>();
+      const order: string[] = [];
+      students.map((s: any) => calculateStudentFields(s)).forEach((s: any) => {
+        const key = `${s.name}_${s.gender}_${s.grade}_${s.month}`;
+        const existing = best.get(key);
+        if (!existing) { best.set(key, s); order.push(key); }
+        else if (recordRichness(s) > recordRichness(existing)) { best.set(key, s); }
       });
+      return order.map(k => best.get(k));
     };
 
     // Apply a cloud fetch to the student list — but never let an incomplete cloud
@@ -228,7 +240,7 @@ export default function App() {
       if (factoryResetRef.current) return; // a wipe is in progress; ignore cloud data
       const deduped = deduplicateStudents(rawStudents);
       let localPrev: StudentScore[] = [];
-      try { localPrev = JSON.parse(localStorage.getItem('school_student_scores_v2') || '[]'); } catch { /* ignore */ }
+      try { localPrev = deduplicateStudents(JSON.parse(localStorage.getItem('school_student_scores_v2') || '[]')); } catch { /* ignore */ }
       if (localPrev.length > 20 && deduped.length < localPrev.length * 0.8) {
         console.warn(`Cloud student count (${deduped.length}) far below local (${localPrev.length}); keeping local and re-pushing to cloud.`);
         setStudents(localPrev);
@@ -237,9 +249,6 @@ export default function App() {
       }
       setStudents(deduped);
       localStorage.setItem('school_student_scores_v2', JSON.stringify(deduped));
-      if (deduped.length !== rawStudents.length) {
-        syncUpsertStudentsBulk(deduped).catch(console.error);
-      }
     };
 
     // Student Scores Hydration
