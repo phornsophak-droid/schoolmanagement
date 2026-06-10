@@ -129,8 +129,8 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
             <tr className="bg-slate-700 text-white">
               <th className="border border-slate-300 px-2 py-2">សប្តាហ៍</th>
               <th className="border border-slate-300 px-2 py-2">ចំនួនសិស្ស (នាក់)</th>
-              <th className="border border-slate-300 px-2 py-2">ចំនួនអ្នកភ្ញៀវ (នាក់)</th>
-              <th className="border border-slate-300 px-2 py-2">ករណីសង្គ្រោះបន្ទាន់ (ដង)</th>
+              <th className="border border-slate-300 px-2 py-2">ចំនួនអ្នកភូមិ (នាក់)</th>
+              <th className="border border-slate-300 px-2 py-2">ករណីបញ្ជូនបន្ត (ដង)</th>
               <th className="border border-slate-300 px-2 py-2">កត់សម្គាល់</th>
             </tr>
           </thead>
@@ -157,6 +157,9 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
           </tbody>
         </table>
 
+        <p className="mb-1">• ចំនួនករណីដែលសិស្សមានបញ្ហាសុខភាព ក្នុងអំឡុងពេលអ្នកអវត្តមាន <LineInput value={v('absentCases')} onChange={x => set('absentCases', x)} w="w-24" /> នាក់។</p>
+        <p className="mb-3">ដំណោះស្រាយ៖ <LineInput value={v('absentSolution')} onChange={x => set('absentSolution', x)} w="w-[70%]" /></p>
+
         {/* 3. Health education & teeth brushing */}
         <SectionTitle title="៣. ការអប់រំសុខភាព និងការដុសធ្មេញ (ថ្នាក់ទី ១-៦)" />
         <p className="mb-2">• ការអប់រំសុខភាព៖ <CheckBox checked={f.healthEdu === 'all'} onClick={() => set('healthEdu', 'all')} label="បានគ្រប់ថ្នាក់" /> <CheckBox checked={f.healthEdu === 'incomplete'} onClick={() => set('healthEdu', 'incomplete')} label="មិនគ្រប់" /> (ខកខានថ្នាក់៖ <LineInput value={v('healthEduMissed')} onChange={x => set('healthEduMissed', x)} w="w-32" />)</p>
@@ -168,7 +171,9 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
 
         {/* 4. Community outreach */}
         <SectionTitle title="៤. ការផ្សព្វផ្សាយដល់សហគមន៍" />
-        <p className="mb-2">• វិធីផ្សព្វផ្សាយទៅអ្នកភ្ញៀវ៖ <CheckBox checked={!!f.outPhone} onClick={() => toggle('outPhone')} label="ទូរស័ព្ទ" /> <CheckBox checked={!!f.outStudent} onClick={() => toggle('outStudent')} label="ប្រាប់តាមសិស្ស" /> <CheckBox checked={!!f.outVillage} onClick={() => toggle('outVillage')} label="តាមរយៈមេភូមិ" /> <CheckBox checked={!!f.outOther} onClick={() => toggle('outOther')} label="ផ្សេងៗ" /></p>
+        <p className="mb-2">• វិធីផ្សព្វផ្សាយទៅអ្នកភូមិ៖ <CheckBox checked={!!f.outPhone} onClick={() => toggle('outPhone')} label="ទូរស័ព្ទ" /> <CheckBox checked={!!f.outStudent} onClick={() => toggle('outStudent')} label="ប្រាប់តាមសិស្ស" /> <CheckBox checked={!!f.outVillage} onClick={() => toggle('outVillage')} label="តាមរយៈមេភូមិ" /> <CheckBox checked={!!f.outOther} onClick={() => toggle('outOther')} label="ផ្សេងៗ" /></p>
+        <p className="mb-1">• បន្ថែមករណីអ្នកជំងឺមកខុសពេល <LineInput value={v('wrongTimeCases')} onChange={x => set('wrongTimeCases', x)} w="w-24" /> នាក់។</p>
+        <p className="mb-3">ដំណោះស្រាយ៖ <LineInput value={v('wrongTimeSolution')} onChange={x => set('wrongTimeSolution', x)} w="w-[70%]" /></p>
         <p className="mb-1">• យោបល់៖</p>
         <TextBox value={v('outreachComments')} onChange={x => set('outreachComments', x)} rows={2} />
 
