@@ -39,6 +39,16 @@ export const DRAWING_SUBJECTS: { key: string; km: string }[] = [
 // True when a class name belongs to the Drawing after-hours subject.
 export const isDrawingClass = (grade: string) => (grade || '').includes('គំនូរ');
 
+// The 4 scoring criteria for the after-hours Computer class (each 0-10).
+export const COMPUTER_SUBJECTS: { key: string; km: string }[] = [
+  { key: 'practicalSkills', km: 'ជំនាញអនុវត្ត' },
+  { key: 'homework', km: 'កិច្ចការផ្ទះ' },
+  { key: 'discipline', km: 'វិន័យ' },
+  { key: 'attendance', km: 'វត្តមាន' },
+];
+// True when a class name belongs to the Computer after-hours subject.
+export const isComputerClass = (grade: string) => (grade || '').includes('កុំព្យូទ័រ');
+
 // Classes that score on their own custom criteria instead of the general subjects.
 // The scores are stored in StudentScore.englishScores (a generic key→score map) and
 // the overall average is the mean of the entered criteria.
@@ -46,6 +56,7 @@ export const getCustomSubjects = (grade: string): { key: string; km: string }[] 
   if (isEnglishClass(grade)) return ENGLISH_SUBJECTS.map(s => ({ key: s.key, km: s.km }));
   if (isHealthClass(grade)) return HEALTH_SUBJECTS;
   if (isDrawingClass(grade)) return DRAWING_SUBJECTS;
+  if (isComputerClass(grade)) return COMPUTER_SUBJECTS;
   return null;
 };
 
