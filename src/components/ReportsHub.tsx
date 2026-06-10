@@ -26,6 +26,7 @@ import {
 import { SchoolReport, StudentScore, SchoolUser, getCustomSubjects } from '../types';
 import { motion } from 'motion/react';
 import ReportWizard from './ReportWizard';
+import EnglishClassReport from './EnglishClassReport';
 
 interface ReportsHubProps {
   reports: SchoolReport[];
@@ -113,6 +114,9 @@ export default function ReportsHub({
   const teacherLocked = isTeacher && teacherGrade !== '' && teacherGrade !== 'ទាំងអស់';
   const isExtraTeacher = teacherLocked && isExtraClass(teacherGrade);
   const isGeneralTeacher = teacherLocked && !isExtraTeacher;
+
+  // When set, the academic tab shows the fillable English/after-hours report template.
+  const [showEnglishTemplate, setShowEnglishTemplate] = useState(false);
 
   // Academic Report filters state
   const [scopeType, setScopeType] = useState<'class' | 'combined'>('class');
@@ -574,6 +578,7 @@ export default function ReportsHub({
             setClassCategory('general');
             setSelectedGrade(gradesList.find(g => !isExtraClass(g)) || '');
             setProgressSearchGrade('ទាំងអស់');
+            setShowEnglishTemplate(false);
           }}
           className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
         >
@@ -780,6 +785,16 @@ export default function ReportsHub({
       {activeTab === 'academic' && (
         <div className="space-y-6">
 
+          {showEnglishTemplate ? (
+            <EnglishClassReport
+              students={students}
+              grade={selectedGrade}
+              period={selectedPeriod}
+              teacherName={currentUser?.name}
+              onClose={() => setShowEnglishTemplate(false)}
+            />
+          ) : (
+          <>
           {/* PRINT-ONLY HEADER BANNER */}
           <div className="hidden print:block text-center space-y-1.5 relative select-none pb-4 border-b border-slate-200">
             <h3 className="font-bold text-slate-800 text-md tracking-wide">ព្រះរាជាណាចក្រកម្ពុជា</h3>
@@ -810,6 +825,15 @@ export default function ReportsHub({
               </div>
 
               <div className="flex items-center gap-2">
+                {classCategory === 'extra' && selectedGrade.includes('អង់គ្លេស') && (
+                  <button
+                    onClick={() => setShowEnglishTemplate(true)}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-indigo-500/10 transition-colors"
+                  >
+                    <FileText size={13} />
+                    គម្រូរបាយការណ៍ (English Report)
+                  </button>
+                )}
                 <button
                   onClick={handlePrintAcademicReport}
                   className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-slate-900/10 transition-colors"
@@ -1243,6 +1267,8 @@ export default function ReportsHub({
               <p className="text-sm font-medium">មិនមានទិន្នន័យពិន្ទុណាមួយដើម្បីចងក្រងរបាយការណ៍លទ្ធផលសិក្សាសិស្សក្នុងថ្នាក់/រយៈពេលនេះបានឡើយ។</p>
               <p className="text-xs text-slate-400 mt-1">សូមទៅកាន់ «តារាងពិន្ទុសិស្ស» ដើម្បីបញ្ចូលពិន្ទុ និងមធ្យមភាគសិស្សជាមុនសិន។</p>
             </div>
+          )}
+          </>
           )}
         </div>
       )}
