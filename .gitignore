@@ -10,3 +10,7 @@ coverage/
 # Local-only tooling and personal helper scripts
 .claude/
 Push to GitHub.bat
+
+# One-off maintenance backups/scripts (cloud dedupe, etc.)
+_backup_*.json
+_*.mjs
