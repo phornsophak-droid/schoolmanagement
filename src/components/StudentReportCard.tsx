@@ -227,7 +227,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
             </div>
             <div>
               <p>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
-              <p className="font-bold pt-1">គ្រូ ឬឪពុកម្តាយទទួលថ្នាក់</p>
+              <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
               {signature ? (
                 <img src={signature} alt="ហត្ថលេខាគ្រូ" className="h-16 mx-auto object-contain mt-1" />
               ) : (
