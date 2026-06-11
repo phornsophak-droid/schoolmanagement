@@ -47,7 +47,7 @@ const gradeBand = (v: number | null | undefined): { km: string; en: string } => 
   if (v === null || v === undefined || v <= 0) return { km: '', en: '' };
   if (v > 9.5) return { km: 'ល្អប្រសើរ', en: 'A' };
   if (v > 9) return { km: 'ល្អណាស់', en: 'B' };
-  if (v > 8) return { km: 'ល្អ', en: 'B' };
+  if (v > 8) return { km: 'ល្អ', en: 'C' };
   if (v > 6.5) return { km: 'ល្អបង្គួរ', en: 'D' };
   if (v > 5) return { km: 'មធ្យម', en: 'E' };
   return { km: 'ខ្សោយ', en: 'F' };
