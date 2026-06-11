@@ -22,6 +22,7 @@ import {
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
 import StudentReportCard from './StudentReportCard';
+import SemesterReportCard from './SemesterReportCard';
 import * as XLSX from 'xlsx';
 
 interface GradebookProps {
@@ -99,6 +100,8 @@ export default function Gradebook({
 
   // The per-student monthly report card (general classes only).
   const [reportCardStudent, setReportCardStudent] = useState<StudentScore | null>(null);
+  // The per-student semester report card.
+  const [semReportStudent, setSemReportStudent] = useState<StudentScore | null>(null);
 
   // ---- Score import / template (Excel/CSV) ----
   const scoreFileRef = useRef<HTMLInputElement>(null);
@@ -1802,18 +1805,30 @@ export default function Gradebook({
                         </td>
                         
                         <td className="px-3 py-3.5 text-right">
-                          <button
-                            onClick={() => {
-                              setExamStudentName(st.name);
-                              setExamStudentGrade(st.grade);
-                              setExamStudentGender(st.gender);
-                              setExamScoreInput(st.examScore !== null ? st.examScore.toString() : '0');
-                              setIsExamFormOpen(true);
-                            }}
-                            className="px-2.5 py-1 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 hover:text-blue-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
-                          >
-                            <Edit3 size={11} /> បញ្ចូល/កែពិន្ទុ
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                const rec = students.find(s => s.name.trim() === st.name.trim() && s.grade === st.grade);
+                                if (rec) setSemReportStudent(rec);
+                              }}
+                              className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
+                              title="ព្រឹត្តបត្រឆមាស"
+                            >
+                              <FileText size={11} /> ព្រឹត្តបត្រ
+                            </button>
+                            <button
+                              onClick={() => {
+                                setExamStudentName(st.name);
+                                setExamStudentGrade(st.grade);
+                                setExamStudentGender(st.gender);
+                                setExamScoreInput(st.examScore !== null ? st.examScore.toString() : '0');
+                                setIsExamFormOpen(true);
+                              }}
+                              className="px-2.5 py-1 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 hover:text-blue-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
+                            >
+                              <Edit3 size={11} /> បញ្ចូល/កែពិន្ទុ
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1971,6 +1986,15 @@ export default function Gradebook({
           student={reportCardStudent}
           students={students}
           onClose={() => setReportCardStudent(null)}
+        />
+      )}
+
+      {semReportStudent && (
+        <SemesterReportCard
+          student={semReportStudent}
+          students={students}
+          semester={selectedSemester === '2' ? 2 : 1}
+          onClose={() => setSemReportStudent(null)}
         />
       )}
     </div>
