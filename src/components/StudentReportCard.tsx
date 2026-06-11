@@ -6,6 +6,7 @@
 import React, { useMemo } from 'react';
 import { Printer, X } from 'lucide-react';
 import { StudentScore } from '../types';
+import SchoolLogo from './SchoolLogo';
 
 interface StudentReportCardProps {
   student: StudentScore;
@@ -49,6 +50,22 @@ const gradeWord = (v: number | null | undefined): string => {
   if (v >= 6) return 'មធ្យម';
   if (v >= 5) return 'ខ្សោយ';
   return 'ខ្សោយណាស់';
+};
+// A–F letter for a 0–10 score. Blank when unscored.
+const gradeLetter = (v: number | null | undefined): string => {
+  if (v === null || v === undefined || v <= 0) return '';
+  if (v >= 9) return 'A';
+  if (v >= 8) return 'B';
+  if (v >= 7) return 'C';
+  if (v >= 6) return 'D';
+  if (v >= 5) return 'E';
+  return 'F';
+};
+// Combined និទ្ទេស cell: bold A–F letter + Khmer word.
+const GradeCell = ({ v }: { v: number | null | undefined }) => {
+  const l = gradeLetter(v);
+  if (!l) return null;
+  return <span><span className="font-bold">{l}</span> {gradeWord(v)}</span>;
 };
 const toKh = (n: number) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 
@@ -106,9 +123,12 @@ export default function StudentReportCard({ student, students, onClose }: Studen
         <div id="student-report-card" className="bg-white rounded-b-2xl shadow-xl p-8 text-slate-800 text-[12px] leading-relaxed">
 
           <div className="flex justify-between items-start mb-1">
-            <div className="text-[11px] font-semibold text-emerald-700">
-              <div className="text-base font-extrabold tracking-wide">CamKids</div>
-              <div>សាលាសហគមន៍ច្បារច្រុះ</div>
+            <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-700">
+              <SchoolLogo size={52} />
+              <div>
+                <div className="text-base font-extrabold tracking-wide">CamKids</div>
+                <div>សាលាសហគមន៍ច្បារច្រុះ</div>
+              </div>
             </div>
             <div className="text-center text-[11px]">
               <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
@@ -150,7 +170,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
                     <td className="border border-slate-300 px-2 py-0.5 text-left">{sub.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{num(val)}</td>
                     <td className="border border-slate-300 px-1 py-0.5">{rankIn(sub.get)}</td>
-                    <td className="border border-slate-300 px-1 py-0.5">{gradeWord(val)}</td>
+                    <td className="border border-slate-300 px-1 py-0.5"><GradeCell v={val} /></td>
                   </tr>
                 );
               })}
@@ -164,7 +184,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
                 <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>មធ្យមភាគ</td>
                 <td className="border border-slate-300 px-1 py-0.5 font-mono text-blue-700">{student.overallAvg !== null && student.overallAvg !== undefined ? student.overallAvg.toFixed(2) : '0.00'}</td>
                 <td className="border border-slate-300 px-1 py-0.5">{avgRank}</td>
-                <td className="border border-slate-300 px-1 py-0.5">{gradeWord(student.overallAvg)}</td>
+                <td className="border border-slate-300 px-1 py-0.5"><GradeCell v={student.overallAvg} /></td>
               </tr>
               <tr className="text-center">
                 <td className="border border-slate-300 px-1 py-0.5 text-left" colSpan={2}>ចំនួនអវត្តមាន</td>
