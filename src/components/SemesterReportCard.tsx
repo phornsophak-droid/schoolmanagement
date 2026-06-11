@@ -77,10 +77,9 @@ export default function SemesterReportCard({ student, students, period, onClose 
   const examMonths = isYear ? ['ប្រឡងឆមាសទី១', 'ប្រឡងឆមាសទី២'] : [period === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២'];
   const nameKey = student.name.trim();
 
-  // Teacher-entered annual skills (បំណិន) & conduct (ចរិយា) for THIS student.
-  const [skills, setSkills] = useState<string>(() => { const e = readExtra(student.grade, nameKey); return e.skills ? String(e.skills) : ''; });
-  const [conduct, setConduct] = useState<string>(() => { const e = readExtra(student.grade, nameKey); return e.conduct ? String(e.conduct) : ''; });
-  const saveSkills = (sk: string, co: string) => { try { localStorage.setItem(extraKey(student.grade, nameKey), JSON.stringify({ skills: Number(sk) || 0, conduct: Number(co) || 0 })); } catch { /* ignore */ } };
+  // Annual skills (បំណិន) & conduct (ចរិយា) are entered in the gradebook's annual
+  // table (per student) and read here read-only from localStorage.
+  const meExtra = readExtra(student.grade, nameKey);
 
   // Figures for every classmate (for the card itself + ranking), computed once.
   const classData = useMemo<Record<string, StudentFigures>>(() => {
@@ -105,7 +104,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
         const semAvgs = [semesterAvgOf(recs, 1), semesterAvgOf(recs, 2)].filter((v): v is number => v !== null && v !== undefined);
         const annualRaw = semAvgs.length ? semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length : null;
         academic = annualRaw !== null ? annualRaw * 0.8 : null;
-        const ex = n === nameKey ? { skills: Number(skills) || 0, conduct: Number(conduct) || 0 } : readExtra(student.grade, n);
+        const ex = readExtra(student.grade, n);
         finalAvg = academic !== null ? academic + 0.1 * ex.skills + 0.1 * ex.conduct : null;
       } else {
         finalAvg = (examAvg !== null && monthlyAvg !== null) ? (examAvg + monthlyAvg) / 2 : (examAvg ?? monthlyAvg);
@@ -113,7 +112,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
       map[n] = { subjVals, examTotal, examAvg, monthlyAvg, academic, finalAvg };
     });
     return map;
-  }, [students, student.grade, period, skills, conduct]);
+  }, [students, student.grade, period]);
 
   const me: StudentFigures = classData[nameKey] || { subjVals: SEM_SUBJECTS.map(() => null), examTotal: 0, examAvg: null, monthlyAvg: null, academic: null, finalAvg: null };
 
@@ -266,16 +265,12 @@ export default function SemesterReportCard({ student, students, period, onClose 
                   </tr>
                   <tr className="text-center font-bold">
                     <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>បំណិនសម្បទា (១០%)</td>
-                    <td className="border border-slate-300 px-1 py-0.5">
-                      <input value={skills} onChange={e => { setSkills(e.target.value); saveSkills(e.target.value, conduct); }} className="w-12 text-center border-b border-slate-400 outline-none focus:border-blue-500 bg-transparent" />
-                    </td>
+                    <td className="border border-slate-300 px-1 py-0.5 font-mono">{(0.1 * meExtra.skills).toFixed(2)}</td>
                     <td className="border border-slate-300 px-1 py-0.5" colSpan={3}></td>
                   </tr>
                   <tr className="text-center font-bold">
                     <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>ចរិយាសម្បទា (១០%)</td>
-                    <td className="border border-slate-300 px-1 py-0.5">
-                      <input value={conduct} onChange={e => { setConduct(e.target.value); saveSkills(skills, e.target.value); }} className="w-12 text-center border-b border-slate-400 outline-none focus:border-blue-500 bg-transparent" />
-                    </td>
+                    <td className="border border-slate-300 px-1 py-0.5 font-mono">{(0.1 * meExtra.conduct).toFixed(2)}</td>
                     <td className="border border-slate-300 px-1 py-0.5" colSpan={3}></td>
                   </tr>
                 </>

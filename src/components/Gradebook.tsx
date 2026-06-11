@@ -104,6 +104,22 @@ export default function Gradebook({
   const [semReportStudent, setSemReportStudent] = useState<StudentScore | null>(null);
   const [semReportPeriod, setSemReportPeriod] = useState<1 | 2 | 'year'>(1);
 
+  // Per-student annual skills (បំណិន) & conduct (ចរិយា) entry, stored in localStorage
+  // and read by the annual report card.
+  const annualExtraKey = (grade: string, name: string) => `annualextra::${grade}::${name.trim()}`;
+  const readAnnualExtra = (grade: string, name: string) => {
+    try { const e = JSON.parse(localStorage.getItem(annualExtraKey(grade, name)) || '{}'); return { skills: Number(e.skills) || 0, conduct: Number(e.conduct) || 0 }; } catch { return { skills: 0, conduct: 0 }; }
+  };
+  const [extraForm, setExtraForm] = useState<{ open: boolean; name: string; grade: string; skills: string; conduct: string }>({ open: false, name: '', grade: '', skills: '', conduct: '' });
+  const openExtraForm = (name: string, grade: string) => {
+    const e = readAnnualExtra(grade, name);
+    setExtraForm({ open: true, name, grade, skills: e.skills ? String(e.skills) : '', conduct: e.conduct ? String(e.conduct) : '' });
+  };
+  const saveExtraForm = () => {
+    try { localStorage.setItem(annualExtraKey(extraForm.grade, extraForm.name), JSON.stringify({ skills: Number(extraForm.skills) || 0, conduct: Number(extraForm.conduct) || 0 })); } catch { /* ignore */ }
+    setExtraForm(f => ({ ...f, open: false }));
+  };
+
   // ---- Score import / template (Excel/CSV) ----
   const scoreFileRef = useRef<HTMLInputElement>(null);
   // Subject column headers (after Name & Gender) for the import template / parser.
@@ -1905,16 +1921,25 @@ export default function Gradebook({
                           </span>
                         </td>
                         <td className="px-4 py-4 text-right">
-                          <button
-                            onClick={() => {
-                              const rec = students.find(s => s.name.trim() === st.name.trim() && s.grade === st.grade);
-                              if (rec) { setSemReportPeriod('year'); setSemReportStudent(rec); }
-                            }}
-                            className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
-                            title="ព្រឹត្តបត្រប្រចាំឆ្នាំ"
-                          >
-                            <FileText size={11} /> ព្រឹត្តបត្រ
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => openExtraForm(st.name, st.grade)}
+                              className="px-2.5 py-1 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 hover:text-amber-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
+                              title="វាយបញ្ចូល បំណិនសម្បទា និងចរិយាសម្បទា"
+                            >
+                              <Edit3 size={11} /> បំណិន/ចរិយា
+                            </button>
+                            <button
+                              onClick={() => {
+                                const rec = students.find(s => s.name.trim() === st.name.trim() && s.grade === st.grade);
+                                if (rec) { setSemReportPeriod('year'); setSemReportStudent(rec); }
+                              }}
+                              className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
+                              title="ព្រឹត្តបត្រប្រចាំឆ្នាំ"
+                            >
+                              <FileText size={11} /> ព្រឹត្តបត្រ
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -2010,6 +2035,43 @@ export default function Gradebook({
           period={semReportPeriod}
           onClose={() => setSemReportStudent(null)}
         />
+      )}
+
+      {/* Annual skills / conduct entry form */}
+      {extraForm.open && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xl max-w-md w-full space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                <Edit3 size={16} className="text-amber-600" />
+                បំណិនសម្បទា និងចរិយាសម្បទា៖ {extraForm.name}
+              </h3>
+              <button onClick={() => setExtraForm(f => ({ ...f, open: false }))} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); saveExtraForm(); }} className="space-y-4 text-xs font-semibold">
+              <p className="text-[11px] text-slate-400 font-normal leading-relaxed">វាយតម្លៃ ០ ដល់ ១០។ លទ្ធផលប្រចាំឆ្នាំ = ចំណេះវិជ្ជា (៨០%) + បំណិនសម្បទា (១០%) + ចរិយាសម្បទា (១០%)។</p>
+              <div>
+                <label className="block text-slate-500 mb-1">បំណិនសម្បទា (០ ដល់ ១០)</label>
+                <input type="number" min="0" max="10" step="0.01" value={extraForm.skills}
+                  onChange={(e) => setExtraForm(f => ({ ...f, skills: e.target.value }))}
+                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-amber-500 text-slate-800 font-mono font-bold" />
+              </div>
+              <div>
+                <label className="block text-slate-500 mb-1">ចរិយាសម្បទា (០ ដល់ ១០)</label>
+                <input type="number" min="0" max="10" step="0.01" value={extraForm.conduct}
+                  onChange={(e) => setExtraForm(f => ({ ...f, conduct: e.target.value }))}
+                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-amber-500 text-slate-800 font-mono font-bold" />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setExtraForm(f => ({ ...f, open: false }))} className="px-3.5 py-2 bg-slate-100 text-slate-500 hover:bg-slate-200 rounded-lg font-bold">បោះបង់</button>
+                <button type="submit" className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold shadow-xs">រក្សាទុក</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
