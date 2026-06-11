@@ -100,8 +100,9 @@ export default function Gradebook({
 
   // The per-student monthly report card (general classes only).
   const [reportCardStudent, setReportCardStudent] = useState<StudentScore | null>(null);
-  // The per-student semester report card.
+  // The per-student semester / annual report card.
   const [semReportStudent, setSemReportStudent] = useState<StudentScore | null>(null);
+  const [semReportPeriod, setSemReportPeriod] = useState<1 | 2 | 'year'>(1);
 
   // ---- Score import / template (Excel/CSV) ----
   const scoreFileRef = useRef<HTMLInputElement>(null);
@@ -1809,7 +1810,7 @@ export default function Gradebook({
                             <button
                               onClick={() => {
                                 const rec = students.find(s => s.name.trim() === st.name.trim() && s.grade === st.grade);
-                                if (rec) setSemReportStudent(rec);
+                                if (rec) { setSemReportPeriod(selectedSemester === '2' ? 2 : 1); setSemReportStudent(rec); }
                               }}
                               className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
                               title="ព្រឹត្តបត្រឆមាស"
@@ -1856,6 +1857,7 @@ export default function Gradebook({
                   <th className="px-4 py-3.5 text-center bg-emerald-600 text-white font-extrabold">មធ្យមភាគរួមប្រចាំឆ្នាំ</th>
                   <th className="px-4 py-3.5 text-center">និទ្ទេស</th>
                   <th className="px-4 py-3.5 text-center">លទ្ធផលប្រចាំឆ្នាំ</th>
+                  <th className="px-4 py-3.5 text-right">ព្រឹត្តបត្រ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs text-slate-700">
@@ -1902,12 +1904,24 @@ export default function Gradebook({
                             {st.result}
                           </span>
                         </td>
+                        <td className="px-4 py-4 text-right">
+                          <button
+                            onClick={() => {
+                              const rec = students.find(s => s.name.trim() === st.name.trim() && s.grade === st.grade);
+                              if (rec) { setSemReportPeriod('year'); setSemReportStudent(rec); }
+                            }}
+                            className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
+                            title="ព្រឹត្តបត្រប្រចាំឆ្នាំ"
+                          >
+                            <FileText size={11} /> ព្រឹត្តបត្រ
+                          </button>
+                        </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={9} className="px-4 py-12 text-center text-slate-400 font-medium font-sans">
+                    <td colSpan={10} className="px-4 py-12 text-center text-slate-400 font-medium font-sans">
                       <FolderLock size={32} className="mx-auto text-slate-300 mb-2" />
                       មិនទាន់មានទិន្នន័យពិន្ទុណាមួយដើម្បីគណនាលទ្ធផលប្រចាំឆ្នាំបានឡើយ។
                     </td>
@@ -1993,7 +2007,7 @@ export default function Gradebook({
         <SemesterReportCard
           student={semReportStudent}
           students={students}
-          semester={selectedSemester === '2' ? 2 : 1}
+          period={semReportPeriod}
           onClose={() => setSemReportStudent(null)}
         />
       )}

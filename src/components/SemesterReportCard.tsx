@@ -10,16 +10,15 @@ import SchoolLogo from './SchoolLogo';
 
 interface SemesterReportCardProps {
   student: StudentScore;       // any record of the student (for identity)
-  students: StudentScore[];    // full list, for the exam record, monthly records & ranking
-  semester: 1 | 2;
+  students: StudentScore[];    // full list, for exam records, monthly records & ranking
+  period: 1 | 2 | 'year';      // semester 1, semester 2, or annual
   onClose: () => void;
 }
 
 const SEM1_MONTHS = ['ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា'];
 const SEM2_MONTHS = ['ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
-const examMonthOf = (sem: 1 | 2) => (sem === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២');
 
-// The 14 semester-exam subjects, each derived from the exam record's fields.
+// The 14 exam subjects, each derived from an exam record's fields.
 const SEM_SUBJECTS: { km: string; get: (s: StudentScore) => number | null | undefined }[] = [
   { km: 'អំណាន', get: s => s.khmer?.reading },
   { km: 'ស្តាប់ និងនិយាយ', get: s => s.khmer?.listening },
@@ -50,37 +49,85 @@ const gradeBand = (v: number | null | undefined): { km: string; en: string } => 
 };
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 const fix = (v: number | null | undefined) => (v !== null && v !== undefined && v > 0 ? v.toFixed(2) : '-');
+const mean = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
 
-export default function SemesterReportCard({ student, students, semester, onClose }: SemesterReportCardProps) {
-  const months = semester === 1 ? SEM1_MONTHS : SEM2_MONTHS;
-  const examMonth = examMonthOf(semester);
+interface StudentFigures { subjVals: (number | null)[]; examTotal: number; examAvg: number | null; monthlyAvg: number | null; academic: number | null; finalAvg: number | null; }
+
+// Teacher-entered annual skills/conduct scores, persisted per student.
+const extraKey = (grade: string, name: string) => `annualextra::${grade}::${name}`;
+const readExtra = (grade: string, name: string): { skills: number; conduct: number } => {
+  try { const e = JSON.parse(localStorage.getItem(extraKey(grade, name)) || '{}'); return { skills: Number(e.skills) || 0, conduct: Number(e.conduct) || 0 }; } catch { return { skills: 0, conduct: 0 }; }
+};
+
+// One semester's average = (its 14-subject exam avg + its monthly avg) / 2.
+const semesterAvgOf = (recs: StudentScore[], sem: 1 | 2): number | null => {
+  const exMonth = sem === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២';
+  const exam = recs.find(s => s.month === exMonth);
+  const examVals = SEM_SUBJECTS.map(sub => (exam ? sub.get(exam) : null)).filter((v): v is number => v !== null && v !== undefined && v > 0);
+  const examAvg = examVals.length ? examVals.reduce((a, b) => a + b, 0) / examVals.length : null;
+  const mList = sem === 1 ? SEM1_MONTHS : SEM2_MONTHS;
+  const monthlyAvg = mean(mList.map(m => recs.find(s => s.month === m)?.overallAvg).filter((v): v is number => v !== null && v !== undefined));
+  if (examAvg !== null && monthlyAvg !== null) return (examAvg + monthlyAvg) / 2;
+  return examAvg ?? monthlyAvg;
+};
+
+export default function SemesterReportCard({ student, students, period, onClose }: SemesterReportCardProps) {
+  const isYear = period === 'year';
+  const months = isYear ? [...SEM1_MONTHS, ...SEM2_MONTHS] : (period === 1 ? SEM1_MONTHS : SEM2_MONTHS);
+  const examMonths = isYear ? ['ប្រឡងឆមាសទី១', 'ប្រឡងឆមាសទី២'] : [period === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២'];
   const nameKey = student.name.trim();
 
-  // Compute the semester figures for one student (used for this card + ranking).
-  const computeFor = (name: string) => {
-    const recs = students.filter(s => s.name.trim() === name && s.grade === student.grade);
-    const exam = recs.find(s => s.month === examMonth);
-    const examVals = SEM_SUBJECTS.map(sub => (exam ? sub.get(exam) : null)).filter((v): v is number => v !== null && v !== undefined && v > 0);
-    const examTotal = examVals.reduce((a, b) => a + b, 0);
-    const examAvg = examVals.length ? examTotal / examVals.length : null;
-    const monthAvgs = months
-      .map(m => recs.find(s => s.month === m)?.overallAvg)
-      .filter((v): v is number => v !== null && v !== undefined);
-    const monthlyAvg = monthAvgs.length ? monthAvgs.reduce((a, b) => a + b, 0) / monthAvgs.length : null;
-    let semAvg: number | null = null;
-    if (examAvg !== null && monthlyAvg !== null) semAvg = (examAvg + monthlyAvg) / 2;
-    else semAvg = examAvg ?? monthlyAvg;
-    return { exam, examTotal, examAvg, monthlyAvg, semAvg };
+  // Teacher-entered annual skills (បំណិន) & conduct (ចរិយា) for THIS student.
+  const [skills, setSkills] = useState<string>(() => { const e = readExtra(student.grade, nameKey); return e.skills ? String(e.skills) : ''; });
+  const [conduct, setConduct] = useState<string>(() => { const e = readExtra(student.grade, nameKey); return e.conduct ? String(e.conduct) : ''; });
+  const saveSkills = (sk: string, co: string) => { try { localStorage.setItem(extraKey(student.grade, nameKey), JSON.stringify({ skills: Number(sk) || 0, conduct: Number(co) || 0 })); } catch { /* ignore */ } };
+
+  // Figures for every classmate (for the card itself + ranking), computed once.
+  const classData = useMemo<Record<string, StudentFigures>>(() => {
+    const names = [...new Set(students.filter(s => s.grade === student.grade).map(s => s.name.trim()))];
+    const map: Record<string, StudentFigures> = {};
+    names.forEach(n => {
+      const recs = students.filter(s => s.name.trim() === n && s.grade === student.grade);
+      const exams = recs.filter(s => examMonths.includes(s.month));
+      const subjVals = SEM_SUBJECTS.map(sub => {
+        const vals = exams.map(e => sub.get(e)).filter((v): v is number => v !== null && v !== undefined && v > 0);
+        return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+      });
+      const scored = subjVals.filter((v): v is number => v !== null && v > 0);
+      const examTotal = scored.reduce((a, b) => a + b, 0);
+      const examAvg = scored.length ? examTotal / scored.length : null;
+      const monthAvgs = months.map(m => recs.find(s => s.month === m)?.overallAvg).filter((v): v is number => v !== null && v !== undefined);
+      const monthlyAvg = mean(monthAvgs);
+      let academic: number | null = null;
+      let finalAvg: number | null;
+      if (isYear) {
+        // Annual raw avg = (semester1 avg + semester2 avg) / 2; academic = 80% of it.
+        const semAvgs = [semesterAvgOf(recs, 1), semesterAvgOf(recs, 2)].filter((v): v is number => v !== null && v !== undefined);
+        const annualRaw = semAvgs.length ? semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length : null;
+        academic = annualRaw !== null ? annualRaw * 0.8 : null;
+        const ex = n === nameKey ? { skills: Number(skills) || 0, conduct: Number(conduct) || 0 } : readExtra(student.grade, n);
+        finalAvg = academic !== null ? academic + 0.1 * ex.skills + 0.1 * ex.conduct : null;
+      } else {
+        finalAvg = (examAvg !== null && monthlyAvg !== null) ? (examAvg + monthlyAvg) / 2 : (examAvg ?? monthlyAvg);
+      }
+      map[n] = { subjVals, examTotal, examAvg, monthlyAvg, academic, finalAvg };
+    });
+    return map;
+  }, [students, student.grade, period, skills, conduct]);
+
+  const me: StudentFigures = classData[nameKey] || { subjVals: SEM_SUBJECTS.map(() => null), examTotal: 0, examAvg: null, monthlyAvg: null, academic: null, finalAvg: null };
+
+  const rankBySubject = (i: number): string => {
+    const myVal = me.subjVals[i];
+    if (myVal === null || myVal === undefined || myVal <= 0) return '';
+    const vals = Object.values(classData).map((d: StudentFigures) => d.subjVals[i]).filter((v): v is number => v !== null && v > 0);
+    return toKh(vals.filter(v => v > myVal).length + 1);
   };
-
-  const me = useMemo(() => computeFor(nameKey), [students, nameKey, semester]);
-
-  const rank = useMemo(() => {
-    if (me.semAvg === null) return '';
-    const names = new Set(students.filter(s => s.grade === student.grade).map(s => s.name.trim()));
-    const finals = [...names].map(n => computeFor(n).semAvg).filter((v): v is number => v !== null);
-    return toKh(finals.filter(v => v > me.semAvg!).length + 1);
-  }, [students, student.grade, me.semAvg, semester]);
+  const finalRank = useMemo(() => {
+    if (me.finalAvg === null) return '';
+    const finals = Object.values(classData).map((d: StudentFigures) => d.finalAvg).filter((v): v is number => v !== null);
+    return toKh(finals.filter(v => v > me.finalAvg!).length + 1);
+  }, [classData, me.finalAvg]);
 
   // One shared teacher signature image (same store as the monthly card).
   const SIG_KEY = 'school_teacher_signature_v1';
@@ -94,7 +141,7 @@ export default function SemesterReportCard({ student, students, semester, onClos
     reader.readAsDataURL(file);
   };
 
-  // Auto end-of-semester date (last semester month).
+  // Auto end-of-period date (last month of the period).
   const lastMonth = months[months.length - 1];
   const endDay = lastMonth === 'កុម្ភៈ' ? '២៨' : (['មេសា', 'មិថុនា', 'កញ្ញា', 'វិច្ឆិកា'].includes(lastMonth) ? '៣០' : '៣១');
 
@@ -105,7 +152,9 @@ export default function SemesterReportCard({ student, students, semester, onClos
     .rc-no-print { display: none !important; }
   }`;
 
-  const meBand = gradeBand(me.semAvg);
+  const periodTitle = isYear ? 'ប្រចាំឆ្នាំ' : `ឆមាសទី ${toKh(period as number)}`;
+  const meBand = gradeBand(me.finalAvg);
+  const colSpanEnd = isYear ? 2 : 3; // niddes columns to span in the absence row
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 overflow-auto p-4 flex justify-center items-start">
@@ -113,7 +162,7 @@ export default function SemesterReportCard({ student, students, semester, onClos
       <div className="w-full max-w-3xl">
         {/* Toolbar */}
         <div className="rc-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-t-2xl border-b border-slate-100">
-          <h3 className="text-sm font-bold text-slate-800">ព្រឹត្តបត្រឆមាសទី {toKh(semester)} — {student.name}</h3>
+          <h3 className="text-sm font-bold text-slate-800">ព្រឹត្តបត្រ{periodTitle} — {student.name}</h3>
           <div className="flex items-center gap-2">
             <input ref={sigInputRef} type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
             <button onClick={() => sigInputRef.current?.click()} className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs flex items-center gap-1.5 border border-indigo-200 transition-colors">
@@ -143,7 +192,7 @@ export default function SemesterReportCard({ student, students, semester, onClos
           </div>
 
           <div className="text-center my-3">
-            <h1 className="text-base font-extrabold text-indigo-700">ព្រឹត្តបត្រពិន្ទុសិស្សប្រចាំ ឆមាសទី {toKh(semester)}</h1>
+            <h1 className="text-base font-extrabold text-indigo-700">ព្រឹត្តបត្រពិន្ទុសិស្ស {periodTitle}</h1>
             <p className="text-[11px] text-slate-500">ឆ្នាំសិក្សា ២០២៥ - ២០២៦</p>
           </div>
 
@@ -170,14 +219,14 @@ export default function SemesterReportCard({ student, students, semester, onClos
             </thead>
             <tbody>
               {SEM_SUBJECTS.map((sub, i) => {
-                const val = me.exam ? sub.get(me.exam) : null;
+                const val = me.subjVals[i];
                 const g = gradeBand(val);
                 return (
                   <tr key={i} className="text-center">
                     <td className="border border-slate-300 px-1 py-0.5">{KH_NUM[i]}</td>
                     <td className="border border-slate-300 px-2 py-0.5 text-left">{sub.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(val)}</td>
-                    <td className="border border-slate-300 px-1 py-0.5"></td>
+                    <td className="border border-slate-300 px-1 py-0.5">{isYear ? rankBySubject(i) : ''}</td>
                     <td className="border border-slate-300 px-1 py-0.5">{g.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-bold">{g.en}</td>
                   </tr>
@@ -188,24 +237,54 @@ export default function SemesterReportCard({ student, students, semester, onClos
                 <td className="border border-slate-300 px-1 py-0.5 font-mono">{me.examTotal > 0 ? me.examTotal.toFixed(2) : '-'}</td>
                 <td className="border border-slate-300 px-1 py-0.5" colSpan={3}></td>
               </tr>
-              <tr className="text-center font-bold">
-                <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>មធ្យមភាគប្រឡងឆមាស</td>
-                <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(me.examAvg)}</td>
-                <td className="border border-slate-300 px-1 py-0.5"></td>
-                <td className="border border-slate-300 px-1 py-0.5">{gradeBand(me.examAvg).km}</td>
-                <td className="border border-slate-300 px-1 py-0.5">{gradeBand(me.examAvg).en}</td>
-              </tr>
-              <tr className="text-center font-bold">
-                <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>មធ្យមភាគប្រចាំខែ</td>
-                <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(me.monthlyAvg)}</td>
-                <td className="border border-slate-300 px-1 py-0.5"></td>
-                <td className="border border-slate-300 px-1 py-0.5">{gradeBand(me.monthlyAvg).km}</td>
-                <td className="border border-slate-300 px-1 py-0.5">{gradeBand(me.monthlyAvg).en}</td>
-              </tr>
+
+              {!isYear && (
+                <>
+                  <tr className="text-center font-bold">
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>មធ្យមភាគប្រឡងឆមាស</td>
+                    <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(me.examAvg)}</td>
+                    <td className="border border-slate-300 px-1 py-0.5"></td>
+                    <td className="border border-slate-300 px-1 py-0.5">{gradeBand(me.examAvg).km}</td>
+                    <td className="border border-slate-300 px-1 py-0.5">{gradeBand(me.examAvg).en}</td>
+                  </tr>
+                  <tr className="text-center font-bold">
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>មធ្យមភាគប្រចាំខែ</td>
+                    <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(me.monthlyAvg)}</td>
+                    <td className="border border-slate-300 px-1 py-0.5"></td>
+                    <td className="border border-slate-300 px-1 py-0.5">{gradeBand(me.monthlyAvg).km}</td>
+                    <td className="border border-slate-300 px-1 py-0.5">{gradeBand(me.monthlyAvg).en}</td>
+                  </tr>
+                </>
+              )}
+
+              {isYear && (
+                <>
+                  <tr className="text-center font-bold">
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>ចំណេះវិជ្ជា (៨០%)</td>
+                    <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(me.academic)}</td>
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={3}></td>
+                  </tr>
+                  <tr className="text-center font-bold">
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>បំណិនសម្បទា (១០%)</td>
+                    <td className="border border-slate-300 px-1 py-0.5">
+                      <input value={skills} onChange={e => { setSkills(e.target.value); saveSkills(e.target.value, conduct); }} className="w-12 text-center border-b border-slate-400 outline-none focus:border-blue-500 bg-transparent" />
+                    </td>
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={3}></td>
+                  </tr>
+                  <tr className="text-center font-bold">
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>ចរិយាសម្បទា (១០%)</td>
+                    <td className="border border-slate-300 px-1 py-0.5">
+                      <input value={conduct} onChange={e => { setConduct(e.target.value); saveSkills(skills, e.target.value); }} className="w-12 text-center border-b border-slate-400 outline-none focus:border-blue-500 bg-transparent" />
+                    </td>
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={3}></td>
+                  </tr>
+                </>
+              )}
+
               <tr className="text-center font-bold bg-blue-50">
-                <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>មធ្យមភាគប្រចាំឆមាស</td>
-                <td className="border border-slate-300 px-1 py-0.5 font-mono text-blue-700">{fix(me.semAvg)}</td>
-                <td className="border border-slate-300 px-1 py-0.5">{rank}</td>
+                <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>{isYear ? 'មធ្យមភាគប្រចាំឆ្នាំ' : 'មធ្យមភាគប្រចាំឆមាស'}</td>
+                <td className="border border-slate-300 px-1 py-0.5 font-mono text-blue-700">{fix(me.finalAvg)}</td>
+                <td className="border border-slate-300 px-1 py-0.5">{finalRank}</td>
                 <td className="border border-slate-300 px-1 py-0.5">{meBand.km}</td>
                 <td className="border border-slate-300 px-1 py-0.5 font-bold">{meBand.en}</td>
               </tr>
@@ -213,7 +292,7 @@ export default function SemesterReportCard({ student, students, semester, onClos
                 <td className="border border-slate-300 px-1 py-0.5 text-left" colSpan={2}>ចំនួនអវត្តមាន</td>
                 <td className="border border-slate-300 px-1 py-0.5">.........</td>
                 <td className="border border-slate-300 px-1 py-0.5">ច្បាប់ ......</td>
-                <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>អត់ច្បាប់ ......</td>
+                <td className="border border-slate-300 px-1 py-0.5" colSpan={colSpanEnd}>អត់ច្បាប់ ......</td>
               </tr>
             </tbody>
           </table>
