@@ -16,10 +16,12 @@ import {
   GraduationCap,
   HelpCircle,
   Download,
-  Upload
+  Upload,
+  FileText
 } from 'lucide-react';
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
+import StudentReportCard from './StudentReportCard';
 import * as XLSX from 'xlsx';
 
 interface GradebookProps {
@@ -94,6 +96,9 @@ export default function Gradebook({
   // the general subjects. `customSubjects` is null for general classes.
   const customSubjects = getCustomSubjects(selectedGrade);
   const viewingEnglish = !!customSubjects;
+
+  // The per-student monthly report card (general classes only).
+  const [reportCardStudent, setReportCardStudent] = useState<StudentScore | null>(null);
 
   // ---- Score import / template (Excel/CSV) ----
   const scoreFileRef = useRef<HTMLInputElement>(null);
@@ -1675,6 +1680,15 @@ export default function Gradebook({
                         <td className="px-3 py-3 text-center text-[11px] text-slate-500 max-w-[120px] truncate" title={st.note || ''}>{st.note || '-'}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {!customSubjects && (
+                              <button
+                                onClick={() => setReportCardStudent(st)}
+                                className="p-1 px-1.5 bg-indigo-50 border border-indigo-200 rounded hover:bg-indigo-100 text-indigo-600 hover:text-indigo-800 transition-all font-medium inline-flex items-center gap-1 text-[10px]"
+                                title="ព្រឹត្តបត្រពិន្ទុសិស្ស"
+                              >
+                                <FileText size={11} /> ព្រឹត្តបត្រ
+                              </button>
+                            )}
                             <button
                               onClick={() => handleEditClick(st)}
                               className="p-1 px-1.5 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-all font-medium inline-flex items-center gap-1 text-[10px]"
@@ -1950,6 +1964,14 @@ export default function Gradebook({
             </form>
           </div>
         </div>
+      )}
+
+      {reportCardStudent && (
+        <StudentReportCard
+          student={reportCardStudent}
+          students={students}
+          onClose={() => setReportCardStudent(null)}
+        />
       )}
     </div>
   );
