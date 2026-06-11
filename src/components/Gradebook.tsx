@@ -23,6 +23,7 @@ import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIE
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
 import StudentReportCard from './StudentReportCard';
 import SemesterReportCard from './SemesterReportCard';
+import HonorRoll, { HonorEntry } from './HonorRoll';
 import * as XLSX from 'xlsx';
 
 interface GradebookProps {
@@ -110,6 +111,21 @@ export default function Gradebook({
   const readAnnualExtra = (grade: string, name: string) => {
     try { const e = JSON.parse(localStorage.getItem(annualExtraKey(grade, name)) || '{}'); return { skills: Number(e.skills) || 0, conduct: Number(e.conduct) || 0 }; } catch { return { skills: 0, conduct: 0 }; }
   };
+  const [honorOpen, setHonorOpen] = useState(false);
+  // Top-5 honor roll for the current mode (month / semester / year).
+  const honorData = (): { subtitle: string; entries: HonorEntry[] } => {
+    let roster: any[] = [];
+    let subtitle = '';
+    if (activeMode === 'semester') { roster = filteredSemesterStudents; subtitle = `ប្រចាំ ឆមាសទី ${selectedSemester}`; }
+    else if (activeMode === 'annual') { roster = filteredAnnualStudents; subtitle = 'ប្រចាំឆ្នាំ'; }
+    else { roster = filteredStudents; subtitle = `ប្រចាំខែ ${selectedMonth === 'ទាំងអស់' ? '' : selectedMonth}`; }
+    const entries = [...roster]
+      .sort((a, b) => (a.ranking ?? 999) - (b.ranking ?? 999))
+      .slice(0, 5)
+      .map((s, i) => ({ rank: s.ranking ?? (i + 1), name: s.name }));
+    return { subtitle, entries };
+  };
+
   const [extraForm, setExtraForm] = useState<{ open: boolean; name: string; grade: string; skills: string; conduct: string }>({ open: false, name: '', grade: '', skills: '', conduct: '' });
   const openExtraForm = (name: string, grade: string) => {
     const e = readAnnualExtra(grade, name);
@@ -1481,6 +1497,15 @@ export default function Gradebook({
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
             </div>
 
+            {/* Honor roll (top 5) for the current period */}
+            <button
+              onClick={() => setHonorOpen(true)}
+              className="px-3 py-1.5 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 hover:text-rose-800 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              title="តារាងកិត្តិយស (សិស្សពូកែ ៥ នាក់)"
+            >
+              🏅 តារាងកិត្តិយស
+            </button>
+
             {/* Group filter — after-hours classes split into groups */}
             {viewingEnglish && availableGradeGroups.length > 0 && (
               <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-xl border border-slate-200">
@@ -2036,6 +2061,10 @@ export default function Gradebook({
           onClose={() => setSemReportStudent(null)}
         />
       )}
+
+      {honorOpen && (() => { const h = honorData(); return (
+        <HonorRoll subtitle={h.subtitle} grade={selectedGrade} entries={h.entries} onClose={() => setHonorOpen(false)} />
+      ); })()}
 
       {/* Annual skills / conduct entry form */}
       {extraForm.open && (
