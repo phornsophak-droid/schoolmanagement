@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Printer, X } from 'lucide-react';
 import { StudentScore } from '../types';
+import { khmerMonthEnd } from '../utils/khmerDate';
 
 interface GeneralClassReportProps {
   students: StudentScore[];
@@ -280,7 +281,8 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
         {/* Signature */}
         <div className="flex justify-end mt-10 text-center text-[13px]">
           <div className="space-y-1">
-            <p>ច្បារច្រុះ ថ្ងៃទី......... ខែ......... ឆ្នាំ២០២៦</p>
+            <p>ថ្ងៃ............ខែ..................{khmerMonthEnd(period).lunar}</p>
+            <p>ច្បារច្រុះ ថ្ងៃទី......... ខែ......... ឆ្នាំ{khmerMonthEnd(period).year}</p>
             <p className="font-bold pt-2">គ្រូបន្ទុកថ្នាក់</p>
             <p className="text-slate-400 pt-12">..............................</p>
           </div>
