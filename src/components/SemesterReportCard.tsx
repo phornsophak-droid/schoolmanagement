@@ -7,7 +7,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import { Printer, X, PenLine } from 'lucide-react';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
-import { khmerLunarYear } from '../utils/khmerDate';
+import { khmerLunarFull } from '../utils/khmerDate';
 
 interface SemesterReportCardProps {
   student: StudentScore;       // any record of the student (for identity)
@@ -147,7 +147,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
   const lastIdx = KH_MONTHS.indexOf(lastMonth);
   const endDayNum = lastMonth === 'កុម្ភៈ' ? 28 : (['មេសា', 'មិថុនា', 'កញ្ញា', 'វិច្ឆិកា'].includes(lastMonth) ? 30 : 31);
   const endDay = toKh(endDayNum);
-  const endLunar = khmerLunarYear(new Date(lastIdx >= 8 ? 2025 : 2026, lastIdx < 0 ? 4 : lastIdx, endDayNum));
+  const endLunar = khmerLunarFull(new Date(lastIdx >= 8 ? 2025 : 2026, lastIdx < 0 ? 4 : lastIdx, endDayNum));
 
   const printCss = `@media print {
     body * { visibility: hidden !important; }
@@ -304,7 +304,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
               <p className="text-slate-300 pt-10">..............................</p>
             </div>
             <div>
-              <p>ថ្ងៃ............ខែ..................{endLunar}</p>
+              <p>{endLunar}</p>
               <p>ច្បារច្រុះ ថ្ងៃទី{endDay} ខែ{lastMonth} ឆ្នាំ{lastIdx >= 8 ? '២០២៥' : '២០២៦'}</p>
               <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
               {signature ? (

@@ -282,7 +282,7 @@ export default function ReportDetail({ report, onBack }: ReportDetailProps) {
 
           {/* Right: Teacher self assertion */}
           <div className="text-center space-y-1">
-            <p>ថ្ងៃ............ខែ..................{khmerMonthEnd(report.generalInfo.month).lunar}</p>
+            <p>{khmerMonthEnd(report.generalInfo.month).lunar}</p>
             <p>ថ្ងៃទី........ ខែ........ ឆ្នាំ{khmerMonthEnd(report.generalInfo.month).year}</p>
             <p className="font-bold text-slate-800">គ្រូបន្ទុកថ្នាក់</p>
             <div className="h-24" /> {/* blank signature spacing */}

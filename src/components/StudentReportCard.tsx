@@ -7,7 +7,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import { Printer, X, PenLine } from 'lucide-react';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
-import { khmerLunarYear } from '../utils/khmerDate';
+import { khmerLunarFull } from '../utils/khmerDate';
 
 interface StudentReportCardProps {
   student: StudentScore;
@@ -61,10 +61,10 @@ const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេ
 const MONTH_LAST_DAY = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const monthEndDate = (month: string) => {
   const idx = KH_MONTHS.indexOf((month || '').trim());
-  if (idx < 0) return { day: '.........', year: '២០២៦', lunar: khmerLunarYear(new Date()) };
+  if (idx < 0) return { day: '.........', year: '២០២៦', lunar: khmerLunarFull(new Date()) };
   const yearNum = idx >= 8 ? 2025 : 2026; // កញ្ញា–ធ្នូ → 2025, else 2026
   const date = new Date(yearNum, idx, MONTH_LAST_DAY[idx]);
-  return { day: toKh(MONTH_LAST_DAY[idx]), year: toKh(yearNum), lunar: khmerLunarYear(date) };
+  return { day: toKh(MONTH_LAST_DAY[idx]), year: toKh(yearNum), lunar: khmerLunarFull(date) };
 };
 
 export default function StudentReportCard({ student, students, onClose }: StudentReportCardProps) {
@@ -228,7 +228,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
               <p className="text-slate-300 pt-10">..............................</p>
             </div>
             <div>
-              <p>ថ្ងៃ............ខែ..................{endDate.lunar}</p>
+              <p>{endDate.lunar}</p>
               <p>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
               <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
               {signature ? (
