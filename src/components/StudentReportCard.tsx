@@ -172,6 +172,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
             <div><span className="font-bold">ភេទ៖</span> {student.gender}</div>
             <div><span className="font-bold">លទ្ធផលសិក្សា៖</span> {student.grade}</div>
             <div><span className="font-bold">អត្តលេខ៖</span> {student.studentId || '...........'}</div>
+            <div><span className="font-bold">ថ្ងៃខែឆ្នាំកំណើត៖</span> {student.dob || '...........'}</div>
           </div>
 
           {/* Scores table */}

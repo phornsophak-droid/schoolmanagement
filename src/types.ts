@@ -111,6 +111,7 @@ export interface StudentScore {
   group?: string; // ក្រុម — used by after-hours classes split into groups
   month: string; // ខែ (មករា, កុម្ភៈ, ...)
   studentId?: string;  // អត្តលេខ (official student ID, optional)
+  dob?: string;        // ថ្ងៃខែឆ្នាំកំណើត (date of birth, dd/mm/yyyy)
   khmer: KhmerScore;
   math: MathScore;
   science: number | null;        // វិទ្យាសាស្ត្រ (average of scienceScores, 0-10)
