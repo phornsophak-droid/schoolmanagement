@@ -207,7 +207,8 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
                   <p className="text-slate-300 pt-8">..............................</p>
                 </div>
                 <div>
-                  <p>ច្បារច្រុះ ថ្ងៃទី......... ខែ......... ឆ្នាំ២០២៦</p>
+                  <p>ថ្ងៃ............ខែ..................ឆ្នាំមមី អដ្ឋស័ក ព.ស ២៥៧០</p>
+                  <p>ច្បារច្រុះ ថ្ងៃទី...............ខែ.................ឆ្នាំ២០២៦</p>
                   <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
                   <p className="text-slate-300 pt-6">..............................</p>
                 </div>
