@@ -295,6 +295,7 @@ export default function Gradebook({
   // Official extras: student ID + free-text note.
   const [formStudentId, setFormStudentId] = useState('');
   const [formNote, setFormNote] = useState('');
+  const [formRemark, setFormRemark] = useState('');
 
   // Sub-subject score maps (string while editing), keyed by SUBJECT[].key.
   const [scienceScores, setScienceScores] = useState<Record<string, string>>({});
@@ -616,6 +617,7 @@ export default function Gradebook({
     setEnglishScores({});
     setFormStudentId('');
     setFormNote('');
+    setFormRemark('');
 
     setIsFormOpen(true);
   };
@@ -646,6 +648,7 @@ export default function Gradebook({
     setForeignLanguage(student.foreignLanguage !== null ? student.foreignLanguage.toString() : '');
     setFormStudentId(student.studentId || '');
     setFormNote(student.note || '');
+    setFormRemark(student.remark || '');
 
     const loadMap = (subjects: { key: string }[], src?: Record<string, number | null>) => {
       const m: Record<string, string> = {};
@@ -677,6 +680,7 @@ export default function Gradebook({
     setForeignLanguage(record?.foreignLanguage != null ? record.foreignLanguage.toString() : '');
     setFormStudentId(record?.studentId || '');
     setFormNote(record?.note || '');
+    setFormRemark(record?.remark || '');
     // Sub-subject + English categories
     const loadMap = (subjects: { key: string }[], src?: Record<string, number | null>) => {
       const m: Record<string, string> = {};
@@ -720,6 +724,7 @@ export default function Gradebook({
       month: formMonth,
       studentId: formStudentId.trim() || undefined,
       note: formNote.trim() || undefined,
+      remark: formRemark.trim() || undefined,
       khmer: {
         listening: khmerListening === '' ? null : clampScore(parseFloat(khmerListening) || 0),
         writing: khmerWriting === '' ? null : clampScore(parseFloat(khmerWriting) || 0),
@@ -1146,6 +1151,17 @@ export default function Gradebook({
                   onChange={(e) => setFormNote(e.target.value)}
                   rows={2}
                   placeholder="កំណត់សម្គាល់បន្ថែម..."
+                  className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-slate-800 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">មូលវិចារគ្រូបន្ទុកថ្នាក់ (បង្ហាញលើព្រឹត្តបត្រ)</label>
+                <textarea
+                  value={formRemark}
+                  onChange={(e) => setFormRemark(e.target.value)}
+                  rows={2}
+                  placeholder="ឧ. មានការប្រឹងប្រែង គួរបន្តរក្សា..."
                   className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-slate-800 resize-none"
                 />
               </div>

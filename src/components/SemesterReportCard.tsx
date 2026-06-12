@@ -164,6 +164,14 @@ export default function SemesterReportCard({ student, students, period, onClose 
   // Auto absence tally across the period's months.
   const absence = tallyAbsences(student.name, student.grade, months, students);
 
+  // Class-teacher remark — taken from the semester-exam record (entered with the
+  // exam scores), falling back to any record for this student.
+  const findRemark = (m: string) =>
+    students.find(s => s.name.trim() === student.name.trim() && s.grade === student.grade && s.month === m)?.remark;
+  const remark = (isYear
+    ? (findRemark('ប្រឡងឆមាសទី២') || findRemark('ប្រឡងឆមាសទី១'))
+    : findRemark(period === 2 ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១')) || student.remark || '';
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 overflow-auto p-4 flex justify-center items-start">
       <style>{printCss}</style>
@@ -239,7 +247,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
                     <td className="border border-slate-300 px-1 py-0.5">{g.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-bold">{g.en}</td>
                     {i === 0 && (
-                      <td className="border border-slate-300 px-1 py-0.5 align-top text-left" rowSpan={SEM_SUBJECTS.length + (isYear ? 6 : 5)}></td>
+                      <td className="border border-slate-300 px-1 py-0.5 align-top text-left whitespace-pre-wrap" rowSpan={SEM_SUBJECTS.length + (isYear ? 6 : 5)}>{remark}</td>
                     )}
                   </tr>
                 );

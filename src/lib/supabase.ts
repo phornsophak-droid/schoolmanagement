@@ -110,6 +110,7 @@ export function mapScoreToDB(score: StudentScore) {
     extra_data: {
       group: score.group ?? null,
       note: score.note ?? null,
+      remark: score.remark ?? null,
       studentId: score.studentId ?? null,
       englishScores: score.englishScores ?? null,
       scienceScores: score.scienceScores ?? null,
@@ -161,6 +162,7 @@ export function mapDBToScore(db: any): StudentScore {
     // Restore the fields stored in the extra_data JSON column.
     group: db.extra_data?.group ?? undefined,
     note: db.extra_data?.note ?? undefined,
+    remark: db.extra_data?.remark ?? undefined,
     studentId: db.extra_data?.studentId ?? undefined,
     englishScores: db.extra_data?.englishScores ?? undefined,
     scienceScores: db.extra_data?.scienceScores ?? undefined,
