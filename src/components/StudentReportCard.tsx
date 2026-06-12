@@ -8,6 +8,7 @@ import { Printer, X, PenLine } from 'lucide-react';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
 import { khmerLunarFull } from '../utils/khmerDate';
+import { tallyAbsences } from '../utils/attendance';
 
 interface StudentReportCardProps {
   student: StudentScore;
@@ -92,6 +93,9 @@ export default function StudentReportCard({ student, students, onClose }: Studen
 
   // Auto end-of-month date for the signature block.
   const endDate = monthEndDate(student.month);
+
+  // Auto absence tally for this report month.
+  const absence = tallyAbsences(student.name, student.grade, [student.month], students);
 
   // One shared teacher signature image (data URL), uploaded once and reused.
   const SIG_KEY = 'school_teacher_signature_v1';
@@ -214,8 +218,8 @@ export default function StudentReportCard({ student, students, onClose }: Studen
               </tr>
               <tr className="text-center">
                 <td className="border border-slate-300 px-1 py-0.5 text-left" colSpan={2}>ចំនួនអវត្តមាន</td>
-                <td className="border border-slate-300 px-1 py-0.5">.........</td>
-                <td className="border border-slate-300 px-1 py-0.5" colSpan={3}>អត់ច្បាប់ .........</td>
+                <td className="border border-slate-300 px-1 py-0.5 font-bold">{toKh(absence.total)}</td>
+                <td className="border border-slate-300 px-1 py-0.5" colSpan={3}>ច្បាប់ {toKh(absence.permission)} | អត់ច្បាប់ {toKh(absence.absent)}</td>
               </tr>
             </tbody>
           </table>

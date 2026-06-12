@@ -8,6 +8,7 @@ import { Printer, X, PenLine } from 'lucide-react';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
 import { khmerLunarFull } from '../utils/khmerDate';
+import { tallyAbsences } from '../utils/attendance';
 
 interface SemesterReportCardProps {
   student: StudentScore;       // any record of the student (for identity)
@@ -160,6 +161,9 @@ export default function SemesterReportCard({ student, students, period, onClose 
   const meBand = gradeBand(me.finalAvg);
   const colSpanEnd = isYear ? 2 : 3; // niddes columns to span in the absence row
 
+  // Auto absence tally across the period's months.
+  const absence = tallyAbsences(student.name, student.grade, months, students);
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 overflow-auto p-4 flex justify-center items-start">
       <style>{printCss}</style>
@@ -290,9 +294,9 @@ export default function SemesterReportCard({ student, students, period, onClose 
               </tr>
               <tr className="text-center">
                 <td className="border border-slate-300 px-1 py-0.5 text-left" colSpan={2}>ចំនួនអវត្តមាន</td>
-                <td className="border border-slate-300 px-1 py-0.5">.........</td>
-                <td className="border border-slate-300 px-1 py-0.5">ច្បាប់ ......</td>
-                <td className="border border-slate-300 px-1 py-0.5" colSpan={colSpanEnd}>អត់ច្បាប់ ......</td>
+                <td className="border border-slate-300 px-1 py-0.5 font-bold">{toKh(absence.total)}</td>
+                <td className="border border-slate-300 px-1 py-0.5">ច្បាប់ {toKh(absence.permission)}</td>
+                <td className="border border-slate-300 px-1 py-0.5" colSpan={colSpanEnd}>អត់ច្បាប់ {toKh(absence.absent)}</td>
               </tr>
             </tbody>
           </table>
