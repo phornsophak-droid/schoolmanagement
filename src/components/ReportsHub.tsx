@@ -27,6 +27,7 @@ import { SchoolReport, StudentScore, SchoolUser, getCustomSubjects } from '../ty
 import { motion } from 'motion/react';
 import ReportWizard from './ReportWizard';
 import ClassReport, { getReportTemplate } from './ClassReport';
+import ClassRankingReport from './ClassRankingReport';
 
 interface ReportsHubProps {
   reports: SchoolReport[];
@@ -117,6 +118,7 @@ export default function ReportsHub({
 
   // When set, the academic tab shows the fillable English/after-hours report template.
   const [showEnglishTemplate, setShowEnglishTemplate] = useState(false);
+  const [showRankingTable, setShowRankingTable] = useState(false);
 
   // Academic Report filters state
   const [scopeType, setScopeType] = useState<'class' | 'combined'>('class');
@@ -836,6 +838,14 @@ export default function ReportsHub({
                   </button>
                 )}
                 <button
+                  onClick={() => setShowRankingTable(true)}
+                  disabled={processedAcademicRoster.length === 0}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/10 transition-colors"
+                >
+                  <Award size={13} />
+                  តារាងចំណាត់ថ្នាក់សរុប
+                </button>
+                <button
                   onClick={handlePrintAcademicReport}
                   className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-slate-900/10 transition-colors"
                 >
@@ -1272,6 +1282,15 @@ export default function ReportsHub({
           </>
           )}
         </div>
+      )}
+
+      {showRankingTable && (
+        <ClassRankingReport
+          roster={processedAcademicRoster}
+          grade={(!teacherLocked && scopeType === 'combined') ? 'ទាំងអស់' : selectedGrade}
+          period={selectedPeriod}
+          onClose={() => setShowRankingTable(false)}
+        />
       )}
     </div>
   );
