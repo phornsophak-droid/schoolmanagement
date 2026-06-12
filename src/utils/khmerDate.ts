@@ -10,10 +10,11 @@ import { fromDate } from './momentkh';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 
-// Full lunar date, e.g. "ថ្ងៃ៥រោច ខែជេស្ឋ ឆ្នាំមមី អដ្ឋស័ក ព.ស ២៥៧០".
+// Full lunar date with weekday, e.g.
+// "ថ្ងៃអង្គារ ១រោច ខែបឋមាសាឍ ឆ្នាំមមី អដ្ឋស័ក ពុទ្ធសករាជ ២៥៧០".
 export function khmerLunarFull(date: Date): string {
   const k = fromDate(date).khmer;
-  return `ថ្ងៃ${toKh(k.day)}${k.moonPhaseName} ខែ${k.monthName} ឆ្នាំ${k.animalYearName} ${k.sakName} ព.ស ${toKh(k.beYear)}`;
+  return `ថ្ងៃ${k.dayOfWeekName} ${toKh(k.day)}${k.moonPhaseName} ខែ${k.monthName} ឆ្នាំ${k.animalYearName} ${k.sakName} ពុទ្ធសករាជ ${toKh(k.beYear)}`;
 }
 
 const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
