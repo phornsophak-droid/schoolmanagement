@@ -66,12 +66,6 @@ function HonorFrame({ rank, name, photo, letter, onPick, big = false }: { rank: 
 
       {/* Decorative photo frame */}
       <div className={`relative p-[3px] rounded-2xl bg-gradient-to-b ${frameStyle(rank)} shadow-xl mt-2`}>
-        {/* និទ្ទេស letter badge on the photo */}
-        {letter && (
-          <div className={`absolute top-1.5 right-1.5 z-10 ${letterColor(letter)} text-white font-extrabold rounded-full flex items-center justify-center shadow-md border-2 border-white ${big ? 'w-9 h-9 text-lg' : 'w-7 h-7 text-sm'}`}>
-            {letter}
-          </div>
-        )}
         <div className={`${photoW} ${photoH} rounded-xl overflow-hidden bg-slate-50 border border-white`}>
           {photo ? (
             <img src={photo} alt={name} className="w-full h-full object-cover" />
@@ -84,10 +78,15 @@ function HonorFrame({ rank, name, photo, letter, onPick, big = false }: { rank: 
         </div>
       </div>
 
-      {/* Name ribbon */}
+      {/* Name ribbon — និទ្ទេស letter sits after the name */}
       <div className={`-mt-3 z-10 ${big ? 'min-w-[10rem]' : 'min-w-[8rem]'} max-w-[90%]`}>
-        <div className={`bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center rounded-full shadow-md px-4 ${big ? 'py-1.5 text-base' : 'py-1 text-sm'} font-bold border-2 border-white whitespace-nowrap`}>
-          {name || '—'}
+        <div className={`bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-md px-4 ${big ? 'py-1.5 text-base' : 'py-1 text-sm'} font-bold border-2 border-white whitespace-nowrap flex items-center justify-center gap-2`}>
+          <span>{name || '—'}</span>
+          {letter && (
+            <span className={`${letterColor(letter)} text-white font-extrabold rounded-full flex items-center justify-center shadow border border-white shrink-0 ${big ? 'w-6 h-6 text-sm' : 'w-5 h-5 text-xs'}`}>
+              {letter}
+            </span>
+          )}
         </div>
       </div>
 
