@@ -28,6 +28,7 @@ import { motion } from 'motion/react';
 import ReportWizard from './ReportWizard';
 import ClassReport, { getReportTemplate } from './ClassReport';
 import ClassRankingReport from './ClassRankingReport';
+import { semesterAvgOf, annualAcademicRaw, annualFinalOf } from '../utils/scoring';
 
 interface ReportsHubProps {
   reports: SchoolReport[];
@@ -251,65 +252,12 @@ export default function ReportsHub({
           };
         }
 
-        // Semester 1 calculation
-        const mRecords1 = students.filter(s =>
-          s.name.trim() === student.name &&
-          s.grade === student.grade &&
-          SEMESTER_1_MONTHS.includes(s.month)
-        );
-        let sumMonthlyAvgs1 = 0;
-        let count1 = 0;
-        SEMESTER_1_MONTHS.forEach(m => {
-          const record = mRecords1.find(r => r.month === m);
-          if (record && record.totalScore !== undefined) {
-            sumMonthlyAvgs1 += record.overallAvg;
-            count1++;
-          }
-        });
-        const overallMonthlyAvg1 = count1 > 0 ? clampScore(sumMonthlyAvgs1 / count1) : null;
-        const examRecord1 = students.find(s =>
-          s.name.trim() === student.name &&
-          s.grade === student.grade &&
-          s.month === 'ប្រឡងឆមាសទី១'
-        );
-        const examScore1 = examRecord1 ? examRecord1.overallAvg : null;
-        const s1Valid = count1 > 0 || examScore1 !== null;
-        const s1Avg = s1Valid ? (examScore1 !== null ? (overallMonthlyAvg1 !== null ? clampScore((overallMonthlyAvg1 + examScore1) / 2) : examScore1) : overallMonthlyAvg1) : null;
-
-        // Semester 2 calculation
-        const mRecords2 = students.filter(s =>
-          s.name.trim() === student.name &&
-          s.grade === student.grade &&
-          SEMESTER_2_MONTHS.includes(s.month)
-        );
-        let sumMonthlyAvgs2 = 0;
-        let count2 = 0;
-        SEMESTER_2_MONTHS.forEach(m => {
-          const record = mRecords2.find(r => r.month === m);
-          if (record && record.totalScore !== undefined) {
-            sumMonthlyAvgs2 += record.overallAvg;
-            count2++;
-          }
-        });
-        const overallMonthlyAvg2 = count2 > 0 ? clampScore(sumMonthlyAvgs2 / count2) : null;
-        const examRecord2 = students.find(s =>
-          s.name.trim() === student.name &&
-          s.grade === student.grade &&
-          s.month === 'ប្រឡងឆមាសទី២'
-        );
-        const examScore2 = examRecord2 ? examRecord2.overallAvg : null;
-        const s2Valid = count2 > 0 || examScore2 !== null;
-        const s2Avg = s2Valid ? (examScore2 !== null ? (overallMonthlyAvg2 !== null ? clampScore((overallMonthlyAvg2 + examScore2) / 2) : examScore2) : overallMonthlyAvg2) : null;
-
-        // Annual average
-        let annualAvg: number | null = null;
-        if (s1Valid && s2Valid && s1Avg !== null && s2Avg !== null) {
-          annualAvg = clampScore((s1Avg + s2Avg) / 2);
-        } else if (s1Valid && s1Avg !== null) {
-          annualAvg = s1Avg;
-        } else if (s2Valid && s2Avg !== null) {
-          annualAvg = s2Avg;
-        }
+        // Official semester & annual averages — shared with the report cards
+        // (semester = (exam + monthly)/2; annual = 80% academic + 10% បំណិន + 10% ចរិយា).
+        const recs = students.filter(s => s.name.trim() === student.name && s.grade === student.grade);
+        const s1Avg = semesterAvgOf(recs, 1);
+        const s2Avg = semesterAvgOf(recs, 2);
+        const annualAvg = annualFinalOf(recs, student.grade, student.name);
 
         // Grade Designation
         let gradeLetter = '-';
@@ -385,6 +333,10 @@ export default function ReportsHub({
         return matchGrade && s.month === selectedPeriod;
       });
 
+      // For a semester-exam period, general classes are ranked by the combined
+      // semester average ((exam + monthly)/2) to match the report card.
+      const semNum = selectedPeriod === 'ប្រឡងឆមាសទី១' ? 1 : selectedPeriod === 'ប្រឡងឆមាសទី២' ? 2 : null;
+
       const roster = periodStudents.map(student => {
         // For after-hours classes, expose the custom criteria for this month's record.
         const customSubs = getCustomSubjects(student.grade);
@@ -393,14 +345,28 @@ export default function ReportsHub({
           customSubjects = {};
           customSubs.forEach(sub => { customSubjects![sub.key] = student.englishScores?.[sub.key] ?? null; });
         }
+
+        let overallAvg = student.overallAvg;
+        let gradeLetter = student.gradeLetter;
+        let result = student.result;
+        if (semNum && !customSubs) {
+          const recs = students.filter(s => s.name.trim() === student.name.trim() && s.grade === student.grade);
+          const semAvg = semesterAvgOf(recs, semNum);
+          if (semAvg !== null) {
+            overallAvg = semAvg;
+            gradeLetter = semAvg >= 9 ? 'A' : semAvg >= 8 ? 'B' : semAvg >= 7 ? 'C' : semAvg >= 6 ? 'D' : semAvg >= 5 ? 'E' : 'F';
+            result = semAvg >= 5 ? 'ជាប់' : 'ធ្លាក់';
+          }
+        }
+
         return {
           id: student.id,
           name: student.name,
           gender: student.gender,
           grade: student.grade,
-          overallAvg: student.overallAvg,
-          gradeLetter: student.gradeLetter,
-          result: student.result,
+          overallAvg,
+          gradeLetter,
+          result,
           s1Avg: 0 as number | null,
           s2Avg: 0 as number | null,
           subjects: {

@@ -9,6 +9,7 @@ import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { tallyAbsences } from '../utils/attendance';
+import { SEM1_MONTHS, SEM2_MONTHS, SEM_SUBJECTS, semesterAvgOf, readAnnualExtra } from '../utils/scoring';
 
 interface SemesterReportCardProps {
   student: StudentScore;       // any record of the student (for identity)
@@ -16,27 +17,6 @@ interface SemesterReportCardProps {
   period: 1 | 2 | 'year';      // semester 1, semester 2, or annual
   onClose: () => void;
 }
-
-const SEM1_MONTHS = ['ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា'];
-const SEM2_MONTHS = ['ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
-
-// The 14 exam subjects, each derived from an exam record's fields.
-const SEM_SUBJECTS: { km: string; get: (s: StudentScore) => number | null | undefined }[] = [
-  { km: 'អំណាន', get: s => s.khmer?.reading },
-  { km: 'ស្តាប់ និងនិយាយ', get: s => s.khmer?.listening },
-  { km: 'សរសេរតាមអាន', get: s => s.khmer?.writing },
-  { km: 'តែងសេចក្តី', get: s => s.khmer?.speaking },
-  { km: 'គណិតវិទ្យា', get: s => s.mathAvg },
-  { km: 'វិទ្យាសាស្ត្រ', get: s => s.science },
-  { km: 'សីលធម៌-ពលរដ្ឋវិទ្យា', get: s => s.socialScores?.morality },
-  { km: 'ភូមិវិទ្យា', get: s => s.socialScores?.geography },
-  { km: 'ប្រវត្តិវិទ្យា', get: s => s.socialScores?.history },
-  { km: 'គេហៈវិទ្យា-អប់រំសិល្បៈ', get: s => s.socialScores?.home },
-  { km: 'អប់រំកាយ-កីឡា', get: s => s.physicalEducation },
-  { km: 'សុខភាព-អនាម័យ', get: s => s.health },
-  { km: 'បំណិនជីវិត', get: s => s.lifeSkills },
-  { km: 'ភាសាបរទេស', get: s => s.foreignLanguage },
-];
 
 const KH_NUM = ['១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩', '១០', '១១', '១២', '១៣', '១៤'];
 
@@ -55,24 +35,6 @@ const mean = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.lengt
 
 interface StudentFigures { subjVals: (number | null)[]; examTotal: number; examAvg: number | null; monthlyAvg: number | null; academic: number | null; finalAvg: number | null; }
 
-// Teacher-entered annual skills/conduct scores, persisted per student.
-const extraKey = (grade: string, name: string) => `annualextra::${grade}::${name}`;
-const readExtra = (grade: string, name: string): { skills: number; conduct: number } => {
-  try { const e = JSON.parse(localStorage.getItem(extraKey(grade, name)) || '{}'); return { skills: Number(e.skills) || 0, conduct: Number(e.conduct) || 0 }; } catch { return { skills: 0, conduct: 0 }; }
-};
-
-// One semester's average = (its 14-subject exam avg + its monthly avg) / 2.
-const semesterAvgOf = (recs: StudentScore[], sem: 1 | 2): number | null => {
-  const exMonth = sem === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២';
-  const exam = recs.find(s => s.month === exMonth);
-  const examVals = SEM_SUBJECTS.map(sub => (exam ? sub.get(exam) : null)).filter((v): v is number => v !== null && v !== undefined && v > 0);
-  const examAvg = examVals.length ? examVals.reduce((a, b) => a + b, 0) / examVals.length : null;
-  const mList = sem === 1 ? SEM1_MONTHS : SEM2_MONTHS;
-  const monthlyAvg = mean(mList.map(m => recs.find(s => s.month === m)?.overallAvg).filter((v): v is number => v !== null && v !== undefined));
-  if (examAvg !== null && monthlyAvg !== null) return (examAvg + monthlyAvg) / 2;
-  return examAvg ?? monthlyAvg;
-};
-
 export default function SemesterReportCard({ student, students, period, onClose }: SemesterReportCardProps) {
   const isYear = period === 'year';
   const months = isYear ? [...SEM1_MONTHS, ...SEM2_MONTHS] : (period === 1 ? SEM1_MONTHS : SEM2_MONTHS);
@@ -81,7 +43,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
 
   // Annual skills (បំណិន) & conduct (ចរិយា) are entered in the gradebook's annual
   // table (per student) and read here read-only from localStorage.
-  const meExtra = readExtra(student.grade, nameKey);
+  const meExtra = readAnnualExtra(student.grade, nameKey);
 
   // Figures for every classmate (for the card itself + ranking), computed once.
   const classData = useMemo<Record<string, StudentFigures>>(() => {
@@ -106,7 +68,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
         const semAvgs = [semesterAvgOf(recs, 1), semesterAvgOf(recs, 2)].filter((v): v is number => v !== null && v !== undefined);
         const annualRaw = semAvgs.length ? semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length : null;
         academic = annualRaw !== null ? annualRaw * 0.8 : null;
-        const ex = readExtra(student.grade, n);
+        const ex = readAnnualExtra(student.grade, n);
         finalAvg = academic !== null ? academic + 0.1 * ex.skills + 0.1 * ex.conduct : null;
       } else {
         finalAvg = (examAvg !== null && monthlyAvg !== null) ? (examAvg + monthlyAvg) / 2 : (examAvg ?? monthlyAvg);
