@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Printer, X } from 'lucide-react';
+import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
+import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
 
 interface HealthClinicReportProps {
   grade: string;
@@ -72,6 +73,17 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
   const toggle = (key: string) => set(key, f[key] ? '' : '1');
   const v = (k: string) => f[k] || '';
 
+  const [submittedAt, setSubmittedAt] = useState<string>('');
+  const [toast, setToast] = useState('');
+  useEffect(() => { setSubmittedAt(getSubmission(storeKey)?.submittedAt || ''); }, [storeKey]);
+  const handleSubmit = () => {
+    const sub = submitReport({ key: storeKey, grade, period, type: 'health', title: 'របាយការណ៍ប្រចាំខែ គិលានុបដ្ឋាក/យិកា', teacher: teacherName || '', data: f });
+    setSubmittedAt(sub.submittedAt);
+    setToast('បានបញ្ជូនរបាយការណ៍ទៅនាយកសាលា ☁️');
+    setTimeout(() => setToast(''), 3000);
+  };
+  const subDate = submittedAt ? submissionDate(submittedAt) : null;
+
   const colSum = (suffix: string) => {
     let n = 0;
     for (let w = 1; w <= 5; w++) n += parseFloat(f[`wk${w}${suffix}`] || '') || 0;
@@ -80,6 +92,11 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
 
   return (
     <div className="space-y-4">
+      {toast && (
+        <div className="print:hidden fixed top-20 right-8 z-50 bg-emerald-50 text-emerald-800 border border-emerald-200 px-4 py-3 rounded-xl shadow-xl text-xs font-bold">
+          🔔 {toast}
+        </div>
+      )}
       {/* Toolbar (hidden in print) */}
       <div className="flex items-center justify-between gap-3 p-4 bg-white rounded-2xl shadow-sm border border-slate-100 print:hidden">
         <div>
@@ -87,6 +104,9 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
           <p className="text-xs text-slate-400 mt-0.5">{grade} • {period} — បំពេញដោយផ្ទាល់ (រក្សាទុកស្វ័យប្រវត្តិ)</p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={handleSubmit} className={`px-4 py-2 ${submittedAt ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors`}>
+            {submittedAt ? <CheckCircle2 size={13} /> : <Send size={13} />} {submittedAt ? 'បានបញ្ជូន ✓' : 'បញ្ជូនរបាយការណ៍'}
+          </button>
           <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
             <Printer size={13} /> បោះពុម្ព / PDF
           </button>
@@ -196,9 +216,10 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
         {/* Signature */}
         <div className="flex justify-end mt-12 text-center">
           <div className="space-y-1">
+            {subDate && <p>{subDate.lunar}</p>}
             <p className="font-bold">ហត្ថលេខាគិលានុបដ្ឋាក/យិកា</p>
             <p className="text-slate-400 pt-12">..............................</p>
-            <p className="pt-2">កាលបរិច្ឆេទ៖ ...... / ...... / ......</p>
+            <p className="pt-2">{subDate ? `ច្បារច្រុះ ថ្ងៃទី${subDate.day} ខែ${subDate.month} ឆ្នាំ${subDate.year}` : 'កាលបរិច្ឆេទ៖ ...... / ...... / ......'}</p>
           </div>
         </div>
       </div>

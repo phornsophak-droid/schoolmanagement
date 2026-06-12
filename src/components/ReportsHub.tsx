@@ -29,6 +29,7 @@ import ReportWizard from './ReportWizard';
 import ClassReport, { getReportTemplate } from './ClassReport';
 import ClassRankingReport from './ClassRankingReport';
 import { semesterAvgOf, annualAcademicRaw, annualFinalOf } from '../utils/scoring';
+import { loadSubmissions, submissionDate, ReportSubmission } from '../utils/reportSubmit';
 
 interface ReportsHubProps {
   reports: SchoolReport[];
@@ -120,6 +121,7 @@ export default function ReportsHub({
   // When set, the academic tab shows the fillable English/after-hours report template.
   const [showEnglishTemplate, setShowEnglishTemplate] = useState(false);
   const [showRankingTable, setShowRankingTable] = useState(false);
+  const [reviewing, setReviewing] = useState<ReportSubmission | null>(null);
 
   // Academic Report filters state
   const [scopeType, setScopeType] = useState<'class' | 'combined'>('class');
@@ -742,6 +744,41 @@ export default function ReportsHub({
                   </div>
                 )}
               </div>
+
+              {/* Submitted reports (cloud) — for the principal to review */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <CheckCircle2 size={15} className="text-emerald-600" /> របាយការណ៍ដែលបានបញ្ជូន
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">របាយការណ៍ការងារដែលគ្រូបានបញ្ជូនមក (រក្សាទុកក្នុង Cloud)</p>
+                </div>
+                {(() => {
+                  const subs = loadSubmissions().filter(s => (teacherLocked ? gradeOptions.includes(s.grade) : true));
+                  if (subs.length === 0) return <p className="text-xs text-slate-400 py-4 text-center">មិនទាន់មានរបាយការណ៍ដែលបានបញ្ជូនទេ។</p>;
+                  return (
+                    <div className="divide-y divide-slate-100">
+                      {subs.map(s => {
+                        const d = submissionDate(s.submittedAt);
+                        return (
+                          <div key={s.key} className="flex items-center justify-between gap-3 py-2.5">
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-slate-800 truncate">{s.title}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">{s.grade} • {s.period} • {s.teacher || 'គ្រូ'} • បានបញ្ជូន {d.day} {d.month} {d.year}</p>
+                            </div>
+                            <button
+                              onClick={() => { try { localStorage.setItem(s.key, JSON.stringify(s.data)); } catch { /* ignore */ } setReviewing(s); }}
+                              className="px-3 py-1.5 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 shrink-0 flex items-center gap-1"
+                            >
+                              <Eye size={12} /> មើល
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           )}
         </div>
@@ -1257,6 +1294,21 @@ export default function ReportsHub({
           period={selectedPeriod}
           onClose={() => setShowRankingTable(false)}
         />
+      )}
+
+      {reviewing && getReportTemplate(reviewing.grade) && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4">
+          <div className="max-w-4xl mx-auto">
+            <ClassReport
+              template={getReportTemplate(reviewing.grade)!}
+              students={students}
+              grade={reviewing.grade}
+              period={reviewing.period}
+              teacherName={reviewing.teacher}
+              onClose={() => setReviewing(null)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

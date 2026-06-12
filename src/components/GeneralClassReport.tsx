@@ -4,9 +4,10 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Printer, X } from 'lucide-react';
+import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
 import { StudentScore } from '../types';
 import { khmerMonthEnd } from '../utils/khmerDate';
+import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
 
 interface GeneralClassReportProps {
   students: StudentScore[];
@@ -60,6 +61,18 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
   };
   const v = (k: string) => f[k] || '';
 
+  // Submission state — the submit time becomes the report's printed date.
+  const [submittedAt, setSubmittedAt] = useState<string>('');
+  const [toast, setToast] = useState('');
+  useEffect(() => { setSubmittedAt(getSubmission(storeKey)?.submittedAt || ''); }, [storeKey]);
+  const handleSubmit = () => {
+    const sub = submitReport({ key: storeKey, grade, period, type: 'general', title: 'របាយការណ៍ប្រចាំខែ ថ្នាក់ចំណេះដឹងទូទៅ', teacher: teacherName || '', data: f });
+    setSubmittedAt(sub.submittedAt);
+    setToast('បានបញ្ជូនរបាយការណ៍ទៅនាយកសាលា ☁️');
+    setTimeout(() => setToast(''), 3000);
+  };
+  const subDate = submittedAt ? submissionDate(submittedAt) : null;
+
   // Auto-computed statistics for this class & month.
   const st = useMemo(() => {
     const recs = students.filter(s => s.grade === grade && s.month === period);
@@ -87,6 +100,11 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
 
   return (
     <div className="space-y-4">
+      {toast && (
+        <div className="rc-no-print fixed top-20 right-8 z-50 bg-emerald-50 text-emerald-800 border border-emerald-200 px-4 py-3 rounded-xl shadow-xl text-xs font-bold">
+          🔔 {toast}
+        </div>
+      )}
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 p-4 bg-white rounded-2xl shadow-sm border border-slate-100 print:hidden">
         <div>
@@ -94,6 +112,9 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
           <p className="text-xs text-slate-400 mt-0.5">{grade} • {period} — ស្ថិតិគណនាស្វ័យប្រវត្តិ ផ្នែកផ្សេងបំពេញដោយផ្ទាល់ (រក្សាទុកស្វ័យប្រវត្តិ)</p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={handleSubmit} className={`px-4 py-2 ${submittedAt ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors`}>
+            {submittedAt ? <CheckCircle2 size={13} /> : <Send size={13} />} {submittedAt ? 'បានបញ្ជូន ✓' : 'បញ្ជូនរបាយការណ៍'}
+          </button>
           <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
             <Printer size={13} /> បោះពុម្ព / PDF
           </button>
@@ -281,8 +302,8 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
         {/* Signature */}
         <div className="flex justify-end mt-10 text-center text-[13px]">
           <div className="space-y-1">
-            <p>{khmerMonthEnd(period).lunar}</p>
-            <p>ច្បារច្រុះ ថ្ងៃទី......... ខែ......... ឆ្នាំ{khmerMonthEnd(period).year}</p>
+            <p>{subDate ? subDate.lunar : khmerMonthEnd(period).lunar}</p>
+            <p>ច្បារច្រុះ ថ្ងៃទី{subDate ? subDate.day : '.........'} ខែ{subDate ? subDate.month : '.........'} ឆ្នាំ{subDate ? subDate.year : khmerMonthEnd(period).year}</p>
             <p className="font-bold pt-2">គ្រូបន្ទុកថ្នាក់</p>
             <p className="text-slate-400 pt-12">..............................</p>
           </div>

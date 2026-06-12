@@ -55,6 +55,21 @@ import {
 } from './lib/supabase';
 // @ts-ignore
 import schemaSql from './schema.sql?raw';
+
+// Restore submitted work reports pulled from the cloud: keep the index, and write
+// each report's filled blob back to its own localStorage key so the principal can
+// open it. See src/utils/reportSubmit.ts.
+function restoreReportSubmissions(subs: any): void {
+  if (!Array.isArray(subs)) return;
+  try {
+    localStorage.setItem('report_submissions', JSON.stringify(subs));
+    subs.forEach((s: any) => {
+      if (s && s.key && s.data !== undefined) {
+        localStorage.setItem(s.key, JSON.stringify(s.data));
+      }
+    });
+  } catch { /* ignore */ }
+}
 import Dashboard from './components/Dashboard';
 import Gradebook from './components/Gradebook';
 import ReportWizard from './components/ReportWizard';
@@ -380,6 +395,7 @@ export default function App() {
                     if (newData.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(newData.settings['school_custom_users']));
                     if (newData.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(newData.settings['school_custom_pins']));
                     if (newData.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(newData.settings['school_custom_teachers_v2']));
+                    restoreReportSubmissions(newData.settings['report_submissions']);
                   }
                 }).catch(err => console.error("Realtime sync failed", err));
               };
@@ -512,6 +528,7 @@ export default function App() {
         if (data.settings['school_custom_teachers_v2']) {
           localStorage.setItem('school_custom_teachers_v2', JSON.stringify(data.settings['school_custom_teachers_v2']));
         }
+        restoreReportSubmissions(data.settings['report_submissions']);
       }
 
       setSupabaseStatus('connected');
