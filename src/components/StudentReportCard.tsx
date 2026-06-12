@@ -183,6 +183,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
                 <th className="border border-slate-300 px-1 py-1 w-16" rowSpan={2}>ពិន្ទុ</th>
                 <th className="border border-slate-300 px-1 py-1 w-20" rowSpan={2}>ចំណាត់ថ្នាក់</th>
                 <th className="border border-slate-300 px-1 py-1" colSpan={2}>និទ្ទេស</th>
+                <th className="border border-slate-300 px-1 py-1 w-28" rowSpan={2}>មូលវិចារគ្រូបន្ទុកថ្នាក់</th>
               </tr>
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-1 py-1 w-24">ភាសាខ្មែរ</th>
@@ -201,6 +202,9 @@ export default function StudentReportCard({ student, students, onClose }: Studen
                     <td className="border border-slate-300 px-1 py-0.5">{rankIn(sub.get)}</td>
                     <td className="border border-slate-300 px-1 py-0.5">{g.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-bold">{g.en}</td>
+                    {i === 0 && (
+                      <td className="border border-slate-300 px-1 py-0.5 align-top text-left" rowSpan={SUBJECTS.length + 3}></td>
+                    )}
                   </tr>
                 );
               })}
