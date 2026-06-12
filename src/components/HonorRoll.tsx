@@ -7,7 +7,26 @@ import React, { useRef, useState } from 'react';
 import { Printer, X, Camera } from 'lucide-react';
 import SchoolLogo from './SchoolLogo';
 
-export interface HonorEntry { rank: number; name: string; }
+export interface HonorEntry { rank: number; name: string; score?: number | null; }
+
+// និទ្ទេស letter from a 0–10 score (same bands as the report cards).
+const gradeLetter = (v: number | null | undefined): string => {
+  if (v === null || v === undefined || v <= 0) return '';
+  if (v > 9.5) return 'A';
+  if (v > 9) return 'B';
+  if (v > 8) return 'C';
+  if (v > 6.5) return 'D';
+  if (v > 5) return 'E';
+  return 'F';
+};
+const letterColor = (l: string) => {
+  if (l === 'A') return 'bg-amber-500';
+  if (l === 'B') return 'bg-emerald-600';
+  if (l === 'C') return 'bg-blue-600';
+  if (l === 'D') return 'bg-teal-600';
+  if (l === 'E') return 'bg-orange-500';
+  return 'bg-rose-600';
+};
 
 interface HonorRollProps {
   subtitle: string;      // e.g. "ប្រចាំខែ កុម្ភៈ" / "ប្រចាំ ឆមាសទី ១" / "ប្រចាំឆ្នាំ"
@@ -33,7 +52,7 @@ const frameStyle = (rank: number) => {
 };
 
 // One honor photo frame: medal badge, decorative photo frame, name ribbon.
-function HonorFrame({ rank, name, photo, onPick, big = false }: { rank: number; name: string; photo: string; onPick: () => void; big?: boolean }) {
+function HonorFrame({ rank, name, photo, letter, onPick, big = false }: { rank: number; name: string; photo: string; letter: string; onPick: () => void; big?: boolean }) {
   const photoW = big ? 'w-40' : 'w-32';
   const photoH = big ? 'h-48' : 'h-40';
   return (
@@ -46,7 +65,13 @@ function HonorFrame({ rank, name, photo, onPick, big = false }: { rank: number; 
       </div>
 
       {/* Decorative photo frame */}
-      <div className={`p-[3px] rounded-2xl bg-gradient-to-b ${frameStyle(rank)} shadow-xl mt-2`}>
+      <div className={`relative p-[3px] rounded-2xl bg-gradient-to-b ${frameStyle(rank)} shadow-xl mt-2`}>
+        {/* និទ្ទេស letter badge on the photo */}
+        {letter && (
+          <div className={`absolute top-1.5 right-1.5 z-10 ${letterColor(letter)} text-white font-extrabold rounded-full flex items-center justify-center shadow-md border-2 border-white ${big ? 'w-9 h-9 text-lg' : 'w-7 h-7 text-sm'}`}>
+            {letter}
+          </div>
+        )}
         <div className={`${photoW} ${photoH} rounded-xl overflow-hidden bg-slate-50 border border-white`}>
           {photo ? (
             <img src={photo} alt={name} className="w-full h-full object-cover" />
@@ -160,19 +185,19 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
 
               {/* Rank 1 */}
               <div className="flex justify-center mt-7 mb-7">
-                <HonorFrame rank={1} name={ranks[0].name} photo={photos[ranks[0].name] || ''} onPick={() => pickFor(ranks[0].name)} big />
+                <HonorFrame rank={1} name={ranks[0].name} photo={photos[ranks[0].name] || ''} letter={gradeLetter(ranks[0].score)} onPick={() => pickFor(ranks[0].name)} big />
               </div>
 
               {/* Ranks 2 & 3 */}
               <div className="grid grid-cols-2 gap-6 mb-7 max-w-md mx-auto">
-                <HonorFrame rank={2} name={ranks[1].name} photo={photos[ranks[1].name] || ''} onPick={() => pickFor(ranks[1].name)} />
-                <HonorFrame rank={3} name={ranks[2].name} photo={photos[ranks[2].name] || ''} onPick={() => pickFor(ranks[2].name)} />
+                <HonorFrame rank={2} name={ranks[1].name} photo={photos[ranks[1].name] || ''} letter={gradeLetter(ranks[1].score)} onPick={() => pickFor(ranks[1].name)} />
+                <HonorFrame rank={3} name={ranks[2].name} photo={photos[ranks[2].name] || ''} letter={gradeLetter(ranks[2].score)} onPick={() => pickFor(ranks[2].name)} />
               </div>
 
               {/* Ranks 4 & 5 */}
               <div className="grid grid-cols-2 gap-6 mb-4 max-w-md mx-auto">
-                <HonorFrame rank={4} name={ranks[3].name} photo={photos[ranks[3].name] || ''} onPick={() => pickFor(ranks[3].name)} />
-                <HonorFrame rank={5} name={ranks[4].name} photo={photos[ranks[4].name] || ''} onPick={() => pickFor(ranks[4].name)} />
+                <HonorFrame rank={4} name={ranks[3].name} photo={photos[ranks[3].name] || ''} letter={gradeLetter(ranks[3].score)} onPick={() => pickFor(ranks[3].name)} />
+                <HonorFrame rank={5} name={ranks[4].name} photo={photos[ranks[4].name] || ''} letter={gradeLetter(ranks[4].score)} onPick={() => pickFor(ranks[4].name)} />
               </div>
 
               {/* Signatures */}

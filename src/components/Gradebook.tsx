@@ -116,13 +116,14 @@ export default function Gradebook({
   const honorData = (): { subtitle: string; entries: HonorEntry[] } => {
     let roster: any[] = [];
     let subtitle = '';
-    if (activeMode === 'semester') { roster = filteredSemesterStudents; subtitle = `ប្រចាំ ឆមាសទី ${selectedSemester}`; }
-    else if (activeMode === 'annual') { roster = filteredAnnualStudents; subtitle = 'ប្រចាំឆ្នាំ'; }
+    let scoreOf = (s: any): number | null => s.overallAvg ?? null;
+    if (activeMode === 'semester') { roster = filteredSemesterStudents; subtitle = `ប្រចាំ ឆមាសទី ${selectedSemester}`; scoreOf = (s) => s.semesterAvg ?? null; }
+    else if (activeMode === 'annual') { roster = filteredAnnualStudents; subtitle = 'ប្រចាំឆ្នាំ'; scoreOf = (s) => s.annualAvg ?? null; }
     else { roster = filteredStudents; subtitle = `ប្រចាំខែ ${selectedMonth === 'ទាំងអស់' ? '' : selectedMonth}`; }
     const entries = [...roster]
       .sort((a, b) => (a.ranking ?? 999) - (b.ranking ?? 999))
       .slice(0, 5)
-      .map((s, i) => ({ rank: s.ranking ?? (i + 1), name: s.name }));
+      .map((s, i) => ({ rank: s.ranking ?? (i + 1), name: s.name, score: scoreOf(s) }));
     return { subtitle, entries };
   };
 
