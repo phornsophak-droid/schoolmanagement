@@ -126,9 +126,10 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
     e.target.value = '';
   };
 
+  // Keep the decorative colours (gradients, medals, ribbons) when printing.
   const printCss = `@media print {
     body * { visibility: hidden !important; }
-    #honor-roll, #honor-roll * { visibility: visible !important; }
+    #honor-roll, #honor-roll * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     #honor-roll { position: absolute; left: 0; top: 0; width: 100%; }
     .rc-no-print { display: none !important; }
   }`;
