@@ -81,9 +81,11 @@ import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
+import { useT, LanguageToggle } from './i18n';
 
 
 export default function App() {
+  const { t } = useT();
   // Navigation states
   const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance'>(() => {
     const isMobile = typeof window !== 'undefined' && (
@@ -1088,7 +1090,10 @@ export default function App() {
               <p className="text-[10px] text-slate-400 font-bold font-mono tracking-widest mt-0.5 uppercase">School Admin v2.0</p>
             </div>
           </div>
-          <p className="text-[9px] text-slate-400 mt-3 tracking-wide bg-slate-900/40 py-1 px-2 text-center rounded border border-slate-800/10 font-medium">សាលាសហគមន៍ច្បារច្រុះ</p>
+          <p className="text-[9px] text-slate-400 mt-3 tracking-wide bg-slate-900/40 py-1 px-2 text-center rounded border border-slate-800/10 font-medium">{t('common.school')}</p>
+          <div className="mt-3 flex justify-center">
+            <LanguageToggle className="bg-slate-800/60 border-slate-700 text-slate-200 hover:bg-slate-700/60" />
+          </div>
         </div>
 
         {/* Sidebar Nav Links */}
@@ -1103,7 +1108,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <LayoutDashboard size={16} className={activeView === 'dashboard' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>គ្រប់គ្រងព័ត៌មានទូទៅ</span>
+              <span>{t('nav.dashboard')}</span>
             </div>
             {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
           </button>
@@ -1119,7 +1124,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <GraduationCap size={16} className={activeView === 'gradebook' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>គ្រប់គ្រងពិន្ទុសិស្ស</span>
+              <span>{t('nav.gradebook')}</span>
             </div>
           </button>
 
@@ -1134,7 +1139,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <ClipboardCheck size={16} className={activeView === 'attendance' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>គ្រប់គ្រងវត្តមាន</span>
+              <span>{t('nav.attendance')}</span>
             </div>
           </button>
 
@@ -1149,7 +1154,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <Users size={16} className={activeView === 'class-mgmt' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>គ្រប់គ្រងថ្នាក់ និងសិស្ស</span>
+              <span>{t('nav.classMgmt')}</span>
             </div>
           </button>
 
@@ -1164,7 +1169,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <FileText size={16} className={activeView === 'wizard' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>គ្រប់គ្រងរបាយការណ៍</span>
+              <span>{t('nav.reports')}</span>
             </div>
             {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
           </button>
@@ -1180,7 +1185,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <Smartphone size={16} className={activeView === 'mobile-portal' ? 'text-blue-400' : 'text-amber-400'} />
-              <span>📱 ទិដ្ឋភាពទូរស័ព្ទ VIP (Mobile UI)</span>
+              <span>📱 {t('nav.mobile')}</span>
             </div>
             <span className="px-1.5 py-0.5 bg-amber-500 text-slate-900 text-[8.5px] font-extrabold rounded-md shadow-xs animate-pulse">NEW</span>
           </button>
@@ -1344,7 +1349,7 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <LayoutDashboard size={16} />
-                    <span>គ្រប់គ្រងព័ត៌មានទូទៅ</span>
+                    <span>{t('nav.dashboard')}</span>
                   </div>
                   {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
                 </button>
@@ -1362,7 +1367,7 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <GraduationCap size={16} />
-                    <span>គ្រប់គ្រងពិន្ទុសិស្ស</span>
+                    <span>{t('nav.gradebook')}</span>
                   </div>
                 </button>
 
@@ -1379,7 +1384,7 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <ClipboardCheck size={16} />
-                    <span>គ្រប់គ្រងវត្តមាន</span>
+                    <span>{t('nav.attendance')}</span>
                   </div>
                 </button>
 
@@ -1396,7 +1401,7 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <Users size={16} />
-                    <span>គ្រប់គ្រងថ្នាក់ និងសិស្ស</span>
+                    <span>{t('nav.classMgmt')}</span>
                   </div>
                 </button>
 
@@ -1417,7 +1422,7 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <FileText size={16} />
-                    <span>គ្រប់គ្រងរបាយការណ៍</span>
+                    <span>{t('nav.reports')}</span>
                   </div>
                   {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
                 </button>
