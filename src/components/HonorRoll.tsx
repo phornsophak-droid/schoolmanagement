@@ -173,7 +173,7 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
               </div>
 
               <div className="flex flex-col items-center text-emerald-700 font-semibold mt-1 mb-1">
-                <SchoolLogo size={64} />
+                <SchoolLogo size={88} />
                 <div className="text-sm font-bold">សាលាសហគមន៍ច្បារច្រុះ</div>
               </div>
 

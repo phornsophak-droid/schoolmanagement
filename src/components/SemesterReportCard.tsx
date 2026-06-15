@@ -159,7 +159,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
         <div id="semester-report-card" className="bg-white rounded-b-2xl shadow-xl p-8 text-slate-800 text-[12px] leading-relaxed">
           <div className="flex justify-between items-start mb-1">
             <div className="flex flex-col items-center font-semibold text-emerald-700">
-              <SchoolLogo size={84} />
+              <SchoolLogo size={112} />
               <div className="mt-1 text-lg font-bold">សាលាសហគមន៍ច្បារច្រុះ</div>
             </div>
             <div className="text-center text-[11px]">

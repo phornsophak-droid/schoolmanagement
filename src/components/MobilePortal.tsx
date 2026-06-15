@@ -450,7 +450,7 @@ export default function MobilePortal({
           {/* Right Action Icons in the Header */}
           <div className="flex items-center gap-2">
             {/* Cambodian Traditional School Emblem Logo */}
-            <div className="w-11 h-11 flex items-center justify-center rounded-full bg-white shadow-xs border border-[#34D399]/40 overflow-hidden">
+            <div className="w-14 h-14 flex items-center justify-center rounded-full bg-white shadow-xs border border-[#34D399]/40 overflow-hidden">
               <SchoolLogo className="w-full h-full p-0.5" />
             </div>
 

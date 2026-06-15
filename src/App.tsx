@@ -1082,7 +1082,7 @@ export default function App() {
         {/* Sidebar Brand Header */}
         <div className="p-6 border-b border-slate-700/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-white shadow-md border border-slate-700/30 overflow-hidden">
+            <div className="w-14 h-14 flex items-center justify-center rounded-full bg-white shadow-md border border-slate-700/30 overflow-hidden">
               <SchoolLogo className="w-full h-full p-0.5" />
             </div>
             <div>
@@ -1319,7 +1319,7 @@ export default function App() {
             >
               <div className="p-6 border-b border-slate-700/50 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 flex items-center justify-center rounded-full bg-white shadow-md border border-slate-700/30 overflow-hidden">
+                  <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white shadow-md border border-slate-700/30 overflow-hidden">
                     <SchoolLogo className="w-full h-full p-0.5" />
                   </div>
                   <div>

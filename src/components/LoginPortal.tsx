@@ -289,6 +289,9 @@ export default function LoginPortal({ onLoginSuccess }: LoginPortalProps) {
           
           {/* Slogan details of Kingdom of Cambodia with visual crest decoration */}
           <div className="space-y-4">
+            <div className="w-28 h-28 rounded-2xl bg-white shadow-lg flex items-center justify-center overflow-hidden">
+              <SchoolLogo className="w-full h-full p-1.5" />
+            </div>
             <div className="flex items-center gap-3">
               <span className="text-3xl">🇰🇭</span>
               <div>

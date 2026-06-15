@@ -151,7 +151,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
 
           <div className="flex justify-between items-start mb-1">
             <div className="flex flex-col items-center font-semibold text-emerald-700">
-              <SchoolLogo size={84} />
+              <SchoolLogo size={112} />
               <div className="mt-1 text-lg font-bold">សាលាសហគមន៍ច្បារច្រុះ</div>
             </div>
             <div className="text-center text-[11px]">
