@@ -20,6 +20,7 @@ import {
   Users2
 } from 'lucide-react';
 import { StudentScore, SchoolUser } from '../types';
+import { useT } from '../i18n';
 import { AVAILABLE_USERS } from './LoginPortal';
 import {
   getSupabaseClient,
@@ -116,6 +117,7 @@ interface DailyAttendanceProps {
 }
 
 export default function DailyAttendance({ students, currentUser, grades }: DailyAttendanceProps) {
+  const { t } = useT();
   // Navigation Tab inside attendance view: 'student' | 'teacher'
   const [activeTab, setActiveTab] = useState<'student' | 'teacher'>('student');
 
@@ -726,7 +728,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
         <div>
           <div className="flex items-center gap-2.5 text-blue-600 font-bold mb-1.5">
             <ClipboardList className="w-5 h-5" />
-            <span className="text-xs uppercase tracking-wider font-bold">ប្រព័ន្ធគ្រប់គ្រងសាលា SMS v2.0</span>
+            <span className="text-xs uppercase tracking-wider font-bold">{t('att.sms')}</span>
           </div>
           <h1 className="text-xl font-bold text-slate-800 font-serif">កត់វត្តមានប្រចាំថ្ងៃ</h1>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
@@ -755,7 +757,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           <button
             onClick={() => shiftDay(-1)}
             className="p-1.5 hover:bg-white rounded-lg border border-transparent hover:border-slate-300 text-slate-600 transition-all cursor-pointer"
-            title="ថ្ងៃមុន"
+            title={t('att.tt.prevDay')}
           >
             <ArrowLeft size={14} />
           </button>
@@ -773,7 +775,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           <button 
             onClick={() => shiftDay(1)}
             className="p-1.5 hover:bg-white rounded-lg border border-transparent hover:border-slate-300 text-slate-600 transition-all cursor-pointer"
-            title="ថ្ងៃបន្ទាប់"
+            title={t('att.tt.nextDay')}
           >
             <ArrowRight size={14} />
           </button>
@@ -795,7 +797,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           }`}
         >
           <UserCheck size={14} />
-          <span>វត្តមានសិស្សានុសិស្ស</span>
+          <span>{t('att.studentTab')}</span>
         </button>
         <button
           onClick={() => {
@@ -809,7 +811,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           }`}
         >
           <Users2 size={14} className="text-blue-500" />
-          <span>វត្តមានគ្រូបង្រៀន</span>
+          <span>{t('att.teacherTab')}</span>
         </button>
       </div>
 
@@ -833,7 +835,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
         {/* Metric 2: Present */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-[#E6F4EA] border border-emerald-100 flex items-center justify-center text-[#137333]">
-            <span className="text-sm font-black">វ</span>
+            <span className="text-sm font-black">{t('att.abbr.present')}</span>
           </div>
           <div>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
@@ -850,7 +852,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
         {/* Metric 3: Late */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-[#E8F0FE] border border-blue-100 flex items-center justify-center text-[#1a73e8]">
-            <span className="text-sm font-black">យ</span>
+            <span className="text-sm font-black">{t('att.abbr.late')}</span>
           </div>
           <div>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
@@ -867,7 +869,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
         {/* Metric 4: Permission */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-[#FEF7E0] border border-amber-100 flex items-center justify-center text-[#B06000]">
-            <span className="text-sm font-black">ច្ប</span>
+            <span className="text-sm font-black">{t('att.abbr.permission')}</span>
           </div>
           <div>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
@@ -884,7 +886,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
         {/* Metric 5: Absent */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-3xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-[#FCE8E6] border border-rose-100 flex items-center justify-center text-[#C5221F]">
-            <span className="text-sm font-black">អច្ប</span>
+            <span className="text-sm font-black">{t('att.abbr.absent')}</span>
           </div>
           <div>
             <p className="text-[#EA4335] text-[10px] font-bold uppercase tracking-wider">
@@ -908,7 +910,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
               <div className="flex flex-col md:flex-row items-center gap-6 grow w-full lg:w-auto">
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xl">⚙️</span>
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">ការជ្រើសរើស<br className="hidden lg:block "/>ថ្នាក់រៀន</h3>
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">ការជ្រើសរើស<br className="hidden lg:block "/>{t('common.classroom')}</h3>
                 </div>
                 
                 {/* Grade filter */}
@@ -933,7 +935,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
                 {/* Quick Filter Search Input */}
                 <div className="space-y-1.5 flex-1 w-full min-w-[200px]">
-                  <label className="block text-[10.5px] text-slate-500 font-bold">ស្វែងរកតាមឈ្មោះសិស្ស</label>
+                  <label className="block text-[10.5px] text-slate-500 font-bold">{t('att.searchStudent')}</label>
                   <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus-within:border-blue-500 focus-within:bg-white focus-within:shadow-3xs transition-all w-full">
                     <Search size={14} className="text-slate-400 mr-2 shrink-0" />
                     <input
@@ -950,7 +952,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
               {/* Attendance rate gauge */}
               <div className="pt-2 w-full lg:w-64 shrink-0 mt-2 lg:mt-0">
                 <div className="flex justify-between text-[10.5px] font-bold mb-1.5">
-                  <span className="text-slate-500">អត្រាវត្តមានសរុបប្រចាំថ្ងៃ៖</span>
+                  <span className="text-slate-500">{t('att.dailyRateStudent')}</span>
                   <span className={rate >= 90 ? 'text-emerald-600' : rate >= 75 ? 'text-amber-500' : 'text-rose-500'}>{rate}%</span>
                 </div>
                 <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-100/50">
@@ -968,12 +970,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
               <div className="flex flex-col md:flex-row items-center gap-6 grow w-full lg:w-auto">
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-xl">⚙️</span>
-                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">តម្រងស្វែងរក<br className="hidden lg:block"/>គ្រូបង្រៀន</h3>
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">តម្រងស្វែងរក<br className="hidden lg:block"/>{t('att.teachers')}</h3>
                 </div>
                 
                 {/* Quick Filter Search Input */}
                 <div className="space-y-1.5 flex-[2] w-full min-w-[250px]">
-                  <label className="block text-[10.5px] text-slate-500 font-bold">ស្វែងរកតាមឈ្មោះ ឬថ្នាក់ទទួលបន្ទុក</label>
+                  <label className="block text-[10.5px] text-slate-500 font-bold">{t('att.searchTeacher')}</label>
                   <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus-within:border-blue-500 focus-within:bg-white focus-within:shadow-3xs transition-all w-full">
                     <Search size={14} className="text-slate-400 mr-2 shrink-0" />
                     <input
@@ -990,7 +992,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
               {/* Attendance rate gauge */}
               <div className="pt-2 w-full lg:w-64 shrink-0 mt-2 lg:mt-0">
                 <div className="flex justify-between text-[10.5px] font-bold mb-1.5">
-                  <span className="text-slate-500">អត្រាវត្តមានគ្រូប្រចាំថ្ងៃ៖</span>
+                  <span className="text-slate-500">{t('att.dailyRateTeacher')}</span>
                   <span className={teacherRate >= 90 ? 'text-emerald-600' : teacherRate >= 75 ? 'text-amber-500' : 'text-rose-500'}>{teacherRate}%</span>
                 </div>
                 <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-100/50">
@@ -1019,13 +1021,13 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   {/* Group filter — take attendance one group at a time. */}
                   {isExtraClass(selectedGrade) && availableAttGroups.length > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-slate-500">ក្រុម៖</span>
+                      <span className="text-[10px] font-bold text-slate-500">{t('cls.groupLabel')}</span>
                       <select
                         value={selectedAttGroup}
                         onChange={(e) => setSelectedAttGroup(e.target.value)}
                         className="px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-indigo-700 font-bold outline-none focus:border-blue-500"
                       >
-                        <option value="ទាំងអស់">គ្រប់ក្រុម</option>
+                        <option value="ទាំងអស់">{t('cls.allGroups')}</option>
                         {availableAttGroups.map(g => <option key={g} value={g}>{g}</option>)}
                       </select>
                     </div>
@@ -1040,14 +1042,14 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                 <table className="w-full text-slate-700 text-xs font-medium">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-left font-bold select-none text-[10px] uppercase tracking-wider">
-                      <th className="px-5 py-3 w-12 text-center">ល.រ</th>
-                      <th className="px-5 py-3 sticky left-0 z-10 bg-slate-50 border-r border-slate-200/60 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">ឈ្មោះសិស្ស</th>
-                      <th className="px-5 py-3 hidden sm:table-cell">ភេទ</th>
-                      <th className="px-3 py-3 text-center text-blue-600 font-black whitespace-nowrap text-[10.5px]">សរុបយឺត (យ)</th>
-                      <th className="px-3 py-3 text-center text-amber-600 font-black whitespace-nowrap text-[10.5px]">សរុបច្បាប់ (ច្ប)</th>
-                      <th className="px-3 py-3 text-center text-rose-600 font-black whitespace-nowrap text-[10.5px]">សរុបអត់ច្បាប់ (អច្ប)</th>
-                      <th className="px-3 py-3 text-center text-red-700 font-black whitespace-nowrap text-[10.5px] bg-red-50/50 rounded-lg">សរុបអវត្តមាន</th>
-                      <th className="px-5 py-3 text-center w-52">ជ្រើសរើសវត្តមាន</th>
+                      <th className="px-5 py-3 w-12 text-center">{t('common.no')}</th>
+                      <th className="px-5 py-3 sticky left-0 z-10 bg-slate-50 border-r border-slate-200/60 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">{t('common.studentName')}</th>
+                      <th className="px-5 py-3 hidden sm:table-cell">{t('common.gender')}</th>
+                      <th className="px-3 py-3 text-center text-blue-600 font-black whitespace-nowrap text-[10.5px]">{t('att.totLate')}</th>
+                      <th className="px-3 py-3 text-center text-amber-600 font-black whitespace-nowrap text-[10.5px]">{t('att.totPerm')}</th>
+                      <th className="px-3 py-3 text-center text-rose-600 font-black whitespace-nowrap text-[10.5px]">{t('att.totUnexcused')}</th>
+                      <th className="px-3 py-3 text-center text-red-700 font-black whitespace-nowrap text-[10.5px] bg-red-50/50 rounded-lg">{t('att.totAbsence')}</th>
+                      <th className="px-5 py-3 text-center w-52">{t('att.setStatus')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1078,28 +1080,28 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
                             {/* Cumulative Late (យឺត) */}
                             <td className="px-3 py-3.5 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-blue-50 text-blue-700 border border-blue-200 shadow-3xs" title="សរុបយឺត">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-blue-50 text-blue-700 border border-blue-200 shadow-3xs" title={t('att.tt.totLate')}>
                                 {stats.late}
                               </span>
                             </td>
 
                             {/* Cumulative Permission (ច្បាប់) */}
                             <td className="px-3 py-3.5 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-amber-50 text-amber-700 border border-amber-200 shadow-3xs" title="សរុបច្បាប់">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-amber-50 text-amber-700 border border-amber-200 shadow-3xs" title={t('att.tt.totPerm')}>
                                 {stats.permission}
                               </span>
                             </td>
 
                             {/* Cumulative Absent without permission (អត់ច្បាប់) */}
                             <td className="px-3 py-3.5 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-rose-50 text-rose-700 border border-rose-250 shadow-3xs" title="សរុបអត់ច្បាប់">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-rose-50 text-rose-700 border border-rose-250 shadow-3xs" title={t('att.tt.totUnexcused')}>
                                 {stats.absent}
                               </span>
                             </td>
 
                             {/* Cumulative Total Absences (អវត្តមានសរុប = ច្បាប់ + អត់ច្បាប់) */}
                             <td className="px-3 py-3.5 text-center bg-red-50/20">
-                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-red-100 text-red-800 border border-red-300 shadow-2xs" title="សរុបអវត្តមានសរុប (ច្បាប់ + អត់ច្បាប់)">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-red-100 text-red-800 border border-red-300 shadow-2xs" title={t('att.tt.totAbsence')}>
                                 {stats.totalAbsence}
                               </span>
                             </td>
@@ -1113,7 +1115,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                       setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'present' }));
                                       setStudentReasonsMap(prev => ({ ...prev, [std.id]: '' }));
                                     }}
-                                    title="វត្តមាន (វ)"
+                                    title={t('att.tt.present')}
                                     className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                       currentStatus === 'present'
                                         ? 'bg-emerald-600 text-white shadow-sm font-bold scale-[1.03]'
@@ -1121,12 +1123,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                     }`}
                                   >
                                     {currentStatus === 'present' && <Check size={10} strokeWidth={3} />}
-                                    <span>វ</span>
+                                    <span>{t('att.abbr.present')}</span>
                                   </button>
 
                                   <button
                                     onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'late' }))}
-                                    title="យឺត (យ)"
+                                    title={t('att.tt.late')}
                                     className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                       currentStatus === 'late'
                                         ? 'bg-blue-600 text-white shadow-sm font-bold scale-[1.03]'
@@ -1134,12 +1136,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                     }`}
                                   >
                                     {currentStatus === 'late' && <Check size={10} strokeWidth={3} />}
-                                    <span>យ</span>
+                                    <span>{t('att.abbr.late')}</span>
                                   </button>
                                   
                                   <button
                                     onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'permission' }))}
-                                    title="ច្បាប់ (ច្ប)"
+                                    title={t('att.tt.permission')}
                                     className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                       currentStatus === 'permission'
                                         ? 'bg-amber-500 text-white shadow-sm font-bold scale-[1.03]'
@@ -1147,12 +1149,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                     }`}
                                   >
                                     {currentStatus === 'permission' && <Check size={10} strokeWidth={3} />}
-                                    <span>ច្ប</span>
+                                    <span>{t('att.abbr.permission')}</span>
                                   </button>
 
                                   <button
                                     onClick={() => setActiveAttendanceMap(prev => ({ ...prev, [std.id]: 'absent' }))}
-                                    title="អត់ច្បាប់ (អច្ប)"
+                                    title={t('att.tt.absent')}
                                     className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                       currentStatus === 'absent'
                                         ? 'bg-rose-500 text-white shadow-sm font-bold scale-[1.03]'
@@ -1160,7 +1162,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                     }`}
                                   >
                                     {currentStatus === 'absent' && <Check size={10} strokeWidth={3} />}
-                                    <span>អច្ប</span>
+                                    <span>{t('att.abbr.absent')}</span>
                                   </button>
                                 </div>
 
@@ -1175,7 +1177,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                       }}
                                       className="w-full bg-slate-55 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none"
                                     >
-                                      <option value="">-- ជ្រើសរើសមូលហេតុ --</option>
+                                      <option value="">{t('att.selectReason')}</option>
                                       {ABSENCE_REASON_GROUPS.map(group => (
                                         <optgroup key={group.label} label={group.label}>
                                           {group.options.map(opt => (
@@ -1220,7 +1222,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                       <tr>
                         <td colSpan={8} className="py-20 text-center text-slate-400 text-xs text-bold">
                           <p className="text-xl mb-1">📭</p>
-                          <p className="font-bold">ពុំមានគណនីសិស្សនៅក្នុងថ្នាក់ត្រូវបានរកឃើញទេ ឬមិនត្រូវនឹងការស្វែងរករបស់អ្នកឡើយ។</p>
+                          <p className="font-bold">{t('att.noStudents')}</p>
                         </td>
                       </tr>
                     )}
@@ -1245,7 +1247,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-slate-605 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw size={13} />
-                  <span>កំណត់ឡើងវិញ</span>
+                  <span>{t('common.reset')}</span>
                 </button>
 
                 <button
@@ -1253,7 +1255,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   className="px-6 py-2 bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-md uppercase tracking-wider"
                 >
                   <CheckCircle size={13} />
-                  <span>រក្សាទុកវត្តមានទាំងអស់</span>
+                  <span>{t('att.saveAllStudent')}</span>
                 </button>
               </div>
             </div>
@@ -1280,14 +1282,14 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                 <table className="w-full min-w-[900px]">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-left font-bold select-none text-[10px] uppercase tracking-wider">
                     <tr>
-                      <th className="px-5 py-3 w-12 text-center">ល.រ</th>
-                      <th className="px-5 py-3 sticky left-0 z-10 bg-slate-50 border-r border-slate-200/60 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">ឈ្មោះគ្រូបង្រៀន</th>
-                      <th className="px-5 py-3 hidden sm:table-cell">បង្រៀនថ្នាក់រៀន/ជំនាញ</th>
-                      <th className="px-3 py-3 text-center text-blue-600 font-black whitespace-nowrap text-[10.5px]">សរុបយឺត (យ)</th>
-                      <th className="px-3 py-3 text-center text-amber-600 font-black whitespace-nowrap text-[10.5px]">សរុបច្បាប់ (ច្ប)</th>
-                      <th className="px-3 py-3 text-center text-rose-600 font-black whitespace-nowrap text-[10.5px]">សរុបអត់ច្បាប់ (អច្ប)</th>
-                      <th className="px-3 py-3 text-center text-red-700 font-black whitespace-nowrap text-[10.5px] bg-red-50/50 rounded-lg">សរុបអវត្តមាន</th>
-                      <th className="px-5 py-3 text-center w-52">ជ្រើសរើសវត្តមាន</th>
+                      <th className="px-5 py-3 w-12 text-center">{t('common.no')}</th>
+                      <th className="px-5 py-3 sticky left-0 z-10 bg-slate-50 border-r border-slate-200/60 shadow-[2px_0_4px_rgba(0,0,0,0.02)]">{t('att.teacherName')}</th>
+                      <th className="px-5 py-3 hidden sm:table-cell">{t('att.teacherClass')}</th>
+                      <th className="px-3 py-3 text-center text-blue-600 font-black whitespace-nowrap text-[10.5px]">{t('att.totLate')}</th>
+                      <th className="px-3 py-3 text-center text-amber-600 font-black whitespace-nowrap text-[10.5px]">{t('att.totPerm')}</th>
+                      <th className="px-3 py-3 text-center text-rose-600 font-black whitespace-nowrap text-[10.5px]">{t('att.totUnexcused')}</th>
+                      <th className="px-3 py-3 text-center text-red-700 font-black whitespace-nowrap text-[10.5px] bg-red-50/50 rounded-lg">{t('att.totAbsence')}</th>
+                      <th className="px-5 py-3 text-center w-52">{t('att.setStatus')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1322,21 +1324,21 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
                             {/* Cumulative Late (យ) */}
                             <td className="px-3 py-3.5 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-blue-50 text-blue-700 border border-blue-200 shadow-3xs" title="សរុបយឺត">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-blue-50 text-blue-700 border border-blue-200 shadow-3xs" title={t('att.tt.totLate')}>
                                 {tcStats.late}
                               </span>
                             </td>
 
                             {/* Cumulative Permission (ច្ប) */}
                             <td className="px-3 py-3.5 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-amber-50 text-amber-700 border border-amber-200 shadow-3xs" title="សរុបច្បាប់">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-amber-50 text-amber-700 border border-amber-200 shadow-3xs" title={t('att.tt.totPerm')}>
                                 {tcStats.permission}
                               </span>
                             </td>
 
                             {/* Cumulative Absent (អច្ប) */}
                             <td className="px-3 py-3.5 text-center">
-                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-rose-50 text-rose-700 border border-rose-250 shadow-3xs" title="សរុបអត់ច្បាប់">
+                              <span className="inline-flex items-center justify-center min-w-[28px] h-[28px] px-1.5 text-[11px] font-black font-sans rounded-xl bg-rose-50 text-rose-700 border border-rose-250 shadow-3xs" title={t('att.tt.totUnexcused')}>
                                 {tcStats.absent}
                               </span>
                             </td>
@@ -1357,7 +1359,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                       setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'present' }));
                                       setTeacherReasonsMap(prev => ({ ...prev, [tc.id]: '' }));
                                     }}
-                                    title="វត្តមាន (វ)"
+                                    title={t('att.tt.present')}
                                     className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                       currentStatus === 'present'
                                         ? 'bg-emerald-600 text-white shadow-sm font-bold scale-[1.03]'
@@ -1365,12 +1367,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                     }`}
                                   >
                                     {currentStatus === 'present' && <Check size={10} strokeWidth={3} />}
-                                    <span>វ</span>
+                                    <span>{t('att.abbr.present')}</span>
                                   </button>
 
                                   <button
                                     onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'late' }))}
-                                    title="យឺត (យ)"
+                                    title={t('att.tt.late')}
                                     className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                       currentStatus === 'late'
                                         ? 'bg-blue-600 text-white shadow-sm font-bold scale-[1.03]'
@@ -1378,12 +1380,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                     }`}
                                   >
                                     {currentStatus === 'late' && <Check size={10} strokeWidth={3} />}
-                                    <span>យ</span>
+                                    <span>{t('att.abbr.late')}</span>
                                   </button>
                                   
                                   <button
                                     onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'permission' }))}
-                                    title="ច្បាប់ (ច្ប)"
+                                    title={t('att.tt.permission')}
                                     className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                       currentStatus === 'permission'
                                         ? 'bg-amber-500 text-white shadow-sm font-bold scale-[1.03]'
@@ -1391,12 +1393,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                     }`}
                                   >
                                     {currentStatus === 'permission' && <Check size={10} strokeWidth={3} />}
-                                    <span>ច្ប</span>
+                                    <span>{t('att.abbr.permission')}</span>
                                   </button>
 
                                   <button
                                     onClick={() => setTeacherAttendanceMap(prev => ({ ...prev, [tc.id]: 'absent' }))}
-                                    title="អត់ច្បាប់ (អច្ប)"
+                                    title={t('att.tt.absent')}
                                     className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer select-none ${
                                       currentStatus === 'absent'
                                         ? 'bg-rose-500 text-white shadow-sm font-bold scale-[1.03]'
@@ -1404,7 +1406,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                     }`}
                                   >
                                     {currentStatus === 'absent' && <Check size={10} strokeWidth={3} />}
-                                    <span>អច្ប</span>
+                                    <span>{t('att.abbr.absent')}</span>
                                   </button>
                                 </div>
 
@@ -1419,7 +1421,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                       }}
                                       className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-sans text-slate-700 focus:border-blue-500 focus:bg-white transition-all outline-none"
                                     >
-                                      <option value="">-- ជ្រើសរើសមូលហេតុ --</option>
+                                      <option value="">{t('att.selectReason')}</option>
                                       <option value="បញ្ហាសុខភាព">១. បញ្ហាសុខភាព</option>
                                       <option value="មានធុរៈក្នុងគ្រួសារ">២. មានធុរៈក្នុងគ្រួសារ</option>
                                       <option value="ជាប់បេសកកម្ម">៣. ជាប់បេសកកម្ម</option>
@@ -1460,7 +1462,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                       <tr>
                         <td colSpan={8} className="py-20 text-center text-slate-400 text-xs font-bold">
                           <p className="text-xl mb-1">📭</p>
-                          <p>ពុំមានគណនីគ្រូបង្រៀនត្រូវបានរកឃើញឡើយ ឬមិនត្រូវនឹងការស្វែងរករបស់អ្នក។</p>
+                          <p>{t('att.noTeachers')}</p>
                         </td>
                       </tr>
                     )}
@@ -1485,7 +1487,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-slate-605 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw size={13} />
-                  <span>កំណត់ឡើងវិញ</span>
+                  <span>{t('common.reset')}</span>
                 </button>
 
                 <button
@@ -1493,7 +1495,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                   className="px-6 py-2 bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-md uppercase tracking-wider"
                 >
                   <CheckCircle size={13} />
-                  <span>រក្សាទុកវត្តមានគ្រូ</span>
+                  <span>{t('att.saveTeacher')}</span>
                 </button>
               </div>
             </div>
