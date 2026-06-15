@@ -195,36 +195,11 @@ export default function Dashboard({
     return effectiveAttYear ? filteredAttendance.filter(r => r.date.slice(0, 4) === effectiveAttYear) : [];
   }, [filteredAttendance, reportPeriod, effectiveAttDate, effectiveAttMonth, effectiveAttYear]);
 
-  // In the "ប្រចាំថ្ងៃ" (both shifts) view, collapse a class's morning + afternoon
-  // records for the same day into one, deduplicating students so nobody is counted
-  // twice. A student's daily status = best across shifts (present > late > permission
-  // > absent). Single-shift views pass through unchanged.
-  const periodRecordsMerged = useMemo(() => {
-    if (selectedDashSession !== 'all') return periodRecords;
-    const byKey = new Map<string, AttendanceRecord[]>();
-    periodRecords.forEach(r => {
-      const k = `${r.date}__${r.grade}`;
-      const arr = byKey.get(k);
-      if (arr) arr.push(r); else byKey.set(k, [r]);
-    });
-    const out: AttendanceRecord[] = [];
-    byKey.forEach((recs, k) => {
-      if (recs.length === 1) { out.push(recs[0]); return; }
-      const ids = new Set<string>();
-      recs.forEach(r => Object.keys(r.studentStates || {}).forEach(id => { if (!id.endsWith('_reason')) ids.add(id); }));
-      const states: { [id: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
-      let p = 0, y = 0, l = 0, a = 0;
-      ids.forEach(id => {
-        const ss = recs.map(r => r.studentStates?.[id]).filter(Boolean) as string[];
-        const s = ss.includes('present') ? 'present' : ss.includes('late') ? 'late' : ss.includes('permission') ? 'permission' : 'absent';
-        states[id] = s;
-        if (s === 'present') p++; else if (s === 'late') y++; else if (s === 'permission') l++; else a++;
-      });
-      const [date, grade] = k.split('__');
-      out.push({ id: `merged-${k}`, date, grade, presentCount: p, lateCount: y, permissionCount: l, absentCount: a, studentStates: states });
-    });
-    return out;
-  }, [periodRecords, selectedDashSession]);
+  // In the "ប្រចាំថ្ងៃ" (both shifts) view the absence counts are ADDED across the
+  // morning + afternoon shifts (a permission/absence in each shift is counted), so
+  // records pass through un-merged. Present is still based on the 459-student roster
+  // (present = enrolled − excused − absent), keeping the day total at the enrolment.
+  const periodRecordsMerged = periodRecords;
 
   // Enrolled (unique) students per general class — the roster used so that
   // unrecorded students/classes count as present (present = enrolled − absent).
