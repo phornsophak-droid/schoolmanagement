@@ -432,33 +432,45 @@ export default function Dashboard({
     let todayAbsentCount = 0;
 
     const list: any[] = [];
-    
-    todayRecords.forEach(rec => {
-      if (rec.studentStates) {
-        Object.entries(rec.studentStates).forEach(([sId, status]) => {
-          if (sId.endsWith('_reason')) return;
-          
-          if (status === 'late') todayLateCount++;
-          else if (status === 'permission') todayPermissionCount++;
-          else if (status === 'absent') todayAbsentCount++;
 
-          if (status === 'late' || status === 'permission' || status === 'absent') {
-            const stu = uniqueStudentsMap.get(sId);
-            const stats = cumulativeStats[sId] || { late: 0, permission: 0, absent: 0 };
-            const reason = (rec.studentStates as any)[sId + '_reason'] || '';
-            
-            list.push({
-              id: sId,
-              name: stu ? stu.name : 'មិនស្គាល់ឈ្មោះ',
-              grade: rec.grade,
-              gender: stu ? stu.gender : 'Unknown',
-              cumulativeLate: stats.late,
-              cumulativePermission: stats.permission,
-              cumulativeAbsent: stats.absent,
-              todayStatus: status,
-              reason: reason
-            });
-          }
+    // Merge a student's morning + afternoon records into one daily status (best
+    // across shifts: present > late > permission > absent), so a student absent in
+    // both shifts is counted once — matching the summary panel above.
+    const statusRank: Record<string, number> = { present: 0, late: 1, permission: 2, absent: 3 };
+    const byStudent = new Map<string, { status: string; grade: string; reason: string }>();
+    todayRecords.forEach(rec => {
+      if (!rec.studentStates) return;
+      Object.entries(rec.studentStates as Record<string, string>).forEach(([sId, status]) => {
+        if (sId.endsWith('_reason')) return;
+        const reason = (rec.studentStates as any)[sId + '_reason'] || '';
+        const prev = byStudent.get(sId);
+        if (!prev) {
+          byStudent.set(sId, { status, grade: rec.grade, reason });
+        } else {
+          const keepStatus = statusRank[status] < statusRank[prev.status] ? status : prev.status;
+          byStudent.set(sId, { status: keepStatus, grade: prev.grade, reason: prev.reason || reason });
+        }
+      });
+    });
+
+    byStudent.forEach(({ status, grade, reason }, sId) => {
+      if (status === 'late') todayLateCount++;
+      else if (status === 'permission') todayPermissionCount++;
+      else if (status === 'absent') todayAbsentCount++;
+
+      if (status === 'late' || status === 'permission' || status === 'absent') {
+        const stu = uniqueStudentsMap.get(sId);
+        const stats = cumulativeStats[sId] || { late: 0, permission: 0, absent: 0 };
+        list.push({
+          id: sId,
+          name: stu ? stu.name : 'មិនស្គាល់ឈ្មោះ',
+          grade,
+          gender: stu ? stu.gender : 'Unknown',
+          cumulativeLate: stats.late,
+          cumulativePermission: stats.permission,
+          cumulativeAbsent: stats.absent,
+          todayStatus: status,
+          reason
         });
       }
     });
