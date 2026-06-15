@@ -195,36 +195,17 @@ export default function Dashboard({
     return effectiveAttYear ? filteredAttendance.filter(r => r.date.slice(0, 4) === effectiveAttYear) : [];
   }, [filteredAttendance, reportPeriod, effectiveAttDate, effectiveAttMonth, effectiveAttYear]);
 
-  // In the "ប្រចាំថ្ងៃ" (both shifts) view, collapse a class's morning + afternoon
-  // records for the same day into one, deduplicating students so nobody is counted
-  // twice. A student's daily status = best across shifts (present > late > permission
-  // > absent). Single-shift views pass through unchanged.
-  const periodRecordsMerged = useMemo(() => {
-    if (selectedDashSession !== 'all') return periodRecords;
-    const byKey = new Map<string, AttendanceRecord[]>();
-    periodRecords.forEach(r => {
-      const k = `${r.date}__${r.grade}`;
-      const arr = byKey.get(k);
-      if (arr) arr.push(r); else byKey.set(k, [r]);
-    });
-    const out: AttendanceRecord[] = [];
-    byKey.forEach((recs, k) => {
-      if (recs.length === 1) { out.push(recs[0]); return; }
-      const ids = new Set<string>();
-      recs.forEach(r => Object.keys(r.studentStates || {}).forEach(id => { if (!id.endsWith('_reason')) ids.add(id); }));
-      const states: { [id: string]: 'present' | 'late' | 'permission' | 'absent' } = {};
-      let p = 0, y = 0, l = 0, a = 0;
-      ids.forEach(id => {
-        const ss = recs.map(r => r.studentStates?.[id]).filter(Boolean) as string[];
-        const s = ss.includes('present') ? 'present' : ss.includes('late') ? 'late' : ss.includes('permission') ? 'permission' : 'absent';
-        states[id] = s;
-        if (s === 'present') p++; else if (s === 'late') y++; else if (s === 'permission') l++; else a++;
-      });
-      const [date, grade] = k.split('__');
-      out.push({ id: `merged-${k}`, date, grade, presentCount: p, lateCount: y, permissionCount: l, absentCount: a, studentStates: states });
-    });
-    return out;
-  }, [periodRecords, selectedDashSession]);
+  // "ប្រចាំថ្ងៃ" (all) = morning shift + afternoon shift ADDED together. Each session
+  // is its own attendance-taking, so counts are summed across shifts (a student absent
+  // both shifts counts in each). Records pass through un-merged.
+  const periodRecordsMerged = periodRecords;
+
+  // Number of attendance-takings (date × session) in scope — the denominator unit so
+  // a two-shift day counts as two takings. Single-shift views collapse to days.
+  const operatedUnits = useMemo(
+    () => new Set(periodRecords.map(r => `${r.date}__${recSession(r)}`)).size,
+    [periodRecords]
+  );
 
   // Enrolled (unique) students per general class — the roster used so that
   // unrecorded students/classes count as present (present = enrolled − absent).
@@ -275,7 +256,7 @@ export default function Dashboard({
         const r = rec.get(grade);
         const permission = r?.permission || 0;
         const absent = r?.absent || 0;
-        const denom = enrolled * operatedDays;
+        const denom = enrolled * operatedUnits;
         const present_total = Math.max(0, denom - permission - absent);
         const rate = denom > 0 ? Math.round((present_total / denom) * 100) : 100;
         return { grade, present_total, permission, absent, daysCount: operatedDays, rate };
@@ -289,7 +270,7 @@ export default function Dashboard({
         return { grade, present_total: g.present + g.late, permission: g.permission, absent: g.absent, daysCount: g.days.size, rate };
       })
       .sort((a, b) => a.grade.localeCompare(b.grade, 'km'));
-  }, [periodRecordsMerged, periodDaysCount, classCategory, scopeClasses, enrolledByClass]);
+  }, [periodRecordsMerged, periodDaysCount, operatedUnits, classCategory, scopeClasses, enrolledByClass]);
 
   const attendanceAggregates = useMemo(() => {
     const operatedDays = periodDaysCount;
@@ -306,7 +287,7 @@ export default function Dashboard({
     if (classCategory === 'general') {
       // Unrecorded students/classes count as present: present = enrolled × operated
       // days − recorded absences (excused + unexcused). Late students are present.
-      const denom = scopeEnrolled * operatedDays;
+      const denom = scopeEnrolled * operatedUnits;
       totalPresent = Math.max(0, denom - totalPermission - totalAbsent);
       overallRate = denom > 0 ? Math.round((totalPresent / denom) * 100) : 0;
     } else {
@@ -324,7 +305,7 @@ export default function Dashboard({
       latestDate: periodLabel,
       activeDaysCount: operatedDays
     };
-  }, [periodRecordsMerged, periodDaysCount, classCategory, scopeEnrolled, periodLabel]);
+  }, [periodRecordsMerged, periodDaysCount, operatedUnits, classCategory, scopeEnrolled, periodLabel]);
 
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
