@@ -25,6 +25,7 @@ import {
 import { StudentScore, SchoolUser } from '../types';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
 import { syncUpsertSetting } from '../lib/supabase';
+import { useT } from '../i18n';
 import * as XLSX from 'xlsx';
 
 // Helper to normalize grade names by stripping whitespace and converting digits to standard Khmer
@@ -66,6 +67,7 @@ export default function ClassStudentMgmt({
   onRenameGrade,
   currentUser
 }: ClassStudentMgmtProps) {
+  const { t } = useT();
   // Tabs
   const [activeTab, setActiveTab] = useState<'classes' | 'students'>('students');
 
@@ -1104,7 +1106,7 @@ export default function ClassStudentMgmt({
             }}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
           >
-            📘 ថ្នាក់ចំណេះទូទៅ
+            {t('dash.cat.general')}
           </button>
           <button
             onClick={() => {
@@ -1114,7 +1116,7 @@ export default function ClassStudentMgmt({
             }}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}
           >
-            🎨 ថ្នាក់ក្រៅម៉ោង
+            {t('dash.cat.extra')}
           </button>
         </div>
       )}
@@ -1126,8 +1128,8 @@ export default function ClassStudentMgmt({
             <GraduationCap size={24} />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500 block">ថ្នាក់រៀនសរុប</span>
-            <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{categoryGrades.length} ថ្នាក់</span>
+            <span className="text-xs font-semibold text-slate-500 block">{t('cls.stat.classes')}</span>
+            <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{categoryGrades.length} {t('common.classesUnit')}</span>
           </div>
         </div>
 
@@ -1136,8 +1138,8 @@ export default function ClassStudentMgmt({
             <Users size={24} />
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500 block">សិស្សសរុប</span>
-            <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{totalStudents} នាក់</span>
+            <span className="text-xs font-semibold text-slate-500 block">{t('cls.stat.students')}</span>
+            <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{totalStudents} {t('common.persons')}</span>
           </div>
         </div>
 
@@ -1146,8 +1148,8 @@ export default function ClassStudentMgmt({
             ស្រី
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500 block">សិស្សស្រី</span>
-            <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{femaleStudents} នាក់</span>
+            <span className="text-xs font-semibold text-slate-500 block">{t('cls.stat.female')}</span>
+            <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{femaleStudents} {t('common.persons')}</span>
           </div>
         </div>
 
@@ -1156,8 +1158,8 @@ export default function ClassStudentMgmt({
             ប្រុស
           </div>
           <div>
-            <span className="text-xs font-semibold text-slate-500 block">សិស្សប្រុស</span>
-            <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{maleStudents} នាក់</span>
+            <span className="text-xs font-semibold text-slate-500 block">{t('cls.stat.male')}</span>
+            <span className="text-2xl font-black text-slate-800 font-sans tracking-tight">{maleStudents} {t('common.persons')}</span>
           </div>
         </div>
       </div>
@@ -1175,7 +1177,7 @@ export default function ClassStudentMgmt({
                   : 'hover:text-slate-800'
               }`}
             >
-              👤 បញ្ជីឈ្មោះ និងគ្រប់គ្រងសិស្ស ({uniqueStudentProfiles.filter(s => inCat(s.grade)).length})
+              {t('cls.tab.students')} ({uniqueStudentProfiles.filter(s => inCat(s.grade)).length})
             </button>
             <button
               id="tab_class_listings"
@@ -1186,7 +1188,7 @@ export default function ClassStudentMgmt({
                   : 'hover:text-slate-800'
               }`}
             >
-              📚 គ្រប់គ្រងថ្នាក់រៀន ({categoryGrades.length})
+              {t('cls.tab.classes')} ({categoryGrades.length})
             </button>
           </div>
 
@@ -1204,9 +1206,9 @@ export default function ClassStudentMgmt({
                 <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 text-xs text-amber-700">
                   <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
                   <div className="space-y-1">
-                    <p className="font-extrabold flex items-center gap-1">សិទ្ធិមើលបញ្ជីឈ្មោះតែប៉ុណ្ណោះ (Read-Only Mode)</p>
+                    <p className="font-extrabold flex items-center gap-1">{t('cls.readonly.title')}</p>
                     <p className="leading-relaxed text-[11px] font-medium">
-                      លោកអ្នកកំពុងតភ្ជាប់ជា <span className="font-bold">«គ្រូបន្ទុកថ្នាក់»</span>។ លោកអ្នកអាចត្រឹមតែពិនិត្យមើលបញ្ជីថ្នាក់រៀន និងស្ថិតិសិស្សបានប៉ុណ្ណោះ។ មានតែ <span className="font-bold">«នាយកសាលា»</span> ប៉ុណ្ណោះដែលអាចបង្កើត កែប្រែ ឬលុបថ្នាក់រៀនបាន។
+                      លោកអ្នកកំពុងតភ្ជាប់ជា <span className="font-bold">{t('cls.classTeacher')}</span>។ លោកអ្នកអាចត្រឹមតែពិនិត្យមើលបញ្ជីថ្នាក់រៀន និងស្ថិតិសិស្សបានប៉ុណ្ណោះ។ មានតែ <span className="font-bold">{t('cls.principal')}</span> ប៉ុណ្ណោះដែលអាចបង្កើត កែប្រែ ឬលុបថ្នាក់រៀនបាន។
                     </p>
                   </div>
                 </div>
@@ -1226,20 +1228,20 @@ export default function ClassStudentMgmt({
                       </p>
                       <div className="h-px bg-slate-100" />
                       <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-[10px] text-indigo-700 leading-relaxed space-y-1">
-                        <span className="font-bold">💡 អនុញ្ញាត៖</span>
-                        <p>លោកអ្នកអាចចូលទៅកាន់ផ្ចាំ «សៀវភៅពិន្ទុ» ដើម្បីបំពេញពិន្ទុសិស្ស ឬ «របាយការណ៍វេទមន្ត» ដើម្បីបញ្ចូលនិងកែសម្រួលរបាយការណ៍សិក្សា។</p>
+                        <span className="font-bold">{t('cls.allowed')}</span>
+                        <p>{t('cls.readonly.desc')}</p>
                       </div>
                     </div>
                   ) : (
                     <>
                       <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                         <Plus size={16} className="text-indigo-600" />
-                        បង្កើតថ្នាក់រៀនថ្មី
+                        {t('cls.form.newClass')}
                       </h3>
                       
                       <form onSubmit={handleAddClassLocal} className="space-y-3">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-500 mb-1">ឈ្មោះថ្នាក់រៀន</label>
+                          <label className="block text-xs font-semibold text-slate-500 mb-1">{t('cls.form.className')}</label>
                           <input
                             type="text"
                             required
@@ -1253,13 +1255,13 @@ export default function ClassStudentMgmt({
                           type="submit"
                           className="w-full bg-indigo-600 text-white font-semibold py-2 rounded-lg text-xs leading-none hover:bg-indigo-700 transition-colors shadow-xs"
                         >
-                          បន្ថែមថ្នាក់រៀន
+                          {t('cls.form.addClass')}
                         </button>
                       </form>
 
                       <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl space-y-1 text-[11px] text-indigo-700 leading-relaxed">
                         <div className="font-bold flex items-center gap-1"><Info size={12} />ការណែនាំ៖</div>
-                        <p>ឈ្មោះថ្នាក់ដែលបង្កើតរួច នឹងអាចជ្រើសរើសបាននៅគ្រប់ផ្នែកទាំងអស់នៃកម្មវិធី រួមមានសៀវភៅពិន្ទុ និងរបាយការណ៍សាលា។</p>
+                        <p>{t('cls.classNameHelp')}</p>
                       </div>
                     </>
                   )}
@@ -1267,7 +1269,7 @@ export default function ClassStudentMgmt({
 
                 {/* Display current classes/grades with students statistics */}
                 <div className="lg:col-span-2 space-y-3">
-                  <h3 className="font-bold text-slate-800 text-sm">បញ្ជីថ្នាក់រៀនបច្ចុប្បន្ន</h3>
+                  <h3 className="font-bold text-slate-800 text-sm">{t('cls.currentClasses')}</h3>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[350px] overflow-y-auto p-1 text-xs">
                     {categoryGrades.map((g) => {
@@ -1335,7 +1337,7 @@ export default function ClassStudentMgmt({
 
                           <div className="space-y-1.5 pt-2 border-t border-slate-50">
                             <div className="flex justify-between items-center text-slate-500 text-[11px]">
-                              <span>ចំនួនសិស្សសរុប៖</span>
+                              <span>{t('cls.totalStudents')}</span>
                               <span className="font-black text-slate-700">{stats.total} នាក់</span>
                             </div>
                             <div className="flex justify-between items-center text-slate-400 text-[10px]">
@@ -1360,7 +1362,7 @@ export default function ClassStudentMgmt({
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3 text-xs text-blue-700 animate-fadeIn">
                   <Info className="text-blue-500 shrink-0 mt-0.5" size={16} />
                   <div className="space-y-1">
-                    <p className="font-extrabold flex items-center gap-1">សិទ្ធិគ្រប់គ្រងសិស្សថ្នាក់រៀនផ្ទាល់ខ្លួន (Classroom Management Mode)</p>
+                    <p className="font-extrabold flex items-center gap-1">{t('cls.classroomMode')}</p>
                     <p className="leading-relaxed text-[11px] font-medium">
                       លោកអ្នកកំពុងតភ្ជាប់ជា <span className="font-bold">«គ្រូបន្ទុកថ្នាក់ {currentUser.grade}»</span>។ លោកអ្នកមានសិទ្ធពេញលេញក្នុងការកែសម្រួល និងលុបឈ្មោះសិស្សានុសិស្ស ក៏ដូចជាកែប្រែព័ត៌មានគ្រូ និងសិស្សនៅក្នុង <span className="font-bold">{currentUser.grade}</span> របស់លោកអ្នកផ្ទាល់។ (ការចុះឈ្មោះសិស្សថ្មី តម្រូវឱ្យនាយកជាអ្នកបញ្ចូល)
                     </p>
@@ -1379,7 +1381,7 @@ export default function ClassStudentMgmt({
                     <div className="space-y-1">
                       <span className="font-bold text-slate-700 flex items-center gap-1.5">
                         <FileSpreadsheet size={16} className="text-emerald-600" />
-                        ការទាញយក និង បញ្ចូលបញ្ជីឈ្មោះសិស្ស (Excel .csv)
+                        {t('cls.io.title')}
                       </span>
                       <p className="text-slate-400 text-[10px] leading-relaxed">
                         អ្នកអាចទាញយកឈ្មោះសិស្សបច្ចុប្បន្នទុកជាឯកសារ Excel {currentUser?.role === 'principal' ? 'ឬបញ្ចូលឯកសារសិស្សថ្មីពីកុំព្យូទ័ររបស់អ្នក។' : '។'}
@@ -1393,7 +1395,7 @@ export default function ClassStudentMgmt({
                         title="ទាញយកបញ្ជីឈ្មោះជាទម្រង់ excel"
                       >
                         <Download size={13} />
-                        ទាញយកតារាងឈ្មោះ
+                        {t('cls.io.downloadList')}
                       </button>
 
                       {currentUser?.role === 'principal' && (
@@ -1403,7 +1405,7 @@ export default function ClassStudentMgmt({
                           title="បញ្ចូលបញ្ជីឈ្មោះពីកុំព្យូទ័ររបស់អ្នក"
                         >
                           <Upload size={13} />
-                          នាំចូលពីកុំព្យូទ័រ
+                          {t('cls.io.import')}
                         </button>
                       )}
 
@@ -1435,7 +1437,7 @@ export default function ClassStudentMgmt({
                           ))
                         ) : (
                           <>
-                            <option value="ទាំងអស់">គ្រប់ថ្នាក់ទាំងអស់</option>
+                            <option value="ទាំងអស់">{t('cls.allClasses')}</option>
                             {categoryGrades.map(g => (
                               <option key={g} value={g}>{g}</option>
                             ))}
@@ -1446,13 +1448,13 @@ export default function ClassStudentMgmt({
                       {/* Group filter — only for after-hours classes that have groups. */}
                       {classCategory === 'extra' && availableGroups.length > 0 && (
                         <>
-                          <span className="text-xs font-bold text-slate-600">ក្រុម៖</span>
+                          <span className="text-xs font-bold text-slate-600">{t('cls.groupLabel')}</span>
                           <select
                             value={selectedGroup}
                             onChange={(e) => setSelectedGroup(e.target.value)}
                             className="px-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg text-indigo-700 outline-none focus:border-blue-500 font-semibold"
                           >
-                            <option value="ទាំងអស់">គ្រប់ក្រុម</option>
+                            <option value="ទាំងអស់">{t('cls.allGroups')}</option>
                             {availableGroups.map(g => (
                               <option key={g} value={g}>{g}</option>
                             ))}
@@ -1465,7 +1467,7 @@ export default function ClassStudentMgmt({
                           type="text"
                           value={studentSearch}
                           onChange={(e) => setStudentSearch(e.target.value)}
-                          placeholder="ស្វែងរកតាមឈ្មោះ..."
+                          placeholder={t('cls.search')}
                           className="pl-7 pr-3.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 placeholder-slate-400 outline-none focus:border-blue-500 text-xs font-medium"
                         />
                         <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
@@ -1492,7 +1494,7 @@ export default function ClassStudentMgmt({
                               onClick={handleAddSampleStudents}
                               className="px-2.5 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/50 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
                             >
-                              💡 បន្ថែមសិស្សគំរូ
+                              {t('cls.addSample')}
                             </button>
 
                             <button
@@ -1530,12 +1532,12 @@ export default function ClassStudentMgmt({
 
                   {/* Helper option to export sample blank Excel/CSV template */}
                   <div className="flex items-center justify-between px-3 text-[11px] text-slate-400 bg-slate-50/50 py-1.5 rounded-lg border border-slate-100 leading-none">
-                    <span>💡 គន្លឹះ៖ ដើម្បីនាំចូលបានត្រឹមត្រូវ សូមប្រាកដថាជួរឈរមានទម្រង់ (ល.រ, ឈ្មោះសិស្ស, ភេទ, ថ្នាក់, ស្ថានភាព)។</span>
+                    <span>{t('cls.importHint')}</span>
                     <button
                       onClick={() => handleExportCSV(true)}
                       className="text-blue-600 hover:underline font-bold"
                     >
-                      ទាញយកគំរូ Excel (.csv)
+                      {t('cls.io.downloadTemplate')}
                     </button>
                   </div>
 
@@ -1565,7 +1567,7 @@ export default function ClassStudentMgmt({
                               onClick={() => handleExportCSV(true)}
                               className="text-indigo-600 hover:underline font-bold flex items-center gap-0.5"
                             >
-                              <Download size={11} /> ទាញយកគំរូ Excel (.csv)
+                              <Download size={11} /> {t('cls.io.downloadTemplate')}
                             </button>
                             {currentUser?.role === 'principal' && (
                               <>
@@ -1585,7 +1587,7 @@ export default function ClassStudentMgmt({
 
                       <form onSubmit={handleSaveStudentSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-medium">
                         <div>
-                          <label className="block text-slate-500 mb-1">ឈ្មោះសិស្ស</label>
+                          <label className="block text-slate-500 mb-1">{t('common.studentName')}</label>
                           <input
                             type="text"
                             required
@@ -1597,19 +1599,19 @@ export default function ClassStudentMgmt({
                         </div>
 
                         <div>
-                          <label className="block text-slate-500 mb-1">ភេទ</label>
+                          <label className="block text-slate-500 mb-1">{t('common.gender')}</label>
                           <select
                             value={studentFormGender}
                             onChange={(e) => setStudentFormGender(e.target.value as 'ប្រុស' | 'ស្រី')}
                             className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500"
                           >
-                            <option value="ប្រុស">ប្រុស</option>
-                            <option value="ស្រី">ស្រី</option>
+                            <option value="ប្រុស">{t('common.male')}</option>
+                            <option value="ស្រី">{t('common.female')}</option>
                           </select>
                         </div>
 
                         <div>
-                          <label className="block text-slate-500 mb-1">ថ្នាក់សិក្សា</label>
+                          <label className="block text-slate-500 mb-1">{t('cls.col.class')}</label>
                           <select
                             disabled={currentUser?.role === 'teacher'}
                             value={studentFormGrade}
@@ -1623,22 +1625,22 @@ export default function ClassStudentMgmt({
                         </div>
 
                         <div>
-                          <label className="block text-slate-500 mb-1">ស្ថានភាព</label>
+                          <label className="block text-slate-500 mb-1">{t('cls.col.status')}</label>
                           <select
                             value={studentFormStatus}
                             onChange={(e) => setStudentFormStatus(e.target.value as 'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់')}
                             className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500"
                           >
-                            <option value="ធម្មតា">ធម្មតា</option>
-                            <option value="រៀនយឺត">រៀនយឺត</option>
-                            <option value="បោះបង់">បោះបង់</option>
+                            <option value="ធម្មតា">{t('cls.status.normal')}</option>
+                            <option value="រៀនយឺត">{t('cls.status.slow')}</option>
+                            <option value="បោះបង់">{t('cls.status.dropout')}</option>
                           </select>
                         </div>
 
                         {/* Group — only for after-hours classes, which split each class into groups. */}
                         {isExtraClass(studentFormGrade) && (
                           <div>
-                            <label className="block text-slate-500 mb-1">ក្រុម (Group)</label>
+                            <label className="block text-slate-500 mb-1">{t('cls.form.group')}</label>
                             <input
                               type="text"
                               value={studentFormGroup}
@@ -1673,12 +1675,12 @@ export default function ClassStudentMgmt({
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500">
-                          <th className="px-4 py-3 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
-                          <th className="px-4 py-3 text-center">ភេទ</th>
-                          <th className="px-4 py-3 text-center">ថ្នាក់សិក្សា</th>
-                          {classCategory === 'extra' && <th className="px-4 py-3 text-center">ក្រុម</th>}
-                          <th className="px-4 py-3 text-center">ស្ថានភាព</th>
-                          <th className="px-4 py-3 text-right">សកម្មភាព</th>
+                          <th className="px-4 py-3 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{t('common.studentName')}</th>
+                          <th className="px-4 py-3 text-center">{t('common.gender')}</th>
+                          <th className="px-4 py-3 text-center">{t('cls.col.class')}</th>
+                          {classCategory === 'extra' && <th className="px-4 py-3 text-center">{t('cls.col.group')}</th>}
+                          <th className="px-4 py-3 text-center">{t('cls.col.status')}</th>
+                          <th className="px-4 py-3 text-right">{t('common.action')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50 text-slate-700">
@@ -1768,7 +1770,7 @@ export default function ClassStudentMgmt({
                   {/* Teacher Account Information Card (ព័ត៌មានគ្រូ) */}
                   <div className="bg-white border border-slate-150 rounded-2xl shadow-3xs p-5 space-y-4">
                     <div className="pb-3 border-b border-slate-100">
-                      <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest block mb-0.5">ព័ត៌មានគ្រូ ឬ គ្រូបន្ទុកថ្នាក់</span>
+                      <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest block mb-0.5">{t('cls.teacherInfo')}</span>
                       <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
                         👤 គ្រូបន្ទុកថ្នាក់ទទួលខុសត្រូវ
                       </h3>
@@ -1828,7 +1830,7 @@ export default function ClassStudentMgmt({
                   {/* Classroom Status Detail Card (ព័ត៌មានថ្នាក់រៀន) */}
                   <div className="bg-white border border-slate-150 rounded-2xl shadow-3xs p-5 space-y-4">
                     <div className="pb-3 border-b border-slate-100">
-                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block mb-0.5">ស្ថិតិ និង ព័ត៌មានថ្នាក់រៀន</span>
+                      <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block mb-0.5">{t('cls.classStats')}</span>
                       <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
                         📊 ស្ថានភាពថ្នាក់៖ {selectedRosterGrade}
                       </h3>
@@ -1861,15 +1863,15 @@ export default function ClassStudentMgmt({
                         <div className="space-y-3.5 text-xs">
                           <div className="grid grid-cols-3 gap-2">
                             <div className="bg-slate-50 p-2.5 rounded-xl text-center">
-                              <span className="text-[10px] font-semibold text-slate-400 block mb-1">សរុប</span>
+                              <span className="text-[10px] font-semibold text-slate-400 block mb-1">{t('common.total')}</span>
                               <strong className="text-slate-800 font-sans text-sm font-black">{totalInCurrent} នាក់</strong>
                             </div>
                             <div className="bg-rose-50/50 p-2.5 rounded-xl text-center">
-                              <span className="text-[10px] font-semibold text-slate-40 block mb-1 text-slate-400">ស្រី (F)</span>
+                              <span className="text-[10px] font-semibold text-slate-40 block mb-1 text-slate-400">{t('cls.footFemale')}</span>
                               <strong className="text-rose-600 font-sans text-sm font-black">{femaleInCurrent} នាក់</strong>
                             </div>
                             <div className="bg-blue-50/50 p-2.5 rounded-xl text-center">
-                              <span className="text-[10px] font-semibold text-slate-400 block mb-1">ប្រុស (M)</span>
+                              <span className="text-[10px] font-semibold text-slate-400 block mb-1">{t('cls.footMale')}</span>
                               <strong className="text-blue-600 font-sans text-sm font-black">{maleInCurrent} នាក់</strong>
                             </div>
                           </div>
@@ -1894,12 +1896,12 @@ export default function ClassStudentMgmt({
 
                           <div className="pt-2 border-t border-slate-100 space-y-2 text-[11px] text-slate-500 font-semibold font-sans">
                             <div className="flex justify-between items-center">
-                              <span>ឆ្នាំសិក្សា / Academic Year:</span>
+                              <span>{t('cls.academicYear')}</span>
                               <span className="text-slate-800">២០២៥ - ២០២៦</span>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span>អង្គការ / ស្ថាប័ន៖</span>
-                              <span className="text-slate-800">អង្គការមូលនិធិដើម្បីកុមារកម្ពុជា (ខេមឃីត)</span>
+                              <span>{t('cls.org')}</span>
+                              <span className="text-slate-800">{t('cls.orgName')}</span>
                             </div>
                           </div>
                         </div>
@@ -1934,7 +1936,7 @@ export default function ClassStudentMgmt({
 
                 <form onSubmit={handleSaveTeacherLocal} className="space-y-4 text-xs font-semibold">
                   <div>
-                    <label className="block text-slate-500 mb-1">ឈ្មោះគ្រូបន្ទុកថ្នាក់</label>
+                    <label className="block text-slate-500 mb-1">{t('cls.teacherNameLabel')}</label>
                     <input
                       type="text"
                       required
@@ -1946,7 +1948,7 @@ export default function ClassStudentMgmt({
                   </div>
 
                   <div>
-                    <label className="block text-slate-500 mb-1">ជីវប្រវត្តិសង្ខេប / ព័ត៌មានលម្អិត</label>
+                    <label className="block text-slate-500 mb-1">{t('cls.bioLabel')}</label>
                     <textarea
                       required
                       rows={3}
