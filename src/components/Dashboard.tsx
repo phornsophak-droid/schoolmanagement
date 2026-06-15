@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { SchoolReport, StudentScore, SchoolUser } from '../types';
 import schoolLogo from '../assets/logo.png';
+import { useT } from '../i18n';
 
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
 const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
@@ -83,6 +84,7 @@ export default function Dashboard({
   currentUser
 }: DashboardProps) {
 
+  const { t } = useT();
   // Selected class category (general = មត្តេយ្យ–ទី៦; extra = after-hours skill classes).
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
@@ -687,29 +689,29 @@ export default function Dashboard({
           onClick={() => { setClassCategory('general'); setSelectedGrade('ទាំងអស់'); }}
           className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
         >
-          📘 ថ្នាក់ចំណេះទូទៅ
-          <span className="hidden sm:inline text-[11px] font-medium opacity-80">(មត្តេយ្យ–ទី៦)</span>
+          {t('dash.cat.general')}
+          <span className="hidden sm:inline text-[11px] font-medium opacity-80">{t('dash.cat.generalHint')}</span>
         </button>
         <button
           disabled={teacherLocked}
           onClick={() => { setClassCategory('extra'); setSelectedGrade('ទាំងអស់'); }}
           className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
         >
-          🎨 ថ្នាក់ក្រៅម៉ោង
-          <span className="hidden sm:inline text-[11px] font-medium opacity-80">(ភាសា/គំនូរ/កុំព្យូទ័រ...)</span>
+          {t('dash.cat.extra')}
+          <span className="hidden sm:inline text-[11px] font-medium opacity-80">{t('dash.cat.extraHint')}</span>
         </button>
       </div>
 
       {/* Upper Filter & Navigation Panel */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
         <div>
-          <h2 className="text-xl font-semibold text-slate-800 tracking-tight">ផ្ទាំងគ្រប់គ្រងទិន្នន័យទូទៅ</h2>
-          <p className="text-sm text-slate-500 mt-1">សូមជ្រើសរើស ខែ ឬ ថ្នាក់សិក្សា ដើម្បីពិនិត្យស្ថិតិលម្អិត</p>
+          <h2 className="text-xl font-semibold text-slate-800 tracking-tight">{t('dash.title')}</h2>
+          <p className="text-sm text-slate-500 mt-1">{t('dash.subtitle')}</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-400 font-mono">ខែ៖</span>
+            <span className="text-xs font-medium text-slate-400 font-mono">{t('common.month')}៖</span>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
@@ -722,7 +724,7 @@ export default function Dashboard({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-400 font-mono">ថ្នាក់៖{teacherLocked && ' 🔒'}</span>
+            <span className="text-xs font-medium text-slate-400 font-mono">{t('common.class')}៖{teacherLocked && ' 🔒'}</span>
             <select
               value={selectedGrade}
               onChange={(e) => setSelectedGrade(e.target.value)}
@@ -741,7 +743,7 @@ export default function Dashboard({
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-slate-100 rounded-lg text-xs font-semibold transition duration-200 shadow-3xs border border-blue-200/50"
           >
             <GraduationCap size={15} />
-            ទំព័រពិន្ទុសិស្ស
+            {t('dash.toGradebook')}
           </button>
 
           <button 
@@ -750,7 +752,7 @@ export default function Dashboard({
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-xs font-semibold transition duration-200 shadow-md shadow-blue-600/10"
           >
             <Plus size={15} />
-            បង្កើតរបាយការណ៍ថ្មី
+            {t('dash.createReport')}
           </button>
         </div>
       </div>
@@ -763,9 +765,9 @@ export default function Dashboard({
             <FileText size={24} />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-400">របាយការណ៍សរុប</p>
-            <h3 className="text-2xl font-bold text-slate-800 mt-1 font-mono">{filteredReports.length} <span className="text-sm font-normal text-slate-500">ច្បាប់</span></h3>
-            <p className="text-[10px] text-slate-400 mt-1.5">ដែលបានរក្សាទុកក្នុងប្រព័ន្ធ</p>
+            <p className="text-xs font-medium text-slate-400">{t('dash.kpi.reports')}</p>
+            <h3 className="text-2xl font-bold text-slate-800 mt-1 font-mono">{filteredReports.length} <span className="text-sm font-normal text-slate-500">{t('common.copies')}</span></h3>
+            <p className="text-[10px] text-slate-400 mt-1.5">{t('dash.kpi.reportsSub')}</p>
           </div>
         </div>
 
@@ -775,12 +777,12 @@ export default function Dashboard({
             <Users size={24} />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-400">សិស្សសរុបរួម</p>
-            <h3 className="text-2xl font-bold text-slate-800 mt-1 font-mono">{stats.totalCount} <span className="text-sm font-normal text-slate-500">នាក់</span></h3>
+            <p className="text-xs font-medium text-slate-400">{t('dash.kpi.students')}</p>
+            <h3 className="text-2xl font-bold text-slate-800 mt-1 font-mono">{stats.totalCount} <span className="text-sm font-normal text-slate-500">{t('common.persons')}</span></h3>
             <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-xs text-slate-500">ស្រី៖ <span className="font-bold text-rose-500">{stats.femaleCount}</span> នាក់</span>
+              <span className="text-xs text-slate-500">{t('common.female')}៖ <span className="font-bold text-rose-500">{stats.femaleCount}</span> {t('common.persons')}</span>
               <span className="text-slate-300">|</span>
-              <span className="text-xs text-slate-500">ប្រុស៖ <span className="font-bold text-blue-600">{stats.maleCount}</span> នាក់</span>
+              <span className="text-xs text-slate-500">{t('common.male')}៖ <span className="font-bold text-blue-600">{stats.maleCount}</span> {t('common.persons')}</span>
             </div>
           </div>
         </div>
@@ -794,13 +796,13 @@ export default function Dashboard({
           <div>
             <div className="flex items-center gap-2 text-blue-600 font-bold mb-1">
               <ClipboardCheck className="w-5 h-5 text-blue-500" />
-              <span className="text-xs uppercase tracking-wider font-bold">របាយការណ៍សង្ខេបវត្តមាន</span>
+              <span className="text-xs uppercase tracking-wider font-bold">{t('dash.att.summary')}</span>
             </div>
             <h3 className="font-bold text-slate-800 text-base font-serif">
-              វត្តមានសិស្ស{reportPeriod === 'day' ? 'ប្រចាំថ្ងៃ' : reportPeriod === 'month' ? 'ប្រចាំខែ' : 'ប្រចាំឆ្នាំ'}
+              {t('dash.att.studentAtt')} {reportPeriod === 'day' ? t('common.daily') : reportPeriod === 'month' ? t('common.monthly') : t('common.yearly')}
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              ទិន្នន័យសម្រាប់រយៈពេលដែលបានជ្រើស
+              {t('dash.att.dataForPeriod')}
               {attendanceAggregates.latestDate ? <span className="font-bold text-slate-500"> ៖ {attendanceAggregates.latestDate}</span> : ''}
               {reportPeriod !== 'day' && periodDaysCount > 0 ? <span className="text-slate-400"> ({periodDaysCount} ថ្ងៃ)</span> : ''}
               {sessionKm ? <span className="font-bold text-blue-500"> • {sessionKm}</span> : ''}
@@ -811,7 +813,7 @@ export default function Dashboard({
             {/* Morning / afternoon shift — general classes only (separate reports) */}
             {classCategory === 'general' && (
               <div className="flex bg-slate-100 p-0.5 rounded-lg">
-                {([['morning', '🌅 ព្រឹក'], ['afternoon', '🌇 រសៀល'], ['all', '📅 ប្រចាំថ្ងៃ']] as const).map(([s, label]) => (
+                {([['morning', t('dash.att.morning')], ['afternoon', t('dash.att.afternoon')], ['all', t('dash.att.allday')]] as const).map(([s, label]) => (
                   <button
                     key={s}
                     onClick={() => setSelectedDashSession(s)}
@@ -825,7 +827,7 @@ export default function Dashboard({
 
             {/* Period mode: day / month / year */}
             <div className="flex bg-slate-100 p-0.5 rounded-lg">
-              {([['day', 'ថ្ងៃ'], ['month', 'ខែ'], ['year', 'ឆ្នាំ']] as const).map(([mode, label]) => (
+              {([['day', t('common.day')], ['month', t('common.month')], ['year', t('common.year')]] as const).map(([mode, label]) => (
                 <button
                   key={mode}
                   onClick={() => setReportPeriod(mode)}
@@ -871,14 +873,14 @@ export default function Dashboard({
                 </select>
               )}
               {isLatestPeriod ? (
-                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded whitespace-nowrap">ថ្មីបំផុត</span>
+                <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded whitespace-nowrap">{t('common.latest')}</span>
               ) : (
                 <button
                   onClick={resetPeriodPick}
                   className="text-[9px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap transition-colors"
                   title="ត្រឡប់ទៅរយៈពេលថ្មីបំផុត"
                 >
-                  ↺ ថ្មីបំផុត
+                  ↺ {t('common.latest')}
                 </button>
               )}
             </div>
@@ -890,7 +892,7 @@ export default function Dashboard({
               title="ទាញយករបាយការណ៍សង្ខេបវត្តមាន"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              ទាញយករបាយការណ៍ (PDF)
+              {t('dash.att.downloadPdf')}
             </button>
 
             {onOpenAttendanceClick && (
@@ -898,7 +900,7 @@ export default function Dashboard({
                 onClick={onOpenAttendanceClick}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition duration-250 cursor-pointer border border-blue-200/40 shadow-3xs"
               >
-                <span>គ្រប់គ្រងវត្តមានឥឡូវនេះ</span>
+                <span>{t('dash.att.manageNow')}</span>
                 <ArrowRight size={13} />
               </button>
             )}
@@ -909,7 +911,7 @@ export default function Dashboard({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">អត្រាវត្តមានសរុប</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('dash.att.rate')}</p>
               <h4 className="text-xl font-black text-slate-800 mt-1 font-mono">
                 {attendanceAggregates.activeDaysCount > 0 ? `${attendanceAggregates.overallRate}%` : '0%'}
               </h4>
@@ -921,9 +923,9 @@ export default function Dashboard({
 
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">សិស្សមានវត្តមាន</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('dash.att.present')}</p>
               <h4 className="text-xl font-black text-emerald-600 mt-1 font-mono">
-                {attendanceAggregates.totalPresent} <span className="text-xs font-normal text-slate-500">{reportPeriod === 'day' ? 'នាក់' : 'នាក់-ដង'}</span>
+                {attendanceAggregates.totalPresent} <span className="text-xs font-normal text-slate-500">{reportPeriod === 'day' ? t('common.persons') : t('common.personDays')}</span>
               </h4>
             </div>
             <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold font-mono text-xs">
@@ -933,9 +935,9 @@ export default function Dashboard({
 
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">សិស្សមានច្បាប់</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('dash.att.permission')}</p>
               <h4 className="text-xl font-black text-amber-600 mt-1 font-mono">
-                {attendanceAggregates.totalPermission} <span className="text-xs font-normal text-slate-500">{reportPeriod === 'day' ? 'នាក់' : 'នាក់-ដង'}</span>
+                {attendanceAggregates.totalPermission} <span className="text-xs font-normal text-slate-500">{reportPeriod === 'day' ? t('common.persons') : t('common.personDays')}</span>
               </h4>
             </div>
             <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 font-bold font-mono text-xs">
@@ -945,9 +947,9 @@ export default function Dashboard({
 
           <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
             <div>
-              <p className="text-[10px] text-[#EA4335] font-bold uppercase tracking-wider">អវត្តមានគ្មានច្បាប់</p>
+              <p className="text-[10px] text-[#EA4335] font-bold uppercase tracking-wider">{t('dash.att.absent')}</p>
               <h4 className="text-xl font-black text-rose-600 mt-1 font-mono">
-                {attendanceAggregates.totalAbsent} <span className="text-xs font-normal text-slate-500">{reportPeriod === 'day' ? 'នាក់' : 'នាក់-ដង'}</span>
+                {attendanceAggregates.totalAbsent} <span className="text-xs font-normal text-slate-500">{reportPeriod === 'day' ? t('common.persons') : t('common.personDays')}</span>
               </h4>
             </div>
             <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 font-bold font-mono text-xs">
@@ -959,8 +961,8 @@ export default function Dashboard({
         {/* Detailed Records Tracker */}
         <div className="border border-slate-100 rounded-xl overflow-hidden">
           <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center">
-            <span className="text-xs font-bold text-slate-700">📜 កំណត់ត្រាវត្តមានតាមថ្នាក់ {reportPeriod === 'day' ? 'ប្រចាំថ្ងៃ' : reportPeriod === 'month' ? 'ប្រចាំខែ' : 'ប្រចាំឆ្នាំ'}</span>
-            <span className="text-[10.5px] text-slate-400 font-bold font-mono">សរុប {periodByClass.length} ថ្នាក់</span>
+            <span className="text-xs font-bold text-slate-700">{t('dash.att.recordsByClass')} {reportPeriod === 'day' ? t('common.daily') : reportPeriod === 'month' ? t('common.monthly') : t('common.yearly')}</span>
+            <span className="text-[10.5px] text-slate-400 font-bold font-mono">{t('common.total')} {periodByClass.length} {t('common.classesUnit')}</span>
           </div>
 
           {periodByClass.length > 0 ? (
@@ -968,12 +970,12 @@ export default function Dashboard({
               <table className="w-full text-left text-xs text-slate-600">
                 <thead>
                   <tr className="bg-slate-50/40 border-b border-slate-150 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
-                    <th className="px-4 py-2.5">ថ្នាក់រៀន</th>
-                    <th className="px-4 py-2.5 text-center">មានវត្តមាន{reportPeriod !== 'day' ? ' (នាក់-ដង)' : ''}</th>
-                    <th className="px-4 py-2.5 text-center">ច្បាប់</th>
-                    <th className="px-4 py-2.5 text-center">អវត្តមាន</th>
-                    <th className="px-4 py-2.5 text-center">អត្រាវត្តមាន</th>
-                    <th className="px-4 py-2.5 text-right">សកម្មភាព</th>
+                    <th className="px-4 py-2.5">{t('common.classroom')}</th>
+                    <th className="px-4 py-2.5 text-center">{t('dash.att.present2')}{reportPeriod !== 'day' ? ` (${t('common.personDays')})` : ''}</th>
+                    <th className="px-4 py-2.5 text-center">{t('dash.att.permission2')}</th>
+                    <th className="px-4 py-2.5 text-center">{t('dash.att.absent2')}</th>
+                    <th className="px-4 py-2.5 text-center">{t('dash.att.rate2')}</th>
+                    <th className="px-4 py-2.5 text-right">{t('common.action')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1000,7 +1002,7 @@ export default function Dashboard({
                           onClick={onOpenAttendanceClick}
                           className="text-blue-600 hover:text-blue-800 text-[11px] font-bold transition-all cursor-pointer inline-flex items-center gap-1"
                         >
-                          <span>ពិនិត្យឡើងវិញ</span>
+                          <span>{t('dash.att.review')}</span>
                           <ArrowRight size={11} />
                         </button>
                       </td>
@@ -1035,8 +1037,8 @@ export default function Dashboard({
                 <AlertCircle size={20} />
               </div>
               <div>
-                <p className="text-indigo-600 font-bold text-sm uppercase tracking-wider mb-1">ស្ថិតិមូលហេតុ</p>
-                <h3 className="font-bold text-[#1e293b] text-2xl font-serif">មូលហេតុនៃការអវត្តមានសិស្ស</h3>
+                <p className="text-indigo-600 font-bold text-sm uppercase tracking-wider mb-1">{t('dash.reasons.tag')}</p>
+                <h3 className="font-bold text-[#1e293b] text-2xl font-serif">{t('dash.reasons.title')}</h3>
                 <p className="text-xs text-slate-400 mt-2">
                   {reasonChartMode === 'daily' ? 'ប្រចាំថ្ងៃ' : reasonChartMode === 'monthly' ? 'ប្រចាំខែ' : 'ប្រចាំឆ្នាំ'}
                   {' '}• <span className="font-bold text-slate-500">{absenceReasonStats.scopeLabel}</span>
@@ -1099,9 +1101,9 @@ export default function Dashboard({
             </div>
             <div>
               <p className="text-rose-600 font-bold text-sm uppercase tracking-wider mb-1 flex items-center gap-2">
-                បញ្ជីសិស្សអវត្តមាន
+                {t('dash.absent.tag')}
               </p>
-              <h3 className="font-bold text-[#1e293b] text-2xl font-serif">តារាងសិស្សអវត្តមានប្រចាំថ្ងៃ</h3>
+              <h3 className="font-bold text-[#1e293b] text-2xl font-serif">{t('dash.absent.title')}</h3>
               <p className="text-xs text-slate-400 mt-2">
                 បញ្ជីសិស្សអវត្តមានទាំងអស់គ្រប់ថ្នាក់ • ថ្ងៃទី <span className="font-bold text-slate-500">{dailyAbsentReport.date}</span>
                 {sessionKm ? <span className="font-bold text-blue-500"> • {sessionKm}</span> : ''}
@@ -1113,7 +1115,7 @@ export default function Dashboard({
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-sm font-bold transition duration-200 cursor-pointer shadow-md shadow-rose-200"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            ទាញយករបាយការណ៍ប្រចាំថ្ងៃ (PDF)
+            {t('dash.absent.downloadDaily')}
           </button>
         </div>
 
@@ -1121,19 +1123,19 @@ export default function Dashboard({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-[#FFFDF7] py-6 px-4 rounded-xl border border-amber-200 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(251,191,36,0.05)]">
             <h4 className="text-4xl font-black text-amber-500 font-mono leading-none">{dailyAbsentReport.lateCount}</h4>
-            <p className="text-xs text-amber-600 font-black mt-3.5 uppercase tracking-wider">យឺតសរុប</p>
+            <p className="text-xs text-amber-600 font-black mt-3.5 uppercase tracking-wider">{t('dash.absent.lateTotal')}</p>
           </div>
           <div className="bg-[#F0F5FF] py-6 px-4 rounded-xl border border-blue-200 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(59,130,246,0.05)]">
             <h4 className="text-4xl font-black text-blue-600 font-mono leading-none">{dailyAbsentReport.permissionCount}</h4>
-            <p className="text-xs text-blue-600 font-black mt-3.5 uppercase tracking-wider">ច្បាប់សរុប</p>
+            <p className="text-xs text-blue-600 font-black mt-3.5 uppercase tracking-wider">{t('dash.absent.permTotal')}</p>
           </div>
           <div className="bg-[#FFF5F5] py-6 px-4 rounded-xl border border-rose-100 flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(244,63,94,0.05)]">
             <h4 className="text-4xl font-black text-rose-500 font-mono leading-none">{dailyAbsentReport.absentCount}</h4>
-            <p className="text-xs text-rose-500 font-black mt-3.5 uppercase tracking-wider">អត់ច្បាប់សរុប</p>
+            <p className="text-xs text-rose-500 font-black mt-3.5 uppercase tracking-wider">{t('dash.absent.absTotal')}</p>
           </div>
           <div className="bg-white py-6 px-4 rounded-xl border border-[#334155] flex flex-col items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
             <h4 className="text-4xl font-black text-[#334155] font-mono leading-none">{dailyAbsentReport.totalAbsences}</h4>
-            <p className="text-xs text-[#64748b] font-black mt-3.5 uppercase tracking-wider">អវត្តមានសរុប</p>
+            <p className="text-xs text-[#64748b] font-black mt-3.5 uppercase tracking-wider">{t('dash.absent.totalAbs')}</p>
           </div>
         </div>
 
@@ -1143,16 +1145,16 @@ export default function Dashboard({
             <table className="w-full text-left text-sm text-[#334155]">
               <thead className="border-b border-slate-200 text-[#64748b] font-bold text-[11px] uppercase tracking-wider">
                 <tr>
-                  <th className="px-5 py-4 text-center w-12 font-bold">ល.រ</th>
-                  <th className="px-5 py-4 font-bold sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
-                  <th className="px-5 py-4 font-bold">ថ្នាក់រៀន</th>
-                  <th className="px-5 py-4 font-bold">ភេទ</th>
-                  <th className="px-4 py-4 text-center font-bold">សរុបយឺត</th>
-                  <th className="px-4 py-4 text-center font-bold">សរុបច្បាប់</th>
-                  <th className="px-4 py-4 text-center text-rose-600 font-bold">សរុបអត់ច្បាប់</th>
-                  <th className="px-4 py-4 text-center text-slate-700 font-bold">សរុបអវត្តមាន</th>
-                  <th className="px-5 py-4 text-center font-bold">ស្ថានភាពថ្ងៃនេះ</th>
-                  <th className="px-5 py-4 font-bold">មូលហេតុ</th>
+                  <th className="px-5 py-4 text-center w-12 font-bold">{t('common.no')}</th>
+                  <th className="px-5 py-4 font-bold sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{t('common.studentName')}</th>
+                  <th className="px-5 py-4 font-bold">{t('common.classroom')}</th>
+                  <th className="px-5 py-4 font-bold">{t('common.gender')}</th>
+                  <th className="px-4 py-4 text-center font-bold">{t('dash.absent.hLate')}</th>
+                  <th className="px-4 py-4 text-center font-bold">{t('dash.absent.hPerm')}</th>
+                  <th className="px-4 py-4 text-center text-rose-600 font-bold">{t('dash.absent.hAbs')}</th>
+                  <th className="px-4 py-4 text-center text-slate-700 font-bold">{t('dash.absent.hTotAbs')}</th>
+                  <th className="px-5 py-4 text-center font-bold">{t('dash.absent.hToday')}</th>
+                  <th className="px-5 py-4 font-bold">{t('common.reason')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -1206,8 +1208,8 @@ export default function Dashboard({
         <div id="panel_report_list" className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-semibold text-slate-800 text-base">បញ្ជីរបាយការណ៍ដែលបានរក្សាទុក</h3>
-              <p className="text-xs text-slate-400 mt-1">របាយការណ៍ប្រចាំខែផ្លូវការរបស់គ្រូបន្ទុកថ្នាក់</p>
+              <h3 className="font-semibold text-slate-800 text-base">{t('dash.reports.saved')}</h3>
+              <p className="text-xs text-slate-400 mt-1">{t('dash.reports.savedSub')}</p>
             </div>
             <span className="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-full font-mono text-xs border border-slate-100">
               សរុប {filteredReports.length}
@@ -1242,7 +1244,7 @@ export default function Dashboard({
                       title="មើលលម្អិត និងបោះពុម្ព"
                     >
                       <Eye size={13} />
-                      ព័ត៌មានលម្អិត
+                      {t('common.details')}
                     </button>
                     {currentUser?.role !== 'teacher' && (
                       <button
