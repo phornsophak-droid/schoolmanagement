@@ -18,7 +18,8 @@ import {
   Download,
   Upload,
   FileText,
-  Table2
+  Table2,
+  RotateCcw
 } from 'lucide-react';
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
@@ -271,6 +272,24 @@ export default function Gradebook({
       e.target.value = '';
     };
     reader.readAsArrayBuffer(file);
+  };
+
+  // Wipe every score record for the selected class + month — used to recover from a
+  // bad import (wrong columns) so it can be re-imported cleanly.
+  const handleResetMonthScores = () => {
+    if (selectedGrade === 'ទាំងអស់' || selectedMonth === 'ទាំងអស់') {
+      alert('សូមជ្រើសរើស ថ្នាក់ និង ខែ ជាក់លាក់ជាមុនសិន ដើម្បីកំណត់ឡើងវិញ!');
+      return;
+    }
+    const toRemove = students.filter(s => s.grade === selectedGrade && s.month === selectedMonth);
+    if (toRemove.length === 0) {
+      alert(`គ្មានពិន្ទុសម្រាប់ «${selectedGrade}» ខែ «${selectedMonth}» ទេ។`);
+      return;
+    }
+    if (!window.confirm(`លុបពិន្ទុ ${toRemove.length} នាក់ សម្រាប់ «${selectedGrade}» ខែ «${selectedMonth}»?\n\nប្រើពេលនាំចូលខុស — បន្ទាប់មកនាំចូលឡើងវិញ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
+    const remaining = students.filter(s => !(s.grade === selectedGrade && s.month === selectedMonth));
+    onSaveStudents(remaining);
+    alert(`បានកំណត់ឡើងវិញ ✓ លុបពិន្ទុ ${toRemove.length} នាក់ហើយ។ ឥឡូវអ្នកអាចនាំចូលឡើងវិញ។`);
   };
 
   const [newClassName, setNewClassName] = useState('');
@@ -1000,6 +1019,14 @@ export default function Gradebook({
                 className="hidden"
                 onChange={handleImportScores}
               />
+              <button
+                onClick={handleResetMonthScores}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white text-rose-600 font-semibold hover:bg-rose-50 border border-rose-200 rounded-xl text-sm transition-all"
+                title="លុបពិន្ទុថ្នាក់+ខែនេះ ដើម្បីនាំចូលឡើងវិញ (ករណីនាំចូលខុស)"
+              >
+                <RotateCcw size={16} />
+                កំណត់ឡើងវិញ
+              </button>
               <button
                 onClick={() => setInlineEdit(v => !v)}
                 className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 font-semibold rounded-xl text-sm transition-all border ${inlineEdit ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600 shadow-md shadow-amber-500/10' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
