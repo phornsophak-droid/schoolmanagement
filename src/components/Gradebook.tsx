@@ -308,28 +308,32 @@ export default function Gradebook({
     alert(`បានកំណត់ឡើងវិញ ✓ លុបពិន្ទុ ${toRemove.length} នាក់ហើយ។ ឥឡូវអ្នកអាចនាំចូលឡើងវិញ។`);
   };
 
-  // Fill in any record that has no អត្តលេខ by copying the same student's known ID
-  // (matched by name + gender) from another of their records.
+  // អត្តលេខ belongs to a student's general (homeroom) class. Copy it onto every
+  // record that lacks one — including their after-hours classes, whose names carry a
+  // class suffix like "(E)/(A)/(H)/(PE)". Matching strips that suffix + all spaces.
+  const idKey = (name: string, gender: string) =>
+    `${String(name || '').replace(/[﻿​]/g, '').replace(/\([^)]*\)/g, '').replace(/\s+/g, '').trim()}|${gender}`;
   const handleBackfillIds = () => {
+    // Source of truth: IDs from general-class records only.
     const known = new Map<string, string>();
     students.forEach(s => {
       const id = (s.studentId || '').trim();
-      if (id) { const k = `${s.name.trim()}|${s.gender}`; if (!known.has(k)) known.set(k, id); }
+      if (id && !isExtraClass(s.grade)) { const k = idKey(s.name, s.gender); if (!known.has(k)) known.set(k, id); }
     });
     let filled = 0;
     const updated = students.map(s => {
       if ((s.studentId || '').trim()) return s;
-      const id = known.get(`${s.name.trim()}|${s.gender}`);
+      const id = known.get(idKey(s.name, s.gender));
       if (id) { filled++; return { ...s, studentId: id }; }
       return s;
     });
     const stillMissing = new Set(updated.filter(s => !(s.studentId || '').trim()).map(s => `${s.name.trim()}|${s.grade}`)).size;
     if (filled === 0) {
-      alert(`គ្មានអត្តលេខអាចបំពេញដោយស្វ័យប្រវត្តិទេ។\nសិស្ស ${stillMissing} នាក់ មិនទាន់មានអត្តលេខនៅកន្លែងណាមួយឡើយ — សូមបញ្ចូលដោយដៃតាមប៊ូតុង «កែ»។`);
+      alert(`គ្មានអត្តលេខអាចចម្លងបានទេ។\nសិស្ស ${stillMissing} នាក់ មិនមានឈ្មោះត្រូវគ្នាក្នុងថ្នាក់ទូទៅ — សូមបញ្ចូលដោយដៃតាមប៊ូតុង «កែ»។`);
       return;
     }
     onSaveStudents(updated);
-    alert(`បានបំពេញអត្តលេខ ${filled} កំណត់ត្រា ✓ (ចម្លងពីកំណត់ត្រាផ្សេងរបស់សិស្សដូចគ្នា)។\nនៅសល់ ${stillMissing} នាក់ ដែលគ្មានអត្តលេខទាល់តែសោះ — សូមបញ្ចូលដោយដៃ។`);
+    alert(`បានចម្លងអត្តលេខ ${filled} កំណត់ត្រា ✓ ពីថ្នាក់ទូទៅ (រួមថ្នាក់ក្រៅម៉ោងរបស់សិស្សដូចគ្នា)។\nនៅសល់ ${stillMissing} នាក់ ឈ្មោះមិនត្រូវគ្នាក្នុងថ្នាក់ទូទៅ — សូមបញ្ចូលដោយដៃ។`);
   };
 
   const [newClassName, setNewClassName] = useState('');
@@ -1874,7 +1878,7 @@ export default function Gradebook({
                         <td className="px-1 py-3 text-center font-semibold font-mono text-slate-500 sticky left-0 z-10 bg-white w-9 min-w-9">
                           {idx + 1}
                         </td>
-                        <td className="px-1 py-3 text-center font-mono sticky left-9 z-10 bg-white w-14 min-w-14">{(st.studentId || '').trim() ? <span className="text-slate-500">{st.studentId}</span> : <span className="px-1 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 text-[9px] font-bold">គ្មាន</span>}</td>
+                        <td className="px-1 py-3 text-center font-mono sticky left-9 z-10 bg-white w-14 min-w-14">{(st.studentId || '').trim() ? <span className="text-slate-500">{st.studentId}</span> : (isExtraClass(st.grade) ? <span className="text-slate-300">-</span> : <span className="px-1 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 text-[9px] font-bold">គ្មាន</span>)}</td>
                         <td className="px-2 py-3 font-semibold text-slate-800 sticky left-[92px] z-10 bg-white shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">{st.name}</td>
                         <td className="px-4 py-3 text-center">{st.gender}</td>
                         <td className="px-4 py-3 text-center text-slate-500">{st.grade}</td>
