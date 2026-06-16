@@ -98,7 +98,9 @@ function RemarkInput({ value, onCommit }: { value: string | undefined; onCommit:
   const [focused, setFocused] = useState(false);
   useEffect(() => { if (!focused) setText(value || ''); }, [value, focused]);
   const addPreset = (p: string) => {
-    const next = text.trim() ? `${text.trim()} ${p}` : p;
+    const cur = text.trim();
+    if (cur.includes(p)) return; // already added — skip duplicates
+    const next = cur ? `${cur} ${p}` : p;
     setText(next);
     onCommit(next);
   };
@@ -1424,7 +1426,11 @@ export default function Gradebook({
                   value=""
                   onChange={(e) => {
                     const p = e.target.value;
-                    if (p) setFormRemark(prev => (prev.trim() ? `${prev.trim()} ${p}` : p));
+                    if (p) setFormRemark(prev => {
+                      const cur = prev.trim();
+                      if (cur.includes(p)) return prev; // skip duplicates
+                      return cur ? `${cur} ${p}` : p;
+                    });
                     e.target.value = '';
                   }}
                   className="w-full mb-1.5 px-3 py-2 text-xs text-blue-700 bg-blue-50/60 border border-blue-100 rounded-lg outline-none cursor-pointer focus:border-blue-400"
