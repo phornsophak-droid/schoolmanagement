@@ -84,6 +84,12 @@ import { getPinForUser, setPinForUser } from './utils/auth';
 import { useT, LanguageToggle } from './i18n';
 
 
+// A real phone (any orientation). A landscape phone is wider than the `md`
+// breakpoint, so width alone would wrongly flip the app to the desktop layout;
+// the user-agent keeps the full-screen mobile portal in landscape too.
+const IS_PHONE = typeof navigator !== 'undefined' &&
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 export default function App() {
   const { t } = useT();
   // Navigation states
@@ -1078,7 +1084,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* 1. Desktop Sidebar (Hidden on mobile and in print) */}
-      <aside className="w-64 md:w-72 bg-[#1E293B] text-white flex flex-col shrink-0 hidden md:flex border-r border-slate-800/80 print:hidden h-full">
+      <aside className={`w-64 md:w-72 bg-[#1E293B] text-white flex-col shrink-0 border-r border-slate-800/80 print:hidden h-full ${IS_PHONE ? 'hidden' : 'hidden md:flex'}`}>
         {/* Sidebar Brand Header */}
         <div className="p-6 border-b border-slate-700/50">
           <div className="flex items-center gap-3">
@@ -1714,7 +1720,7 @@ export default function App() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={{ duration: 0.15 }}
-                    className="fixed inset-0 z-50 bg-slate-900 w-full flex justify-center md:static md:z-auto md:bg-transparent"
+                    className={`fixed inset-0 z-50 bg-slate-900 w-full flex justify-center ${IS_PHONE ? '' : 'md:static md:z-auto md:bg-transparent'}`}
                   >
                     <MobilePortal
                       students={students}
