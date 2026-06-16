@@ -312,7 +312,10 @@ export default function Gradebook({
     const file = e.target.files?.[0];
     if (!file) return;
     if (selectedGrade === 'ទាំងអស់') { alert('សូមជ្រើសរើសថ្នាក់ជាក់លាក់មុននាំចូល!'); e.target.value = ''; return; }
-    const targetMonth = selectedMonth !== 'ទាំងអស់' ? selectedMonth : 'មេសា';
+    // In the semester tab the scores belong to that semester's exam record.
+    const targetMonth = activeMode === 'semester'
+      ? (selectedSemester === '2' ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១')
+      : (selectedMonth !== 'ទាំងអស់' ? selectedMonth : 'មេសា');
     const num = (v: any): number | null => {
       if (v === '' || v === null || v === undefined) return null;
       const n = parseFloat(String(v).trim());
@@ -1148,7 +1151,7 @@ export default function Gradebook({
             </button>
           )}
 
-          {activeMode === 'monthly' && (
+          {(activeMode === 'monthly' || activeMode === 'semester') && (
             <>
               <button
                 onClick={handleDownloadScoreTemplate}
@@ -1173,6 +1176,11 @@ export default function Gradebook({
                 className="hidden"
                 onChange={handleImportScores}
               />
+            </>
+          )}
+
+          {activeMode === 'monthly' && (
+            <>
               <button
                 onClick={() => setInlineEdit(v => !v)}
                 className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 font-semibold rounded-xl text-sm transition-all border ${inlineEdit ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600 shadow-md shadow-amber-500/10' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
