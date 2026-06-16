@@ -17,7 +17,8 @@ import {
   HelpCircle,
   Download,
   Upload,
-  FileText
+  FileText,
+  Table2
 } from 'lucide-react';
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
@@ -25,6 +26,32 @@ import StudentReportCard from './StudentReportCard';
 import SemesterReportCard from './SemesterReportCard';
 import HonorRoll, { HonorEntry } from './HonorRoll';
 import * as XLSX from 'xlsx';
+
+// Inline score cell — local text state, commits on blur/Enter so parent
+// re-renders never steal focus while typing.
+function ScoreInput({ value, onCommit }: { value: number | null | undefined; onCommit: (v: number | null) => void }) {
+  const initial = value === null || value === undefined ? '' : String(value);
+  const [text, setText] = useState(initial);
+  const [focused, setFocused] = useState(false);
+  useEffect(() => { if (!focused) setText(value === null || value === undefined ? '' : String(value)); }, [value, focused]);
+  const commit = () => {
+    const t = text.trim();
+    if (t === '') { onCommit(null); return; }
+    const n = parseFloat(t);
+    onCommit(isNaN(n) ? null : n);
+  };
+  return (
+    <input
+      value={text}
+      inputMode="decimal"
+      onFocus={() => setFocused(true)}
+      onChange={e => setText(e.target.value)}
+      onBlur={() => { setFocused(false); commit(); }}
+      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+      className="w-11 text-center bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-400 focus:bg-blue-50 rounded px-0.5 py-1 outline-none font-mono text-slate-700"
+    />
+  );
+}
 
 interface GradebookProps {
   students: StudentScore[];
@@ -376,6 +403,63 @@ export default function Gradebook({
     // 3. Compute rankings inside the filtered group
     return rankStudents(list);
   }, [students, selectedMonth, selectedGrade, searchTerm, classCategory, selectedGradeGroup]);
+
+  // Inline (in-table) score entry. When on with a specific class + month selected, the
+  // grid lists the FULL class roster so scores can be typed straight in — students who
+  // have no record yet appear as blank synthetic rows (id prefixed __new__).
+  const [inlineEdit, setInlineEdit] = useState(false);
+  const inlineReady = inlineEdit && selectedGrade !== 'ទាំងអស់' && selectedMonth !== 'ទាំងអស់';
+
+  const monthlyRows = useMemo(() => {
+    if (!inlineReady) return filteredStudents;
+    const meta = new Map<string, StudentScore>();
+    students.forEach(s => { if (s.grade === selectedGrade && !meta.has(s.name.trim())) meta.set(s.name.trim(), s); });
+    let list: StudentScore[] = Array.from(meta.entries()).map(([name, sample]) => {
+      const existing = students.find(s => s.grade === selectedGrade && s.month === selectedMonth && s.name.trim() === name);
+      if (existing) return existing;
+      return calculateStudentFields({
+        id: `__new__${selectedGrade}__${selectedMonth}__${name}`,
+        name, gender: sample.gender, grade: selectedGrade, month: selectedMonth, group: sample.group,
+        studentId: sample.studentId,
+        khmer: { listening: null, speaking: null, reading: null, writing: null },
+        math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
+        science: null, socialStudies: null, scienceScores: {}, socialScores: {},
+        physicalEducation: null, health: null, lifeSkills: null, foreignLanguage: null,
+        ...(customSubjects ? { englishScores: {} } : {}),
+      });
+    });
+    if (selectedGradeGroup !== 'ទាំងអស់') list = list.filter(s => (s.group || '') === selectedGradeGroup);
+    if (searchTerm.trim() !== '') list = list.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    return rankStudents(list);
+  }, [inlineReady, students, selectedGrade, selectedMonth, selectedGradeGroup, searchTerm, customSubjects, filteredStudents]);
+
+  // Apply an edited score to a row's underlying record (creating it for blank rows) and persist.
+  const commitScore = (row: StudentScore, assign: (rec: StudentScore, val: number | null) => void, raw: number | null) => {
+    const val = raw === null ? null : clampScore(raw);
+    const isNew = String(row.id).startsWith('__new__');
+    let rec: StudentScore;
+    if (isNew) {
+      const sample = students.find(s => s.grade === selectedGrade && s.name.trim() === row.name.trim());
+      rec = calculateStudentFields({
+        id: generateUniqueId(),
+        name: row.name, gender: row.gender, grade: selectedGrade, month: selectedMonth, group: row.group,
+        studentId: row.studentId ?? sample?.studentId,
+        khmer: { listening: null, speaking: null, reading: null, writing: null },
+        math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
+        science: null, socialStudies: null, scienceScores: {}, socialScores: {},
+        physicalEducation: null, health: null, lifeSkills: null, foreignLanguage: null,
+        ...(customSubjects ? { englishScores: {} } : {}),
+      });
+    } else {
+      const found = students.find(s => s.id === row.id);
+      if (!found) return;
+      rec = JSON.parse(JSON.stringify(found)) as StudentScore;
+    }
+    assign(rec, val);
+    const calc = calculateStudentFields(rec);
+    const updated = isNew ? [...students, calc] : students.map(s => (s.id === rec.id ? calc : s));
+    onSaveStudents(updated);
+  };
 
   // Distinct groups in the selected class (drives the group filter for custom classes).
   const availableGradeGroups = useMemo(() => {
@@ -916,6 +1000,14 @@ export default function Gradebook({
                 className="hidden"
                 onChange={handleImportScores}
               />
+              <button
+                onClick={() => setInlineEdit(v => !v)}
+                className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 font-semibold rounded-xl text-sm transition-all border ${inlineEdit ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600 shadow-md shadow-amber-500/10' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                title="បញ្ចូលពិន្ទុក្នុងតារាងផ្ទាល់"
+              >
+                <Table2 size={16} />
+                {inlineEdit ? 'កំពុងបញ្ចូលក្នុងតារាង ✓' : 'បញ្ចូលក្នុងតារាង'}
+              </button>
             </>
           )}
 
@@ -1605,6 +1697,15 @@ export default function Gradebook({
           </div>
         </div>
 
+        {inlineEdit && activeMode === 'monthly' && (
+          <div className="mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 font-medium flex items-center gap-2">
+            <Table2 size={13} className="shrink-0" />
+            {inlineReady
+              ? 'បញ្ចូលពិន្ទុក្នុងប្រអប់ផ្ទាល់ — ពិន្ទុរក្សាទុកស្វ័យប្រវត្តិពេលចេញពីប្រអប់ (Enter ឬ ប៉ះកន្លែងផ្សេង)។ សិស្សទាំងអស់ក្នុងថ្នាក់បង្ហាញ បើទោះមិនទាន់មានពិន្ទុ។'
+              : 'សូមជ្រើសរើស ថ្នាក់ និង ខែ ជាក់លាក់ ដើម្បីបង្ហាញសិស្សទាំងអស់ និងបញ្ចូលពិន្ទុក្នុងតារាង។'}
+          </div>
+        )}
+
         {/* Scrollable grid student table listing — header rows & first columns stay frozen */}
         <style>{`
           .gb-scroll thead th { position: sticky; top: 0; z-index: 20; background: #f8fafc; }
@@ -1681,8 +1782,8 @@ export default function Gradebook({
                 )}
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs text-slate-700">
-                {filteredStudents.length > 0 ? (
-                  filteredStudents.map((st, idx) => {
+                {monthlyRows.length > 0 ? (
+                  monthlyRows.map((st, idx) => {
                     let badgeColors = 'bg-rose-50 text-rose-600 border-rose-200';
                     if (st.result === 'ជាប់') {
                       badgeColors = 'bg-emerald-50 text-emerald-600 border-emerald-200';
@@ -1712,30 +1813,34 @@ export default function Gradebook({
                           customSubjects.map(sub => {
                             const v = st.englishScores?.[sub.key];
                             return (
-                              <td key={sub.key} className="px-4 py-3 text-center font-mono text-slate-500">{v !== null && v !== undefined ? v : '-'}</td>
+                              <td key={sub.key} className="px-2 py-3 text-center font-mono text-slate-500">
+                                {inlineEdit
+                                  ? <ScoreInput value={v} onCommit={val => commitScore(st, (r, x) => { r.englishScores = { ...(r.englishScores || {}), [sub.key]: x }; }, val)} />
+                                  : (v !== null && v !== undefined ? v : '-')}
+                              </td>
                             );
                           })
                         ) : (
                           <>
-                            <td className="px-3 py-3 text-center font-mono text-slate-600 border-l border-slate-100">{st.khmer.listening ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.khmer.speaking ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.khmer.reading ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.khmer.writing ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-600 border-l border-slate-100">{st.math.numbers ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.math.measurement ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.math.geometry ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.math.algebra ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-600">{st.math.statistics ?? '-'}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-600 border-l border-slate-100">{inlineEdit ? <ScoreInput value={st.khmer.listening} onCommit={val => commitScore(st, (r, x) => { r.khmer.listening = x; }, val)} /> : (st.khmer.listening ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-600">{inlineEdit ? <ScoreInput value={st.khmer.speaking} onCommit={val => commitScore(st, (r, x) => { r.khmer.speaking = x; }, val)} /> : (st.khmer.speaking ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-600">{inlineEdit ? <ScoreInput value={st.khmer.reading} onCommit={val => commitScore(st, (r, x) => { r.khmer.reading = x; }, val)} /> : (st.khmer.reading ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-600">{inlineEdit ? <ScoreInput value={st.khmer.writing} onCommit={val => commitScore(st, (r, x) => { r.khmer.writing = x; }, val)} /> : (st.khmer.writing ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-600 border-l border-slate-100">{inlineEdit ? <ScoreInput value={st.math.numbers} onCommit={val => commitScore(st, (r, x) => { r.math.numbers = x; }, val)} /> : (st.math.numbers ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-600">{inlineEdit ? <ScoreInput value={st.math.measurement} onCommit={val => commitScore(st, (r, x) => { r.math.measurement = x; }, val)} /> : (st.math.measurement ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-600">{inlineEdit ? <ScoreInput value={st.math.geometry} onCommit={val => commitScore(st, (r, x) => { r.math.geometry = x; }, val)} /> : (st.math.geometry ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-600">{inlineEdit ? <ScoreInput value={st.math.algebra} onCommit={val => commitScore(st, (r, x) => { r.math.algebra = x; }, val)} /> : (st.math.algebra ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-600">{inlineEdit ? <ScoreInput value={st.math.statistics} onCommit={val => commitScore(st, (r, x) => { r.math.statistics = x; }, val)} /> : (st.math.statistics ?? '-')}</td>
                             {SCIENCE_SUBJECTS.map((sub, i) => (
-                              <td key={sub.key} className={`px-3 py-3 text-center font-mono text-slate-500 ${i === 0 ? 'border-l border-slate-100' : ''}`}>{st.scienceScores?.[sub.key] ?? '-'}</td>
+                              <td key={sub.key} className={`px-2 py-3 text-center font-mono text-slate-500 ${i === 0 ? 'border-l border-slate-100' : ''}`}>{inlineEdit ? <ScoreInput value={st.scienceScores?.[sub.key]} onCommit={val => commitScore(st, (r, x) => { r.scienceScores = { ...(r.scienceScores || {}), [sub.key]: x }; }, val)} /> : (st.scienceScores?.[sub.key] ?? '-')}</td>
                             ))}
                             {SOCIAL_SUBJECTS.map((sub, i) => (
-                              <td key={sub.key} className={`px-3 py-3 text-center font-mono text-slate-500 ${i === 0 ? 'border-l border-slate-100' : ''}`}>{st.socialScores?.[sub.key] ?? '-'}</td>
+                              <td key={sub.key} className={`px-2 py-3 text-center font-mono text-slate-500 ${i === 0 ? 'border-l border-slate-100' : ''}`}>{inlineEdit ? <ScoreInput value={st.socialScores?.[sub.key]} onCommit={val => commitScore(st, (r, x) => { r.socialScores = { ...(r.socialScores || {}), [sub.key]: x }; }, val)} /> : (st.socialScores?.[sub.key] ?? '-')}</td>
                             ))}
-                            <td className="px-3 py-3 text-center font-mono text-slate-500 border-l border-slate-100">{st.physicalEducation ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-500">{st.health ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-500">{st.lifeSkills ?? '-'}</td>
-                            <td className="px-3 py-3 text-center font-mono text-slate-500">{st.foreignLanguage ?? '-'}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-500 border-l border-slate-100">{inlineEdit ? <ScoreInput value={st.physicalEducation} onCommit={val => commitScore(st, (r, x) => { r.physicalEducation = x; }, val)} /> : (st.physicalEducation ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-500">{inlineEdit ? <ScoreInput value={st.health} onCommit={val => commitScore(st, (r, x) => { r.health = x; }, val)} /> : (st.health ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-500">{inlineEdit ? <ScoreInput value={st.lifeSkills} onCommit={val => commitScore(st, (r, x) => { r.lifeSkills = x; }, val)} /> : (st.lifeSkills ?? '-')}</td>
+                            <td className="px-2 py-3 text-center font-mono text-slate-500">{inlineEdit ? <ScoreInput value={st.foreignLanguage} onCommit={val => commitScore(st, (r, x) => { r.foreignLanguage = x; }, val)} /> : (st.foreignLanguage ?? '-')}</td>
                           </>
                         )}
                         <td className="px-4 py-3 text-center font-mono font-bold text-blue-600 bg-blue-50/30">
