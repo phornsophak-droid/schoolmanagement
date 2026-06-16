@@ -19,7 +19,8 @@ import {
   Upload,
   FileText,
   Table2,
-  RotateCcw
+  RotateCcw,
+  Hash
 } from 'lucide-react';
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
@@ -305,6 +306,30 @@ export default function Gradebook({
     const remaining = students.filter(s => !(s.grade === selectedGrade && s.month === selectedMonth));
     onSaveStudents(remaining);
     alert(`បានកំណត់ឡើងវិញ ✓ លុបពិន្ទុ ${toRemove.length} នាក់ហើយ។ ឥឡូវអ្នកអាចនាំចូលឡើងវិញ។`);
+  };
+
+  // Fill in any record that has no អត្តលេខ by copying the same student's known ID
+  // (matched by name + gender) from another of their records.
+  const handleBackfillIds = () => {
+    const known = new Map<string, string>();
+    students.forEach(s => {
+      const id = (s.studentId || '').trim();
+      if (id) { const k = `${s.name.trim()}|${s.gender}`; if (!known.has(k)) known.set(k, id); }
+    });
+    let filled = 0;
+    const updated = students.map(s => {
+      if ((s.studentId || '').trim()) return s;
+      const id = known.get(`${s.name.trim()}|${s.gender}`);
+      if (id) { filled++; return { ...s, studentId: id }; }
+      return s;
+    });
+    const stillMissing = new Set(updated.filter(s => !(s.studentId || '').trim()).map(s => `${s.name.trim()}|${s.grade}`)).size;
+    if (filled === 0) {
+      alert(`គ្មានអត្តលេខអាចបំពេញដោយស្វ័យប្រវត្តិទេ។\nសិស្ស ${stillMissing} នាក់ មិនទាន់មានអត្តលេខនៅកន្លែងណាមួយឡើយ — សូមបញ្ចូលដោយដៃតាមប៊ូតុង «កែ»។`);
+      return;
+    }
+    onSaveStudents(updated);
+    alert(`បានបំពេញអត្តលេខ ${filled} កំណត់ត្រា ✓ (ចម្លងពីកំណត់ត្រាផ្សេងរបស់សិស្សដូចគ្នា)។\nនៅសល់ ${stillMissing} នាក់ ដែលគ្មានអត្តលេខទាល់តែសោះ — សូមបញ្ចូលដោយដៃ។`);
   };
 
   const [newClassName, setNewClassName] = useState('');
@@ -1034,6 +1059,14 @@ export default function Gradebook({
                 className="hidden"
                 onChange={handleImportScores}
               />
+              <button
+                onClick={handleBackfillIds}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white text-amber-700 font-semibold hover:bg-amber-50 border border-amber-200 rounded-xl text-sm transition-all"
+                title="បំពេញអត្តលេខដែលខ្វះ ដោយចម្លងពីកំណត់ត្រាផ្សេងរបស់សិស្សដូចគ្នា"
+              >
+                <Hash size={16} />
+                បំពេញអត្តលេខ
+              </button>
               <button
                 onClick={handleResetMonthScores}
                 className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white text-rose-600 font-semibold hover:bg-rose-50 border border-rose-200 rounded-xl text-sm transition-all"
@@ -1841,7 +1874,7 @@ export default function Gradebook({
                         <td className="px-1 py-3 text-center font-semibold font-mono text-slate-500 sticky left-0 z-10 bg-white w-9 min-w-9">
                           {idx + 1}
                         </td>
-                        <td className="px-1 py-3 text-center font-mono text-slate-500 sticky left-9 z-10 bg-white w-14 min-w-14">{st.studentId || '-'}</td>
+                        <td className="px-1 py-3 text-center font-mono sticky left-9 z-10 bg-white w-14 min-w-14">{(st.studentId || '').trim() ? <span className="text-slate-500">{st.studentId}</span> : <span className="px-1 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 text-[9px] font-bold">គ្មាន</span>}</td>
                         <td className="px-2 py-3 font-semibold text-slate-800 sticky left-[92px] z-10 bg-white shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">{st.name}</td>
                         <td className="px-4 py-3 text-center">{st.gender}</td>
                         <td className="px-4 py-3 text-center text-slate-500">{st.grade}</td>
