@@ -558,8 +558,17 @@ export default function Gradebook({
   const [inlineEdit, setInlineEdit] = useState(false);
   const inlineReady = inlineEdit && selectedGrade !== 'ទាំងអស់' && selectedMonth !== 'ទាំងអស់';
 
+  // Monthly table order: 'list' = class roster / Excel order (default), 'rank' = by average.
+  // The ចំណាត់ថ្នាក់ column always shows the real rank regardless of row order.
+  const [tableSort, setTableSort] = useState<'list' | 'rank'>('list');
+  const orderRows = (base: StudentScore[]): StudentScore[] => {
+    if (tableSort === 'rank') return base;
+    const idx = new Map(students.map((s, i) => [s.id, i]));
+    return [...base].sort((a, b) => (idx.has(a.id) ? idx.get(a.id)! : 1e9) - (idx.has(b.id) ? idx.get(b.id)! : 1e9));
+  };
+
   const monthlyRows = useMemo(() => {
-    if (!inlineReady) return filteredStudents;
+    if (!inlineReady) return orderRows(filteredStudents);
     const meta = new Map<string, StudentScore>();
     students.forEach(s => { if (s.grade === selectedGrade && !meta.has(s.name.trim())) meta.set(s.name.trim(), s); });
     let list: StudentScore[] = Array.from(meta.entries()).map(([name, sample]) => {
@@ -578,8 +587,8 @@ export default function Gradebook({
     });
     if (selectedGradeGroup !== 'ទាំងអស់') list = list.filter(s => (s.group || '') === selectedGradeGroup);
     if (searchTerm.trim() !== '') list = list.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    return rankStudents(list);
-  }, [inlineReady, students, selectedGrade, selectedMonth, selectedGradeGroup, searchTerm, customSubjects, filteredStudents]);
+    return orderRows(rankStudents(list));
+  }, [inlineReady, students, selectedGrade, selectedMonth, selectedGradeGroup, searchTerm, customSubjects, filteredStudents, tableSort]);
 
   // Mutate a row's underlying record (creating it for blank rows), recompute and persist.
   const applyToRecord = (row: StudentScore, mutate: (rec: StudentScore) => void) => {
@@ -1178,6 +1187,13 @@ export default function Gradebook({
               >
                 <Table2 size={16} />
                 {inlineEdit ? 'កំពុងបញ្ចូលក្នុងតារាង ✓' : 'បញ្ចូលក្នុងតារាង'}
+              </button>
+              <button
+                onClick={() => setTableSort(s => (s === 'list' ? 'rank' : 'list'))}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 font-semibold rounded-xl text-sm transition-all border bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                title="ប្តូររបៀបតម្រៀបជួរ (តាមបញ្ជី / តាមចំណាត់ថ្នាក់)"
+              >
+                {tableSort === 'list' ? '🔢 តម្រៀប៖ តាមបញ្ជី' : '🏆 តម្រៀប៖ ចំណាត់ថ្នាក់'}
               </button>
             </>
           )}
