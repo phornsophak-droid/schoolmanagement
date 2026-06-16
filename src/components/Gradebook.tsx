@@ -567,6 +567,15 @@ export default function Gradebook({
     return [...base].sort((a, b) => (idx.has(a.id) ? idx.get(a.id)! : 1e9) - (idx.has(b.id) ? idx.get(b.id)! : 1e9));
   };
 
+  // Explicit save (data already auto-saves on each edit) — re-persists + syncs and
+  // flashes a confirmation, for the teacher's reassurance.
+  const [justSaved, setJustSaved] = useState(false);
+  const handleSaveAll = () => {
+    onSaveStudents(students);
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 2000);
+  };
+
   const monthlyRows = useMemo(() => {
     if (!inlineReady) return orderRows(filteredStudents);
     const meta = new Map<string, StudentScore>();
@@ -1164,22 +1173,6 @@ export default function Gradebook({
                 className="hidden"
                 onChange={handleImportScores}
               />
-              <button
-                onClick={handleBackfillIds}
-                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white text-amber-700 font-semibold hover:bg-amber-50 border border-amber-200 rounded-xl text-sm transition-all"
-                title="បំពេញអត្តលេខដែលខ្វះ ដោយចម្លងពីកំណត់ត្រាផ្សេងរបស់សិស្សដូចគ្នា"
-              >
-                <Hash size={16} />
-                បំពេញអត្តលេខ
-              </button>
-              <button
-                onClick={handleResetMonthScores}
-                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white text-rose-600 font-semibold hover:bg-rose-50 border border-rose-200 rounded-xl text-sm transition-all"
-                title="លុបពិន្ទុថ្នាក់+ខែនេះ ដើម្បីនាំចូលឡើងវិញ (ករណីនាំចូលខុស)"
-              >
-                <RotateCcw size={16} />
-                កំណត់ឡើងវិញ
-              </button>
               <button
                 onClick={() => setInlineEdit(v => !v)}
                 className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 font-semibold rounded-xl text-sm transition-all border ${inlineEdit ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600 shadow-md shadow-amber-500/10' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
@@ -2327,6 +2320,32 @@ export default function Gradebook({
             </table>
           )}
         </div>
+
+        {/* Footer actions below the score table (monthly mode) */}
+        {activeMode === 'monthly' && (
+          <div className="flex flex-wrap items-center justify-end gap-2 px-4 py-3 border-t border-slate-100 bg-slate-50/40">
+            <button
+              onClick={handleBackfillIds}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-amber-700 font-semibold hover:bg-amber-50 border border-amber-200 rounded-xl text-sm transition-all"
+              title="បំពេញអត្តលេខដែលខ្វះ ដោយចម្លងពីកំណត់ត្រាផ្សេងរបស់សិស្សដូចគ្នា"
+            >
+              <Hash size={15} /> បំពេញអត្តលេខ
+            </button>
+            <button
+              onClick={handleResetMonthScores}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-rose-600 font-semibold hover:bg-rose-50 border border-rose-200 rounded-xl text-sm transition-all"
+              title="លុបពិន្ទុថ្នាក់+ខែនេះ ដើម្បីនាំចូលឡើងវិញ (ករណីនាំចូលខុស)"
+            >
+              <RotateCcw size={15} /> កំណត់ឡើងវិញ
+            </button>
+            <button
+              onClick={handleSaveAll}
+              className={`flex items-center justify-center gap-1.5 px-5 py-2 font-bold rounded-xl text-sm transition-all shadow-md ${justSaved ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+            >
+              {justSaved ? '✓ បានរក្សាទុក' : '💾 រក្សាទុក'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Semester Exam Form Modal Dialog */}
