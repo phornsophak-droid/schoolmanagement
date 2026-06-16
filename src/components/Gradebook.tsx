@@ -1613,8 +1613,8 @@ export default function Gradebook({
                 {viewingEnglish ? (
                   <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
                     <th className="px-2 py-3 text-center sticky left-0 z-20 bg-slate-50 w-12 min-w-12">ល.រ</th>
-                    <th className="px-3 py-3 sticky left-12 z-20 bg-slate-50 shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
-                    <th className="px-4 py-3 text-center">អត្តលេខ</th>
+                    <th className="px-3 py-3 text-center sticky left-12 z-20 bg-slate-50 w-20 min-w-20">អត្តលេខ</th>
+                    <th className="px-3 py-3 sticky left-32 z-20 bg-slate-50 shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
                     <th className="px-4 py-3 text-center">ភេទ</th>
                     <th className="px-4 py-3 text-center">ថ្នាក់សិក្សា</th>
                     <th className="px-4 py-3 text-center">ក្រុម</th>
@@ -1634,8 +1634,8 @@ export default function Gradebook({
                   <>
                   <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
                     <th rowSpan={2} className="px-2 py-3 text-center sticky left-0 z-20 bg-slate-50 w-12 min-w-12">ល.រ</th>
-                    <th rowSpan={2} className="px-3 py-3 sticky left-12 z-20 bg-slate-50 shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">គោត្តនាម និងនាម</th>
-                    <th rowSpan={2} className="px-3 py-3 text-center">អត្តលេខ</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center sticky left-12 z-20 bg-slate-50 w-20 min-w-20">អត្តលេខ</th>
+                    <th rowSpan={2} className="px-3 py-3 sticky left-32 z-20 bg-slate-50 shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">គោត្តនាម និងនាម</th>
                     <th rowSpan={2} className="px-4 py-3 text-center">ភេទ</th>
                     <th rowSpan={2} className="px-4 py-3 text-center">ថ្នាក់</th>
                     <th rowSpan={2} className="px-4 py-3 text-center">ខែ</th>
@@ -1693,8 +1693,8 @@ export default function Gradebook({
                         <td className="px-2 py-3 text-center font-semibold font-mono text-slate-500 sticky left-0 z-10 bg-white w-12 min-w-12">
                           {idx + 1}
                         </td>
-                        <td className="px-3 py-3 font-semibold text-slate-800 sticky left-12 z-10 bg-white shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">{st.name}</td>
-                        <td className="px-3 py-3 text-center font-mono text-slate-500">{st.studentId || '-'}</td>
+                        <td className="px-3 py-3 text-center font-mono text-slate-500 sticky left-12 z-10 bg-white w-20 min-w-20">{st.studentId || '-'}</td>
+                        <td className="px-3 py-3 font-semibold text-slate-800 sticky left-32 z-10 bg-white shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">{st.name}</td>
                         <td className="px-4 py-3 text-center">{st.gender}</td>
                         <td className="px-4 py-3 text-center text-slate-500">{st.grade}</td>
                         {customSubjects && (
