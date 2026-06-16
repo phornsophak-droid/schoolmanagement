@@ -294,7 +294,9 @@ export default function Gradebook({
   const handleDownloadScoreTemplate = () => {
     if (selectedGrade === 'ទាំងអស់') { alert('សូមជ្រើសរើសថ្នាក់ជាក់លាក់មុនទាញយកគំរូ!'); return; }
     const header = ['អត្តលេខ', 'ឈ្មោះ', 'ភេទ', ...scoreHeaders, 'មូលវិចារគ្រូ'];
-    const names = Array.from(new Set(students.filter(s => s.grade === selectedGrade).map(s => s.name.trim()))).sort((a, b) => a.localeCompare(b, 'km'));
+    // Keep the class's natural roster order (no alphabetical sort) so the template
+    // matches the order the user expects and can be filled/imported row-for-row.
+    const names = Array.from(new Set(students.filter(s => s.grade === selectedGrade).map(s => s.name.trim())));
     const body = names.map(n => {
       const rec = students.find(s => s.grade === selectedGrade && s.name.trim() === n);
       return [rec?.studentId || '', n, rec?.gender || '', ...scoreHeaders.map(() => ''), rec?.remark || ''];
@@ -345,12 +347,15 @@ export default function Gradebook({
           const gender: 'ប្រុស' | 'ស្រី' = (rawGender.includes('ស្រី') || rawGender === 'f' || rawGender === 'female') ? 'ស្រី' : 'ប្រុស';
           const vals = scoreHeaders.map((_, idx) => num(row[scoreStart + idx]));
           const remark = remarkCol >= 0 ? String(row[remarkCol] ?? '').replace(/[﻿​]/g, '').trim() : '';
-          // Match the existing record by អត្តលេខ first (never confuses same-named students),
-          // then by name (updates a legacy ID-less record / row without an ID instead of
-          // creating a duplicate).
+          // Match by EXACT name first — the template carries the app's own names, so this
+          // maps each row to the right student regardless of row order. អត្តលេខ is used only
+          // to disambiguate when several students share the same name, then as a last resort.
           const sameScope = (s: StudentScore) => s.grade === selectedGrade && s.month === targetMonth;
-          let existing = studentId ? updated.find(s => sameScope(s) && (s.studentId || '').trim() === studentId) : undefined;
-          if (!existing) existing = updated.find(s => sameScope(s) && s.name.trim() === name);
+          const byName = updated.filter(s => sameScope(s) && s.name.trim() === name);
+          let existing: StudentScore | undefined;
+          if (byName.length === 1) existing = byName[0];
+          else if (byName.length > 1) existing = (studentId ? byName.find(s => (s.studentId || '').trim() === studentId) : undefined) || byName[0];
+          else if (studentId) existing = updated.find(s => sameScope(s) && (s.studentId || '').trim() === studentId);
           const rec = buildScoreRecord(name, gender, vals, targetMonth, existing?.id, studentId || existing?.studentId, remark || existing?.remark);
           updated = existing ? updated.map(s => s.id === existing.id ? rec : s) : [...updated, rec];
           count++;
