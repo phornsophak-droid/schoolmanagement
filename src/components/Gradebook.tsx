@@ -1420,11 +1420,28 @@ export default function Gradebook({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">មូលវិចារគ្រូបន្ទុកថ្នាក់ (បង្ហាញលើព្រឹត្តបត្រ)</label>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const p = e.target.value;
+                    if (p) setFormRemark(prev => (prev.trim() ? `${prev.trim()} ${p}` : p));
+                    e.target.value = '';
+                  }}
+                  className="w-full mb-1.5 px-3 py-2 text-xs text-blue-700 bg-blue-50/60 border border-blue-100 rounded-lg outline-none cursor-pointer focus:border-blue-400"
+                  title="ជ្រើសមូលវិចារសម្រេច"
+                >
+                  <option value="">➕ ជ្រើសមូលវិចារសម្រេច...</option>
+                  {REMARK_PRESETS.map(g => (
+                    <optgroup key={g.label} label={g.label}>
+                      {g.items.map(it => <option key={it} value={it}>{it}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
                 <textarea
                   value={formRemark}
                   onChange={(e) => setFormRemark(e.target.value)}
                   rows={2}
-                  placeholder="ឧ. មានការប្រឹងប្រែង គួរបន្តរក្សា..."
+                  placeholder="ឧ. មានការប្រឹងប្រែង គួរបន្តរក្សា... (ឬជ្រើសពីបញ្ជីខាងលើ)"
                   className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-slate-800 resize-none"
                 />
               </div>
