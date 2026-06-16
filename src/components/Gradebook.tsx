@@ -55,6 +55,24 @@ function ScoreInput({ value, onCommit }: { value: number | null | undefined; onC
   );
 }
 
+// Inline teacher-remark cell — text version of ScoreInput, commits on blur/Enter.
+function RemarkInput({ value, onCommit }: { value: string | undefined; onCommit: (v: string) => void }) {
+  const [text, setText] = useState(value || '');
+  const [focused, setFocused] = useState(false);
+  useEffect(() => { if (!focused) setText(value || ''); }, [value, focused]);
+  return (
+    <input
+      value={text}
+      placeholder="មូលវិចារ..."
+      onFocus={() => setFocused(true)}
+      onChange={e => setText(e.target.value)}
+      onBlur={() => { setFocused(false); onCommit(text); }}
+      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+      className="w-28 text-left bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-400 focus:bg-blue-50 rounded px-1 py-1 outline-none text-[11px] text-slate-700"
+    />
+  );
+}
+
 interface GradebookProps {
   students: StudentScore[];
   selectedMonth: string;
@@ -499,9 +517,8 @@ export default function Gradebook({
     return rankStudents(list);
   }, [inlineReady, students, selectedGrade, selectedMonth, selectedGradeGroup, searchTerm, customSubjects, filteredStudents]);
 
-  // Apply an edited score to a row's underlying record (creating it for blank rows) and persist.
-  const commitScore = (row: StudentScore, assign: (rec: StudentScore, val: number | null) => void, raw: number | null) => {
-    const val = raw === null ? null : clampScore(raw);
+  // Mutate a row's underlying record (creating it for blank rows), recompute and persist.
+  const applyToRecord = (row: StudentScore, mutate: (rec: StudentScore) => void) => {
     const isNew = String(row.id).startsWith('__new__');
     let rec: StudentScore;
     if (isNew) {
@@ -521,11 +538,19 @@ export default function Gradebook({
       if (!found) return;
       rec = JSON.parse(JSON.stringify(found)) as StudentScore;
     }
-    assign(rec, val);
+    mutate(rec);
     const calc = calculateStudentFields(rec);
     const updated = isNew ? [...students, calc] : students.map(s => (s.id === rec.id ? calc : s));
     onSaveStudents(updated);
   };
+
+  // Apply an edited score to a row's record.
+  const commitScore = (row: StudentScore, assign: (rec: StudentScore, val: number | null) => void, raw: number | null) =>
+    applyToRecord(row, rec => assign(rec, raw === null ? null : clampScore(raw)));
+
+  // Apply an edited teacher remark (flows to the student report card via StudentScore.remark).
+  const commitRemark = (row: StudentScore, text: string) =>
+    applyToRecord(row, rec => { rec.remark = text.trim() || undefined; });
 
   // Distinct groups in the selected class (drives the group filter for custom classes).
   const availableGradeGroups = useMemo(() => {
@@ -1815,7 +1840,7 @@ export default function Gradebook({
                     <th className="px-4 py-3 text-center">ចំណាត់ថ្នាក់</th>
                     <th className="px-4 py-3 text-center">និទ្ទេស</th>
                     <th className="px-4 py-3 text-center">លទ្ធផល</th>
-                    <th className="px-4 py-3 text-center">ផ្សេងៗ</th>
+                    <th className="px-4 py-3 text-center">មូលវិចារគ្រូ</th>
                     <th className="px-4 py-3 text-right">សកម្មភាព</th>
                   </tr>
                 ) : (
@@ -1840,7 +1865,7 @@ export default function Gradebook({
                     <th rowSpan={2} className="px-3 py-3 text-center">ចំណាត់<br/>ថ្នាក់</th>
                     <th rowSpan={2} className="px-3 py-3 text-center">និទ្ទេស</th>
                     <th rowSpan={2} className="px-3 py-3 text-center">លទ្ធផល</th>
-                    <th rowSpan={2} className="px-3 py-3 text-center">ផ្សេងៗ</th>
+                    <th rowSpan={2} className="px-3 py-3 text-center">មូលវិចារគ្រូ</th>
                     <th rowSpan={2} className="px-4 py-3 text-right">សកម្មភាព</th>
                   </tr>
                   <tr className="bg-slate-50/60 border-b border-slate-100 text-[10px] font-semibold text-slate-400">
@@ -1938,7 +1963,11 @@ export default function Gradebook({
                             {st.result}
                           </span>
                         </td>
-                        <td className="px-3 py-3 text-center text-[11px] text-slate-500 max-w-[120px] truncate" title={st.note || ''}>{st.note || '-'}</td>
+                        <td className="px-3 py-3 text-center text-[11px] text-slate-500 max-w-[140px]">
+                          {inlineEdit
+                            ? <RemarkInput value={st.remark} onCommit={text => commitRemark(st, text)} />
+                            : <span className="block max-w-[140px] truncate" title={st.remark || ''}>{st.remark || '-'}</span>}
+                        </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {!customSubjects && (
