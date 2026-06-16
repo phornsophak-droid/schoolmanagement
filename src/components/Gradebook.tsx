@@ -77,7 +77,7 @@ export default function Gradebook({
   students,
   selectedMonth,
   setSelectedMonth,
-  selectedGrade,
+  selectedGrade: selectedGradeProp,
   setSelectedGrade,
   onSaveStudents,
   currentUser,
@@ -85,6 +85,13 @@ export default function Gradebook({
   onAddGrade,
   onDeleteGrade
 }: GradebookProps) {
+  // Teachers are hard-locked to their own class for all viewing/filtering. Compute the
+  // effective grade locally so it holds even when the parent's setSelectedGrade is a
+  // no-op (e.g. the mobile portal passes () => {}). Principals/admins use the selection.
+  const selectedGrade = (currentUser?.role === 'teacher' && currentUser.grade && currentUser.grade !== 'ទាំងអស់')
+    ? currentUser.grade
+    : selectedGradeProp;
+
   // Class category (general = មត្តេយ្យ–ទី៦; extra = after-hours skill classes)
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
