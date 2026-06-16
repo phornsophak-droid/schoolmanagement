@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
+import { SEM_SUBJECTS } from '../utils/scoring';
 import StudentReportCard from './StudentReportCard';
 import SemesterReportCard from './SemesterReportCard';
 import HonorRoll, { HonorEntry } from './HonorRoll';
@@ -718,6 +719,7 @@ export default function Gradebook({
         monthAverages: monthAveragesMap,
         overallMonthlyAvg,
         examScore,
+        examRecord,
         semesterAvg,
         gradeLetter,
         result
@@ -2120,8 +2122,8 @@ export default function Gradebook({
                   <th className="gb-corner px-3 py-3 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
                   <th className="px-3 py-3 text-center">ភេទ</th>
                   <th className="px-3 py-3 text-center">ថ្នាក់សិក្សា</th>
-                  {(selectedSemester === '1' ? SEMESTER_1_MONTHS : SEMESTER_2_MONTHS).map(m => (
-                    <th key={m} className="px-2 py-3 text-center font-normal">{m}</th>
+                  {SEM_SUBJECTS.map(sub => (
+                    <th key={sub.km} className="px-2 py-3 text-center font-normal whitespace-nowrap">{sub.km}</th>
                   ))}
                   <th className="px-3 py-3 text-center bg-indigo-50/30 text-indigo-700">មធ្យមភាគប្រចាំខែ</th>
                   <th className="px-3 py-3 text-center bg-blue-50/30 text-blue-700">ពិន្ទុប្រឡងឆមាស</th>
@@ -2144,8 +2146,6 @@ export default function Gradebook({
                     else if (st.gradeLetter === 'B') gradeColor = 'text-blue-500 font-bold';
                     else if (st.gradeLetter === 'C') gradeColor = 'text-emerald-600 font-bold';
 
-                    const monthList = selectedSemester === '1' ? SEMESTER_1_MONTHS : SEMESTER_2_MONTHS;
-
                     return (
                       <tr key={`${st.name}_${st.grade}`} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-3 py-3.5 text-center font-bold text-slate-550 font-mono">
@@ -2162,11 +2162,12 @@ export default function Gradebook({
                           </span>
                         </td>
                         <td className="px-3 py-3.5 text-center text-slate-400 font-sans font-bold">{st.grade}</td>
-                        {monthList.map(m => {
-                          const mVal = st.monthAverages[m];
+                        {SEM_SUBJECTS.map(sub => {
+                          const v = st.examRecord ? sub.get(st.examRecord) : null;
+                          const has = v !== undefined && v !== null && v > 0;
                           return (
-                            <td key={m} className={`px-2 py-3.5 text-center font-mono ${mVal ? 'text-slate-700 font-bold' : 'text-slate-300'}`}>
-                              {mVal !== undefined && mVal !== null ? mVal.toFixed(1) : '-'}
+                            <td key={sub.km} className={`px-2 py-3.5 text-center font-mono ${has ? 'text-slate-700 font-bold' : 'text-slate-300'}`}>
+                              {has ? Number(v).toFixed(1) : '-'}
                             </td>
                           );
                         })}
@@ -2224,7 +2225,7 @@ export default function Gradebook({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={16} className="px-4 py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={26} className="px-4 py-12 text-center text-slate-400 font-medium">
                       <FolderLock size={32} className="mx-auto text-slate-300 mb-2" />
                       មិនទាន់មានទិន្នន័យខែសិក្សាណាមួយ សម្រាប់ឆមាសនេះឡើយ។ សូមកត់ត្រាពិន្ទុប្រចាំខែជាមុនសិន!
                     </td>
