@@ -185,10 +185,10 @@ export default function Gradebook({
   const scoreHeaders = customSubjects ? customSubjects.map(s => s.km) : GENERAL_SCORE_HEADERS;
 
   // Build a StudentScore record from a row's numeric values (order matches scoreHeaders).
-  const buildScoreRecord = (name: string, gender: 'ប្រុស' | 'ស្រី', vals: (number | null)[], month: string, existingId?: string): StudentScore => {
+  const buildScoreRecord = (name: string, gender: 'ប្រុស' | 'ស្រី', vals: (number | null)[], month: string, existingId?: string, studentId?: string): StudentScore => {
     const base = {
       id: existingId || generateUniqueId(),
-      name, gender, grade: selectedGrade, month,
+      name, gender, grade: selectedGrade, month, studentId: studentId || undefined,
       khmer: { listening: null, writing: null, reading: null, speaking: null },
       math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
       science: null, socialStudies: null, physicalEducation: null, health: null, lifeSkills: null, foreignLanguage: null,
@@ -214,11 +214,11 @@ export default function Gradebook({
   // Download a pre-filled Excel template (registered students + blank score columns) for the selected class.
   const handleDownloadScoreTemplate = () => {
     if (selectedGrade === 'ទាំងអស់') { alert('សូមជ្រើសរើសថ្នាក់ជាក់លាក់មុនទាញយកគំរូ!'); return; }
-    const header = ['ឈ្មោះ', 'ភេទ', ...scoreHeaders];
+    const header = ['អត្តលេខ', 'ឈ្មោះ', 'ភេទ', ...scoreHeaders];
     const names = Array.from(new Set(students.filter(s => s.grade === selectedGrade).map(s => s.name.trim()))).sort((a, b) => a.localeCompare(b, 'km'));
     const body = names.map(n => {
       const rec = students.find(s => s.grade === selectedGrade && s.name.trim() === n);
-      return [n, rec?.gender || '', ...scoreHeaders.map(() => '')];
+      return [rec?.studentId || '', n, rec?.gender || '', ...scoreHeaders.map(() => '')];
     });
     const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
     const wb = XLSX.utils.book_new();
@@ -244,18 +244,33 @@ export default function Gradebook({
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, blankrows: false });
+        // Locate columns by header text so order/extra columns can't shift scores onto
+        // the wrong subject. Falls back to the legacy "name, gender, scores" layout.
+        const headerRow = (rows[0] || []).map((h: any) => String(h ?? '').replace(/[﻿​]/g, '').trim());
+        let idCol = headerRow.findIndex(h => h.includes('អត្តលេខ'));
+        let nameCol = headerRow.findIndex(h => h.includes('ឈ្មោះ') || h.includes('នាម'));
+        let genderCol = headerRow.findIndex(h => h.includes('ភេទ'));
+        if (nameCol < 0) nameCol = idCol >= 0 ? idCol + 1 : 0;
+        if (genderCol < 0) genderCol = nameCol + 1;
+        const scoreStart = Math.max(idCol, nameCol, genderCol) + 1;
         let updated = [...students];
         let count = 0;
         for (let i = 1; i < rows.length; i++) { // row 0 = header
           const row = rows[i];
           if (!row || !Array.isArray(row)) continue;
-          const name = String(row[0] ?? '').replace(/[﻿​]/g, '').replace(/\s+/g, ' ').trim();
+          const studentId = idCol >= 0 ? String(row[idCol] ?? '').replace(/[﻿​]/g, '').trim() : '';
+          const name = String(row[nameCol] ?? '').replace(/[﻿​]/g, '').replace(/\s+/g, ' ').trim();
           if (!name || name === 'ឈ្មោះ' || name === 'ឈ្មោះសិស្ស') continue;
-          const rawGender = String(row[1] ?? '').trim().toLowerCase();
+          const rawGender = String(row[genderCol] ?? '').trim().toLowerCase();
           const gender: 'ប្រុស' | 'ស្រី' = (rawGender.includes('ស្រី') || rawGender === 'f' || rawGender === 'female') ? 'ស្រី' : 'ប្រុស';
-          const vals = scoreHeaders.map((_, idx) => num(row[2 + idx]));
-          const existing = updated.find(s => s.name.trim() === name && s.grade === selectedGrade && s.month === targetMonth);
-          const rec = buildScoreRecord(name, gender, vals, targetMonth, existing?.id);
+          const vals = scoreHeaders.map((_, idx) => num(row[scoreStart + idx]));
+          // Match the existing record by អត្តលេខ first (never confuses same-named students),
+          // then by name (updates a legacy ID-less record / row without an ID instead of
+          // creating a duplicate).
+          const sameScope = (s: StudentScore) => s.grade === selectedGrade && s.month === targetMonth;
+          let existing = studentId ? updated.find(s => sameScope(s) && (s.studentId || '').trim() === studentId) : undefined;
+          if (!existing) existing = updated.find(s => sameScope(s) && s.name.trim() === name);
+          const rec = buildScoreRecord(name, gender, vals, targetMonth, existing?.id, studentId || existing?.studentId);
           updated = existing ? updated.map(s => s.id === existing.id ? rec : s) : [...updated, rec];
           count++;
         }
