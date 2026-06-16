@@ -55,21 +55,78 @@ function ScoreInput({ value, onCommit }: { value: number | null | undefined; onC
   );
 }
 
-// Inline teacher-remark cell — text version of ScoreInput, commits on blur/Enter.
+// Ready-made teacher-remark phrases, grouped — teachers pick (and may combine) them
+// from the inline dropdown, or type freely.
+const REMARK_PRESETS: { label: string; items: string[] }[] = [
+  { label: '១. មតិយោបល់វិជ្ជមាន', items: [
+    'ធ្វើបានល្អ ត្រូវខិតខំប្រឹងប្រែងបន្តទៀត។',
+    'មានការរីកចម្រើនល្អក្នុងការសិក្សា។',
+    'ចូលរៀនទៀងទាត់ និងគោរពវិន័យបានល្អ។',
+    'ចូលរួមសកម្មភាពក្នុងថ្នាក់បានល្អ។',
+    'មានទំនាក់ទំនងល្អជាមួយមិត្តភក្តិ និងគ្រូ។',
+    'បំពេញកិច្ចការផ្ទះបានទៀងទាត់។',
+  ] },
+  { label: '២. មតិយោបល់សម្រាប់ការកែលម្អ', items: [
+    'ត្រូវពង្រឹងជំនាញគណិតវិទ្យាបន្ថែម។',
+    'ត្រូវពង្រឹងការអានឱ្យបានញឹកញាប់ជាងមុន។',
+    'ត្រូវហាត់សរសេរឱ្យបានស្អាត និងត្រឹមត្រូវជាងមុន។',
+    'ត្រូវបង្កើនការយកចិត្តទុកដាក់ក្នុងម៉ោងសិក្សា។',
+    'ត្រូវចូលរួមឆ្លើយសំណួរ និងបញ្ចេញមតិឱ្យបានច្រើនជាងមុន។',
+    'ត្រូវបំពេញកិច្ចការផ្ទះឱ្យបានទៀងទាត់។',
+    'ត្រូវពង្រឹងការប្រកបពាក្យ និងការសរសេរអត្ថបទ។',
+    'ត្រូវពង្រឹងការអានយល់ និងការសង្ខេបខ្លឹមសារ។',
+    'ត្រូវបង្កើនទំនុកចិត្តក្នុងការរៀន និងការបង្ហាញសមត្ថភាពរបស់ខ្លួន។',
+    'ត្រូវខិតខំប្រឹងប្រែងបន្ថែមដើម្បីទទួលបានលទ្ធផលកាន់តែល្អ។',
+  ] },
+  { label: '៣. មតិយោបល់សម្រាប់សិស្សពូកែ', items: [
+    'បន្តរក្សាលទ្ធផលល្អ និងជួយមិត្តភក្តិក្នុងការសិក្សា។',
+    'មានសមត្ថភាពល្អ ត្រូវបន្តអភិវឌ្ឍខ្លួនឱ្យកាន់តែប្រសើរ។',
+    'បង្ហាញភាពជាអ្នកដឹកនាំ និងការទទួលខុសត្រូវបានល្អ។',
+    'គួរបន្តអានសៀវភៅ និងស្រាវជ្រាវបន្ថែមដើម្បីពង្រីកចំណេះដឹង។',
+  ] },
+  { label: '៤. មតិយោបល់សម្រាប់សិស្សត្រូវការការគាំទ្របន្ថែម', items: [
+    'ត្រូវការការគាំទ្រ និងការតាមដានបន្ថែមពីមាតាបិតា។',
+    'ត្រូវចំណាយពេលអាន និងធ្វើលំហាត់នៅផ្ទះឱ្យបានច្រើនជាងមុន។',
+    'ត្រូវបង្កើនការយកចិត្តទុកដាក់ និងការផ្តោតអារម្មណ៍ក្នុងថ្នាក់រៀន។',
+    'ត្រូវខិតខំប្រឹងប្រែងបន្ថែម ដើម្បីសម្រេចបានលទ្ធផលល្អប្រសើរ។',
+  ] },
+];
+
+// Inline teacher-remark cell — free text + a preset picker; commits on blur/Enter/pick.
 function RemarkInput({ value, onCommit }: { value: string | undefined; onCommit: (v: string) => void }) {
   const [text, setText] = useState(value || '');
   const [focused, setFocused] = useState(false);
   useEffect(() => { if (!focused) setText(value || ''); }, [value, focused]);
+  const addPreset = (p: string) => {
+    const next = text.trim() ? `${text.trim()} ${p}` : p;
+    setText(next);
+    onCommit(next);
+  };
   return (
-    <input
-      value={text}
-      placeholder="មូលវិចារ..."
-      onFocus={() => setFocused(true)}
-      onChange={e => setText(e.target.value)}
-      onBlur={() => { setFocused(false); onCommit(text); }}
-      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-      className="w-28 text-left bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-400 focus:bg-blue-50 rounded px-1 py-1 outline-none text-[11px] text-slate-700"
-    />
+    <div className="flex flex-col gap-1 w-36">
+      <input
+        value={text}
+        placeholder="មូលវិចារ..."
+        onFocus={() => setFocused(true)}
+        onChange={e => setText(e.target.value)}
+        onBlur={() => { setFocused(false); onCommit(text); }}
+        onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        className="w-full text-left bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-400 focus:bg-blue-50 rounded px-1 py-1 outline-none text-[11px] text-slate-700"
+      />
+      <select
+        value=""
+        onChange={e => { if (e.target.value) addPreset(e.target.value); e.target.value = ''; }}
+        className="w-full text-[10px] text-blue-600 bg-blue-50/60 border border-blue-100 rounded px-1 py-0.5 outline-none cursor-pointer"
+        title="ជ្រើសមូលវិចារសម្រេច"
+      >
+        <option value="">➕ ជ្រើសមូលវិចារ...</option>
+        {REMARK_PRESETS.map(g => (
+          <optgroup key={g.label} label={g.label}>
+            {g.items.map(it => <option key={it} value={it}>{it}</option>)}
+          </optgroup>
+        ))}
+      </select>
+    </div>
   );
 }
 
