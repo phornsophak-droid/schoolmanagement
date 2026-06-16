@@ -17,8 +17,10 @@ import {
   ChevronRight,
   ShieldCheck,
   RotateCcw,
-  Users2
+  Users2,
+  Download
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { StudentScore, SchoolUser } from '../types';
 import { useT } from '../i18n';
 import { AVAILABLE_USERS } from './LoginPortal';
@@ -362,6 +364,43 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
     return stats;
   }, [records, uniqueStudentsList, selectedDate, selectedGrade, activeAttendanceMap]);
+
+  // Export an attendance report (day / month / year) for the selected class to Excel.
+  const exportAttendanceReport = (period: 'day' | 'month' | 'year') => {
+    const grade = selectedGrade;
+    const gradeStudents = uniqueStudentsList.filter(s => s.grade === grade);
+    if (gradeStudents.length === 0) { triggerToast('⚠️ គ្មានសិស្សក្នុងថ្នាក់នេះទេ', 'error'); return; }
+    const ym = selectedDate.slice(0, 7);
+    const yr = selectedDate.slice(0, 4);
+    const match = (d: string) => period === 'day' ? d === selectedDate : period === 'month' ? d.slice(0, 7) === ym : d.slice(0, 4) === yr;
+    const relevant = records.filter(r => r.grade === grade && match(r.date));
+    const periodLabel = period === 'day' ? `ប្រចាំថ្ងៃ ${selectedDate}` : period === 'month' ? `ប្រចាំខែ ${ym}` : `ប្រចាំឆ្នាំ ${yr}`;
+    const header = ['ល.រ', 'អត្តលេខ', 'គោត្តនាម និងនាម', 'ភេទ', 'វត្តមាន', 'យឺត', 'ច្បាប់', 'អត់ច្បាប់', 'សរុបអវត្តមាន'];
+    const body = gradeStudents.map((s, i) => {
+      let present = 0, late = 0, perm = 0, abs = 0;
+      relevant.forEach(r => {
+        const st = r.studentStates?.[s.id];
+        if (st === 'present') present++;
+        else if (st === 'late') late++;
+        else if (st === 'permission') perm++;
+        else if (st === 'absent') abs++;
+      });
+      return [i + 1, s.studentId || '', s.name, s.gender, present, late, perm, abs, perm + abs];
+    });
+    const sheet = [
+      [`របាយការណ៍ចុះវត្តមានសិស្ស — ${grade}`],
+      [periodLabel],
+      [],
+      header,
+      ...body,
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(sheet);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'វត្តមាន');
+    const tag = period === 'day' ? `ប្រចាំថ្ងៃ_${selectedDate}` : period === 'month' ? `ប្រចាំខែ_${ym}` : `ប្រចាំឆ្នាំ_${yr}`;
+    XLSX.writeFile(wb, `របាយការណ៍វត្តមាន_${tag}_${grade}.xlsx`);
+    triggerToast(`📥 ទាញយករបាយការណ៍ ${periodLabel} (${grade}) ✓`, 'success');
+  };
 
   // Sync student state mapping when date, grade, session, or records modify
   useEffect(() => {
@@ -1032,6 +1071,31 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                       </select>
                     </div>
                   )}
+                  {/* Download attendance reports */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 hidden sm:inline">ទាញយក៖</span>
+                    <button
+                      onClick={() => exportAttendanceReport('day')}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
+                      title="ទាញយករបាយការណ៍វត្តមានប្រចាំថ្ងៃ (Excel)"
+                    >
+                      <Download size={12} /> ប្រចាំថ្ងៃ
+                    </button>
+                    <button
+                      onClick={() => exportAttendanceReport('month')}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
+                      title="ទាញយករបាយការណ៍វត្តមានប្រចាំខែ (Excel)"
+                    >
+                      <Download size={12} /> ប្រចាំខែ
+                    </button>
+                    <button
+                      onClick={() => exportAttendanceReport('year')}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
+                      title="ទាញយករបាយការណ៍វត្តមានប្រចាំឆ្នាំ (Excel)"
+                    >
+                      <Download size={12} /> ប្រចាំឆ្នាំ
+                    </button>
+                  </div>
                   <span className="text-[10.5px] text-slate-500 font-bold bg-white px-2.5 py-1 border border-slate-200 rounded-lg">
                     សរុប៖ <b>{displayStudents.length}</b> នាក់
                   </span>
