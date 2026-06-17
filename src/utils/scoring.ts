@@ -31,7 +31,7 @@ export const SEM_SUBJECTS: {
   { km: 'សរសេរតាមអាន', get: s => s.khmer?.writing, set: (s, v) => { km(s).writing = v; } },
   { km: 'តែងសេចក្តី', get: s => s.khmer?.speaking, set: (s, v) => { km(s).speaking = v; } },
   { km: 'គណិតវិទ្យា', get: s => s.mathAvg, set: (s, v) => { s.math = { numbers: v, measurement: null, geometry: null, algebra: null, statistics: null }; } },
-  { km: 'វិទ្យាសាស្ត្រ', get: s => s.science, set: (s, v) => { s.scienceScores = {}; s.science = v; } },
+  { km: 'វិទ្យាសាស្ត្រ', get: s => s.science, set: (s, v) => { s.scienceScores = { physics: v }; s.science = v; } },
   { km: 'សីលធម៌-ពលរដ្ឋវិទ្យា', get: s => s.socialScores?.morality, set: (s, v) => { soc(s).morality = v; } },
   { km: 'ភូមិវិទ្យា', get: s => s.socialScores?.geography, set: (s, v) => { soc(s).geography = v; } },
   { km: 'ប្រវត្តិវិទ្យា', get: s => s.socialScores?.history, set: (s, v) => { soc(s).history = v; } },
