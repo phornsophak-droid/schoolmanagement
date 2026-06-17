@@ -1182,7 +1182,7 @@ export default function Gradebook({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Class category tabs (principal): General vs Extra */}
       {currentUser?.role !== 'teacher' && (
         <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-sm border border-slate-100 w-full">
@@ -1204,10 +1204,10 @@ export default function Gradebook({
       )}
 
       {/* Search and Top Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-white rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 px-4 py-3 bg-white rounded-2xl shadow-sm border border-slate-100">
         <div>
-          <h2 className="text-xl font-semibold text-slate-800 tracking-tight">សៀវភៅតាមដាន និងគ្រប់គ្រងពិន្ទុសិស្ស</h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <h2 className="text-base font-semibold text-slate-800 tracking-tight">សៀវភៅតាមដាន និងគ្រប់គ្រងពិន្ទុសិស្ស</h2>
+          <p className="hidden sm:block text-xs text-slate-400 mt-0.5">
             បញ្ចូលពិន្ទុសិស្សតាមមុខវិជ្ជា គណនាមធ្យមភាគ និងចំណាត់ថ្នាក់ស្វ័យប្រវត្តិ
           </p>
         </div>
@@ -1872,8 +1872,8 @@ export default function Gradebook({
       </div>
 
       {/* List Filter Panel */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <h3 className="font-semibold text-slate-800 text-base">
               {activeMode === 'monthly' 
@@ -2000,7 +2000,7 @@ export default function Gradebook({
           .gb-scroll thead th.gb-corner { z-index: 30; }
           .gb-scroll thead tr:nth-child(2) th { top: 33px; }
         `}</style>
-        <div className="gb-scroll overflow-auto max-h-[70vh] border border-slate-100 rounded-xl">
+        <div className="gb-scroll overflow-auto max-h-[78vh] border border-slate-100 rounded-xl">
           {activeMode === 'monthly' ? (
             <table className="w-full text-left border-collapse">
               <thead>
