@@ -427,6 +427,24 @@ export default function Gradebook({
     alert(`បានកំណត់ឡើងវិញ ✓ លុបពិន្ទុ ${toRemove.length} នាក់ហើយ។ ឥឡូវអ្នកអាចនាំចូលឡើងវិញ។`);
   };
 
+  // Wipe the semester-exam records for the selected class + semester (recover from a bad import).
+  const handleResetSemesterScores = () => {
+    if (selectedGrade === 'ទាំងអស់') {
+      alert('សូមជ្រើសរើសថ្នាក់ជាក់លាក់ជាមុនសិន ដើម្បីកំណត់ឡើងវិញ!');
+      return;
+    }
+    const examMonth = selectedSemester === '2' ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១';
+    const toRemove = students.filter(s => s.grade === selectedGrade && s.month === examMonth);
+    if (toRemove.length === 0) {
+      alert(`គ្មានពិន្ទុប្រឡងឆមាសសម្រាប់ «${selectedGrade}» (ឆមាសទី ${selectedSemester}) ទេ។`);
+      return;
+    }
+    if (!window.confirm(`លុបពិន្ទុប្រឡងឆមាស ${toRemove.length} នាក់ សម្រាប់ «${selectedGrade}» (ឆមាសទី ${selectedSemester})?\n\nប្រើពេលនាំចូលខុស — បន្ទាប់មកនាំចូលឡើងវិញ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
+    const remaining = students.filter(s => !(s.grade === selectedGrade && s.month === examMonth));
+    onSaveStudents(remaining);
+    alert(`បានកំណត់ឡើងវិញ ✓ លុបពិន្ទុប្រឡង ${toRemove.length} នាក់ហើយ។`);
+  };
+
   // អត្តលេខ belongs to a student's general (homeroom) class. Copy it onto every
   // record that lacks one — including their after-hours classes, whose names carry a
   // class suffix like "(E)/(A)/(H)/(PE)". Matching strips that suffix + all spaces.
@@ -2431,6 +2449,25 @@ export default function Gradebook({
               onClick={handleResetMonthScores}
               className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-rose-600 font-semibold hover:bg-rose-50 border border-rose-200 rounded-xl text-sm transition-all"
               title="លុបពិន្ទុថ្នាក់+ខែនេះ ដើម្បីនាំចូលឡើងវិញ (ករណីនាំចូលខុស)"
+            >
+              <RotateCcw size={15} /> កំណត់ឡើងវិញ
+            </button>
+            <button
+              onClick={handleSaveAll}
+              className={`flex items-center justify-center gap-1.5 px-5 py-2 font-bold rounded-xl text-sm transition-all shadow-md ${justSaved ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+            >
+              {justSaved ? '✓ បានរក្សាទុក' : '💾 រក្សាទុក'}
+            </button>
+          </div>
+        )}
+
+        {/* Footer actions below the score table (semester mode) */}
+        {activeMode === 'semester' && (
+          <div className="flex flex-wrap items-center justify-end gap-2 px-4 py-3 border-t border-slate-100 bg-slate-50/40">
+            <button
+              onClick={handleResetSemesterScores}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-rose-600 font-semibold hover:bg-rose-50 border border-rose-200 rounded-xl text-sm transition-all"
+              title="លុបពិន្ទុប្រឡងឆមាសរបស់ថ្នាក់នេះ ដើម្បីនាំចូលឡើងវិញ (ករណីនាំចូលខុស)"
             >
               <RotateCcw size={15} /> កំណត់ឡើងវិញ
             </button>
