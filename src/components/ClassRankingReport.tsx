@@ -28,11 +28,11 @@ const KHMER_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'ម
 // និទ្ទេស band — same thresholds as the report cards.
 const niddesOf = (v: number | null | undefined): string => {
   if (v === null || v === undefined || v <= 0) return '';
-  if (v > 9.5) return 'ល្អប្រសើរ';
-  if (v > 9) return 'ល្អណាស់';
-  if (v > 8) return 'ល្អ';
-  if (v > 6.5) return 'ល្អបង្គួរ';
-  if (v > 5) return 'មធ្យម';
+  if (v >= 9) return 'ល្អប្រសើរ';
+  if (v >= 8) return 'ល្អណាស់';
+  if (v >= 7) return 'ល្អ';
+  if (v >= 6) return 'ល្អបង្គួរ';
+  if (v >= 5) return 'មធ្យម';
   return 'ខ្សោយ';
 };
 const NIDDES_BANDS = ['ល្អប្រសើរ', 'ល្អណាស់', 'ល្អ', 'ល្អបង្គួរ', 'មធ្យម', 'ខ្សោយ'];

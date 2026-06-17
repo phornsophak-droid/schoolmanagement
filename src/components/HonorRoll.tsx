@@ -12,11 +12,11 @@ export interface HonorEntry { rank: number; name: string; score?: number | null;
 // និទ្ទេស letter from a 0–10 score (same bands as the report cards).
 const gradeLetter = (v: number | null | undefined): string => {
   if (v === null || v === undefined || v <= 0) return '';
-  if (v > 9.5) return 'A';
-  if (v > 9) return 'B';
-  if (v > 8) return 'C';
-  if (v > 6.5) return 'D';
-  if (v > 5) return 'E';
+  if (v >= 9) return 'A';
+  if (v >= 8) return 'B';
+  if (v >= 7) return 'C';
+  if (v >= 6) return 'D';
+  if (v >= 5) return 'E';
   return 'F';
 };
 const letterColor = (l: string) => {
