@@ -638,10 +638,8 @@ export default function Gradebook({
   const commitRemark = (row: StudentScore, text: string) =>
     applyToRecord(row, rec => { rec.remark = text.trim() || undefined; });
 
-  // Inline-edit a semester exam subject — writes into the student's exam record
-  // (month ប្រឡងឆមាស…), creating it if needed, via the SEM_SUBJECTS setter.
-  const commitSemSubject = (row: any, subIndex: number, raw: number | null) => {
-    const v = raw === null ? null : clampScore(raw);
+  // Mutate a student's semester exam record (month ប្រឡងឆមាស…), creating it if needed.
+  const applyToExamRecord = (row: any, mutate: (rec: StudentScore) => void) => {
     const examMonth = selectedSemester === '2' ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១';
     const existing = row.examRecord ? students.find(s => s.id === row.examRecord.id) : undefined;
     let rec: StudentScore;
@@ -659,11 +657,20 @@ export default function Gradebook({
         physicalEducation: null, health: null, lifeSkills: null, foreignLanguage: null,
       });
     }
-    SEM_SUBJECTS[subIndex].set(rec, v);
+    mutate(rec);
     const calc = calculateStudentFields(rec);
     const updated = existing ? students.map(s => (s.id === calc.id ? calc : s)) : [...students, calc];
     onSaveStudents(updated);
   };
+
+  // Inline-edit a semester exam subject via the SEM_SUBJECTS setter.
+  const commitSemSubject = (row: any, subIndex: number, raw: number | null) =>
+    applyToExamRecord(row, rec => SEM_SUBJECTS[subIndex].set(rec, raw === null ? null : clampScore(raw)));
+
+  // Inline-edit the semester teacher remark — stored on the exam record, which the
+  // semester report card reads for its មូលវិចារគ្រូបន្ទុកថ្នាក់ column.
+  const commitSemRemark = (row: any, text: string) =>
+    applyToExamRecord(row, rec => { rec.remark = text.trim() || undefined; });
 
   // Distinct groups in the selected class (drives the group filter for custom classes).
   const availableGradeGroups = useMemo(() => {
@@ -2167,6 +2174,7 @@ export default function Gradebook({
                   <th className="px-3 py-3 text-center bg-indigo-600 text-white font-extrabold">មធ្យមភាគឆមាស</th>
                   <th className="px-3 py-3 text-center">និទ្ទេស</th>
                   <th className="px-3 py-3 text-center">លទ្ធផល</th>
+                  <th className="px-3 py-3 text-center">មូលវិចារគ្រូ</th>
                   <th className="px-3 py-3 text-right">កំណត់ពិន្ទុឆមាស</th>
                 </tr>
               </thead>
@@ -2232,7 +2240,13 @@ export default function Gradebook({
                             {st.result}
                           </span>
                         </td>
-                        
+
+                        <td className="px-3 py-3.5 text-center text-[11px] text-slate-500 max-w-[140px]">
+                          {inlineEdit
+                            ? <RemarkInput value={st.examRecord?.remark} onCommit={text => commitSemRemark(st, text)} />
+                            : <span className="block max-w-[140px] truncate" title={st.examRecord?.remark || ''}>{st.examRecord?.remark || '-'}</span>}
+                        </td>
+
                         <td className="px-3 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
@@ -2264,7 +2278,7 @@ export default function Gradebook({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={26} className="px-4 py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={27} className="px-4 py-12 text-center text-slate-400 font-medium">
                       <FolderLock size={32} className="mx-auto text-slate-300 mb-2" />
                       មិនទាន់មានទិន្នន័យខែសិក្សាណាមួយ សម្រាប់ឆមាសនេះឡើយ។ សូមកត់ត្រាពិន្ទុប្រចាំខែជាមុនសិន!
                     </td>
