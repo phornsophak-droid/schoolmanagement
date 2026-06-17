@@ -638,6 +638,33 @@ export default function Gradebook({
   const commitRemark = (row: StudentScore, text: string) =>
     applyToRecord(row, rec => { rec.remark = text.trim() || undefined; });
 
+  // Inline-edit a semester exam subject — writes into the student's exam record
+  // (month ប្រឡងឆមាស…), creating it if needed, via the SEM_SUBJECTS setter.
+  const commitSemSubject = (row: any, subIndex: number, raw: number | null) => {
+    const v = raw === null ? null : clampScore(raw);
+    const examMonth = selectedSemester === '2' ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១';
+    const existing = row.examRecord ? students.find(s => s.id === row.examRecord.id) : undefined;
+    let rec: StudentScore;
+    if (existing) {
+      rec = JSON.parse(JSON.stringify(existing)) as StudentScore;
+    } else {
+      const sample = students.find(s => s.grade === row.grade && s.name.trim() === row.name.trim());
+      rec = calculateStudentFields({
+        id: generateUniqueId(),
+        name: row.name, gender: row.gender, grade: row.grade, month: examMonth,
+        studentId: sample?.studentId,
+        khmer: { listening: null, speaking: null, reading: null, writing: null },
+        math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
+        science: null, socialStudies: null, scienceScores: {}, socialScores: {},
+        physicalEducation: null, health: null, lifeSkills: null, foreignLanguage: null,
+      });
+    }
+    SEM_SUBJECTS[subIndex].set(rec, v);
+    const calc = calculateStudentFields(rec);
+    const updated = existing ? students.map(s => (s.id === calc.id ? calc : s)) : [...students, calc];
+    onSaveStudents(updated);
+  };
+
   // Distinct groups in the selected class (drives the group filter for custom classes).
   const availableGradeGroups = useMemo(() => {
     return Array.from(new Set<string>(
@@ -738,8 +765,16 @@ export default function Gradebook({
     if (searchTerm.trim() !== '') {
       list = list.filter(student => student.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
+    // While entering exam scores in-table, keep a stable roster order so rows don't
+    // jump around (the avg-based rank still shows in the ចំណាត់ថ្នាក់ column).
+    if (inlineEdit) {
+      const idx = new Map<string, number>();
+      students.forEach((s, i) => { const k = `${s.name.trim()}_${s.grade}`; if (!idx.has(k)) idx.set(k, i); });
+      const at = (n: string, g: string) => (idx.has(`${n}_${g}`) ? idx.get(`${n}_${g}`)! : 1e9);
+      list = [...list].sort((a, b) => at(a.name, a.grade) - at(b.name, b.grade));
+    }
     return list;
-  }, [semesterStudents, searchTerm]);
+  }, [semesterStudents, searchTerm, inlineEdit, students]);
 
   // Annual (Yearly) aggregation values
   const annualStudents = useMemo(() => {
@@ -1181,7 +1216,7 @@ export default function Gradebook({
             </>
           )}
 
-          {activeMode === 'monthly' && (
+          {(activeMode === 'monthly' || activeMode === 'semester') && (
             <>
               <button
                 onClick={() => setInlineEdit(v => !v)}
@@ -1191,13 +1226,15 @@ export default function Gradebook({
                 <Table2 size={16} />
                 {inlineEdit ? 'កំពុងបញ្ចូលក្នុងតារាង ✓' : 'បញ្ចូលក្នុងតារាង'}
               </button>
-              <button
-                onClick={() => setTableSort(s => (s === 'list' ? 'rank' : 'list'))}
-                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 font-semibold rounded-xl text-sm transition-all border bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                title="ប្តូររបៀបតម្រៀបជួរ (តាមបញ្ជី / តាមចំណាត់ថ្នាក់)"
-              >
-                {tableSort === 'list' ? '🔢 តម្រៀប៖ តាមបញ្ជី' : '🏆 តម្រៀប៖ ចំណាត់ថ្នាក់'}
-              </button>
+              {activeMode === 'monthly' && (
+                <button
+                  onClick={() => setTableSort(s => (s === 'list' ? 'rank' : 'list'))}
+                  className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 font-semibold rounded-xl text-sm transition-all border bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                  title="ប្តូររបៀបតម្រៀបជួរ (តាមបញ្ជី / តាមចំណាត់ថ្នាក់)"
+                >
+                  {tableSort === 'list' ? '🔢 តម្រៀប៖ តាមបញ្ជី' : '🏆 តម្រៀប៖ ចំណាត់ថ្នាក់'}
+                </button>
+              )}
             </>
           )}
 
@@ -2162,12 +2199,14 @@ export default function Gradebook({
                           </span>
                         </td>
                         <td className="px-3 py-3.5 text-center text-slate-400 font-sans font-bold">{st.grade}</td>
-                        {SEM_SUBJECTS.map(sub => {
+                        {SEM_SUBJECTS.map((sub, si) => {
                           const v = st.examRecord ? sub.get(st.examRecord) : null;
                           const has = v !== undefined && v !== null && v > 0;
                           return (
                             <td key={sub.km} className={`px-2 py-3.5 text-center font-mono ${has ? 'text-slate-700 font-bold' : 'text-slate-300'}`}>
-                              {has ? Number(v).toFixed(1) : '-'}
+                              {inlineEdit
+                                ? <ScoreInput value={has ? (v as number) : null} onCommit={val => commitSemSubject(st, si, val)} />
+                                : (has ? Number(v).toFixed(1) : '-')}
                             </td>
                           );
                         })}

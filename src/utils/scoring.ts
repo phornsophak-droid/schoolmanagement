@@ -16,21 +16,30 @@ export const SEM2_MONTHS = ['ឧសភា', 'មិថុនា', 'កក្ក�
 const EXAM_MONTH: Record<1 | 2, string> = { 1: 'ប្រឡងឆមាសទី១', 2: 'ប្រឡងឆមាសទី២' };
 
 // The 14 exam subjects, each derived from an exam record's fields (equal weight).
-export const SEM_SUBJECTS: { km: string; get: (s: StudentScore) => number | null | undefined }[] = [
-  { km: 'អំណាន', get: s => s.khmer?.reading },
-  { km: 'ស្តាប់ និងនិយាយ', get: s => s.khmer?.listening },
-  { km: 'សរសេរតាមអាន', get: s => s.khmer?.writing },
-  { km: 'តែងសេចក្តី', get: s => s.khmer?.speaking },
-  { km: 'គណិតវិទ្យា', get: s => s.mathAvg },
-  { km: 'វិទ្យាសាស្ត្រ', get: s => s.science },
-  { km: 'សីលធម៌-ពលរដ្ឋវិទ្យា', get: s => s.socialScores?.morality },
-  { km: 'ភូមិវិទ្យា', get: s => s.socialScores?.geography },
-  { km: 'ប្រវត្តិវិទ្យា', get: s => s.socialScores?.history },
-  { km: 'គេហៈវិទ្យា-អប់រំសិល្បៈ', get: s => s.socialScores?.home },
-  { km: 'អប់រំកាយ-កីឡា', get: s => s.physicalEducation },
-  { km: 'សុខភាព-អនាម័យ', get: s => s.health },
-  { km: 'បំណិនជីវិត', get: s => s.lifeSkills },
-  { km: 'ភាសាបរទេស', get: s => s.foreignLanguage },
+// `set` writes a typed-in value back onto the matching field(s) — for the computed
+// subjects (math/science) it stores into one sub-field so calculateStudentFields
+// recomputes the displayed average to that value.
+const km = (s: StudentScore) => (s.khmer || (s.khmer = { listening: null, speaking: null, reading: null, writing: null }));
+const soc = (s: StudentScore) => (s.socialScores || (s.socialScores = {}));
+export const SEM_SUBJECTS: {
+  km: string;
+  get: (s: StudentScore) => number | null | undefined;
+  set: (s: StudentScore, v: number | null) => void;
+}[] = [
+  { km: 'អំណាន', get: s => s.khmer?.reading, set: (s, v) => { km(s).reading = v; } },
+  { km: 'ស្តាប់ និងនិយាយ', get: s => s.khmer?.listening, set: (s, v) => { km(s).listening = v; } },
+  { km: 'សរសេរតាមអាន', get: s => s.khmer?.writing, set: (s, v) => { km(s).writing = v; } },
+  { km: 'តែងសេចក្តី', get: s => s.khmer?.speaking, set: (s, v) => { km(s).speaking = v; } },
+  { km: 'គណិតវិទ្យា', get: s => s.mathAvg, set: (s, v) => { s.math = { numbers: v, measurement: null, geometry: null, algebra: null, statistics: null }; } },
+  { km: 'វិទ្យាសាស្ត្រ', get: s => s.science, set: (s, v) => { s.scienceScores = {}; s.science = v; } },
+  { km: 'សីលធម៌-ពលរដ្ឋវិទ្យា', get: s => s.socialScores?.morality, set: (s, v) => { soc(s).morality = v; } },
+  { km: 'ភូមិវិទ្យា', get: s => s.socialScores?.geography, set: (s, v) => { soc(s).geography = v; } },
+  { km: 'ប្រវត្តិវិទ្យា', get: s => s.socialScores?.history, set: (s, v) => { soc(s).history = v; } },
+  { km: 'គេហៈវិទ្យា-អប់រំសិល្បៈ', get: s => s.socialScores?.home, set: (s, v) => { soc(s).home = v; } },
+  { km: 'អប់រំកាយ-កីឡា', get: s => s.physicalEducation, set: (s, v) => { s.physicalEducation = v; } },
+  { km: 'សុខភាព-អនាម័យ', get: s => s.health, set: (s, v) => { s.health = v; } },
+  { km: 'បំណិនជីវិត', get: s => s.lifeSkills, set: (s, v) => { s.lifeSkills = v; } },
+  { km: 'ភាសាបរទេស', get: s => s.foreignLanguage, set: (s, v) => { s.foreignLanguage = v; } },
 ];
 
 const mean = (a: number[]): number | null => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
