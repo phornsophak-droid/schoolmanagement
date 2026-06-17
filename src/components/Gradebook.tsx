@@ -294,18 +294,28 @@ export default function Gradebook({
   // Download a pre-filled Excel template (registered students + blank score columns) for the selected class.
   const handleDownloadScoreTemplate = () => {
     if (selectedGrade === 'ទាំងអស់') { alert('សូមជ្រើសរើសថ្នាក់ជាក់លាក់មុនទាញយកគំរូ!'); return; }
-    const header = ['អត្តលេខ', 'ឈ្មោះ', 'ភេទ', ...scoreHeaders, 'មូលវិចារគ្រូ'];
+    // The semester tab uses the 14 exam subjects + the semester-exam record; the monthly
+    // tab uses the 21 monthly sub-subjects (blank, to be filled).
+    const isSem = activeMode === 'semester';
+    const examMonth = selectedSemester === '2' ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១';
+    const subjHeaders = isSem ? SEM_SUBJECTS.map(s => s.km) : scoreHeaders;
+    const header = ['អត្តលេខ', 'ឈ្មោះ', 'ភេទ', ...subjHeaders, 'មូលវិចារគ្រូ'];
     // Keep the class's natural roster order (no alphabetical sort) so the template
     // matches the order the user expects and can be filled/imported row-for-row.
     const names = Array.from(new Set(students.filter(s => s.grade === selectedGrade).map(s => s.name.trim())));
     const body = names.map(n => {
-      const rec = students.find(s => s.grade === selectedGrade && s.name.trim() === n);
-      return [rec?.studentId || '', n, rec?.gender || '', ...scoreHeaders.map(() => ''), rec?.remark || ''];
+      const sample = students.find(s => s.grade === selectedGrade && s.name.trim() === n);
+      if (isSem) {
+        const exam = students.find(s => s.grade === selectedGrade && s.month === examMonth && s.name.trim() === n);
+        const cells = SEM_SUBJECTS.map(sub => { const v = exam ? sub.get(exam) : null; return v === null || v === undefined ? '' : v; });
+        return [sample?.studentId || '', n, sample?.gender || '', ...cells, exam?.remark || ''];
+      }
+      return [sample?.studentId || '', n, sample?.gender || '', ...scoreHeaders.map(() => ''), sample?.remark || ''];
     });
     const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'ពិន្ទុ');
-    XLSX.writeFile(wb, `គំរូពិន្ទុ_${selectedGrade}.xlsx`);
+    XLSX.writeFile(wb, `គំរូពិន្ទុ${isSem ? '_ឆមាសទី' + selectedSemester : ''}_${selectedGrade}.xlsx`);
   };
 
   // Import scores from an uploaded Excel/CSV file into the selected class + month.
@@ -339,6 +349,8 @@ export default function Gradebook({
         if (nameCol < 0) nameCol = idCol >= 0 ? idCol + 1 : 0;
         if (genderCol < 0) genderCol = nameCol + 1;
         const scoreStart = Math.max(idCol, nameCol, genderCol) + 1;
+        const isSem = activeMode === 'semester';
+        const valCount = isSem ? SEM_SUBJECTS.length : scoreHeaders.length;
         let updated = [...students];
         let count = 0;
         for (let i = 1; i < rows.length; i++) { // row 0 = header
@@ -349,7 +361,7 @@ export default function Gradebook({
           if (!name || name === 'ឈ្មោះ' || name === 'ឈ្មោះសិស្ស') continue;
           const rawGender = String(row[genderCol] ?? '').trim().toLowerCase();
           const gender: 'ប្រុស' | 'ស្រី' = (rawGender.includes('ស្រី') || rawGender === 'f' || rawGender === 'female') ? 'ស្រី' : 'ប្រុស';
-          const vals = scoreHeaders.map((_, idx) => num(row[scoreStart + idx]));
+          const vals = Array.from({ length: valCount }, (_, idx) => num(row[scoreStart + idx]));
           const remark = remarkCol >= 0 ? String(row[remarkCol] ?? '').replace(/[﻿​]/g, '').trim() : '';
           // Match by EXACT name first — the template carries the app's own names, so this
           // maps each row to the right student regardless of row order. អត្តលេខ is used only
@@ -360,7 +372,25 @@ export default function Gradebook({
           if (byName.length === 1) existing = byName[0];
           else if (byName.length > 1) existing = (studentId ? byName.find(s => (s.studentId || '').trim() === studentId) : undefined) || byName[0];
           else if (studentId) existing = updated.find(s => sameScope(s) && (s.studentId || '').trim() === studentId);
-          const rec = buildScoreRecord(name, gender, vals, targetMonth, existing?.id, studentId || existing?.studentId, remark || existing?.remark);
+          let rec: StudentScore;
+          if (isSem) {
+            // Build/refresh the semester-exam record from the 14 SEM_SUBJECTS values.
+            rec = existing
+              ? (JSON.parse(JSON.stringify(existing)) as StudentScore)
+              : calculateStudentFields({
+                  id: generateUniqueId(), name, gender, grade: selectedGrade, month: targetMonth,
+                  khmer: { listening: null, speaking: null, reading: null, writing: null },
+                  math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
+                  science: null, socialStudies: null, scienceScores: {}, socialScores: {},
+                  physicalEducation: null, health: null, lifeSkills: null, foreignLanguage: null,
+                });
+            SEM_SUBJECTS.forEach((sub, idx) => sub.set(rec, vals[idx]));
+            rec.studentId = studentId || existing?.studentId;
+            rec.remark = remark || existing?.remark;
+            rec = calculateStudentFields(rec);
+          } else {
+            rec = buildScoreRecord(name, gender, vals, targetMonth, existing?.id, studentId || existing?.studentId, remark || existing?.remark);
+          }
           updated = existing ? updated.map(s => s.id === existing.id ? rec : s) : [...updated, rec];
           count++;
         }
