@@ -711,13 +711,16 @@ export default function Gradebook({
 
   // Semester aggregation values
   const semesterStudents = useMemo(() => {
-    const uniqueStudentsMap = new Map<string, { name: string; gender: 'ប្រុស' | 'ស្រី'; grade: string }>();
+    const uniqueStudentsMap = new Map<string, { name: string; gender: 'ប្រុស' | 'ស្រី'; grade: string; studentId?: string }>();
     students.forEach(s => {
       if ((selectedGrade === 'ទាំងអស់' || s.grade === selectedGrade) && inCat(s.grade)) {
         if (s.month !== 'ប្រឡងឆមាសទី១' && s.month !== 'ប្រឡងឆមាសទី២') {
           const key = `${s.name.trim()}_${s.grade}`;
-          if (!uniqueStudentsMap.has(key)) {
-            uniqueStudentsMap.set(key, { name: s.name.trim(), gender: s.gender, grade: s.grade });
+          const existing = uniqueStudentsMap.get(key);
+          if (!existing) {
+            uniqueStudentsMap.set(key, { name: s.name.trim(), gender: s.gender, grade: s.grade, studentId: (s.studentId || '').trim() || undefined });
+          } else if (!existing.studentId && (s.studentId || '').trim()) {
+            existing.studentId = s.studentId!.trim();
           }
         }
       }
@@ -2192,16 +2195,16 @@ export default function Gradebook({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
-                  <th className="px-3 py-3 text-center">ចំណាត់ថ្នាក់</th>
+                  <th className="px-3 py-3 text-center">អត្តលេខ</th>
                   <th className="gb-corner px-3 py-3 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
                   <th className="px-3 py-3 text-center">ភេទ</th>
-                  <th className="px-3 py-3 text-center">ថ្នាក់សិក្សា</th>
                   {SEM_SUBJECTS.map(sub => (
                     <th key={sub.km} className="px-2 py-3 text-center font-normal whitespace-nowrap">{sub.km}</th>
                   ))}
+                  <th className="px-3 py-3 text-center bg-blue-50/30 text-blue-700">មធ្យមភាគប្រឡងឆមាស</th>
                   <th className="px-3 py-3 text-center bg-indigo-50/30 text-indigo-700">មធ្យមភាគប្រចាំខែ</th>
-                  <th className="px-3 py-3 text-center bg-blue-50/30 text-blue-700">ពិន្ទុប្រឡងឆមាស</th>
-                  <th className="px-3 py-3 text-center bg-indigo-600 text-white font-extrabold">មធ្យមភាគឆមាស</th>
+                  <th className="px-3 py-3 text-center bg-indigo-600 text-white font-extrabold">មធ្យមភាគប្រចាំឆមាស</th>
+                  <th className="px-3 py-3 text-center">ចំណាត់ថ្នាក់</th>
                   <th className="px-3 py-3 text-center">និទ្ទេស</th>
                   <th className="px-3 py-3 text-center">លទ្ធផល</th>
                   <th className="px-3 py-3 text-center">មូលវិចារគ្រូ</th>
@@ -2223,8 +2226,8 @@ export default function Gradebook({
 
                     return (
                       <tr key={`${st.name}_${st.grade}`} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-3 py-3.5 text-center font-bold text-slate-550 font-mono">
-                          {st.ranking}
+                        <td className="px-3 py-3.5 text-center font-mono text-slate-500">
+                          {((st as any).studentId || st.examRecord?.studentId || '').toString().trim() || '-'}
                         </td>
                         <td className="px-3 py-3.5 font-bold text-slate-800 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{st.name}</td>
                         <td className="px-3 py-3.5 text-center">
@@ -2236,7 +2239,6 @@ export default function Gradebook({
                             {st.gender}
                           </span>
                         </td>
-                        <td className="px-3 py-3.5 text-center text-slate-400 font-sans font-bold">{st.grade}</td>
                         {SEM_SUBJECTS.map((sub, si) => {
                           const v = st.examRecord ? sub.get(st.examRecord) : null;
                           const has = v !== undefined && v !== null && v > 0;
@@ -2249,20 +2251,22 @@ export default function Gradebook({
                           );
                         })}
                         
-                        <td className="px-3 py-3.5 text-center font-bold font-mono text-indigo-700 bg-indigo-50/10">
-                          {st.overallMonthlyAvg !== null && st.overallMonthlyAvg !== undefined ? st.overallMonthlyAvg.toFixed(2) : '-'}
-                        </td>
-                        
-                        <td className="px-3 py-3.5 text-center font-bold font-mono text-blue-650 bg-blue-50/10 text-blue-600">
+                        <td className="px-3 py-3.5 text-center font-bold font-mono text-blue-600 bg-blue-50/10">
                           {st.examScore !== null && st.examScore !== undefined ? st.examScore.toFixed(2) : (
                             <span className="text-[10px] text-slate-400 font-normal italic">គ្មានពិន្ទុ</span>
                           )}
                         </td>
-                        
+
+                        <td className="px-3 py-3.5 text-center font-bold font-mono text-indigo-700 bg-indigo-50/10">
+                          {st.overallMonthlyAvg !== null && st.overallMonthlyAvg !== undefined ? st.overallMonthlyAvg.toFixed(2) : '-'}
+                        </td>
+
                         <td className="px-3 py-3.5 text-center font-black font-mono text-white bg-indigo-600">
                           {st.semesterAvg !== null && st.semesterAvg !== undefined ? st.semesterAvg.toFixed(2) : '-'}
                         </td>
-                        
+
+                        <td className="px-3 py-3.5 text-center font-bold font-mono text-slate-500">{st.ranking}</td>
+
                         <td className={`px-3 py-3.5 text-center font-semibold font-sans ${gradeColor}`}>{st.gradeLetter}</td>
                         
                         <td className="px-3 py-3.5 text-center">
@@ -2308,7 +2312,7 @@ export default function Gradebook({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={27} className="px-4 py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={25} className="px-4 py-12 text-center text-slate-400 font-medium">
                       <FolderLock size={32} className="mx-auto text-slate-300 mb-2" />
                       មិនទាន់មានទិន្នន័យខែសិក្សាណាមួយ សម្រាប់ឆមាសនេះឡើយ។ សូមកត់ត្រាពិន្ទុប្រចាំខែជាមុនសិន!
                     </td>
