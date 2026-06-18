@@ -142,6 +142,10 @@ export default function App() {
 
   // Database Backup Import reference
   const databaseImportRef = React.useRef<HTMLInputElement>(null);
+  // Timestamp of this device's last cloud write. Used to ignore the realtime echo of
+  // our own change so we don't re-download every table after each local edit (egress).
+  const lastLocalWriteRef = React.useRef(0);
+  const markLocalWrite = () => { lastLocalWriteRef.current = Date.now(); };
   // While a factory reset runs, ignore cloud fetches so they don't repopulate.
   const factoryResetRef = React.useRef(false);
 
@@ -381,6 +385,9 @@ export default function App() {
               let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
               const refreshData = () => {
+                // Skip the realtime echo of our OWN recent write — we already have that
+                // data locally, so re-downloading every table would just waste egress.
+                if (Date.now() - lastLocalWriteRef.current < 12000) return;
                 syncFetchAll().then(newData => {
                   if (newData.students) {
                     applyCloudStudents(newData.students);
@@ -412,7 +419,7 @@ export default function App() {
               // row events collapses into one sync instead of one per row.
               const debouncedRefresh = () => {
                 if (refreshTimer) clearTimeout(refreshTimer);
-                refreshTimer = setTimeout(refreshData, 1500);
+                refreshTimer = setTimeout(refreshData, 8000);
               };
 
               channel.on('postgres_changes', { event: '*', schema: 'public', table: 'student_scores' }, debouncedRefresh);
@@ -740,6 +747,7 @@ export default function App() {
 
     setStudents(updatedList);
     localStorage.setItem('school_student_scores_v2', JSON.stringify(updatedList));
+    markLocalWrite();
 
     // Live background cloud sync
     const client = getSupabaseClient();
