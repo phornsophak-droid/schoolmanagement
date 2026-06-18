@@ -50,6 +50,7 @@ import {
   syncUpsertStudentAttendanceBulk,
   syncUpsertTeacherAttendanceBulk,
   syncClearAllData,
+  msSinceCloudWrite,
   CUSTOM_URL_KEY,
   CUSTOM_ANON_KEY
 } from './lib/supabase';
@@ -387,7 +388,10 @@ export default function App() {
               const refreshData = () => {
                 // Skip the realtime echo of our OWN recent write — we already have that
                 // data locally, so re-downloading every table would just waste egress.
+                // Covers score saves (lastLocalWriteRef) plus attendance/report/setting
+                // writes from child components (msSinceCloudWrite, marked in supabase.ts).
                 if (Date.now() - lastLocalWriteRef.current < 12000) return;
+                if (msSinceCloudWrite() < 12000) return;
                 syncFetchAll().then(newData => {
                   if (newData.students) {
                     applyCloudStudents(newData.students);

@@ -436,6 +436,7 @@ export async function syncFetchAll() {
 
 // 5.5. Attendance Sync Functions
 export async function syncUpsertStudentAttendance(record: any) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -450,6 +451,7 @@ export async function syncUpsertStudentAttendance(record: any) {
 }
 
 export async function syncUpsertTeacherAttendance(record: any) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -464,6 +466,7 @@ export async function syncUpsertTeacherAttendance(record: any) {
 }
 
 export async function syncUpsertStudentAttendanceBulk(records: any[]) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
   if (records.length === 0) return;
@@ -487,6 +490,7 @@ export async function syncUpsertStudentAttendanceBulk(records: any[]) {
 }
 
 export async function syncUpsertTeacherAttendanceBulk(records: any[]) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
   if (records.length === 0) return;
@@ -510,6 +514,7 @@ export async function syncUpsertTeacherAttendanceBulk(records: any[]) {
 }
 
 export async function syncDeleteStudentAttendance(id: string) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -524,6 +529,7 @@ export async function syncDeleteStudentAttendance(id: string) {
 }
 
 export async function syncDeleteTeacherAttendance(id: string) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -537,9 +543,16 @@ export async function syncDeleteTeacherAttendance(id: string) {
   }
 }
 
+// Timestamp of this device's last cloud WRITE — lets the realtime listener ignore
+// the echo of our own change instead of re-downloading every table (saves egress).
+let _lastCloudWriteAt = 0;
+export const noteCloudWrite = () => { _lastCloudWriteAt = Date.now(); };
+export const msSinceCloudWrite = () => Date.now() - _lastCloudWriteAt;
+
 // Upsert score rows, retrying without extra_data if that column doesn't exist
 // (database not yet migrated) so the core score data still saves.
 async function upsertScoreRows(supabase: SupabaseClient, rows: any[]) {
+  noteCloudWrite();
   let { error } = await supabase.from('student_scores').upsert(rows);
   if (error && /extra_data/i.test(error.message || '')) {
     const stripped = rows.map(({ extra_data, ...rest }: any) => rest);
@@ -582,6 +595,7 @@ export async function syncUpsertStudentsBulk(students: StudentScore[]) {
 
 // Delete student
 export async function syncDeleteStudent(id: string) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -597,6 +611,7 @@ export async function syncDeleteStudent(id: string) {
 
 // 7. Push single school report directly (re-insert all sub-items for consistency)
 export async function syncUpsertReport(report: SchoolReport) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -677,6 +692,7 @@ export async function syncUpsertReportsBulk(reports: SchoolReport[]) {
 
 // Delete report
 export async function syncDeleteReport(id: string) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -692,6 +708,7 @@ export async function syncDeleteReport(id: string) {
 
 // 8. Push grades bulk
 export async function syncGradesBulk(grades: string[]) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -707,6 +724,7 @@ export async function syncGradesBulk(grades: string[]) {
 }
 
 export async function syncDeleteGrade(gradeName: string) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -721,6 +739,7 @@ export async function syncDeleteGrade(gradeName: string) {
 
 // 9. Push setting
 export async function syncUpsertSetting(key: string, value: any) {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -735,6 +754,7 @@ export async function syncUpsertSetting(key: string, value: any) {
 // 10. Factory reset — delete all student/score/attendance/report DATA from the
 // cloud. Class list (school_grades) and settings (teacher accounts) are kept.
 export async function syncClearAllData() {
+  noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
   const tables = [
