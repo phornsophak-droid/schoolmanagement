@@ -1209,10 +1209,13 @@ export default function App() {
     day: 'numeric' 
   });
 
+  // The parent link (/parent) must open the report-card portal even when a staff
+  // session is already saved on this device (otherwise a logged-in phone would
+  // skip straight to the full app). So check parentMode BEFORE the login gate.
+  if (parentMode) {
+    return <ParentPortal grades={grades} onBack={() => setParentMode(false)} />;
+  }
   if (!currentUser) {
-    if (parentMode) {
-      return <ParentPortal grades={grades} onBack={() => setParentMode(false)} />;
-    }
     return <LoginPortal onLoginSuccess={handleLoginSuccess} onParentAccess={() => setParentMode(true)} />;
   }
 
