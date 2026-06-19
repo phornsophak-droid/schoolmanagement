@@ -113,18 +113,18 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
   // ---- Excel export (.xlsx) — same layout as the printed register ----
   const handleExport = () => {
     const dowRow = ['', '', '', ''].concat(days.map(d => KH_DOW[new Date(year, month - 1, d).getDay()])).concat(['', '', '', '', '']);
-    const numRow = ['ល.រ', 'អត្តលេខ', 'គោត្តនាម និងនាម', 'ភេទ'].concat(days.map(d => toKh(d))).concat(['ច្ប', 'អ ច្ប', 'សរុប', 'យឺត', 'ផ្សេងៗ']);
+    const numRow = ['ល.រ', 'អត្តលេខ', 'គោត្តនាម និងនាម', 'ភេទ'].concat(days.map(d => toKh(d))).concat(['យឺត', 'ច្ប', 'អ ច្ប', 'សរុប', 'ផ្សេងៗ']);
     const body = roster.map((s, i) => {
       const id = (s as any).id;
       const t = rowTotals(id);
       return [toKh(i + 1), (s as any).studentId || '', s.name, genderShort(s.gender)]
         .concat(days.map(d => markOf(id, d)))
-        .concat([t.perm ? toKh(t.perm) : '', t.abs ? toKh(t.abs) : '', t.total ? toKh(t.total) : '', t.late ? toKh(t.late) : '']);
+        .concat([t.late ? toKh(t.late) : '', t.perm ? toKh(t.perm) : '', t.abs ? toKh(t.abs) : '', t.total ? toKh(t.total) : '']);
     });
     const totalRow = ['', '', 'សរុប', ''].concat(days.map(d => {
       const c = roster.filter(s => markOf((s as any).id, d)).length;
       return c ? toKh(c) : '';
-    })).concat([toKh(grandTotals.perm), toKh(grandTotals.abs), toKh(grandTotals.total), toKh(grandTotals.late)]);
+    })).concat([toKh(grandTotals.late), toKh(grandTotals.perm), toKh(grandTotals.abs), toKh(grandTotals.total)]);
 
     const title = [`តារាងតាមដានអវត្តមានសិស្ស ${grade} ប្រចាំខែ${monthName} ឆ្នាំសិក្សា ២០២៥-២០២៦`];
     const aoa = [title, [], dowRow, numRow, ...body, totalRow, [],
@@ -135,7 +135,7 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
       [`ភាគរយអវត្តមាន៖ ${ratePct.toFixed(2)}%`,],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [{ wch: 4 }, { wch: 7 }, { wch: 22 }, { wch: 4 }, ...days.map(() => ({ wch: 3 })), { wch: 4 }, { wch: 5 }, { wch: 5 }, { wch: 4 }, { wch: 8 }];
+    ws['!cols'] = [{ wch: 4 }, { wch: 7 }, { wch: 22 }, { wch: 4 }, ...days.map(() => ({ wch: 3 })), { wch: 4 }, { wch: 4 }, { wch: 5 }, { wch: 5 }, { wch: 8 }];
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: numRow.length - 1 } }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `អវត្តមាន ${monthName}`);
@@ -268,10 +268,10 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
                   {days.map(d => (
                     <th key={d} className="border border-slate-300 w-5">{KH_DOW[new Date(year, month - 1, d).getDay()]}</th>
                   ))}
+                  <th className="border border-slate-300 px-1 bg-amber-50">យឺត</th>
                   <th className="border border-slate-300 px-1 bg-blue-50">ច្ប</th>
                   <th className="border border-slate-300 px-1 bg-rose-50">អ ច្ប</th>
                   <th className="border border-slate-300 px-1">សរុប</th>
-                  <th className="border border-slate-300 px-1 bg-amber-50">យឺត</th>
                 </tr>
                 <tr className="bg-slate-50 text-center text-slate-500">
                   <th className="border border-slate-300 sticky left-0 bg-slate-50" colSpan={4}></th>
@@ -293,10 +293,10 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
                         const m = markOf(id, d);
                         return <td key={d} className={`border border-slate-300 text-[8px] font-bold ${m === MARK_ABS ? 'text-rose-600 bg-rose-50' : m === MARK_PERM ? 'text-blue-600 bg-blue-50' : m === MARK_LATE ? 'text-amber-600 bg-amber-50' : ''}`}>{m}</td>;
                       })}
+                      <td className="border border-slate-300 bg-amber-50 font-bold text-amber-700">{t.late ? toKh(t.late) : ''}</td>
                       <td className="border border-slate-300 bg-blue-50 font-bold">{t.perm ? toKh(t.perm) : ''}</td>
                       <td className="border border-slate-300 bg-rose-50 font-bold">{t.abs ? toKh(t.abs) : ''}</td>
                       <td className="border border-slate-300 font-bold">{t.total ? toKh(t.total) : ''}</td>
-                      <td className="border border-slate-300 bg-amber-50 font-bold text-amber-700">{t.late ? toKh(t.late) : ''}</td>
                     </tr>
                   );
                 })}
@@ -307,10 +307,10 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
                     const c = roster.filter(s => markOf((s as any).id, d)).length;
                     return <td key={d} className="border border-slate-300 text-[8px]">{c ? toKh(c) : ''}</td>;
                   })}
+                  <td className="border border-slate-300 bg-amber-50 text-amber-700">{toKh(grandTotals.late)}</td>
                   <td className="border border-slate-300 bg-blue-50">{toKh(grandTotals.perm)}</td>
                   <td className="border border-slate-300 bg-rose-50">{toKh(grandTotals.abs)}</td>
                   <td className="border border-slate-300">{toKh(grandTotals.total)}</td>
-                  <td className="border border-slate-300 bg-amber-50 text-amber-700">{toKh(grandTotals.late)}</td>
                 </tr>
               </tbody>
             </table>
