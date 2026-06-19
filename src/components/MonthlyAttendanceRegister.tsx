@@ -43,6 +43,7 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
 // Marks shown in the grid (matches the school's Excel).
 const MARK_PERM = 'ច្ប';   // ច្បាប់ — excused
 const MARK_ABS = 'អច្ប';   // អត់ច្បាប់ — unexcused
+const MARK_LATE = 'យ';     // យឺត — late
 const genderShort = (g: string) => (g === 'ស្រី' ? 'ស' : 'ប');
 
 export default function MonthlyAttendanceRegister({ students, grade, year, month, records, onClose, onImport }: Props) {
@@ -70,37 +71,39 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
     return map;
   }, [records, grade, year, mm]);
 
-  // A student's mark for one day: absent wins over permission; else blank.
+  // A student's mark for one day: absent wins over permission, then late; else blank.
   const markOf = (studentId: string, day: number): string => {
     const recs = recordsByDay[day];
     if (!recs) return '';
-    let perm = false;
+    let perm = false, late = false;
     for (const r of recs) {
       const st = r.studentStates?.[studentId];
       if (st === 'absent') return MARK_ABS;
       if (st === 'permission') perm = true;
+      if (st === 'late') late = true;
     }
-    return perm ? MARK_PERM : '';
+    return perm ? MARK_PERM : late ? MARK_LATE : '';
   };
 
-  // Per-student excused / unexcused / total absence-day counts.
+  // Per-student excused / unexcused / late counts (total = absence days only).
   const rowTotals = (studentId: string) => {
-    let perm = 0, abs = 0;
+    let perm = 0, abs = 0, late = 0;
     for (const d of days) {
       const m = markOf(studentId, d);
       if (m === MARK_PERM) perm++;
       else if (m === MARK_ABS) abs++;
+      else if (m === MARK_LATE) late++;
     }
-    return { perm, abs, total: perm + abs };
+    return { perm, abs, late, total: perm + abs };
   };
 
   const operatedDays = useMemo(() => Object.keys(recordsByDay).length, [recordsByDay]);
   const girls = roster.filter(s => s.gender === 'ស្រី').length;
 
   const grandTotals = useMemo(() => {
-    let perm = 0, abs = 0;
-    roster.forEach(s => { const t = rowTotals((s as any).id); perm += t.perm; abs += t.abs; });
-    return { perm, abs, total: perm + abs };
+    let perm = 0, abs = 0, late = 0;
+    roster.forEach(s => { const t = rowTotals((s as any).id); perm += t.perm; abs += t.abs; late += t.late; });
+    return { perm, abs, late, total: perm + abs };
   }, [roster, recordsByDay, days]);
 
   const denom = roster.length * (operatedDays || 0);
@@ -109,29 +112,30 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
 
   // ---- Excel export (.xlsx) — same layout as the printed register ----
   const handleExport = () => {
-    const dowRow = ['', '', '', ''].concat(days.map(d => KH_DOW[new Date(year, month - 1, d).getDay()])).concat(['', '', '', '']);
-    const numRow = ['ល.រ', 'អត្តលេខ', 'គោត្តនាម និងនាម', 'ភេទ'].concat(days.map(d => toKh(d))).concat(['ច្ប', 'អ ច្ប', 'សរុប', 'ផ្សេងៗ']);
+    const dowRow = ['', '', '', ''].concat(days.map(d => KH_DOW[new Date(year, month - 1, d).getDay()])).concat(['', '', '', '', '']);
+    const numRow = ['ល.រ', 'អត្តលេខ', 'គោត្តនាម និងនាម', 'ភេទ'].concat(days.map(d => toKh(d))).concat(['ច្ប', 'អ ច្ប', 'សរុប', 'យឺត', 'ផ្សេងៗ']);
     const body = roster.map((s, i) => {
       const id = (s as any).id;
       const t = rowTotals(id);
       return [toKh(i + 1), (s as any).studentId || '', s.name, genderShort(s.gender)]
         .concat(days.map(d => markOf(id, d)))
-        .concat([t.perm ? toKh(t.perm) : '', t.abs ? toKh(t.abs) : '', t.total ? toKh(t.total) : '']);
+        .concat([t.perm ? toKh(t.perm) : '', t.abs ? toKh(t.abs) : '', t.total ? toKh(t.total) : '', t.late ? toKh(t.late) : '']);
     });
     const totalRow = ['', '', 'សរុប', ''].concat(days.map(d => {
       const c = roster.filter(s => markOf((s as any).id, d)).length;
       return c ? toKh(c) : '';
-    })).concat([toKh(grandTotals.perm), toKh(grandTotals.abs), toKh(grandTotals.total)]);
+    })).concat([toKh(grandTotals.perm), toKh(grandTotals.abs), toKh(grandTotals.total), toKh(grandTotals.late)]);
 
     const title = [`តារាងតាមដានអវត្តមានសិស្ស ${grade} ប្រចាំខែ${monthName} ឆ្នាំសិក្សា ២០២៥-២០២៦`];
     const aoa = [title, [], dowRow, numRow, ...body, totalRow, [],
       [`ចំនួនសិស្សក្នុងបញ្ជី៖ ${toKh(roster.length)} នាក់ (ស្រី ${toKh(girls)})`,],
       [`ចំនួនថ្ងៃសិក្សា៖ ${toKh(operatedDays)} ថ្ងៃ`,],
       [`អវត្តមានសរុប៖ ${toKh(grandTotals.total)} (ច្បាប់ ${toKh(grandTotals.perm)} / អត់ច្បាប់ ${toKh(grandTotals.abs)})`,],
+      [`យឺតសរុប៖ ${toKh(grandTotals.late)} ដង`,],
       [`ភាគរយអវត្តមាន៖ ${ratePct.toFixed(2)}%`,],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = [{ wch: 4 }, { wch: 7 }, { wch: 22 }, { wch: 4 }, ...days.map(() => ({ wch: 3 })), { wch: 4 }, { wch: 5 }, { wch: 5 }, { wch: 8 }];
+    ws['!cols'] = [{ wch: 4 }, { wch: 7 }, { wch: 22 }, { wch: 4 }, ...days.map(() => ({ wch: 3 })), { wch: 4 }, { wch: 5 }, { wch: 5 }, { wch: 4 }, { wch: 8 }];
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: numRow.length - 1 } }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `អវត្តមាន ${monthName}`);
@@ -197,6 +201,7 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
             const rec = getRec(day);
             if (v.includes('អ')) { rec.studentStates[sid] = 'absent'; marks++; }
             else if (v.includes('ច្ប') || v.includes('ច')) { rec.studentStates[sid] = 'permission'; marks++; }
+            else if (v.includes('យ')) { rec.studentStates[sid] = 'late'; marks++; }
           }
         }
         // Recount each touched record's aggregate counts.
@@ -266,11 +271,12 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
                   <th className="border border-slate-300 px-1 bg-blue-50">ច្ប</th>
                   <th className="border border-slate-300 px-1 bg-rose-50">អ ច្ប</th>
                   <th className="border border-slate-300 px-1">សរុប</th>
+                  <th className="border border-slate-300 px-1 bg-amber-50">យឺត</th>
                 </tr>
                 <tr className="bg-slate-50 text-center text-slate-500">
                   <th className="border border-slate-300 sticky left-0 bg-slate-50" colSpan={4}></th>
                   {days.map(d => <th key={d} className="border border-slate-300 w-5 font-normal">{toKh(d)}</th>)}
-                  <th className="border border-slate-300" colSpan={3}></th>
+                  <th className="border border-slate-300" colSpan={4}></th>
                 </tr>
               </thead>
               <tbody>
@@ -285,11 +291,12 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
                       <td className="border border-slate-300">{genderShort(s.gender)}</td>
                       {days.map(d => {
                         const m = markOf(id, d);
-                        return <td key={d} className={`border border-slate-300 text-[8px] font-bold ${m === MARK_ABS ? 'text-rose-600 bg-rose-50' : m === MARK_PERM ? 'text-blue-600 bg-blue-50' : ''}`}>{m}</td>;
+                        return <td key={d} className={`border border-slate-300 text-[8px] font-bold ${m === MARK_ABS ? 'text-rose-600 bg-rose-50' : m === MARK_PERM ? 'text-blue-600 bg-blue-50' : m === MARK_LATE ? 'text-amber-600 bg-amber-50' : ''}`}>{m}</td>;
                       })}
                       <td className="border border-slate-300 bg-blue-50 font-bold">{t.perm ? toKh(t.perm) : ''}</td>
                       <td className="border border-slate-300 bg-rose-50 font-bold">{t.abs ? toKh(t.abs) : ''}</td>
                       <td className="border border-slate-300 font-bold">{t.total ? toKh(t.total) : ''}</td>
+                      <td className="border border-slate-300 bg-amber-50 font-bold text-amber-700">{t.late ? toKh(t.late) : ''}</td>
                     </tr>
                   );
                 })}
@@ -303,16 +310,18 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
                   <td className="border border-slate-300 bg-blue-50">{toKh(grandTotals.perm)}</td>
                   <td className="border border-slate-300 bg-rose-50">{toKh(grandTotals.abs)}</td>
                   <td className="border border-slate-300">{toKh(grandTotals.total)}</td>
+                  <td className="border border-slate-300 bg-amber-50 text-amber-700">{toKh(grandTotals.late)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-[11px]">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-3 text-[11px]">
             <div className="bg-slate-50 rounded-lg px-3 py-2">សិស្សក្នុងបញ្ជី៖ <b>{toKh(roster.length)}</b> នាក់ (ស្រី {toKh(girls)})</div>
             <div className="bg-slate-50 rounded-lg px-3 py-2">ថ្ងៃសិក្សា៖ <b>{toKh(operatedDays)}</b> ថ្ងៃ</div>
             <div className="bg-slate-50 rounded-lg px-3 py-2">អវត្តមានសរុប៖ <b>{toKh(grandTotals.total)}</b> (ច្បាប់ {toKh(grandTotals.perm)} / អត់ច្បាប់ {toKh(grandTotals.abs)})</div>
+            <div className="bg-amber-50 rounded-lg px-3 py-2">យឺតសរុប៖ <b>{toKh(grandTotals.late)}</b> ដង</div>
             <div className="bg-amber-50 rounded-lg px-3 py-2">ភាគរយអវត្តមាន៖ <b>{ratePct.toFixed(2)}%</b></div>
           </div>
 
