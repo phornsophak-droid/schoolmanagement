@@ -1216,6 +1216,104 @@ export default function Gradebook({
     alert(`បានរក្សាទុកពិន្ទុប្រឡងឆមាសរបស់សិស្ស «${examStudentName}» ដោយជោគជ័យ!`);
   };
 
+  const handleDownloadReport = () => {
+    if (selectedGrade === 'ទាំងអស់') {
+      alert('សូមជ្រើសរើសថ្នាក់ជាក់លាក់មុនទាញយករបាយការណ៍!');
+      return;
+    }
+    
+    let header: string[] = [];
+    let body: any[][] = [];
+    let filename = '';
+
+    if (activeMode === 'monthly') {
+      filename = `របាយការណ៍ពិន្ទុប្រចាំខែ_${selectedMonth}_${selectedGrade}.xlsx`;
+      const isCustom = viewingEnglish;
+      const subjects = isCustom ? customSubjects : GENERAL_SCORE_HEADERS;
+      header = ['ល.រ', 'អត្តលេខ', 'ឈ្មោះសិស្ស', 'ភេទ', 'ថ្នាក់សិក្សា', ...(isCustom ? ['ក្រុម'] : []), 'ខែ', ...subjects!.map(s => typeof s === 'string' ? s : s.km), 'ពិន្ទុសរុប', 'មធ្យមភាគ', 'ចំណាត់ថ្នាក់', 'និទ្ទេស', 'លទ្ធផល', 'មូលវិចារគ្រូ'];
+      
+      body = monthlyRows.map((st, i) => {
+        const scores = isCustom 
+          ? customSubjects!.map(s => st.englishScores?.[s.key] ?? '')
+          : [
+              st.khmer.listening ?? '', st.khmer.speaking ?? '', st.khmer.reading ?? '', st.khmer.writing ?? '',
+              st.math.numbers ?? '', st.math.measurement ?? '', st.math.geometry ?? '', st.math.algebra ?? '', st.math.statistics ?? '',
+              ...(SCIENCE_SUBJECTS.map(s => st.scienceScores?.[s.key] ?? '')),
+              ...(SOCIAL_SUBJECTS.map(s => st.socialScores?.[s.key] ?? '')),
+              st.physicalEducation ?? '', st.health ?? '', st.lifeSkills ?? '', st.foreignLanguage ?? ''
+            ];
+            
+        return [
+          i + 1,
+          st.studentId || '',
+          st.name,
+          st.gender,
+          st.grade,
+          ...(isCustom ? [st.group || ''] : []),
+          st.month,
+          ...scores,
+          st.totalScore ?? '',
+          st.overallAvg ?? '',
+          st.ranking ?? '',
+          st.gradeLetter ?? '',
+          st.result ?? '',
+          st.remark || ''
+        ];
+      });
+    } else if (activeMode === 'semester') {
+      filename = `របាយការណ៍ពិន្ទុឆមាសទី${selectedSemester}_${selectedGrade}.xlsx`;
+      header = ['ល.រ', 'អត្តលេខ', 'ឈ្មោះសិស្ស', 'ភេទ', 'ថ្នាក់សិក្សា', ...SEM_SUBJECTS.map(s => s.km), 'មធ្យមភាគប្រចាំខែ', 'ពិន្ទុប្រឡងឆមាស', 'មធ្យមភាគប្រចាំឆមាស', 'និទ្ទេស', 'ចំណាត់ថ្នាក់', 'លទ្ធផល', 'មូលវិចារគ្រូ'];
+      
+      body = filteredSemesterStudents.map((st, i) => {
+        const examRec = st.examRecord;
+        const examScores = SEM_SUBJECTS.map(sub => examRec ? (sub.get(examRec) ?? '') : '');
+        return [
+          i + 1,
+          st.studentId || '',
+          st.name,
+          st.gender,
+          st.grade,
+          ...examScores,
+          st.overallMonthlyAvg ?? '',
+          st.examScore ?? '',
+          st.semesterAvg ?? '',
+          st.gradeLetter ?? '',
+          st.ranking ?? '',
+          st.result ?? '',
+          examRec?.remark || ''
+        ];
+      });
+    } else if (activeMode === 'annual') {
+      filename = `របាយការណ៍លទ្ធផលប្រចាំឆ្នាំ_${selectedGrade}.xlsx`;
+      header = ['លេខរៀង', 'អត្តលេខ', 'ឈ្មោះ', 'ភេទ', 'ថ្នាក់', 'មធ្យមភាគឆមាសទី១', 'មធ្យមភាគឆមាសទី២', 'មធ្យមភាគប្រចាំឆ្នាំ', 'និទ្ទេស', 'ចំណាត់ថ្នាក់', 'លទ្ធផល', 'មូលវិចារគ្រូ', 'បំណិន', 'ចរិយា'];
+      
+      body = filteredAnnualStudents.map((st, i) => {
+        const extra = readAnnualExtra(st.grade, st.name);
+        return [
+          i + 1,
+          st.studentId || '',
+          st.name,
+          st.gender,
+          st.grade,
+          st.s1Avg ?? '',
+          st.s2Avg ?? '',
+          st.annualAvg ?? '',
+          st.gradeLetter ?? '',
+          st.ranking ?? '',
+          st.result ?? '',
+          st.remark || '',
+          extra.skills || '',
+          extra.conduct || ''
+        ];
+      });
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'របាយការណ៍');
+    XLSX.writeFile(wb, filename);
+  };
+
   return (
     <div className="space-y-3">
       {/* Class category tabs (principal): General vs Extra */}
@@ -1293,6 +1391,14 @@ export default function Gradebook({
 
           {(activeMode === 'monthly' || activeMode === 'semester' || activeMode === 'annual') && (
             <>
+              <button
+                onClick={handleDownloadReport}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-blue-600 text-white font-semibold hover:bg-blue-700 rounded-xl text-sm transition-all shadow-md shadow-blue-500/10"
+                title="ទាញយករបាយការណ៍តារាងពិន្ទុ (Excel)"
+              >
+                <Download size={16} />
+                របាយការណ៍
+              </button>
               <button
                 onClick={() => setInlineEdit(v => !v)}
                 className={`flex items-center justify-center gap-1.5 px-3.5 py-2.5 font-semibold rounded-xl text-sm transition-all border ${inlineEdit ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600 shadow-md shadow-amber-500/10' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
