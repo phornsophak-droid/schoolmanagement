@@ -365,6 +365,21 @@ async function selectRows(supabase: SupabaseClient, table: string, since?: strin
 }
 
 // 5. Database Interaction Module API
+// Parent portal: fetch ONLY one class's student rows (all months). Read-only,
+// no realtime, no whole-database download — keeps egress tiny (~one class vs
+// ~2000 rows) so hundreds of parents viewing report cards stay well under the
+// Supabase egress limit.
+export async function fetchClassStudents(grade: string): Promise<StudentScore[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('student_scores')
+    .select('*')
+    .eq('grade', grade);
+  if (error) throw error;
+  return (data || []).map(mapDBToScore);
+}
+
 // When `since` (ISO timestamp) is passed, the heavy tables (student_scores,
 // student_attendance, teacher_attendance) return ONLY rows changed after that
 // time — a small delta the caller MERGES instead of replacing. This is what

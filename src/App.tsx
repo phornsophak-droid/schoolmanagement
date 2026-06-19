@@ -101,6 +101,7 @@ import ReportWizard from './components/ReportWizard';
 import ReportDetail from './components/ReportDetail';
 import ReportsHub from './components/ReportsHub';
 import LoginPortal from './components/LoginPortal';
+import ParentPortal from './components/ParentPortal';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
 import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
@@ -133,6 +134,7 @@ export default function App() {
 
   // User session state
   const [currentUser, setCurrentUser] = useState<SchoolUser | null>(null);
+  const [parentMode, setParentMode] = useState(false);
 
   // Shared Global Filter states
   const [selectedMonth, setSelectedMonth] = useState<string>('ទាំងអស់');
@@ -1199,7 +1201,10 @@ export default function App() {
   });
 
   if (!currentUser) {
-    return <LoginPortal onLoginSuccess={handleLoginSuccess} />;
+    if (parentMode) {
+      return <ParentPortal grades={grades} onBack={() => setParentMode(false)} />;
+    }
+    return <LoginPortal onLoginSuccess={handleLoginSuccess} onParentAccess={() => setParentMode(true)} />;
   }
 
   return (
