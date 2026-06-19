@@ -377,11 +377,13 @@ export default function App() {
       const client = getSupabaseClient();
       if (client) {
         setSupabaseStatus('syncing');
-        // Decide: full reconcile (first load, empty cache, or >24h since last full)
-        // vs. a cheap incremental delta since the last sync.
+        // Decide: full reconcile (first load, empty cache, switched to a different
+        // Supabase project, or >24h since last full) vs. a cheap incremental delta.
         const lastSync = getLastSyncAt();
         const cacheEmpty = !memoryStudents || memoryStudents.length === 0;
-        const needFull = !lastSync || cacheEmpty || (Date.now() - getLastFullSyncMs() > FULL_SYNC_INTERVAL_MS);
+        const projectUrl = getSupabaseConfig()?.url || '';
+        const projectChanged = projectUrl !== (localStorage.getItem('cloud_sync_project') || '');
+        const needFull = projectChanged || !lastSync || cacheEmpty || (Date.now() - getLastFullSyncMs() > FULL_SYNC_INTERVAL_MS);
         const startedAt = Date.now();
         syncFetchAll(needFull ? undefined : sinceArgFrom(lastSync))
           .then(data => {
@@ -417,6 +419,7 @@ export default function App() {
               restoreReportSubmissions(data.settings['report_submissions']);
             }
             stampSync(startedAt, needFull);
+            localStorage.setItem('cloud_sync_project', projectUrl);
             setSupabaseStatus('connected');
             setSupabaseErrorMsg('');
 
