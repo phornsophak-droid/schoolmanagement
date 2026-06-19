@@ -16,10 +16,14 @@ interface ParentPortalProps {
   onBack: () => void;
 }
 
+const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+
 // Khmer school-year month order, for sorting the months a child has records in.
 const MONTH_ORDER = ['កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
 
 export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
+  const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
   const [grade, setGrade] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -93,6 +97,19 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
     return months.sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
   }, [childRecords]);
 
+  const filteredGrades = useMemo(() => grades.filter(g => classCategory === 'extra' ? isExtraClass(g) : !isExtraClass(g)), [grades, classCategory]);
+
+  const handleCategoryChange = (cat: 'general' | 'extra') => {
+    setClassCategory(cat);
+    setGrade('');
+    setChildName('');
+    setNameQuery('');
+    setNameError('');
+    setNameMatches([]);
+    setError('');
+    setClassStudents([]);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50/40 flex flex-col items-center px-4 py-6">
       <div className="w-full max-w-md">
@@ -116,16 +133,30 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-5 space-y-4">
           {/* Step 1 — pick class */}
           <div>
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
+            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
               <GraduationCap size={14} className="text-emerald-600" /> ១. ជ្រើសរើសថ្នាក់រៀនរបស់កូន
             </label>
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl mb-3">
+              <button
+                onClick={() => handleCategoryChange('general')}
+                className={`flex-1 px-2 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${classCategory === 'general' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+              >
+                📘 ថ្នាក់ចំណេះទូទៅ
+              </button>
+              <button
+                onClick={() => handleCategoryChange('extra')}
+                className={`flex-1 px-2 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+              >
+                🎨 ថ្នាក់ក្រៅម៉ោង
+              </button>
+            </div>
             <select
               value={grade}
               onChange={e => loadClass(e.target.value)}
               className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:border-emerald-500 focus:outline-none transition-colors"
             >
               <option value="">— ជ្រើសរើសថ្នាក់ —</option>
-              {grades.map(g => <option key={g} value={g}>{g}</option>)}
+              {filteredGrades.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
 
