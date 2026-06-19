@@ -1222,96 +1222,149 @@ export default function Gradebook({
       return;
     }
     
-    let header: string[] = [];
-    let body: any[][] = [];
     let filename = '';
 
     if (activeMode === 'monthly') {
       filename = `របាយការណ៍ពិន្ទុប្រចាំខែ_${selectedMonth}_${selectedGrade}.xlsx`;
       const isCustom = viewingEnglish;
-      const subjects = isCustom ? customSubjects : GENERAL_SCORE_HEADERS;
-      header = ['ល.រ', 'អត្តលេខ', 'ឈ្មោះសិស្ស', 'ភេទ', 'ថ្នាក់សិក្សា', ...(isCustom ? ['ក្រុម'] : []), 'ខែ', ...subjects!.map(s => typeof s === 'string' ? s : s.km), 'ពិន្ទុសរុប', 'មធ្យមភាគ', 'ចំណាត់ថ្នាក់', 'និទ្ទេស', 'លទ្ធផល', 'មូលវិចារគ្រូ'];
       
-      body = monthlyRows.map((st, i) => {
-        const scores = isCustom 
-          ? customSubjects!.map(s => st.englishScores?.[s.key] ?? '')
-          : [
-              st.khmer.listening ?? '', st.khmer.speaking ?? '', st.khmer.reading ?? '', st.khmer.writing ?? '',
-              st.math.numbers ?? '', st.math.measurement ?? '', st.math.geometry ?? '', st.math.algebra ?? '', st.math.statistics ?? '',
-              ...(SCIENCE_SUBJECTS.map(s => st.scienceScores?.[s.key] ?? '')),
-              ...(SOCIAL_SUBJECTS.map(s => st.socialScores?.[s.key] ?? '')),
-              st.physicalEducation ?? '', st.health ?? '', st.lifeSkills ?? '', st.foreignLanguage ?? ''
-            ];
-            
-        return [
+      if (isCustom) {
+        const subjects = customSubjects;
+        const header = ['ល.រ', 'អត្តលេខ', 'ឈ្មោះសិស្ស', 'ភេទ', 'ថ្នាក់សិក្សា', 'ក្រុម', 'ខែ', ...subjects!.map(s => typeof s === 'string' ? s : s.km), 'ពិន្ទុសរុប', 'មធ្យមភាគ', 'ចំណាត់ថ្នាក់', 'និទ្ទេស', 'លទ្ធផល', 'មូលវិចារគ្រូ'];
+        const body = monthlyRows.map((st, i) => [
+          i + 1, st.studentId || '', st.name, st.gender, st.grade, st.group || '', st.month,
+          ...customSubjects!.map(s => st.englishScores?.[s.key] ?? ''),
+          st.totalScore ?? '', st.overallAvg ?? '', st.ranking ?? '', st.gradeLetter ?? '', st.result ?? '', st.remark || ''
+        ]);
+        const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'របាយការណ៍');
+        XLSX.writeFile(wb, filename);
+      } else {
+        const titleRow1 = [
+          '', '', 'តារាងស្រង់ពិន្ទុប្រចាំខែ', '', '', '', '', '', 'ថ្នាក់ទី ' + selectedGrade, '', '', '', '', '', '', 
+          `សម្រាប់ខែ ${selectedMonth}  ឆ្នាំសិក្សា ${new Date().getFullYear()}-${new Date().getFullYear()+1}`, '', '', '', '', '', 
+          `សិស្សសរុប ${monthlyRows.length} នាក់ /ស្រី ${monthlyRows.filter(s => s.gender === 'ស្រី').length} នាក់`
+        ];
+        const titleRow2 = [];
+
+        const h1 = [
+          'លេខរៀង', 'អត្តលេខ', 'គោត្តនាមនិងនាម', 'ភេទ', 
+          'ភាសាខ្មែរ', '', '', '', 
+          'គណិតវិទ្យា', '', '', '', '', 
+          'វិទ្យាសាស្ត្រ', '', '', 
+          'សិក្សាសង្គម', '', '', 
+          'អប់រំកាយ សុខភាពវិទ្យា', '', 
+          'បំណិនជីវិត', 'ភាសាបរទេស', 'ពិន្ទុសរុប', 'មធ្យមភាគ', 'ចំណាត់ថ្នាក់', 'និទ្ទេស', 'សេចក្តីផ្សេងៗ'
+        ];
+        
+        const h2 = [
+          '', '', '', '',
+          'ស្តាប់', 'និយាយ', 'អាន', 'សរសេរ',
+          'ចំនួន', 'រង្វាស់រង្វាល់', 'ធរណីមាត្រ', 'ពិជគណិត', 'ស្ថិតិ',
+          'រូប', 'គីមី', 'ជីវៈ',
+          'ប្រវត្តិ-ភូមិវិទ្យា', 'សីលធម៌-ពលរដ្ឋ', 'គេហៈ',
+          'អប់រំកាយ-កីឡា', 'សុខភាពវិទ្យា',
+          '', '', '', '', '', '', ''
+        ];
+
+        const body = monthlyRows.map((st, i) => [
           i + 1,
           st.studentId || '',
           st.name,
           st.gender,
-          st.grade,
-          ...(isCustom ? [st.group || ''] : []),
-          st.month,
-          ...scores,
+          st.khmer.listening ?? '', st.khmer.speaking ?? '', st.khmer.reading ?? '', st.khmer.writing ?? '',
+          st.math.numbers ?? '', st.math.measurement ?? '', st.math.geometry ?? '', st.math.algebra ?? '', st.math.statistics ?? '',
+          ...(SCIENCE_SUBJECTS.map(s => st.scienceScores?.[s.key] ?? '')),
+          ...(SOCIAL_SUBJECTS.map(s => st.socialScores?.[s.key] ?? '')),
+          st.physicalEducation ?? '', st.health ?? '', st.lifeSkills ?? '', st.foreignLanguage ?? '',
           st.totalScore ?? '',
           st.overallAvg ?? '',
           st.ranking ?? '',
           st.gradeLetter ?? '',
-          st.result ?? '',
           st.remark || ''
+        ]);
+
+        const getStats = (min: number, max: number) => {
+          const list = monthlyRows.filter(s => (s.overallAvg ?? 0) >= min && (s.overallAvg ?? 0) <= max);
+          const fList = list.filter(s => s.gender === 'ស្រី');
+          const pct = monthlyRows.length ? Math.round((list.length / monthlyRows.length) * 100) : 0;
+          return `សរុប ${list.length.toString().padStart(2, '0')} នាក់   /ស្រី ${fList.length.toString().padStart(2, '0')} នាក់      ${pct}%`;
+        };
+
+        const footers = [
+          [], [],
+          ['', '', 'បានឃើញ និងឯកភាព', '', '', '', '', '', '', '', '', '', '', `ថ្ងៃ ....................... ខែ ................ ឆ្នាំ ..................`],
+          ['', '', 'នាយកសាលា', '', '', '', '', '', '', '', '', '', '', `ធ្វើនៅ ............................. ថ្ងៃទី ........ ខែ ....... ឆ្នាំ ២០២...`],
+          ['', '', '', '', '', '', '', '', '', '', '', '', '', 'គ្រូបន្ទុកថ្នាក់', '', '', '', '', '', '', '', '5.00-6.49', getStats(5.00, 6.49)],
+          ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '6.50-7.99', getStats(6.50, 7.99)],
+          ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '8.00-9.49', getStats(8.00, 9.49)],
+          ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '9.50-10.00', getStats(9.50, 10.00)],
+          ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'ក្រោម 5.00', getStats(0, 4.99)],
         ];
-      });
+
+        const allRows = [titleRow1, titleRow2, h1, h2, ...body, ...footers];
+        const ws = XLSX.utils.aoa_to_sheet(allRows);
+
+        ws['!merges'] = [
+          { s: { r: 0, c: 2 }, e: { r: 0, c: 4 } },
+          { s: { r: 0, c: 8 }, e: { r: 0, c: 10 } },
+          { s: { r: 0, c: 15 }, e: { r: 0, c: 18 } },
+          { s: { r: 0, c: 21 }, e: { r: 0, c: 24 } },
+          { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } },
+          { s: { r: 2, c: 1 }, e: { r: 3, c: 1 } },
+          { s: { r: 2, c: 2 }, e: { r: 3, c: 2 } },
+          { s: { r: 2, c: 3 }, e: { r: 3, c: 3 } },
+          { s: { r: 2, c: 21 }, e: { r: 3, c: 21 } },
+          { s: { r: 2, c: 22 }, e: { r: 3, c: 22 } },
+          { s: { r: 2, c: 23 }, e: { r: 3, c: 23 } },
+          { s: { r: 2, c: 24 }, e: { r: 3, c: 24 } },
+          { s: { r: 2, c: 25 }, e: { r: 3, c: 25 } },
+          { s: { r: 2, c: 26 }, e: { r: 3, c: 26 } },
+          { s: { r: 2, c: 27 }, e: { r: 3, c: 27 } },
+          { s: { r: 2, c: 4 }, e: { r: 2, c: 7 } },
+          { s: { r: 2, c: 8 }, e: { r: 2, c: 12 } },
+          { s: { r: 2, c: 13 }, e: { r: 2, c: 15 } },
+          { s: { r: 2, c: 16 }, e: { r: 2, c: 18 } },
+          { s: { r: 2, c: 19 }, e: { r: 2, c: 20 } },
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'របាយការណ៍');
+        XLSX.writeFile(wb, filename);
+      }
     } else if (activeMode === 'semester') {
       filename = `របាយការណ៍ពិន្ទុឆមាសទី${selectedSemester}_${selectedGrade}.xlsx`;
-      header = ['ល.រ', 'អត្តលេខ', 'ឈ្មោះសិស្ស', 'ភេទ', 'ថ្នាក់សិក្សា', ...SEM_SUBJECTS.map(s => s.km), 'មធ្យមភាគប្រចាំខែ', 'ពិន្ទុប្រឡងឆមាស', 'មធ្យមភាគប្រចាំឆមាស', 'និទ្ទេស', 'ចំណាត់ថ្នាក់', 'លទ្ធផល', 'មូលវិចារគ្រូ'];
+      const header = ['ល.រ', 'អត្តលេខ', 'ឈ្មោះសិស្ស', 'ភេទ', 'ថ្នាក់សិក្សា', ...SEM_SUBJECTS.map(s => s.km), 'មធ្យមភាគប្រចាំខែ', 'ពិន្ទុប្រឡងឆមាស', 'មធ្យមភាគប្រចាំឆមាស', 'និទ្ទេស', 'ចំណាត់ថ្នាក់', 'លទ្ធផល', 'មូលវិចារគ្រូ'];
       
-      body = filteredSemesterStudents.map((st, i) => {
+      const body = filteredSemesterStudents.map((st, i) => {
         const examRec = st.examRecord;
         const examScores = SEM_SUBJECTS.map(sub => examRec ? (sub.get(examRec) ?? '') : '');
         return [
-          i + 1,
-          st.studentId || '',
-          st.name,
-          st.gender,
-          st.grade,
-          ...examScores,
-          st.overallMonthlyAvg ?? '',
-          st.examScore ?? '',
-          st.semesterAvg ?? '',
-          st.gradeLetter ?? '',
-          st.ranking ?? '',
-          st.result ?? '',
-          examRec?.remark || ''
+          i + 1, st.studentId || '', st.name, st.gender, st.grade, ...examScores,
+          st.overallMonthlyAvg ?? '', st.examScore ?? '', st.semesterAvg ?? '', st.gradeLetter ?? '', st.ranking ?? '', st.result ?? '', examRec?.remark || ''
         ];
       });
+      const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'របាយការណ៍');
+      XLSX.writeFile(wb, filename);
     } else if (activeMode === 'annual') {
       filename = `របាយការណ៍លទ្ធផលប្រចាំឆ្នាំ_${selectedGrade}.xlsx`;
-      header = ['លេខរៀង', 'អត្តលេខ', 'ឈ្មោះ', 'ភេទ', 'ថ្នាក់', 'មធ្យមភាគឆមាសទី១', 'មធ្យមភាគឆមាសទី២', 'មធ្យមភាគប្រចាំឆ្នាំ', 'និទ្ទេស', 'ចំណាត់ថ្នាក់', 'លទ្ធផល', 'មូលវិចារគ្រូ', 'បំណិន', 'ចរិយា'];
+      const header = ['លេខរៀង', 'អត្តលេខ', 'ឈ្មោះ', 'ភេទ', 'ថ្នាក់', 'មធ្យមភាគឆមាសទី១', 'មធ្យមភាគឆមាសទី២', 'មធ្យមភាគប្រចាំឆ្នាំ', 'និទ្ទេស', 'ចំណាត់ថ្នាក់', 'លទ្ធផល', 'មូលវិចារគ្រូ', 'បំណិន', 'ចរិយា'];
       
-      body = filteredAnnualStudents.map((st, i) => {
+      const body = filteredAnnualStudents.map((st, i) => {
         const extra = readAnnualExtra(st.grade, st.name);
         return [
-          i + 1,
-          st.studentId || '',
-          st.name,
-          st.gender,
-          st.grade,
-          st.s1Avg ?? '',
-          st.s2Avg ?? '',
-          st.annualAvg ?? '',
-          st.gradeLetter ?? '',
-          st.ranking ?? '',
-          st.result ?? '',
-          st.remark || '',
-          extra.skills || '',
-          extra.conduct || ''
+          i + 1, st.studentId || '', st.name, st.gender, st.grade, st.s1Avg ?? '', st.s2Avg ?? '', st.annualAvg ?? '',
+          st.gradeLetter ?? '', st.ranking ?? '', st.result ?? '', st.remark || '', extra.skills || '', extra.conduct || ''
         ];
       });
+      const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'របាយការណ៍');
+      XLSX.writeFile(wb, filename);
     }
-
-    const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'របាយការណ៍');
-    XLSX.writeFile(wb, filename);
   };
 
   return (
