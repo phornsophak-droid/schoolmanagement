@@ -134,7 +134,14 @@ export default function App() {
 
   // User session state
   const [currentUser, setCurrentUser] = useState<SchoolUser | null>(null);
-  const [parentMode, setParentMode] = useState(false);
+  // A shareable parent link opens the report-card portal straight away:
+  //   <app-url>?parent=1   (also accepts #parent)
+  const [parentMode, setParentMode] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('parent') !== null
+        || window.location.hash.toLowerCase().includes('parent');
+    } catch { return false; }
+  });
 
   // Shared Global Filter states
   const [selectedMonth, setSelectedMonth] = useState<string>('ទាំងអស់');
