@@ -24,6 +24,7 @@ import * as XLSX from 'xlsx';
 import { StudentScore, SchoolUser } from '../types';
 import { useT } from '../i18n';
 import { AVAILABLE_USERS } from './LoginPortal';
+import MonthlyAttendanceRegister from './MonthlyAttendanceRegister';
 import {
   getSupabaseClient,
   syncUpsertStudentAttendance,
@@ -172,6 +173,19 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+  const [monthlyRegisterOpen, setMonthlyRegisterOpen] = useState(false);
+
+  // Merge imported monthly-register day-marks into the daily attendance records.
+  const handleMonthlyImport = (updated: AttendanceRecord[]) => {
+    const ids = new Set(updated.map(r => r.id));
+    const merged = [...updated, ...records.filter(r => !ids.has(r.id))];
+    setRecords(merged);
+    localStorage.setItem('school_daily_attendance', JSON.stringify(merged));
+    const client = getSupabaseClient();
+    if (client) {
+      updated.forEach(r => syncUpsertStudentAttendance(r).catch(err => console.warn('Supabase monthly import sync failed', err)));
+    }
+  };
 
   // Load persistence records for students
   const [records, setRecords] = useState<AttendanceRecord[]>(() => {
@@ -1095,6 +1109,13 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                     >
                       <Download size={12} /> ប្រចាំឆ្នាំ
                     </button>
+                    <button
+                      onClick={() => setMonthlyRegisterOpen(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors"
+                      title="តារាងតាមដានអវត្តមានប្រចាំខែ (មើល / នាំចូល / ទាញយក Excel)"
+                    >
+                      <ClipboardList size={12} /> តារាងអវត្តមានប្រចាំខែ
+                    </button>
                   </div>
                   <span className="text-[10.5px] text-slate-500 font-bold bg-white px-2.5 py-1 border border-slate-200 rounded-lg">
                     សរុប៖ <b>{displayStudents.length}</b> នាក់
@@ -1566,6 +1587,18 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           )}
         </div>
       </div>
+
+      {monthlyRegisterOpen && (
+        <MonthlyAttendanceRegister
+          students={uniqueStudentsList}
+          grade={selectedGrade}
+          year={parseInt(selectedDate.slice(0, 4), 10)}
+          month={parseInt(selectedDate.slice(5, 7), 10)}
+          records={records}
+          onClose={() => setMonthlyRegisterOpen(false)}
+          onImport={handleMonthlyImport}
+        />
+      )}
     </div>
   );
 }
