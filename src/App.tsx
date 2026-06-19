@@ -810,9 +810,20 @@ export default function App() {
       id: studentRecordId(s.name, s.gender, (s as any).grade, (s as any).month),
     }));
 
+    const prevById = new Map(students.map(prevS => [prevS.id, prevS]));
     const deletedStudentIds = students
       .filter(prevS => !updatedList.some(currS => currS.id === prevS.id))
       .map(prevS => prevS.id);
+
+    // Push ONLY the rows that actually changed (new or different vs the previous
+    // list). A typical save edits a handful of cells, not the whole ~2000-row
+    // table — uploading only the delta keeps Supabase realtime-message count and
+    // cross-device egress low (each changed row bumps updated_at, which other
+    // devices then pull incrementally).
+    const changedStudents = updatedList.filter(currS => {
+      const prev = prevById.get(currS.id);
+      return !prev || JSON.stringify(prev) !== JSON.stringify(currS);
+    });
 
     setStudents(updatedList);
     localStorage.setItem('school_student_scores_v2', JSON.stringify(updatedList));
@@ -825,8 +836,8 @@ export default function App() {
         for (const id of deletedStudentIds) {
           await syncDeleteStudent(id);
         }
-        if (updatedList.length > 0) {
-          await syncUpsertStudentsBulk(updatedList);
+        if (changedStudents.length > 0) {
+          await syncUpsertStudentsBulk(changedStudents);
         }
         showCloudToast('បានរក្សាទុក និងភ្ជាប់ទៅ Supabase ដោយជោគជ័យ ✓', true);
       } catch (err) {
