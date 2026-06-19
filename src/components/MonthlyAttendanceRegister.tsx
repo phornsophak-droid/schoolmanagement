@@ -46,6 +46,11 @@ const MARK_ABS = 'អច្ប';   // អត់ច្បាប់ — unexcused
 const MARK_LATE = 'យ';     // យឺត — late
 const genderShort = (g: string) => (g === 'ស្រី' ? 'ស' : 'ប');
 
+// Click-cycle order for marking a cell: blank → late → excused → unexcused → blank.
+const STATE_CYCLE: ('' | State)[] = ['', 'late', 'permission', 'absent'];
+// After-hours classes store a single session record (no morning/afternoon split).
+const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+
 // Academic-year months in order, each with its calendar year (Nov 2025 – Oct 2026).
 const ACADEMIC_MONTHS: { m: number; y: number }[] = [
   { m: 11, y: 2025 }, { m: 12, y: 2025 },
@@ -83,18 +88,44 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
     return map;
   }, [records, grade, year, mm]);
 
-  // A student's mark for one day: absent wins over permission, then late; else blank.
-  const markOf = (studentId: string, day: number): string => {
+  // A student's raw state for one day (absent > permission > late > none).
+  const stateOf = (studentId: string, day: number): '' | State => {
     const recs = recordsByDay[day];
     if (!recs) return '';
     let perm = false, late = false;
     for (const r of recs) {
       const st = r.studentStates?.[studentId];
-      if (st === 'absent') return MARK_ABS;
+      if (st === 'absent') return 'absent';
       if (st === 'permission') perm = true;
       if (st === 'late') late = true;
     }
-    return perm ? MARK_PERM : late ? MARK_LATE : '';
+    return perm ? 'permission' : late ? 'late' : '';
+  };
+  const markOf = (studentId: string, day: number): string => {
+    const s = stateOf(studentId, day);
+    return s === 'absent' ? MARK_ABS : s === 'permission' ? MARK_PERM : s === 'late' ? MARK_LATE : '';
+  };
+
+  // Click a cell to cycle its mark and save it straight into daily attendance.
+  const isExtra = EXTRA_CLASS_KEYWORDS.some(k => grade.includes(k));
+  const cycleMark = (studentId: string, day: number) => {
+    const cur = stateOf(studentId, day);
+    const next = STATE_CYCLE[(STATE_CYCLE.indexOf(cur) + 1) % STATE_CYCLE.length];
+    const date = `${year}-${mm}-${pad2(day)}`;
+    const id = isExtra ? `att-${date}-${grade}` : `att-morning-${date}-${grade}`;
+    const existing = records.find(r => r.id === id);
+    const rec: AttRecord = existing
+      ? { ...existing, studentStates: { ...existing.studentStates } }
+      : { id, date, grade, session: isExtra ? undefined : 'morning', presentCount: 0, lateCount: 0, permissionCount: 0, absentCount: 0, studentStates: {} };
+    if (next) rec.studentStates[studentId] = next; else delete rec.studentStates[studentId];
+    let l = 0, pe = 0, a = 0;
+    Object.entries(rec.studentStates).forEach(([k, st]) => {
+      if (k.endsWith('_reason')) return;
+      if (st === 'late') l++; else if (st === 'permission') pe++; else if (st === 'absent') a++;
+    });
+    rec.lateCount = l; rec.permissionCount = pe; rec.absentCount = a;
+    rec.presentCount = Math.max(0, roster.length - (l + pe + a));
+    onImport([rec]);
   };
 
   // Per-student excused / unexcused / late counts (total = absence days only).
@@ -278,6 +309,15 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
             </div>
           </div>
 
+          {/* Edit hint / legend */}
+          <div className="flex items-center justify-center gap-3 mb-2 text-[10.5px] text-slate-500">
+            <span className="font-bold text-slate-600">ចុចលើប្រអប់ថ្ងៃ ដើម្បីកំណត់៖</span>
+            <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-bold">យ = យឺត</span>
+            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">ច្ប = ច្បាប់</span>
+            <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 font-bold">អច្ប = អត់ច្បាប់</span>
+            <span className="text-slate-400">(ចុចម្ដងទៀតដើម្បីលុប)</span>
+          </div>
+
           {/* Grid */}
           <div className="overflow-auto border border-slate-300">
             <table className="border-collapse text-[10px] whitespace-nowrap">
@@ -313,7 +353,7 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
                       <td className="border border-slate-300">{genderShort(s.gender)}</td>
                       {days.map(d => {
                         const m = markOf(id, d);
-                        return <td key={d} className={`border border-slate-300 text-[8px] font-bold ${m === MARK_ABS ? 'text-rose-600 bg-rose-50' : m === MARK_PERM ? 'text-blue-600 bg-blue-50' : m === MARK_LATE ? 'text-amber-600 bg-amber-50' : ''}`}>{m}</td>;
+                        return <td key={d} onClick={() => cycleMark(id, d)} title="ចុចដើម្បីប្តូរ៖ ទទេ → យឺត → ច្ប → អច្ប" className={`border border-slate-300 text-[8px] font-bold cursor-pointer select-none hover:ring-1 hover:ring-indigo-400 hover:ring-inset ${m === MARK_ABS ? 'text-rose-600 bg-rose-50' : m === MARK_PERM ? 'text-blue-600 bg-blue-50' : m === MARK_LATE ? 'text-amber-600 bg-amber-50' : 'hover:bg-slate-100'}`}>{m}</td>;
                       })}
                       <td className="border border-slate-300 bg-amber-50 font-bold text-amber-700">{t.late ? toKh(t.late) : ''}</td>
                       <td className="border border-slate-300 bg-blue-50 font-bold">{t.perm ? toKh(t.perm) : ''}</td>
