@@ -8,6 +8,7 @@ import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
 import { StudentScore } from '../types';
 import HealthClinicReport from './HealthClinicReport';
 import GeneralClassReport from './GeneralClassReport';
+import PrincipalSignature from './PrincipalSignature';
 import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
 
 const SCHOOL_NAME = 'សាលាសហគមន៍ច្បារច្រុះ';
@@ -395,7 +396,7 @@ export default function ClassReport({ template, students, grade, period, teacher
             <div className="space-y-1">
               <p className="font-bold">បានឃើញ និងពិនិត្យត្រឹមត្រូវ</p>
               <p className="font-bold">នាយកសាលា/ប្រធានស្ថាប័ន</p>
-              <p className="text-slate-400 pt-12">(ហត្ថលេខា និងឈ្មោះ)</p>
+              <PrincipalSignature />
             </div>
             <div className="space-y-1">
               <p>ថ្ងៃ.......... ខែ.......... ឆ្នាំ២០....</p>

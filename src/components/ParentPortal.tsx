@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Search, FileText, Loader2, GraduationCap } from 'lucide-react';
 import { StudentScore } from '../types';
-import { fetchClassStudents } from '../lib/supabase';
+import { fetchClassStudents, fetchSetting } from '../lib/supabase';
 import SchoolLogo from './SchoolLogo';
+import { PRINCIPAL_SIG_KEY } from './PrincipalSignature';
 import StudentReportCard from './StudentReportCard';
 import SemesterReportCard from './SemesterReportCard';
 
@@ -36,6 +37,13 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
   // Open-card state
   const [monthlyRec, setMonthlyRec] = useState<StudentScore | null>(null);
   const [semCard, setSemCard] = useState<{ student: StudentScore; period: 1 | 2 | 'year' } | null>(null);
+
+  // Pull the principal signature once so it shows on the report cards parents open.
+  useEffect(() => {
+    fetchSetting(PRINCIPAL_SIG_KEY)
+      .then(v => { if (v) { try { localStorage.setItem(PRINCIPAL_SIG_KEY, v); } catch { /* ignore */ } } })
+      .catch(() => { /* offline */ });
+  }, []);
 
   // Fetch ONLY the selected class (low egress) when a parent picks it.
   const loadClass = async (g: string) => {

@@ -6,6 +6,7 @@
 import React, { useRef, useState } from 'react';
 import { Printer, X, Camera } from 'lucide-react';
 import SchoolLogo from './SchoolLogo';
+import PrincipalSignature from './PrincipalSignature';
 
 export interface HonorEntry { rank: number; name: string; score?: number | null; }
 
@@ -205,7 +206,7 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
                 <div>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
-                  <p className="text-slate-300 pt-8">..............................</p>
+                  <PrincipalSignature />
                 </div>
                 <div>
                   <p>ថ្ងៃ............ខែ..................ឆ្នាំមមី អដ្ឋស័ក ព.ស ២៥៧០</p>

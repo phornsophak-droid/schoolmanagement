@@ -7,6 +7,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import { Printer, X, PenLine } from 'lucide-react';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
+import PrincipalSignature from './PrincipalSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { tallyAbsences } from '../utils/attendance';
 import { SEM1_MONTHS, SEM2_MONTHS, SEM_SUBJECTS, semesterAvgOf, readAnnualExtra } from '../utils/scoring';
@@ -280,7 +281,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
             <div>
               <p className="font-bold">បានឃើញ និងឯកភាព</p>
               <p className="font-bold">នាយកសាលា</p>
-              <p className="text-slate-300 pt-10">..............................</p>
+              <PrincipalSignature />
             </div>
             <div>
               <p>{endLunar}</p>

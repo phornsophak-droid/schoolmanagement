@@ -427,6 +427,7 @@ export default function App() {
               if (data.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(data.settings['school_custom_users']));
               if (data.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(data.settings['school_custom_pins']));
               if (data.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(data.settings['school_custom_teachers_v2']));
+              if (data.settings['school_principal_signature_v1']) localStorage.setItem('school_principal_signature_v1', data.settings['school_principal_signature_v1']);
               restoreReportSubmissions(data.settings['report_submissions']);
             }
             stampSync(startedAt, needFull);
@@ -485,6 +486,7 @@ export default function App() {
                     if (newData.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(newData.settings['school_custom_users']));
                     if (newData.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(newData.settings['school_custom_pins']));
                     if (newData.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(newData.settings['school_custom_teachers_v2']));
+                    if (newData.settings['school_principal_signature_v1']) localStorage.setItem('school_principal_signature_v1', newData.settings['school_principal_signature_v1']);
                     restoreReportSubmissions(newData.settings['report_submissions']);
                   }
                   stampSync(startedAt, false);
@@ -671,6 +673,9 @@ export default function App() {
         }
         if (data.settings['school_custom_teachers_v2']) {
           localStorage.setItem('school_custom_teachers_v2', JSON.stringify(data.settings['school_custom_teachers_v2']));
+        }
+        if (data.settings['school_principal_signature_v1']) {
+          localStorage.setItem('school_principal_signature_v1', data.settings['school_principal_signature_v1']);
         }
         restoreReportSubmissions(data.settings['report_submissions']);
       }

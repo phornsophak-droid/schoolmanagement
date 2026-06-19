@@ -369,6 +369,20 @@ async function selectRows(supabase: SupabaseClient, table: string, since?: strin
 // no realtime, no whole-database download — keeps egress tiny (~one class vs
 // ~2000 rows) so hundreds of parents viewing report cards stay well under the
 // Supabase egress limit.
+// Fetch a single cloud setting value (e.g. the principal signature) — used by the
+// read-only parent portal so it can show the signature without a full sync.
+export async function fetchSetting(key: string): Promise<any> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('school_settings')
+    .select('setting_value')
+    .eq('setting_key', key)
+    .limit(1);
+  if (error || !data || !data.length) return null;
+  return data[0].setting_value;
+}
+
 export async function fetchClassStudents(grade: string): Promise<StudentScore[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
