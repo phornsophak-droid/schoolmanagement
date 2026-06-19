@@ -487,12 +487,61 @@ export default function App() {
                 refreshTimer = setTimeout(refreshData, 8000);
               };
 
+              // Incremental sync never removes rows, so a delete on another device
+              // wouldn't disappear here until the next full reconcile. Handle DELETE
+              // events directly: drop the row locally from the realtime payload's old
+              // primary key — no extra fetch, reflects live.
+              const removeFromArrayKey = (key: string, id: any) => {
+                if (id == null) return;
+                try {
+                  const arr = JSON.parse(localStorage.getItem(key) || '[]');
+                  if (Array.isArray(arr)) localStorage.setItem(key, JSON.stringify(arr.filter((r: any) => r.id !== id)));
+                } catch { /* ignore */ }
+              };
+              const onDeleteScore = (payload: any) => {
+                if (factoryResetRef.current) return;
+                const id = payload?.old?.id;
+                if (id == null) return;
+                setStudents(prev => {
+                  const next = prev.filter(s => (s as any).id !== id);
+                  localStorage.setItem('school_student_scores_v2', JSON.stringify(next));
+                  return next;
+                });
+              };
+              const onDeleteReport = (payload: any) => {
+                if (factoryResetRef.current) return;
+                const id = payload?.old?.id;
+                if (id == null) return;
+                setReports(prev => {
+                  const next = prev.filter(r => String((r as any).id) !== String(id));
+                  localStorage.setItem('school_reports_v2', JSON.stringify(next));
+                  return next;
+                });
+              };
+              const onDeleteGrade = (payload: any) => {
+                if (factoryResetRef.current) return;
+                const name = payload?.old?.name;
+                if (name == null) return;
+                setGrades(prev => {
+                  const next = prev.filter(g => g !== name);
+                  localStorage.setItem('school_grades_v2', JSON.stringify(next));
+                  return next;
+                });
+              };
+
               channel.on('postgres_changes', { event: '*', schema: 'public', table: 'student_scores' }, debouncedRefresh);
               channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_reports' }, debouncedRefresh);
               channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_grades' }, debouncedRefresh);
               channel.on('postgres_changes', { event: '*', schema: 'public', table: 'school_settings' }, debouncedRefresh);
               channel.on('postgres_changes', { event: '*', schema: 'public', table: 'student_attendance' }, debouncedRefresh);
               channel.on('postgres_changes', { event: '*', schema: 'public', table: 'teacher_attendance' }, debouncedRefresh);
+
+              // Live delete propagation (drop the row locally; no refetch needed)
+              channel.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'student_scores' }, onDeleteScore);
+              channel.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'school_reports' }, onDeleteReport);
+              channel.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'school_grades' }, onDeleteGrade);
+              channel.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'student_attendance' }, (p: any) => removeFromArrayKey('school_daily_attendance', p?.old?.id));
+              channel.on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'teacher_attendance' }, (p: any) => removeFromArrayKey('school_teachers_daily_attendance', p?.old?.id));
 
               channel.subscribe();
             } catch (err) {
