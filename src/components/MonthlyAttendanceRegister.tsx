@@ -46,11 +46,12 @@ const MARK_ABS = 'អច្ប';   // អត់ច្បាប់ — unexcused
 const MARK_LATE = 'យ';     // យឺត — late
 const genderShort = (g: string) => (g === 'ស្រី' ? 'ស' : 'ប');
 
-// Academic-year months in order, each with its calendar year (Sep 2025 – Aug 2026).
+// Academic-year months in order, each with its calendar year (Nov 2025 – Oct 2026).
 const ACADEMIC_MONTHS: { m: number; y: number }[] = [
-  { m: 9, y: 2025 }, { m: 10, y: 2025 }, { m: 11, y: 2025 }, { m: 12, y: 2025 },
+  { m: 11, y: 2025 }, { m: 12, y: 2025 },
   { m: 1, y: 2026 }, { m: 2, y: 2026 }, { m: 3, y: 2026 }, { m: 4, y: 2026 },
   { m: 5, y: 2026 }, { m: 6, y: 2026 }, { m: 7, y: 2026 }, { m: 8, y: 2026 },
+  { m: 9, y: 2026 }, { m: 10, y: 2026 },
 ];
 
 export default function MonthlyAttendanceRegister({ students, grade, year: initYear, month: initMonth, records, onClose, onImport }: Props) {
