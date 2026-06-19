@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useRef, useState } from 'react';
-import { X, Download, Upload } from 'lucide-react';
+import { X, Download, Upload, Printer } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
@@ -269,8 +269,18 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
 
   const sigDate = khmerLunarFull(new Date(year, month, 0));
 
+  const printCss = `@media print {
+    body * { visibility: hidden !important; }
+    #att-register-print, #att-register-print * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #att-register-print { position: absolute; left: 0; top: 0; width: 100%; }
+    #att-register-print .overflow-auto { overflow: visible !important; }
+    .rc-no-print { display: none !important; }
+    @page { size: A4 landscape; margin: 8mm; }
+  }`;
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-3 flex justify-center items-start">
+      <style>{printCss}</style>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImportFile} className="hidden" />
       <div className="w-full max-w-[1280px]">
         {/* Toolbar */}
@@ -293,13 +303,16 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
             <button onClick={handleExport} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">
               <Download size={13} /> ទាញយក Excel
             </button>
+            <button onClick={() => window.print()} className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">
+              <Printer size={13} /> ទាញយក PDF
+            </button>
             <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-colors">
               <X size={13} /> បិទ
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-b-2xl shadow-xl p-4 text-slate-800">
+        <div id="att-register-print" className="bg-white rounded-b-2xl shadow-xl p-4 text-slate-800">
           {/* Header */}
           <div className="flex items-center justify-center gap-3 mb-2">
             <SchoolLogo size={48} />
@@ -310,7 +323,7 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
           </div>
 
           {/* Edit hint / legend */}
-          <div className="flex items-center justify-center gap-3 mb-2 text-[10.5px] text-slate-500">
+          <div className="rc-no-print flex items-center justify-center gap-3 mb-2 text-[10.5px] text-slate-500">
             <span className="font-bold text-slate-600">ចុចលើប្រអប់ថ្ងៃ ដើម្បីកំណត់៖</span>
             <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-bold">យ = យឺត</span>
             <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold">ច្ប = ច្បាប់</span>
