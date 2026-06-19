@@ -1346,7 +1346,27 @@ export default function Gradebook({
           st.overallMonthlyAvg ?? '', st.examScore ?? '', st.semesterAvg ?? '', st.gradeLetter ?? '', st.ranking ?? '', st.result ?? '', examRec?.remark || ''
         ];
       });
-      const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+
+      const getStatsByGradeSem = (letter: string) => {
+        const list = filteredSemesterStudents.filter(s => s.gradeLetter === letter);
+        const fList = list.filter(s => s.gender === 'ស្រី');
+        const pct = filteredSemesterStudents.length ? Math.round((list.length / filteredSemesterStudents.length) * 100) : 0;
+        return `សរុប ${list.length.toString().padStart(2, '0')} នាក់   /ស្រី ${fList.length.toString().padStart(2, '0')} នាក់      ${pct}%`;
+      };
+
+      const footersSem = [
+        [], [],
+        ['', '', 'បានឃើញ និងឯកភាព', '', '', '', '', '', '', '', '', '', '', '', '', `ថ្ងៃ ....................... ខែ ................ ឆ្នាំ ..................`],
+        ['', '', 'នាយកសាលា', '', '', '', '', '', '', '', '', '', '', '', '', `ធ្វើនៅ ............................. ថ្ងៃទី ........ ខែ ....... ឆ្នាំ ២០២...`],
+        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'គ្រូបន្ទុកថ្នាក់', '', '', '', '', '', '', '', '', 'A', getStatsByGradeSem('A')],
+        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'B', getStatsByGradeSem('B')],
+        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'C', getStatsByGradeSem('C')],
+        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'D', getStatsByGradeSem('D')],
+        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'E', getStatsByGradeSem('E')],
+        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'F', getStatsByGradeSem('F')],
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet([header, ...body, ...footersSem]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'របាយការណ៍');
       XLSX.writeFile(wb, filename);
@@ -1361,7 +1381,27 @@ export default function Gradebook({
           st.gradeLetter ?? '', st.ranking ?? '', st.result ?? '', st.remark || '', extra.skills || '', extra.conduct || ''
         ];
       });
-      const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+
+      const getStatsByGradeAnn = (letter: string) => {
+        const list = filteredAnnualStudents.filter(s => s.gradeLetter === letter);
+        const fList = list.filter(s => s.gender === 'ស្រី');
+        const pct = filteredAnnualStudents.length ? Math.round((list.length / filteredAnnualStudents.length) * 100) : 0;
+        return `សរុប ${list.length.toString().padStart(2, '0')} នាក់   /ស្រី ${fList.length.toString().padStart(2, '0')} នាក់      ${pct}%`;
+      };
+
+      const footersAnn = [
+        [], [],
+        ['', '', 'បានឃើញ និងឯកភាព', '', '', '', '', '', '', '', `ថ្ងៃ ....................... ខែ ................ ឆ្នាំ ..................`],
+        ['', '', 'នាយកសាលា', '', '', '', '', '', '', '', `ធ្វើនៅ ............................. ថ្ងៃទី ........ ខែ ....... ឆ្នាំ ២០២...`],
+        ['', '', '', '', '', '', '', '', 'គ្រូបន្ទុកថ្នាក់', '', '', '', 'A', getStatsByGradeAnn('A')],
+        ['', '', '', '', '', '', '', '', '', '', '', '', 'B', getStatsByGradeAnn('B')],
+        ['', '', '', '', '', '', '', '', '', '', '', '', 'C', getStatsByGradeAnn('C')],
+        ['', '', '', '', '', '', '', '', '', '', '', '', 'D', getStatsByGradeAnn('D')],
+        ['', '', '', '', '', '', '', '', '', '', '', '', 'E', getStatsByGradeAnn('E')],
+        ['', '', '', '', '', '', '', '', '', '', '', '', 'F', getStatsByGradeAnn('F')],
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet([header, ...body, ...footersAnn]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'របាយការណ៍');
       XLSX.writeFile(wb, filename);
