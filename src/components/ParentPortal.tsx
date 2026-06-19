@@ -26,6 +26,8 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
   const [classStudents, setClassStudents] = useState<StudentScore[]>([]);
   const [nameQuery, setNameQuery] = useState('');
   const [childName, setChildName] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [nameMatches, setNameMatches] = useState<string[]>([]);
 
   // Open-card state
   const [monthlyRec, setMonthlyRec] = useState<StudentScore | null>(null);
@@ -36,6 +38,8 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
     setGrade(g);
     setChildName('');
     setNameQuery('');
+    setNameError('');
+    setNameMatches([]);
     setError('');
     setClassStudents([]);
     if (!g) return;
@@ -56,10 +60,25 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
     () => Array.from(new Set<string>(classStudents.map(s => s.name.trim()))).filter(Boolean).sort((a, b) => a.localeCompare(b, 'km')),
     [classStudents]
   );
-  const filteredNames = useMemo(() => {
-    const q = nameQuery.trim();
-    return q ? childNames.filter(n => n.includes(q)) : childNames;
-  }, [childNames, nameQuery]);
+  // Parents type their child's name themselves (the class roster is never shown,
+  // for privacy). Match the typed name against the class: exact first, then a
+  // loose contains; show the few candidates only when several match.
+  const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
+  const confirmName = (typed?: string) => {
+    const q = normalize(typed ?? nameQuery);
+    setNameError('');
+    setNameMatches([]);
+    setChildName('');
+    if (!q) return;
+    let result = childNames.filter(n => normalize(n) === q);
+    if (result.length === 0) result = childNames.filter(n => normalize(n).includes(q));
+    if (result.length === 0) {
+      setNameError('រកមិនឃើញឈ្មោះនេះក្នុងថ្នាក់ — សូមពិនិត្យអក្ខរាវិរុទ្ធ រួចព្យាយាមម្ដងទៀត។');
+      return;
+    }
+    if (result.length === 1) { setChildName(result[0]); return; }
+    setNameMatches(result);
+  };
 
   const childRecords = useMemo(
     () => classStudents.filter(s => s.name.trim() === childName),
@@ -119,34 +138,46 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
             <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">{error}</p>
           )}
 
-          {/* Step 2 — pick child by name */}
+          {/* Step 2 — parent types the child's name themselves (no roster shown) */}
           {!loading && classStudents.length > 0 && (
             <div>
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
-                <Search size={14} className="text-emerald-600" /> ២. វាយ ឬជ្រើសរើសឈ្មោះកូន
+                <Search size={14} className="text-emerald-600" /> ២. វាយឈ្មោះកូនរបស់អ្នក
               </label>
-              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 mb-2">
-                <Search size={14} className="text-slate-400" />
+              <div className="flex items-center gap-2">
                 <input
                   value={nameQuery}
-                  onChange={e => setNameQuery(e.target.value)}
-                  placeholder="វាយឈ្មោះកូនស្វែងរក..."
-                  className="bg-transparent border-none outline-none text-sm text-slate-800 flex-1 placeholder:text-slate-400"
+                  onChange={e => { setNameQuery(e.target.value); setNameError(''); }}
+                  onKeyDown={e => { if (e.key === 'Enter') confirmName(); }}
+                  placeholder="ឧ. ស៊ុំ សំណាង"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none transition-colors placeholder:text-slate-400"
                 />
+                <button
+                  onClick={() => confirmName()}
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shrink-0"
+                >
+                  ស្វែងរក
+                </button>
               </div>
-              <div className="max-h-52 overflow-auto rounded-xl border border-slate-100 divide-y divide-slate-50">
-                {filteredNames.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-4">រកមិនឃើញឈ្មោះនេះទេ</p>
-                ) : filteredNames.map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setChildName(n)}
-                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors ${childName === n ? 'bg-emerald-50 text-emerald-800 font-bold' : 'text-slate-700 hover:bg-slate-50'}`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
+              {nameError && <p className="text-xs text-rose-600 mt-2">{nameError}</p>}
+              {/* When several students match what was typed, let the parent pick */}
+              {nameMatches.length > 1 && (
+                <div className="mt-2 rounded-xl border border-slate-100 divide-y divide-slate-50">
+                  <p className="text-[11px] text-slate-500 px-3 py-1.5">មានឈ្មោះស្រដៀងគ្នាច្រើន — សូមជ្រើសរើស៖</p>
+                  {nameMatches.map(n => (
+                    <button
+                      key={n}
+                      onClick={() => { setChildName(n); setNameMatches([]); }}
+                      className="w-full text-left px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {childName && (
+                <p className="text-xs text-emerald-700 font-bold mt-2">✓ បានជ្រើសរើស៖ {childName}</p>
+              )}
             </div>
           )}
 
