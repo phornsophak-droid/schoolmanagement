@@ -836,13 +836,17 @@ export default function Gradebook({
 
   // Annual (Yearly) aggregation values
   const annualStudents = useMemo(() => {
-    const uniqueStudentsMap = new Map<string, { name: string; gender: 'ប្រុស' | 'ស្រី'; grade: string }>();
+    const uniqueStudentsMap = new Map<string, { name: string; gender: 'ប្រុស' | 'ស្រី'; grade: string; studentId?: string; remark?: string }>();
     students.forEach(s => {
       if ((selectedGrade === 'ទាំងអស់' || s.grade === selectedGrade) && inCat(s.grade)) {
         if (s.month !== 'ប្រឡងឆមាសទី១' && s.month !== 'ប្រឡងឆមាសទី២') {
           const key = `${s.name.trim()}_${s.grade}`;
-          if (!uniqueStudentsMap.has(key)) {
-            uniqueStudentsMap.set(key, { name: s.name.trim(), gender: s.gender, grade: s.grade });
+          const existing = uniqueStudentsMap.get(key);
+          if (!existing) {
+            uniqueStudentsMap.set(key, { name: s.name.trim(), gender: s.gender, grade: s.grade, studentId: (s.studentId || '').trim() || undefined, remark: s.remark });
+          } else {
+            if (!existing.studentId && (s.studentId || '').trim()) existing.studentId = s.studentId!.trim();
+            if (!existing.remark && s.remark) existing.remark = s.remark;
           }
         }
       }
@@ -2342,21 +2346,25 @@ export default function Gradebook({
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
-                  <th className="px-4 py-3.5 text-center">ចំណាត់ថ្នាក់ប្រចាំឆ្នាំ</th>
-                  <th className="gb-corner px-4 py-3.5 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
+                  <th className="px-4 py-3.5 text-center">លេខរៀង</th>
+                  <th className="px-4 py-3.5 text-center">អត្តលេខ</th>
+                  <th className="gb-corner px-4 py-3.5 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះ</th>
                   <th className="px-4 py-3.5 text-center">ភេទ</th>
-                  <th className="px-4 py-3.5 text-center">ថ្នាក់សិក្សា</th>
-                  <th className="px-4 py-3.5 text-center bg-indigo-50/30 text-indigo-700">មធ្យមភាគ ឆមាសទី ១</th>
-                  <th className="px-4 py-3.5 text-center bg-blue-50/30 text-blue-700">មធ្យមភាគ ឆមាសទី ២</th>
-                  <th className="px-4 py-3.5 text-center bg-emerald-600 text-white font-extrabold">មធ្យមភាគរួមប្រចាំឆ្នាំ</th>
+                  <th className="px-4 py-3.5 text-center">ថ្នាក់</th>
+                  <th className="px-4 py-3.5 text-center bg-indigo-50/30 text-indigo-700">មធ្យមភាគឆមាសទី១</th>
+                  <th className="px-4 py-3.5 text-center bg-blue-50/30 text-blue-700">មធ្យមភាគឆមាសទី២</th>
+                  <th className="px-4 py-3.5 text-center bg-emerald-600 text-white font-extrabold">មធ្យមភាគប្រចាំឆ្នាំ</th>
                   <th className="px-4 py-3.5 text-center">និទ្ទេស</th>
-                  <th className="px-4 py-3.5 text-center">លទ្ធផលប្រចាំឆ្នាំ</th>
-                  <th className="px-4 py-3.5 text-right">ព្រឹត្តបត្រ</th>
+                  <th className="px-4 py-3.5 text-center">ចំណាត់ថ្នាក់</th>
+                  <th className="px-4 py-3.5 text-center">លទ្ធផល</th>
+                  <th className="px-4 py-3.5 text-center">មូលវិចារគ្រូ</th>
+                  <th className="px-4 py-3.5 text-center">វាយតម្លៃបំណិន/ចរិយា</th>
+                  <th className="px-4 py-3.5 text-right">ព្រឹត្តបត្រពិន្ទុ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs text-slate-700">
                 {filteredAnnualStudents.length > 0 ? (
-                  filteredAnnualStudents.map((st) => {
+                  filteredAnnualStudents.map((st, index) => {
                     let badgeColors = 'bg-rose-50 text-rose-600 border-rose-205';
                     if (st.result === 'ជាប់') {
                       badgeColors = 'bg-emerald-50 text-emerald-600 border-emerald-205';
@@ -2369,9 +2377,8 @@ export default function Gradebook({
 
                     return (
                       <tr key={`${st.name}_${st.grade}_annual`} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-4 text-center font-bold text-slate-600 font-mono text-xs">
-                          {st.ranking === 1 ? '🏆 ' : ''}{st.ranking}
-                        </td>
+                        <td className="px-4 py-4 text-center text-slate-500 text-xs">{index + 1}</td>
+                        <td className="px-4 py-4 text-center font-mono text-slate-500 text-xs">{st.studentId || '-'}</td>
                         <td className="px-4 py-4 font-bold text-slate-800 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{st.name}</td>
                         <td className="px-4 py-4 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -2393,31 +2400,37 @@ export default function Gradebook({
                           {st.annualAvg !== null && st.annualAvg !== undefined ? st.annualAvg.toFixed(2) : '-'}
                         </td>
                         <td className={`px-4 py-4 text-center font-extrabold font-sans ${gradeColor}`}>{st.gradeLetter}</td>
+                        <td className="px-4 py-4 text-center font-bold text-slate-600 font-mono text-xs">
+                          {st.ranking === 1 ? '🏆 ' : ''}{st.ranking}
+                        </td>
                         <td className="px-4 py-4 text-center">
                           <span className={`px-3 py-1 border text-xs font-bold rounded-full ${badgeColors}`}>
                             {st.result}
                           </span>
                         </td>
+                        <td className="px-4 py-4 text-center text-slate-500 text-[11px] truncate max-w-[120px]" title={st.remark || ''}>
+                          {st.remark || '-'}
+                        </td>
+                        <td className="px-4 py-4 text-center">
+                          <button
+                            onClick={() => openExtraForm(st.name, st.grade)}
+                            className="px-2.5 py-1 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 hover:text-amber-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
+                            title="វាយបញ្ចូល បំណិនសម្បទា និងចរិយាសម្បទា"
+                          >
+                            <Edit3 size={11} /> បំណិន/ចរិយា
+                          </button>
+                        </td>
                         <td className="px-4 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => openExtraForm(st.name, st.grade)}
-                              className="px-2.5 py-1 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 hover:text-amber-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
-                              title="វាយបញ្ចូល បំណិនសម្បទា និងចរិយាសម្បទា"
-                            >
-                              <Edit3 size={11} /> បំណិន/ចរិយា
-                            </button>
-                            <button
-                              onClick={() => {
-                                const rec = students.find(s => s.name.trim() === st.name.trim() && s.grade === st.grade);
-                                if (rec) { setSemReportPeriod('year'); setSemReportStudent(rec); }
-                              }}
-                              className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
-                              title="ព្រឹត្តបត្រប្រចាំឆ្នាំ"
-                            >
-                              <FileText size={11} /> ព្រឹត្តបត្រ
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => {
+                              const rec = students.find(s => s.name.trim() === st.name.trim() && s.grade === st.grade);
+                              if (rec) { setSemReportPeriod('year'); setSemReportStudent(rec); }
+                            }}
+                            className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded text-[10px] font-bold transition-all inline-flex items-center gap-1"
+                            title="ព្រឹត្តបត្រប្រចាំឆ្នាំ"
+                          >
+                            <FileText size={11} /> ព្រឹត្តបត្រ
+                          </button>
                         </td>
                       </tr>
                     );
