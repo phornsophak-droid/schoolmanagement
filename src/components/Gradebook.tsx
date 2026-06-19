@@ -720,6 +720,19 @@ export default function Gradebook({
   const commitSemRemark = (row: any, text: string) =>
     applyToExamRecord(row, rec => { rec.remark = text.trim() || undefined; });
 
+  // Inline-edit the annual teacher remark — stored on the student's first available regular month record.
+  const commitAnnualRemark = (row: any, text: string) => {
+    const existing = students.find(s => s.name.trim() === row.name.trim() && s.grade === row.grade && s.month !== 'ប្រឡងឆមាសទី១' && s.month !== 'ប្រឡងឆមាសទី២');
+    if (existing) {
+      const rec = JSON.parse(JSON.stringify(existing)) as StudentScore;
+      rec.remark = text.trim() || undefined;
+      const updated = students.map(s => (s.id === rec.id ? rec : s));
+      onSaveStudents(updated);
+    } else {
+      alert('សូមបញ្ចូលពិន្ទុខែយ៉ាងហោចណាស់មួយសិន ដើម្បីអាចវាយមូលវិចារប្រចាំឆ្នាំបាន។');
+    }
+  };
+
   // Distinct groups in the selected class (drives the group filter for custom classes).
   const availableGradeGroups = useMemo(() => {
     return Array.from(new Set<string>(
@@ -1278,7 +1291,7 @@ export default function Gradebook({
             </>
           )}
 
-          {(activeMode === 'monthly' || activeMode === 'semester') && (
+          {(activeMode === 'monthly' || activeMode === 'semester' || activeMode === 'annual') && (
             <>
               <button
                 onClick={() => setInlineEdit(v => !v)}
@@ -2408,8 +2421,10 @@ export default function Gradebook({
                             {st.result}
                           </span>
                         </td>
-                        <td className="px-4 py-4 text-center text-slate-500 text-[11px] truncate max-w-[120px]" title={st.remark || ''}>
-                          {st.remark || '-'}
+                        <td className="px-4 py-4 text-center text-slate-500 text-[11px]">
+                          {inlineEdit
+                            ? <RemarkInput value={st.remark} onCommit={text => commitAnnualRemark(st, text)} />
+                            : <span className="truncate max-w-[120px] inline-block" title={st.remark || ''}>{st.remark || '-'}</span>}
                         </td>
                         <td className="px-4 py-4 text-center">
                           <button
