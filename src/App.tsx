@@ -134,11 +134,13 @@ export default function App() {
 
   // User session state
   const [currentUser, setCurrentUser] = useState<SchoolUser | null>(null);
-  // A shareable parent link opens the report-card portal straight away:
-  //   <app-url>?parent=1   (also accepts #parent)
+  // A shareable parent link opens the report-card portal straight away. Accepts
+  // a clean path (/parent — best for QR codes, no special chars), a query
+  // (?parent=1), or a hash (#parent).
   const [parentMode, setParentMode] = useState(() => {
     try {
-      return new URLSearchParams(window.location.search).get('parent') !== null
+      return /\/parent\b/i.test(window.location.pathname)
+        || new URLSearchParams(window.location.search).get('parent') !== null
         || window.location.hash.toLowerCase().includes('parent');
     } catch { return false; }
   });
