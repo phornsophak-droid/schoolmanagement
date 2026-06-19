@@ -57,6 +57,30 @@ import {
 // @ts-ignore
 import schemaSql from './schema.sql?raw';
 
+// --- Incremental cloud sync bookkeeping (keeps Supabase egress under the limit) ---
+// Instead of re-downloading every table on each page load / realtime echo, we only
+// pull rows changed since the last sync. A full reconcile still runs once a day (and
+// on the manual "ទាញពី Cloud" button) so deletes made on other devices are caught.
+const FULL_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000; // force a full reconcile once a day
+const SYNC_OVERLAP_MS = 2 * 60 * 1000;             // re-scan a 2-min window to absorb clock skew
+const getLastSyncAt = () => localStorage.getItem('cloud_last_sync_at') || '';
+const getLastFullSyncMs = () => Number(localStorage.getItem('cloud_last_full_sync_at') || 0);
+const sinceArgFrom = (iso: string): string | undefined =>
+  iso ? new Date(new Date(iso).getTime() - SYNC_OVERLAP_MS).toISOString() : undefined;
+const stampSync = (startedAtMs: number, full: boolean) => {
+  localStorage.setItem('cloud_last_sync_at', new Date(startedAtMs).toISOString());
+  if (full) localStorage.setItem('cloud_last_full_sync_at', String(startedAtMs));
+};
+// Merge an incremental delta of rows into a cached array localStorage key (upsert by id).
+const mergeRowsById = (key: string, delta: any[] | null | undefined) => {
+  if (!delta || delta.length === 0) return;
+  let prev: any[] = [];
+  try { prev = JSON.parse(localStorage.getItem(key) || '[]'); } catch { /* ignore */ }
+  const byId = new Map(prev.map((r: any) => [r.id, r]));
+  delta.forEach((r: any) => { if (r && r.id != null) byId.set(r.id, r); });
+  localStorage.setItem(key, JSON.stringify(Array.from(byId.values())));
+};
+
 // Restore submitted work reports pulled from the cloud: keep the index, and write
 // each report's filled blob back to its own localStorage key so the principal can
 // open it. See src/utils/reportSubmit.ts.
@@ -284,6 +308,20 @@ export default function App() {
       localStorage.setItem('school_student_scores_v2', JSON.stringify(deduped));
     };
 
+    // Merge an incremental score delta (only rows changed since last sync) into the
+    // cached list — upsert by id — without re-downloading the whole table.
+    const mergeStudentsDelta = (delta: StudentScore[]) => {
+      if (factoryResetRef.current) return;
+      if (!delta || delta.length === 0) return;
+      let prev: StudentScore[] = [];
+      try { prev = JSON.parse(localStorage.getItem('school_student_scores_v2') || '[]'); } catch { /* ignore */ }
+      const byId = new Map(prev.map(s => [s.id, s]));
+      delta.forEach(s => { if (s && (s as any).id != null) byId.set((s as any).id, s); });
+      const merged = deduplicateStudents(Array.from(byId.values()));
+      setStudents(merged);
+      localStorage.setItem('school_student_scores_v2', JSON.stringify(merged));
+    };
+
     // Student Scores Hydration
     const cachedScores = localStorage.getItem('school_student_scores_v2');
     let memoryStudents: StudentScore[] = [];
@@ -339,12 +377,31 @@ export default function App() {
       const client = getSupabaseClient();
       if (client) {
         setSupabaseStatus('syncing');
-        syncFetchAll()
+        // Decide: full reconcile (first load, empty cache, or >24h since last full)
+        // vs. a cheap incremental delta since the last sync.
+        const lastSync = getLastSyncAt();
+        const cacheEmpty = !memoryStudents || memoryStudents.length === 0;
+        const needFull = !lastSync || cacheEmpty || (Date.now() - getLastFullSyncMs() > FULL_SYNC_INTERVAL_MS);
+        const startedAt = Date.now();
+        syncFetchAll(needFull ? undefined : sinceArgFrom(lastSync))
           .then(data => {
             if (cancelled) return;
-            if (data.students && data.students.length > 0) {
-              applyCloudStudents(data.students);
+            // Heavy tables: replace on a full reconcile, merge on an incremental delta.
+            if (needFull) {
+              if (data.students && data.students.length > 0) applyCloudStudents(data.students);
+              if (data.studentAttendance && data.studentAttendance.length > 0) {
+                localStorage.setItem('school_daily_attendance', JSON.stringify(data.studentAttendance));
+              }
+              if (data.teacherAttendance && data.teacherAttendance.length > 0) {
+                localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(data.teacherAttendance));
+              }
+            } else {
+              mergeStudentsDelta(data.students || []);
+              mergeRowsById('school_daily_attendance', data.studentAttendance);
+              mergeRowsById('school_teachers_daily_attendance', data.teacherAttendance);
             }
+            // Small tables (reports/grades/settings): always full — cheap, and keeps
+            // the existing no-wipe guards.
             if (data.reports && data.reports.length > 0) {
               setReports(data.reports);
               localStorage.setItem('school_reports_v2', JSON.stringify(data.reports));
@@ -353,17 +410,13 @@ export default function App() {
               setGrades(data.grades);
               localStorage.setItem('school_grades_v2', JSON.stringify(data.grades));
             }
-            if (data.studentAttendance && data.studentAttendance.length > 0) {
-              localStorage.setItem('school_daily_attendance', JSON.stringify(data.studentAttendance));
-            }
-            if (data.teacherAttendance && data.teacherAttendance.length > 0) {
-              localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(data.teacherAttendance));
-            }
             if (data.settings && Object.keys(data.settings).length > 0) {
               if (data.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(data.settings['school_custom_users']));
               if (data.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(data.settings['school_custom_pins']));
               if (data.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(data.settings['school_custom_teachers_v2']));
+              restoreReportSubmissions(data.settings['report_submissions']);
             }
+            stampSync(startedAt, needFull);
             setSupabaseStatus('connected');
             setSupabaseErrorMsg('');
 
@@ -392,9 +445,19 @@ export default function App() {
                 // writes from child components (msSinceCloudWrite, marked in supabase.ts).
                 if (Date.now() - lastLocalWriteRef.current < 12000) return;
                 if (msSinceCloudWrite() < 12000) return;
-                syncFetchAll().then(newData => {
-                  if (newData.students) {
-                    applyCloudStudents(newData.students);
+                // Pull only the delta since our last sync — another device's change is
+                // usually a handful of rows, not the whole database.
+                const lastSync = getLastSyncAt();
+                const startedAt = Date.now();
+                syncFetchAll(sinceArgFrom(lastSync)).then(newData => {
+                  if (lastSync) {
+                    mergeStudentsDelta(newData.students || []);
+                    mergeRowsById('school_daily_attendance', newData.studentAttendance);
+                    mergeRowsById('school_teachers_daily_attendance', newData.teacherAttendance);
+                  } else {
+                    if (newData.students) applyCloudStudents(newData.students);
+                    if (newData.studentAttendance && newData.studentAttendance.length > 0) localStorage.setItem('school_daily_attendance', JSON.stringify(newData.studentAttendance));
+                    if (newData.teacherAttendance && newData.teacherAttendance.length > 0) localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(newData.teacherAttendance));
                   }
                   if (newData.reports) {
                     setReports(newData.reports);
@@ -404,18 +467,13 @@ export default function App() {
                     setGrades(newData.grades);
                     localStorage.setItem('school_grades_v2', JSON.stringify(newData.grades));
                   }
-                  if (newData.studentAttendance && newData.studentAttendance.length > 0) {
-                    localStorage.setItem('school_daily_attendance', JSON.stringify(newData.studentAttendance));
-                  }
-                  if (newData.teacherAttendance && newData.teacherAttendance.length > 0) {
-                    localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(newData.teacherAttendance));
-                  }
                   if (newData.settings && Object.keys(newData.settings).length > 0) {
                     if (newData.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(newData.settings['school_custom_users']));
                     if (newData.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(newData.settings['school_custom_pins']));
                     if (newData.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(newData.settings['school_custom_teachers_v2']));
                     restoreReportSubmissions(newData.settings['report_submissions']);
                   }
+                  stampSync(startedAt, false);
                 }).catch(err => console.error("Realtime sync failed", err));
               };
 
@@ -470,8 +528,12 @@ export default function App() {
 
     try {
       setSupabaseStatus('syncing');
+      const startedAt = Date.now();
       const data = await syncFetchAll();
-      
+      // A manual pull is a full reconcile — reset both the incremental and the
+      // daily full-sync clocks so deletes on other devices are picked up.
+      stampSync(startedAt, true);
+
       const hasCloudData = (data.students && data.students.length > 0) || (data.reports && data.reports.length > 0);
       
       if (!hasCloudData) {

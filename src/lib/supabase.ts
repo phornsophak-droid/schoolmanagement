@@ -326,16 +326,24 @@ export function mapDBToTeacherAttendance(db: any): any {
 // Fetch every row of a table, paging past PostgREST's 1000-row response cap.
 // Without this, tables with more than 1000 rows return only the first page,
 // so students beyond row 1000 silently vanish and re-saved data "reverts".
-async function fetchAllRows(supabase: SupabaseClient, table: string) {
+// Fetch every row of a table (paginated). When `since` (an ISO timestamp) is
+// given, only rows with updated_at > since are returned — an incremental delta
+// that keeps Supabase egress low. If the table has no updated_at column yet
+// (database not migrated), it transparently falls back to a full fetch.
+async function fetchAllRows(supabase: SupabaseClient, table: string, since?: string) {
   const pageSize = 1000;
   let from = 0;
   let all: any[] = [];
   for (;;) {
-    const { data, error } = await supabase
-      .from(table)
-      .select('*')
-      .range(from, from + pageSize - 1);
-    if (error) throw error;
+    let q = supabase.from(table).select('*').range(from, from + pageSize - 1);
+    if (since) q = q.gt('updated_at', since);
+    const { data, error } = await q;
+    if (error) {
+      if (since && /updated_at/i.test(error.message || '')) {
+        return fetchAllRows(supabase, table); // column missing → full fetch
+      }
+      throw error;
+    }
     if (!data || data.length === 0) break;
     all = all.concat(data);
     if (data.length < pageSize) break;
@@ -344,13 +352,30 @@ async function fetchAllRows(supabase: SupabaseClient, table: string) {
   return all;
 }
 
+// Single-shot select with the same optional updated_at delta + fallback.
+async function selectRows(supabase: SupabaseClient, table: string, since?: string) {
+  let q = supabase.from(table).select('*');
+  if (since) q = q.gt('updated_at', since);
+  let { data, error } = await q;
+  if (error && since && /updated_at/i.test(error.message || '')) {
+    ({ data, error } = await supabase.from(table).select('*'));
+  }
+  if (error) throw error;
+  return data;
+}
+
 // 5. Database Interaction Module API
-export async function syncFetchAll() {
+// When `since` (ISO timestamp) is passed, the heavy tables (student_scores,
+// student_attendance, teacher_attendance) return ONLY rows changed after that
+// time — a small delta the caller MERGES instead of replacing. This is what
+// keeps egress under the Supabase limit: page loads and realtime echoes no
+// longer re-download the whole ~2000-row score table every time.
+export async function syncFetchAll(since?: string) {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase client is not configured');
 
   // Fetch student scores (paginated — there can be far more than 1000 rows)
-  const rawScores = await fetchAllRows(supabase, 'student_scores');
+  const rawScores = await fetchAllRows(supabase, 'student_scores', since);
 
   // Fetch school reports
   const { data: rawReports, error: reportsErr } = await supabase
@@ -396,20 +421,18 @@ export async function syncFetchAll() {
     });
   }
 
-  // Fetch student attendance safely
+  // Fetch student attendance safely (delta when `since` is given)
   let rawStudentAtt: any[] | null = null;
   try {
-    const { data } = await supabase.from('student_attendance').select('*');
-    rawStudentAtt = data;
+    rawStudentAtt = await selectRows(supabase, 'student_attendance', since);
   } catch (err) {
     console.warn("Could not fetch student_attendance", err);
   }
 
-  // Fetch teacher attendance safely
+  // Fetch teacher attendance safely (delta when `since` is given)
   let rawTeacherAtt: any[] | null = null;
   try {
-    const { data } = await supabase.from('teacher_attendance').select('*');
-    rawTeacherAtt = data;
+    rawTeacherAtt = await selectRows(supabase, 'teacher_attendance', since);
   } catch (err) {
     console.warn("Could not fetch teacher_attendance", err);
   }

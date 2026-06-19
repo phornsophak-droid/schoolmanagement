@@ -200,6 +200,52 @@ CREATE TABLE IF NOT EXISTS public.teacher_attendance (
 );
 
 -- ==============================================================================
+-- 10. AUTO-STAMP updated_at ON EVERY CHANGE (powers low-egress incremental sync)
+-- ==============================================================================
+-- កម្មវិធីទាញយកតែជួរ (rows) ដែលបានផ្លាស់ប្ដូរ ចាប់តាំងពី sync លើកមុន ដើម្បីសន្សំ
+-- Bandwidth (Egress)។ ដើម្បីឱ្យដំណើរការ រាល់តារាងត្រូវមាន updated_at ដែលកែប្រែ
+-- ដោយស្វ័យប្រវត្តិរាល់ពេល INSERT/UPDATE។ កូដខាងក្រោមនេះអាច Run ឡើងវិញបានដោយសុវត្ថិភាព
+-- (មិនលុបទិន្នន័យ)។
+
+ALTER TABLE public.school_grades       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+ALTER TABLE public.school_reports      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+ALTER TABLE public.student_attendance  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+ALTER TABLE public.teacher_attendance  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+ALTER TABLE public.student_scores      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+ALTER TABLE public.school_settings     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+
+-- Speed up the "changed since" lookups
+CREATE INDEX IF NOT EXISTS idx_student_scores_updated_at      ON public.student_scores(updated_at);
+CREATE INDEX IF NOT EXISTS idx_student_attendance_updated_at  ON public.student_attendance(updated_at);
+CREATE INDEX IF NOT EXISTS idx_teacher_attendance_updated_at  ON public.teacher_attendance(updated_at);
+CREATE INDEX IF NOT EXISTS idx_school_reports_updated_at       ON public.school_reports(updated_at);
+
+-- Trigger function: stamp updated_at on every insert/update
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = timezone('utc'::text, now());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Attach the trigger to every synced table (drop-then-create so re-runs are safe)
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'school_grades','school_reports','student_attendance',
+    'teacher_attendance','student_scores','school_settings'
+  ]
+  LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_set_updated_at ON public.%I;', t);
+    EXECUTE format(
+      'CREATE TRIGGER trg_set_updated_at BEFORE INSERT OR UPDATE ON public.%I '
+      'FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();', t);
+  END LOOP;
+END $$;
+
+-- ==============================================================================
 -- ROW LEVEL SECURITY (RLS) FOR FULL CROSS-DEVICE COLLABORATION WITHOUT OBSTACLES
 -- ==============================================================================
 -- Since teachers register locally (mock account setup) and connect client-side with 
