@@ -46,9 +46,20 @@ const MARK_ABS = 'អច្ប';   // អត់ច្បាប់ — unexcused
 const MARK_LATE = 'យ';     // យឺត — late
 const genderShort = (g: string) => (g === 'ស្រី' ? 'ស' : 'ប');
 
-export default function MonthlyAttendanceRegister({ students, grade, year, month, records, onClose, onImport }: Props) {
+// Academic-year months in order, each with its calendar year (Sep 2025 – Aug 2026).
+const ACADEMIC_MONTHS: { m: number; y: number }[] = [
+  { m: 9, y: 2025 }, { m: 10, y: 2025 }, { m: 11, y: 2025 }, { m: 12, y: 2025 },
+  { m: 1, y: 2026 }, { m: 2, y: 2026 }, { m: 3, y: 2026 }, { m: 4, y: 2026 },
+  { m: 5, y: 2026 }, { m: 6, y: 2026 }, { m: 7, y: 2026 }, { m: 8, y: 2026 },
+];
+
+export default function MonthlyAttendanceRegister({ students, grade, year: initYear, month: initMonth, records, onClose, onImport }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState('');
+  // Month/year are selectable so a parent can view/import any month, not just the
+  // one open in the daily panel.
+  const [year, setYear] = useState(initYear);
+  const [month, setMonth] = useState(initMonth);
 
   const daysInMonth = new Date(year, month, 0).getDate();
   const days = useMemo(() => Array.from({ length: daysInMonth }, (_, i) => i + 1), [daysInMonth]);
@@ -234,6 +245,16 @@ export default function MonthlyAttendanceRegister({ students, grade, year, month
         <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-t-2xl border-b border-slate-100 sticky top-0 z-10">
           <h3 className="text-sm font-bold text-slate-800">តារាងអវត្តមានប្រចាំខែ — {grade} • ខែ{monthName} {toKh(year)}</h3>
           <div className="flex items-center gap-2">
+            <select
+              value={`${year}-${month}`}
+              onChange={e => { const [y, m] = e.target.value.split('-').map(Number); setYear(y); setMonth(m); }}
+              className="px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:border-indigo-500 focus:outline-none transition-colors"
+              title="ជ្រើសរើសខែ"
+            >
+              {ACADEMIC_MONTHS.map(({ m, y }) => (
+                <option key={`${y}-${m}`} value={`${y}-${m}`}>ខែ{KH_MONTHS[m - 1]} {toKh(y)}</option>
+              ))}
+            </select>
             <button onClick={() => fileRef.current?.click()} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">
               <Upload size={13} /> នាំចូល Excel
             </button>
