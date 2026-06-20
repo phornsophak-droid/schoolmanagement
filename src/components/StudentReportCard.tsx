@@ -93,12 +93,16 @@ export default function StudentReportCard({ student, students, onClose }: Studen
     return toKh(avgs.filter(x => x > mine).length + 1);
   }, [roster, student.overallAvg]);
 
-  // Date of birth is constant across months — fall back to any of this student's
-  // records so a month whose row is missing the dob still shows it.
-  const resolvedDob = student.dob || (students.find(s =>
-    (((s as any).studentId && (student as any).studentId && (s as any).studentId === (student as any).studentId)
-      || (s.name?.trim() === student.name?.trim() && s.grade === student.grade)) && s.dob
-  )?.dob) || '';
+  // Date of birth is constant per student — fall back to ANY of this student's
+  // records (matched by អត្តលេខ first, then name) across any class/month, so a
+  // row missing the dob still shows it.
+  const dobFrom = (pred: (s: StudentScore) => boolean) => students.find(s => pred(s) && !!s.dob)?.dob;
+  const sid = (student as any).studentId;
+  const nm = student.name?.trim();
+  const resolvedDob = student.dob
+    || (sid ? dobFrom(s => (s as any).studentId === sid) : '')
+    || dobFrom(s => s.name?.trim() === nm)
+    || '';
 
   // Auto end-of-month date for the signature block.
   const endDate = monthEndDate(student.month);

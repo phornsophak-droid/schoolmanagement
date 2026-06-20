@@ -42,11 +42,14 @@ export default function SemesterReportCard({ student, students, period, onClose 
   const months = isYear ? [...SEM1_MONTHS, ...SEM2_MONTHS] : (period === 1 ? SEM1_MONTHS : SEM2_MONTHS);
   const examMonths = isYear ? ['ប្រឡងឆមាសទី១', 'ប្រឡងឆមាសទី២'] : [period === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២'];
   const nameKey = student.name.trim();
-  // Date of birth is constant — fall back to any of this student's records.
-  const resolvedDob = student.dob || (students.find(s =>
-    (((s as any).studentId && (student as any).studentId && (s as any).studentId === (student as any).studentId)
-      || (s.name?.trim() === nameKey && s.grade === student.grade)) && s.dob
-  )?.dob) || '';
+  // Date of birth is constant per student — fall back to ANY of this student's
+  // records (by អត្តលេខ first, then name) across any class/month.
+  const dobFrom = (pred: (s: StudentScore) => boolean) => students.find(s => pred(s) && !!s.dob)?.dob;
+  const sid = (student as any).studentId;
+  const resolvedDob = student.dob
+    || (sid ? dobFrom(s => (s as any).studentId === sid) : '')
+    || dobFrom(s => s.name?.trim() === nameKey)
+    || '';
 
   // Annual skills (បំណិន) & conduct (ចរិយា) are entered in the gradebook's annual
   // table (per student) and read here read-only from localStorage.
