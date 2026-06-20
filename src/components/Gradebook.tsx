@@ -28,6 +28,7 @@ import { SEM_SUBJECTS } from '../utils/scoring';
 import StudentReportCard from './StudentReportCard';
 import SemesterReportCard from './SemesterReportCard';
 import HonorRoll, { HonorEntry } from './HonorRoll';
+import ClassRankingReport, { RankingRow } from './ClassRankingReport';
 import * as XLSX from 'xlsx';
 
 // Inline score cell — local text state, commits on blur/Enter so parent
@@ -226,6 +227,17 @@ export default function Gradebook({
     try { const e = JSON.parse(localStorage.getItem(annualExtraKey(grade, name)) || '{}'); return { skills: Number(e.skills) || 0, conduct: Number(e.conduct) || 0 }; } catch { return { skills: 0, conduct: 0 }; }
   };
   const [honorOpen, setHonorOpen] = useState(false);
+  const [rankingOpen, setRankingOpen] = useState(false);
+  // Full class ranking table (តារាងចំណាត់ថ្នាក់សរុប) for the current mode.
+  const rankingData = (): { roster: RankingRow[]; period: string } => {
+    let rows: any[] = filteredStudents;
+    let period = selectedMonth;
+    let scoreOf = (s: any): number | null => s.overallAvg ?? null;
+    if (activeMode === 'semester') { rows = filteredSemesterStudents; period = selectedSemester === '2' ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១'; scoreOf = (s) => s.semesterAvg ?? null; }
+    else if (activeMode === 'annual') { rows = filteredAnnualStudents; period = 'ប្រចាំឆ្នាំ'; scoreOf = (s) => s.annualAvg ?? null; }
+    const roster: RankingRow[] = rows.map(s => ({ name: s.name, gender: s.gender, overallAvg: scoreOf(s) }));
+    return { roster, period };
+  };
   // Top-5 honor roll for the current mode (month / semester / year).
   const honorData = (): { subtitle: string; entries: HonorEntry[] } => {
     let roster: any[] = [];
@@ -2144,6 +2156,13 @@ export default function Gradebook({
             >
               🏅 តារាងកិត្តិយស
             </button>
+            <button
+              onClick={() => setRankingOpen(true)}
+              className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              title="តារាងចំណាត់ថ្នាក់សរុប (របាយការណ៍លទ្ធផលសិក្សា)"
+            >
+              📊 តារាងចំណាត់ថ្នាក់
+            </button>
 
             {/* Group filter — after-hours classes split into groups */}
             {viewingEnglish && availableGradeGroups.length > 0 && (
@@ -2790,6 +2809,10 @@ export default function Gradebook({
 
       {honorOpen && (() => { const h = honorData(); return (
         <HonorRoll subtitle={h.subtitle} grade={selectedGrade} entries={h.entries} onClose={() => setHonorOpen(false)} />
+      ); })()}
+
+      {rankingOpen && (() => { const r = rankingData(); return (
+        <ClassRankingReport roster={r.roster} grade={selectedGrade} period={r.period} onClose={() => setRankingOpen(false)} />
       ); })()}
 
       {/* Annual skills / conduct entry form */}
