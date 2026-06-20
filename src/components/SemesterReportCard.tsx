@@ -42,6 +42,11 @@ export default function SemesterReportCard({ student, students, period, onClose 
   const months = isYear ? [...SEM1_MONTHS, ...SEM2_MONTHS] : (period === 1 ? SEM1_MONTHS : SEM2_MONTHS);
   const examMonths = isYear ? ['ប្រឡងឆមាសទី១', 'ប្រឡងឆមាសទី២'] : [period === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២'];
   const nameKey = student.name.trim();
+  // Date of birth is constant — fall back to any of this student's records.
+  const resolvedDob = student.dob || (students.find(s =>
+    (((s as any).studentId && (student as any).studentId && (s as any).studentId === (student as any).studentId)
+      || (s.name?.trim() === nameKey && s.grade === student.grade)) && s.dob
+  )?.dob) || '';
 
   // Annual skills (បំណិន) & conduct (ចរិយា) are entered in the gradebook's annual
   // table (per student) and read here read-only from localStorage.
@@ -175,7 +180,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
           <div className="grid grid-cols-2 gap-x-8 gap-y-1 mb-3 text-[12px]">
             <div><span className="font-bold">គោត្តនាម និងនាម៖</span> {student.name}</div>
             <div><span className="font-bold">ភេទ៖</span> {student.gender}</div>
-            <div><span className="font-bold">ថ្ងៃខែឆ្នាំកំណើត៖</span> {student.dob || '...........'}</div>
+            <div><span className="font-bold">ថ្ងៃខែឆ្នាំកំណើត៖</span> {resolvedDob || '...........'}</div>
             <div><span className="font-bold">អត្តលេខ៖</span> {student.studentId || '...........'}</div>
             <div><span className="font-bold">លទ្ធផលសិក្សា៖</span> {student.grade}</div>
           </div>

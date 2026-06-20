@@ -93,6 +93,13 @@ export default function StudentReportCard({ student, students, onClose }: Studen
     return toKh(avgs.filter(x => x > mine).length + 1);
   }, [roster, student.overallAvg]);
 
+  // Date of birth is constant across months — fall back to any of this student's
+  // records so a month whose row is missing the dob still shows it.
+  const resolvedDob = student.dob || (students.find(s =>
+    (((s as any).studentId && (student as any).studentId && (s as any).studentId === (student as any).studentId)
+      || (s.name?.trim() === student.name?.trim() && s.grade === student.grade)) && s.dob
+  )?.dob) || '';
+
   // Auto end-of-month date for the signature block.
   const endDate = monthEndDate(student.month);
 
@@ -168,7 +175,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
           <div className="grid grid-cols-2 gap-x-8 gap-y-1 mb-3 text-[12px]">
             <div><span className="font-bold">គោត្តនាម និងនាម៖</span> {student.name}</div>
             <div><span className="font-bold">ភេទ៖</span> {student.gender}</div>
-            <div><span className="font-bold">ថ្ងៃខែឆ្នាំកំណើត៖</span> {student.dob || '...........'}</div>
+            <div><span className="font-bold">ថ្ងៃខែឆ្នាំកំណើត៖</span> {resolvedDob || '...........'}</div>
             <div><span className="font-bold">អត្តលេខ៖</span> {student.studentId || '...........'}</div>
             <div><span className="font-bold">លទ្ធផលសិក្សា៖</span> {student.grade}</div>
           </div>
