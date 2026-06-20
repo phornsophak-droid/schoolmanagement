@@ -13,12 +13,14 @@ import { AVAILABLE_USERS } from './LoginPortal';
 // cards. The teacher's name is taken from their account. See App.tsx restore.
 export const teacherSigKey = (grade: string) => `school_teacher_signature::${grade}`;
 export const TEACHER_SIG_PREFIX = 'school_teacher_signature::';
+// Drop the honorific prefix so only the teacher's name shows (e.g. ស៊ុំ សំណាង).
+const stripTitle = (n: string) => n.replace(/^(លោកគ្រូ|អ្នកគ្រូ|លោកស្រី|អ្នកស្រី|លោក|អ្នក)\s+/, '').trim();
 export const teacherNameForGrade = (grade: string): string => {
   const u = AVAILABLE_USERS.find(x => x.role === 'teacher' && x.grade === grade);
-  return u ? u.name : '';
+  return u ? stripTitle(u.name) : '';
 };
 
-export default function TeacherSignature({ grade, height = 88 }: { grade: string; height?: number }) {
+export default function TeacherSignature({ grade, height = 60 }: { grade: string; height?: number }) {
   const key = teacherSigKey(grade);
   const [sig, setSig] = useState<string>(() => {
     try { return localStorage.getItem(key) || ''; } catch { return ''; }
@@ -49,7 +51,7 @@ export default function TeacherSignature({ grade, height = 88 }: { grade: string
           alt="ហត្ថលេខាគ្រូ"
           onClick={() => ref.current?.click()}
           title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
-          style={{ height, objectFit: 'contain', cursor: 'pointer' }}
+          style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply' }}
         />
       ) : (
         <button

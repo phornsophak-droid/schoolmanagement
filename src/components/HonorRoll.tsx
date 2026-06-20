@@ -8,6 +8,9 @@ import { Printer, X, Camera } from 'lucide-react';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
+import { khmerLunarFull, khmerMonthEnd } from '../utils/khmerDate';
+
+const HONOR_KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហา', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
 
 export interface HonorEntry { rank: number; name: string; score?: number | null; }
 
@@ -103,6 +106,13 @@ function HonorFrame({ rank, name, photo, letter, onPick, big = false }: { rank: 
 export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRollProps) {
   const byRank = (r: number): HonorEntry => entries.find(e => e.rank === r) || entries[r - 1] || { rank: r, name: '' };
   const ranks = [1, 2, 3, 4, 5].map(byRank);
+
+  // Auto date for the signature block — use the report's month if the subtitle
+  // names one (e.g. "ប្រចាំខែ កុម្ភៈ"), else today.
+  const subMonth = HONOR_KH_MONTHS.find(m => subtitle.includes(m));
+  const honorDate = subMonth
+    ? khmerMonthEnd(subMonth)
+    : { day: '.........', year: '២០២៦', lunar: khmerLunarFull(new Date()) };
 
   const photoKey = (name: string) => `honorphoto::${grade}::${subtitle}::${name.trim()}`;
   const [photos, setPhotos] = useState<Record<string, string>>(() => {
@@ -210,8 +220,8 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
                   <PrincipalSignature />
                 </div>
                 <div>
-                  <p>ថ្ងៃ............ខែ..................ឆ្នាំមមី អដ្ឋស័ក ព.ស ២៥៧០</p>
-                  <p>ច្បារច្រុះ ថ្ងៃទី...............ខែ.................ឆ្នាំ២០២៦</p>
+                  <p>{honorDate.lunar}</p>
+                  <p>ច្បារច្រុះ ថ្ងៃទី{honorDate.day} {subMonth ? `ខែ${subMonth}` : 'ខែ.........'} ឆ្នាំ{honorDate.year}</p>
                   <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
                   <TeacherSignature grade={grade} />
                 </div>
