@@ -12,7 +12,7 @@ import { syncUpsertSetting } from '../lib/supabase';
 export const PRINCIPAL_SIG_KEY = 'school_principal_signature_v1';
 export const PRINCIPAL_NAME = 'ផន សុភាក់';
 
-export default function PrincipalSignature({ height = 56 }: { height?: number }) {
+export default function PrincipalSignature({ height = 88 }: { height?: number }) {
   const [sig, setSig] = useState<string>(() => {
     try { return localStorage.getItem(PRINCIPAL_SIG_KEY) || ''; } catch { return ''; }
   });
@@ -36,10 +36,13 @@ export default function PrincipalSignature({ height = 56 }: { height?: number })
     <div className="flex flex-col items-center">
       <input ref={ref} type="file" accept="image/*" onChange={onFile} className="hidden" />
       {sig ? (
-        <>
-          <img src={sig} alt="ហត្ថលេខានាយក" style={{ height, objectFit: 'contain' }} />
-          <button onClick={() => ref.current?.click()} className="rc-no-print text-[9px] text-blue-400 hover:underline">ប្តូរ</button>
-        </>
+        <img
+          src={sig}
+          alt="ហត្ថលេខានាយក"
+          onClick={() => ref.current?.click()}
+          title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
+          style={{ height, objectFit: 'contain', cursor: 'pointer' }}
+        />
       ) : (
         <button
           onClick={() => ref.current?.click()}

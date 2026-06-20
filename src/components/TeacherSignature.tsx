@@ -18,7 +18,7 @@ export const teacherNameForGrade = (grade: string): string => {
   return u ? u.name : '';
 };
 
-export default function TeacherSignature({ grade, height = 56 }: { grade: string; height?: number }) {
+export default function TeacherSignature({ grade, height = 88 }: { grade: string; height?: number }) {
   const key = teacherSigKey(grade);
   const [sig, setSig] = useState<string>(() => {
     try { return localStorage.getItem(key) || ''; } catch { return ''; }
@@ -44,10 +44,13 @@ export default function TeacherSignature({ grade, height = 56 }: { grade: string
     <div className="flex flex-col items-center">
       <input ref={ref} type="file" accept="image/*" onChange={onFile} className="hidden" />
       {sig ? (
-        <>
-          <img src={sig} alt="ហត្ថលេខាគ្រូ" style={{ height, objectFit: 'contain' }} />
-          <button onClick={() => ref.current?.click()} className="rc-no-print text-[9px] text-blue-400 hover:underline">ប្តូរ</button>
-        </>
+        <img
+          src={sig}
+          alt="ហត្ថលេខាគ្រូ"
+          onClick={() => ref.current?.click()}
+          title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
+          style={{ height, objectFit: 'contain', cursor: 'pointer' }}
+        />
       ) : (
         <button
           onClick={() => ref.current?.click()}
