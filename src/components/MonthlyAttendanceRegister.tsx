@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
+import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 
 type State = 'present' | 'late' | 'permission' | 'absent';
@@ -413,7 +414,7 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
               <p>{sigDate}</p>
               <p>ច្បារច្រុះ ថ្ងៃទី......... ខែ{monthName} ឆ្នាំ{toKh(year)}</p>
               <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
-              <p className="text-slate-300 pt-6">..............................</p>
+              <TeacherSignature grade={grade} />
             </div>
           </div>
         </div>

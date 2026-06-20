@@ -9,6 +9,7 @@ import { StudentScore } from '../types';
 import { fetchClassStudents, fetchSetting } from '../lib/supabase';
 import SchoolLogo from './SchoolLogo';
 import { PRINCIPAL_SIG_KEY } from './PrincipalSignature';
+import { teacherSigKey } from './TeacherSignature';
 import StudentReportCard from './StudentReportCard';
 import SemesterReportCard from './SemesterReportCard';
 
@@ -55,6 +56,10 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
     setError('');
     setClassStudents([]);
     if (!g) return;
+    // Pull this class's teacher signature so it shows on the report cards.
+    fetchSetting(teacherSigKey(g))
+      .then(v => { if (v) { try { localStorage.setItem(teacherSigKey(g), v); } catch { /* ignore */ } } })
+      .catch(() => { /* offline */ });
     setLoading(true);
     try {
       const rows = await fetchClassStudents(g);

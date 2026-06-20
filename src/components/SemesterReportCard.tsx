@@ -8,6 +8,7 @@ import { Printer, X, PenLine } from 'lucide-react';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
+import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { tallyAbsences } from '../utils/attendance';
 import { SEM1_MONTHS, SEM2_MONTHS, SEM_SUBJECTS, semesterAvgOf, readAnnualExtra } from '../utils/scoring';
@@ -143,10 +144,6 @@ export default function SemesterReportCard({ student, students, period, onClose 
         <div className="rc-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-t-2xl border-b border-slate-100">
           <h3 className="text-sm font-bold text-slate-800">ព្រឹត្តបត្រ{periodTitle} — {student.name}</h3>
           <div className="flex items-center gap-2">
-            <input ref={sigInputRef} type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
-            <button onClick={() => sigInputRef.current?.click()} className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs flex items-center gap-1.5 border border-indigo-200 transition-colors">
-              <PenLine size={13} /> {signature ? 'ប្តូរហត្ថលេខាគ្រូ' : 'បញ្ចូលហត្ថលេខាគ្រូ'}
-            </button>
             <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
               <Printer size={13} /> បោះពុម្ព / PDF
             </button>
@@ -287,11 +284,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
               <p>{endLunar}</p>
               <p>ច្បារច្រុះ ថ្ងៃទី{endDay} ខែ{lastMonth} ឆ្នាំ{lastIdx >= 8 ? '២០២៥' : '២០២៦'}</p>
               <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
-              {signature ? (
-                <img src={signature} alt="ហត្ថលេខាគ្រូ" className="h-16 mx-auto object-contain mt-1" />
-              ) : (
-                <p className="text-slate-300 pt-8">..............................</p>
-              )}
+              <TeacherSignature grade={student.grade} />
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@ import React from 'react';
 import { Printer, X } from 'lucide-react';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
+import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull, khmerMonthEnd } from '../utils/khmerDate';
 
 export interface RankingRow {
@@ -192,7 +193,7 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
               <p>{dateInfo.lunar}</p>
               <p>ច្បារច្រុះ ថ្ងៃទី{dateInfo.day} {isMonth ? `ខែ${period}` : 'ខែ............'} ឆ្នាំ{dateInfo.year}</p>
               <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
-              <p className="text-slate-300 pt-6">..............................</p>
+              <TeacherSignature grade={grade} />
             </div>
           </div>
         </div>
