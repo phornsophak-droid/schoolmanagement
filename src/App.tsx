@@ -1228,7 +1228,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F7FA] text-slate-800 font-sans flex selection:bg-blue-105 selection:text-blue-900 overflow-hidden w-full">
+    <div className="min-h-screen bg-[#F4F7FA] text-slate-800 font-sans flex selection:bg-blue-105 selection:text-blue-900 overflow-hidden w-full print:h-auto print:overflow-visible print:bg-white">
 
       {/* Cloud-save confirmation toast */}
       <AnimatePresence>
@@ -1702,7 +1702,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* 3. Main Outer Body Container */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden print:h-auto print:overflow-visible print:bg-white">
         
         {/* National Decorative Top Border */}
         <div className="h-1 bg-gradient-to-r from-blue-600 via-[#E52B50] to-blue-700 print:hidden shrink-0 z-20" />
