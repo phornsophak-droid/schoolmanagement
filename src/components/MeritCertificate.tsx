@@ -104,15 +104,15 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
           {/* Decorative frame image — place the file at public/cert-frame.png */}
           <div className="relative w-full" style={{ aspectRatio: '1.414 / 1' }}>
             <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
-            <div className="absolute inset-0 flex flex-col justify-between text-slate-800" style={{ padding: '6.5% 8.5% 5.5%' }}>
+            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '5.5% 8% 5%' }}>
 
               {/* Header: logo+school (left), kingdom (right) */}
               <div className="flex items-start justify-between">
                 <div className="flex flex-col items-center gap-1 text-emerald-700">
-                  <SchoolLogo size={64} />
-                  <div className="text-sm font-bold whitespace-nowrap">សាលាសហគមន៍ច្បារច្រុះ</div>
+                  <SchoolLogo size={70} />
+                  <div className="text-base font-bold whitespace-nowrap">សាលាសហគមន៍ច្បារច្រុះ</div>
                 </div>
-                <div className="text-center text-[13px] text-emerald-800">
+                <div className="text-center text-[15px] text-emerald-800">
                   <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
                   <div className="font-semibold">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
                   <div className="text-amber-600 tracking-widest">~ ~ ~ ~ ~</div>
@@ -120,51 +120,50 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
               </div>
 
               {/* Title */}
-              <div className="text-center -mt-2">
-                <h1 className="text-5xl font-extrabold text-red-600 tracking-wide" style={{ fontFamily: 'inherit' }}>ប័ណ្ណសរសើរ</h1>
-                <p className="text-lg font-bold text-slate-700 mt-1">នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
+              <div className="text-center mt-1">
+                <h1 className="text-6xl font-extrabold text-red-600 tracking-wide" style={{ fontFamily: 'inherit' }}>ប័ណ្ណសរសើរ</h1>
+                <p className="text-2xl font-bold text-slate-700 mt-1">នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
               </div>
 
-              {/* Body */}
-              <div className="text-[15px] leading-loose text-justify mt-4">
+              {/* Body — larger text, justified to both margins */}
+              <div className="text-[19px] leading-[2.1] text-justify mt-7">
                 <p>
                   សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
                   {resolvedDob
                     ? <>កើតនៅ <span className="font-semibold">{resolvedDob}</span> </>
                     : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
                   រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
-                  ដែលទទួលបានលទ្ធផលក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
+                  ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
                   <span className="font-bold text-red-700">{niddes.km} ({niddes.en})</span> ប្រចាំខែ {student.month}{' '}
                   ក្នុងឆ្នាំសិក្សា <span className="font-bold">២០២៥-២០២៦</span> ។
                 </p>
                 <p className="mt-2">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
               </div>
 
-              {/* Signatures — principal (left), student photo (center), teacher (right) */}
-              <div className="grid grid-cols-3 items-end gap-6 mt-6 text-[12px] text-center">
+              {/* Student photo — centered, directly below the text */}
+              <div className="flex flex-col items-center mt-5">
+                <div className="w-28 rounded-lg overflow-hidden bg-slate-50 border-2 border-amber-300 shadow-sm" style={{ height: '8.5rem' }}>
+                  {photo ? (
+                    <img src={photo} alt={student.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <button onClick={() => fileRef.current?.click()} className="rc-no-print w-full h-full flex flex-col items-center justify-center gap-1 text-slate-400 hover:bg-slate-100 transition-colors">
+                      <Camera size={22} />
+                      <span className="text-[11px] font-bold">បញ្ចូលរូបថត</span>
+                    </button>
+                  )}
+                </div>
+                {photo && (
+                  <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-1 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
+                )}
+              </div>
+
+              {/* Signatures — principal (left), teacher (right), pinned to the bottom */}
+              <div className="grid grid-cols-2 gap-10 mt-auto text-[14px] text-center">
                 <div>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
                   <PrincipalSignature />
                 </div>
-
-                {/* Student photo — centered between the two signatures */}
-                <div className="flex flex-col items-center">
-                  <div className="w-24 h-30 rounded-lg overflow-hidden bg-slate-50 border-2 border-amber-300 shadow-sm" style={{ height: '7.5rem' }}>
-                    {photo ? (
-                      <img src={photo} alt={student.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <button onClick={() => fileRef.current?.click()} className="rc-no-print w-full h-full flex flex-col items-center justify-center gap-1 text-slate-400 hover:bg-slate-100 transition-colors">
-                        <Camera size={20} />
-                        <span className="text-[10px] font-bold">បញ្ចូលរូបថត</span>
-                      </button>
-                    )}
-                  </div>
-                  {photo && (
-                    <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-1 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
-                  )}
-                </div>
-
                 <div>
                   <p>{endDate.lunar}</p>
                   <p>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
