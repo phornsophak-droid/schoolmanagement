@@ -1228,7 +1228,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F7FA] text-slate-800 font-sans flex selection:bg-blue-105 selection:text-blue-900 overflow-hidden w-full print:h-auto print:overflow-visible print:bg-white">
+    <div className="min-h-screen bg-[#F4F7FA] text-slate-800 font-sans flex selection:bg-blue-105 selection:text-blue-900 overflow-hidden w-full print:h-auto print:overflow-visible print:bg-white print:block">
 
       {/* Cloud-save confirmation toast */}
       <AnimatePresence>
@@ -1702,7 +1702,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* 3. Main Outer Body Container */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden print:h-auto print:overflow-visible print:bg-white">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden print:h-auto print:overflow-visible print:bg-white print:block">
         
         {/* National Decorative Top Border */}
         <div className="h-1 bg-gradient-to-r from-blue-600 via-[#E52B50] to-blue-700 print:hidden shrink-0 z-20" />
@@ -1747,8 +1747,8 @@ export default function App() {
         </header>
 
         {/* 4. Scrollable Component Canvas Container */}
-        <main className="flex-1 overflow-y-auto bg-[#F4F7FA] p-4 pb-24 md:p-8 print:p-0 print:m-0 print:overflow-visible print:bg-white min-h-0">
-          <div className="max-w-7xl mx-auto w-full flex flex-col gap-6">
+        <main className="flex-1 overflow-y-auto bg-[#F4F7FA] p-4 pb-24 md:p-8 print:p-0 print:m-0 print:overflow-visible print:bg-white min-h-0 print:block">
+          <div className="max-w-7xl mx-auto w-full flex flex-col gap-6 print:block">
             <AnimatePresence mode="wait">
               <>
                 {activeView === 'dashboard' && (

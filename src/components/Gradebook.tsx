@@ -1538,7 +1538,7 @@ export default function Gradebook({
       )}
 
       {/* Search and Top Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 px-4 py-3 bg-white rounded-2xl shadow-sm border border-slate-100">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 px-4 py-3 bg-white rounded-2xl shadow-sm border border-slate-100 print:hidden">
         <div>
           <h2 className="text-base font-semibold text-slate-800 tracking-tight">សៀវភៅតាមដាន និងគ្រប់គ្រងពិន្ទុសិស្ស</h2>
           <p className="hidden sm:block text-xs text-slate-400 mt-0.5">
