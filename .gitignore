@@ -14,3 +14,7 @@ Push to GitHub.bat
 # One-off maintenance backups/scripts (cloud dedupe, etc.)
 _backup_*.json
 _*.mjs
+
+# Local source files (templates / rosters), not for the app build
+certificate.docx
+*.xlsx
