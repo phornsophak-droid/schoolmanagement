@@ -2163,6 +2163,13 @@ export default function Gradebook({
             >
               📊 តារាងចំណាត់ថ្នាក់
             </button>
+            <button
+              onClick={() => window.print()}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              title="ទាញយកតារាងពិន្ទុជា PDF (បោះពុម្ព)"
+            >
+              🖨 ទាញយក PDF
+            </button>
 
             {/* Group filter — after-hours classes split into groups */}
             {viewingEnglish && availableGradeGroups.length > 0 && (
@@ -2253,8 +2260,22 @@ export default function Gradebook({
           .gb-scroll thead th { position: sticky; top: 0; z-index: 20; background: #f8fafc; }
           .gb-scroll thead th.gb-corner { z-index: 30; }
           .gb-scroll thead tr:nth-child(2) th { top: 33px; }
+          .gb-print-only { display: none; }
+          @media print {
+            body * { visibility: hidden !important; }
+            #gb-print, #gb-print * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            #gb-print { position: absolute; left: 0; top: 0; width: 100%; overflow: visible !important; max-height: none !important; }
+            #gb-print .rc-no-print { display: none !important; }
+            #gb-print table th:last-child, #gb-print table td:last-child { display: none !important; }
+            #gb-print thead th { position: static !important; }
+            .gb-print-only { display: block !important; }
+            @page { size: A4 landscape; margin: 8mm; }
+          }
         `}</style>
-        <div className="gb-scroll overflow-auto max-h-[78vh] border border-slate-100 rounded-xl">
+        <div id="gb-print" className="gb-scroll overflow-auto max-h-[78vh] border border-slate-100 rounded-xl">
+          <div className="gb-print-only" style={{ textAlign: 'center', padding: '8px 0', fontWeight: 'bold', fontSize: '13px' }}>
+            សាលាសហគមន៍ច្បារច្រុះ — {activeMode === 'monthly' ? `តារាងពិន្ទុប្រចាំខែ ${selectedMonth}` : activeMode === 'semester' ? `តារាងពិន្ទុឆមាសទី ${selectedSemester}` : 'តារាងលទ្ធផលប្រចាំឆ្នាំ'} • {selectedGrade} • ឆ្នាំសិក្សា ២០២៥-២០២៦
+          </div>
           {activeMode === 'monthly' ? (
             <table className="w-full text-left border-collapse">
               <thead>
