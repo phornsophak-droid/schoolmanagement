@@ -118,7 +118,7 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
           {/* Decorative frame image — place the file at public/cert-frame.png */}
           <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
             <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
-            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '6% 10.5% 5%' }}>
+            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '8% 9.5% 5.5%' }}>
 
               {/* Header: CAMKIDS org (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
@@ -135,12 +135,12 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
 
               {/* Title */}
               <div className="text-center mt-1">
-                <h1 className="font-extrabold text-red-600 tracking-wide" style={{ fontFamily: 'inherit', fontSize: '8.5cqw', lineHeight: 1.05 }}>ប័ណ្ណសរសើរ</h1>
-                <p className="font-bold text-slate-700" style={{ fontSize: '3.4cqw' }}>នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
+                <h1 className="font-extrabold text-red-600 tracking-wide" style={{ fontFamily: "'Khmer OS Muol Light','Khmer OS Moul Light',serif", fontSize: '28pt', lineHeight: 1.15 }}>ប័ណ្ណសរសើរ</h1>
+                <p className="font-bold text-slate-700" style={{ fontSize: '2.4cqw' }}>នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
               </div>
 
               {/* Body — scales with the frame, justified to both margins */}
-              <div className="text-justify mt-4" style={{ fontSize: '2.6cqw', lineHeight: 1.9 }}>
+              <div className="text-justify mt-3" style={{ fontSize: '2.45cqw', lineHeight: 1.75 }}>
                 <p>
                   សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
                   ភេទ <span className="font-bold">{student.gender}</span>{' '}
@@ -157,7 +157,7 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
 
               {/* Student photo — centered, directly below the text */}
               <div className="flex flex-col items-center mt-2">
-                <div className="w-24 rounded-lg overflow-hidden bg-slate-50 border-2 border-amber-300 shadow-sm" style={{ height: '7rem' }}>
+                <div className="w-20 rounded-lg overflow-hidden bg-slate-50 border-2 border-amber-300 shadow-sm" style={{ height: '6rem' }}>
                   {photo ? (
                     <img src={photo} alt={student.name} className="w-full h-full object-cover" />
                   ) : (
