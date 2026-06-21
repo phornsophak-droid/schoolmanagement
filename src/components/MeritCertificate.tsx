@@ -33,8 +33,10 @@ const gradeBand = (v: number | null | undefined): { km: string; en: string } => 
 };
 
 // Format a stored dob string (DD/MM/YYYY or YYYY-MM-DD) as "ថ្ងៃទី D ខែ M ឆ្នាំ Y".
-const formatDob = (raw: string): string | null => {
-  if (!raw) return null;
+const khToAscii = (s: string) => s.replace(/[០-៩]/g, d => String('០១២៣៤៥៦៧៨៩'.indexOf(d)));
+const formatDob = (rawIn: string): string | null => {
+  if (!rawIn) return null;
+  const raw = khToAscii(rawIn.trim());
   let m = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
   let d = 0, mo = 0, y = 0;
   if (m) { d = +m[1]; mo = +m[2]; y = +m[3]; }
@@ -116,7 +118,7 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
         <div id="merit-cert" className="bg-white rounded-b-2xl">
           {/* Decorative frame image — place the file at public/cert-frame.png */}
           <div className="relative w-full" style={{ aspectRatio: '1.414 / 1' }}>
-            <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
+            <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" style={{ filter: 'sepia(1) saturate(1.7) hue-rotate(-12deg) brightness(1.08)' }} />
             <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '5.5% 8% 5%' }}>
 
               {/* Header: org+school (left), kingdom (right) */}
