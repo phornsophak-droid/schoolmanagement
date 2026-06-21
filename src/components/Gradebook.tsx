@@ -232,6 +232,79 @@ export default function Gradebook({
   };
   const [honorOpen, setHonorOpen] = useState(false);
   const [rankingOpen, setRankingOpen] = useState(false);
+
+  // Robust printing using hidden iframe (bypasses all React/Chrome flex-layout bugs)
+  const handlePrint = () => {
+    const printElement = document.getElementById('gb-print');
+    if (!printElement) return;
+
+    // Force React input values to DOM attributes so they appear in outerHTML
+    const inputs = printElement.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+      if (input.tagName === 'INPUT') {
+        input.setAttribute('value', (input as HTMLInputElement).value);
+      } else if (input.tagName === 'TEXTAREA') {
+        input.textContent = (input as HTMLTextAreaElement).value;
+      }
+    });
+
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map(node => node.outerHTML)
+      .join('\n');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>តារាងពិន្ទុ</title>
+          ${styles}
+          <style>
+            @page { size: A4 landscape; margin: 8mm; }
+            body { padding: 0; margin: 0; background: white !important; }
+            /* Force visibility for elements that might be hidden by app CSS */
+            body * { visibility: visible !important; }
+            /* Reset sticky headers and layout constraints */
+            .gb-scroll * { position: static !important; }
+            .gb-scroll th, .gb-scroll td { box-shadow: none !important; }
+            .gb-print-header { display: flex !important; }
+            .print\\:hidden { display: none !important; }
+            .print\\:block { display: block !important; }
+            /* Hide print actions inside the table */
+            .rc-no-print { display: none !important; }
+          </style>
+        </head>
+        <body>
+          ${printElement.outerHTML}
+        </body>
+      </html>
+    `;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (!doc) { iframe.remove(); return; }
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    let printed = false;
+    const finishAndPrint = () => {
+      if (printed) return;
+      printed = true;
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error('Report print failed', err);
+      }
+      setTimeout(() => iframe.remove(), 1000);
+    };
+    
+    // Wait for styles and fonts to load
+    setTimeout(finishAndPrint, 500);
+  };
+
   // Full class ranking table (តារាងចំណាត់ថ្នាក់សរុប) for the current mode.
   const rankingData = (): { roster: RankingRow[]; period: string } => {
     let rows: any[] = filteredStudents;
@@ -2251,7 +2324,7 @@ export default function Gradebook({
               📊 តារាងចំណាត់ថ្នាក់
             </button>
             <button
-              onClick={() => window.print()}
+              onClick={handlePrint}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
               title="ទាញយកតារាងពិន្ទុជា PDF (បោះពុម្ព)"
             >
@@ -2275,7 +2348,7 @@ export default function Gradebook({
 
             {/* Download PDF / Print */}
             <button
-              onClick={() => window.print()}
+              onClick={handlePrint}
               className="px-3 py-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
               title="ទាញយកជាឯកសារ PDF (បោះពុម្ព)"
             >
