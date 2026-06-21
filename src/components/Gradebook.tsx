@@ -233,6 +233,7 @@ export default function Gradebook({
     try { const e = JSON.parse(localStorage.getItem(annualExtraKey(grade, name)) || '{}'); return { skills: Number(e.skills) || 0, conduct: Number(e.conduct) || 0 }; } catch { return { skills: 0, conduct: 0 }; }
   };
   const [honorOpen, setHonorOpen] = useState(false);
+  const [meritPickerOpen, setMeritPickerOpen] = useState(false);
   const [rankingOpen, setRankingOpen] = useState(false);
 
   // Robust printing using hidden iframe (bypasses all React/Chrome flex-layout bugs)
@@ -2319,6 +2320,13 @@ export default function Gradebook({
               🏅 តារាងកិត្តិយស
             </button>
             <button
+              onClick={() => setMeritPickerOpen(true)}
+              className="px-3 py-1.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 hover:text-amber-800 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              title="ប័ណ្ណសរសើរ (សិស្សនិទ្ទេស A/B)"
+            >
+              📜 ប័ណ្ណសរសើរ
+            </button>
+            <button
               onClick={() => setRankingOpen(true)}
               className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 hover:text-indigo-800 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
               title="តារាងចំណាត់ថ្នាក់សរុប (របាយការណ៍លទ្ធផលសិក្សា)"
@@ -2631,15 +2639,6 @@ export default function Gradebook({
                                 title="ព្រឹត្តបត្រពិន្ទុសិស្ស"
                               >
                                 <FileText size={11} /> ព្រឹត្តបត្រ
-                              </button>
-                            )}
-                            {!customSubjects && (st.gradeLetter === 'A' || st.gradeLetter === 'B') && (
-                              <button
-                                onClick={() => setMeritStudent(st)}
-                                className="p-1 px-1.5 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 text-amber-700 hover:text-amber-800 transition-all font-medium inline-flex items-center gap-1 text-[10px]"
-                                title="ប័ណ្ណសរសើរ (និទ្ទេស A/B)"
-                              >
-                                🏅 ប័ណ្ណសរសើរ
                               </button>
                             )}
                             <button
@@ -3029,6 +3028,37 @@ export default function Gradebook({
           students={students}
           onClose={() => setReportCardStudent(null)}
         />
+      )}
+
+      {/* Merit-certificate picker — lists A/B students to print a ប័ណ្ណសរសើរ for */}
+      {meritPickerOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4" onClick={() => setMeritPickerOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-800">📜 ប័ណ្ណសរសើរ — ជ្រើសសិស្ស (និទ្ទេស A/B)</h3>
+              <button onClick={() => setMeritPickerOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"><X size={16} /></button>
+            </div>
+            <div className="overflow-auto p-2">
+              {(() => {
+                const ab = filteredStudents.filter(s => s.gradeLetter === 'A' || s.gradeLetter === 'B');
+                if (ab.length === 0) return <p className="text-center text-slate-400 text-xs py-10">គ្មានសិស្សនិទ្ទេស A ឬ B សម្រាប់ថ្នាក់ និងខែនេះទេ។</p>;
+                return ab.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => { setMeritStudent(s); setMeritPickerOpen(false); }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-amber-50 rounded-lg text-left transition-colors"
+                  >
+                    <span className="font-semibold text-slate-700 text-sm">{s.name}</span>
+                    <span className="flex items-center gap-2 text-[11px]">
+                      <span className="text-slate-400">{s.grade}</span>
+                      <span className={`px-2 py-0.5 rounded-full font-bold ${s.gradeLetter === 'A' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{s.gradeLetter}</span>
+                    </span>
+                  </button>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
       )}
 
       {meritStudent && (
