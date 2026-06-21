@@ -100,15 +100,11 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
         </div>
 
         {/* Certificate sheet (landscape) */}
-        <div id="merit-cert" className="bg-white p-2.5 rounded-b-2xl">
-          {/* Ornate gold frame */}
-          <div className="relative p-1.5" style={{ border: '3px double #b08d2b' }}>
-            <div className="relative px-10 py-7 text-slate-800" style={{ border: '1.5px solid #c9a233', minHeight: '520px' }}>
-              {/* Corner flourishes */}
-              <span className="pointer-events-none absolute top-1 left-1 w-10 h-10 border-t-4 border-l-4 rounded-tl-lg" style={{ borderColor: '#c9a233' }} />
-              <span className="pointer-events-none absolute top-1 right-1 w-10 h-10 border-t-4 border-r-4 rounded-tr-lg" style={{ borderColor: '#c9a233' }} />
-              <span className="pointer-events-none absolute bottom-1 left-1 w-10 h-10 border-b-4 border-l-4 rounded-bl-lg" style={{ borderColor: '#c9a233' }} />
-              <span className="pointer-events-none absolute bottom-1 right-1 w-10 h-10 border-b-4 border-r-4 rounded-br-lg" style={{ borderColor: '#c9a233' }} />
+        <div id="merit-cert" className="bg-white rounded-b-2xl">
+          {/* Decorative frame image — place the file at public/cert-frame.png */}
+          <div className="relative w-full" style={{ aspectRatio: '1.414 / 1' }}>
+            <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
+            <div className="absolute inset-0 flex flex-col justify-between text-slate-800" style={{ padding: '6.5% 8.5% 5.5%' }}>
 
               {/* Header: logo+school (left), kingdom (right) */}
               <div className="flex items-start justify-between">
