@@ -2367,9 +2367,10 @@ export default function Gradebook({
         )}
 
         {/* --- Print Header (Hidden on Screen) --- */}
-        <div className="gb-print-header flex-col items-center justify-center mb-6 pt-4 text-slate-900 border-b-2 border-slate-900 pb-4">
-          <SchoolLogo className="w-16 h-16 mb-2 grayscale" />
-          <h2 className="text-xl font-bold font-moul text-center leading-relaxed">
+        <div id="gb-print">
+          <div className="gb-print-header flex-col items-center justify-center mb-6 pt-4 text-slate-900 border-b-2 border-slate-900 pb-4">
+            <SchoolLogo className="w-16 h-16 mb-2 grayscale" />
+            <h2 className="text-xl font-bold font-moul text-center leading-relaxed">
             បញ្ជីរាយនាម និងពិន្ទុសិស្ស
           </h2>
           <div className="flex items-center gap-8 mt-3 font-semibold text-sm">
@@ -2394,9 +2395,14 @@ export default function Gradebook({
           .gb-scroll thead th.gb-corner { z-index: 30; }
           .gb-scroll thead tr:nth-child(2) th { top: 33px; }
           @media print {
+            body * { visibility: hidden !important; }
+            #gb-print, #gb-print * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            #gb-print { position: absolute; left: 0; top: 0; width: 100%; overflow: visible !important; max-height: none !important; }
+            #gb-print .rc-no-print { display: none !important; }
             .gb-print-header { display: flex !important; }
             .gb-scroll * { position: static !important; }
             .gb-scroll th, .gb-scroll td { box-shadow: none !important; }
+            @page { size: A4 landscape; margin: 8mm; }
           }
         `}</style>
         <div>
@@ -2830,6 +2836,7 @@ export default function Gradebook({
 
           {/* និទ្ទេស distribution stats + auto-dated signatures (shown + printed) */}
           <GradebookReportFooter roster={rankingData().roster} grade={selectedGrade} />
+        </div>
         </div>
 
         {/* Footer actions below the score table (monthly mode) */}
