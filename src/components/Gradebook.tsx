@@ -2346,14 +2346,6 @@ export default function Gradebook({
               </button>
             )}
 
-            {/* Download PDF / Print */}
-            <button
-              onClick={handlePrint}
-              className="px-3 py-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
-              title="ទាញយកជាឯកសារ PDF (បោះពុម្ព)"
-            >
-              <Printer size={13} /> ទាញយក PDF
-            </button>
 
             {/* Group filter — after-hours classes split into groups */}
             {viewingEnglish && availableGradeGroups.length > 0 && (
