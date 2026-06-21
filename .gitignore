@@ -18,3 +18,6 @@ _*.mjs
 # Local source files (templates / rosters), not for the app build
 certificate.docx
 *.xlsx
+
+# Office lock files
+~$*
