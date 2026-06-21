@@ -2367,7 +2367,7 @@ export default function Gradebook({
         )}
 
         {/* --- Print Header (Hidden on Screen) --- */}
-        <div className="hidden print:flex flex-col items-center justify-center mb-6 pt-4 text-slate-900 border-b-2 border-slate-900 pb-4">
+        <div className="gb-print-header flex-col items-center justify-center mb-6 pt-4 text-slate-900 border-b-2 border-slate-900 pb-4">
           <SchoolLogo className="w-16 h-16 mb-2 grayscale" />
           <h2 className="text-xl font-bold font-moul text-center leading-relaxed">
             បញ្ជីរាយនាម និងពិន្ទុសិស្ស
@@ -2389,9 +2389,15 @@ export default function Gradebook({
 
         {/* Scrollable grid student table listing — header rows & first columns stay frozen */}
         <style>{`
+          .gb-print-header { display: none; }
           .gb-scroll thead th { position: sticky; top: 0; z-index: 20; background: #f8fafc; }
           .gb-scroll thead th.gb-corner { z-index: 30; }
           .gb-scroll thead tr:nth-child(2) th { top: 33px; }
+          @media print {
+            .gb-print-header { display: flex !important; }
+            .gb-scroll * { position: static !important; }
+            .gb-scroll th, .gb-scroll td { box-shadow: none !important; }
+          }
         `}</style>
         <div>
           <div className="gb-scroll overflow-auto print:overflow-visible max-h-[78vh] print:max-h-none border border-slate-100 print:border-none rounded-xl">
