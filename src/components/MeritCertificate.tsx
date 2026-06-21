@@ -173,17 +173,17 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
               </div>
 
               {/* Signatures — principal (left), teacher (right), pinned to the bottom */}
-              <div className="grid grid-cols-2 gap-8 mt-auto text-center" style={{ fontSize: '12px' }}>
+              <div className="grid grid-cols-2 gap-8 mt-auto text-center" style={{ fontSize: '1.9cqw' }}>
                 <div>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
-                  <PrincipalSignature height={36} />
+                  <PrincipalSignature height={52} />
                 </div>
                 <div>
                   <p>{endDate.lunar}</p>
                   <p>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
                   <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
-                  <TeacherSignature grade={student.grade} height={36} />
+                  <TeacherSignature grade={student.grade} height={52} />
                 </div>
               </div>
             </div>
