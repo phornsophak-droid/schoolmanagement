@@ -32,6 +32,17 @@ const gradeBand = (v: number | null | undefined): { km: string; en: string } => 
   return { km: 'ខ្សោយ', en: 'F' };
 };
 
+// Format a stored dob string (DD/MM/YYYY or YYYY-MM-DD) as "ថ្ងៃទី D ខែ M ឆ្នាំ Y".
+const formatDob = (raw: string): string | null => {
+  if (!raw) return null;
+  let m = raw.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  let d = 0, mo = 0, y = 0;
+  if (m) { d = +m[1]; mo = +m[2]; y = +m[3]; }
+  else { m = raw.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/); if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; } }
+  if (d && mo >= 1 && mo <= 12 && y) return `ថ្ងៃទី ${toKh(d)} ខែ ${KH_MONTHS[mo - 1]} ឆ្នាំ ${toKh(y)}`;
+  return raw;
+};
+
 // End-of-month date for the signature block (school year: Sep–Dec 2025, Jan–Aug 2026).
 const monthEndDate = (month: string) => {
   const idx = KH_MONTHS.indexOf((month || '').trim());
@@ -52,6 +63,8 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
     || (sid ? dobFrom(s => (s as any).studentId === sid) : '')
     || dobFrom(s => s.name?.trim() === student.name?.trim())
     || '';
+  const dobText = formatDob(resolvedDob);
+  const rank = (student as any).ranking as number | null | undefined;
 
   // Student photo — uploaded once per student, kept in localStorage (not in Supabase).
   const photoKey = `meritphoto::${student.grade}::${student.name.trim()}`;
@@ -106,11 +119,14 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
             <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
             <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '5.5% 8% 5%' }}>
 
-              {/* Header: logo+school (left), kingdom (right) */}
+              {/* Header: org+school (left), kingdom (right) */}
               <div className="flex items-start justify-between">
-                <div className="flex flex-col items-center gap-1 text-emerald-700">
-                  <SchoolLogo size={70} />
-                  <div className="text-base font-bold whitespace-nowrap">សាលាសហគមន៍ច្បារច្រុះ</div>
+                <div className="flex items-center gap-3 text-emerald-700">
+                  <SchoolLogo size={62} />
+                  <div className="leading-tight">
+                    <div className="text-[15px] font-bold">អង្គការមូលនិធិដើម្បីកុមារកម្ពុជា (ខេមឃីត)</div>
+                    <div className="text-base font-bold">សាលាសហគមន៍ច្បារច្រុះ</div>
+                  </div>
                 </div>
                 <div className="text-center text-[15px] text-emerald-800">
                   <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
@@ -129,13 +145,16 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
               <div className="text-[19px] leading-[2.1] text-justify mt-7">
                 <p>
                   សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
-                  {resolvedDob
-                    ? <>កើតនៅ <span className="font-semibold">{resolvedDob}</span> </>
+                  ភេទ <span className="font-bold">{student.gender}</span>{' '}
+                  {dobText
+                    ? <>កើតនៅ<span className="font-semibold">{dobText}</span> </>
                     : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
                   រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
-                  ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
-                  <span className="font-bold text-red-700">{niddes.km} ({niddes.en})</span> ប្រចាំខែ {student.month}{' '}
-                  ក្នុងឆ្នាំសិក្សា <span className="font-bold">២០២៥-២០២៦</span> ។
+                  ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា{' '}
+                  {rank && rank > 0
+                    ? <>និងទទួលបានចំណាត់លេខ <span className="font-bold text-red-700">{toKh(rank)}</span></>
+                    : <>និងទទួលបាននិទ្ទេស <span className="font-bold text-red-700">{niddes.km} ({niddes.en})</span></>}
+                  {' '}ប្រចាំឆ្នាំសិក្សា <span className="font-bold">២០២៥-២០២៦</span> ។
                 </p>
                 <p className="mt-2">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
               </div>
@@ -167,7 +186,7 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
                 <div>
                   <p>{endDate.lunar}</p>
                   <p>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
-                  <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
+                  <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
                   <TeacherSignature grade={student.grade} />
                 </div>
               </div>
