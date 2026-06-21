@@ -6,6 +6,7 @@
 import React, { useRef, useState } from 'react';
 import { Printer, X, Camera } from 'lucide-react';
 import { StudentScore } from '../types';
+import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
@@ -65,7 +66,6 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
     || dobFrom(s => s.name?.trim() === student.name?.trim())
     || '';
   const dobText = formatDob(resolvedDob);
-  const rank = (student as any).ranking as number | null | undefined;
 
   // Student photo — uploaded once per student, kept in localStorage (not in Supabase).
   const photoKey = `meritphoto::${student.grade}::${student.name.trim()}`;
@@ -122,10 +122,9 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
 
               {/* Header: CAMKIDS org (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
-                <div className="flex flex-col items-start text-emerald-800 max-w-[52%]" style={{ fontSize: '1.9cqw' }}>
-                  <img src="/camkids-logo.png" alt="CAMKIDS" className="object-contain" style={{ height: '6.5cqw' }} />
-                  <div className="font-semibold mt-0.5">អង្គការមូលនិធិដើម្បីកុមារកម្ពុជា(ខេមឃីត)</div>
-                  <div className="font-bold">សាលាសហគមន៍ច្បារច្រុះ</div>
+                <div className="flex flex-col items-center text-emerald-700" style={{ fontSize: '2cqw' }}>
+                  <SchoolLogo size={56} />
+                  <div className="font-bold mt-0.5">សាលាសហគមន៍ច្បារច្រុះ</div>
                 </div>
                 <div className="text-center text-emerald-800" style={{ fontSize: '1.9cqw' }}>
                   <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
@@ -149,10 +148,8 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
                     ? <>កើតនៅ<span className="font-semibold">{dobText}</span> </>
                     : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
                   រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
-                  ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា{' '}
-                  {rank && rank > 0
-                    ? <>និងទទួលបានចំណាត់លេខ <span className="font-bold text-red-700">{toKh(rank)}</span></>
-                    : <>និងទទួលបាននិទ្ទេស <span className="font-bold text-red-700">{niddes.km} ({niddes.en})</span></>}
+                  ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
+                  <span className="font-bold text-red-700">{niddes.km} ({niddes.en})</span>
                   {' '}ប្រចាំឆ្នាំសិក្សា <span className="font-bold">២០២៥-២០២៦</span> ។
                 </p>
                 <p className="mt-1">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
