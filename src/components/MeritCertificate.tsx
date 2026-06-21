@@ -119,18 +119,15 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
           {/* Decorative frame image — place the file at public/cert-frame.png */}
           <div className="relative w-full" style={{ aspectRatio: '1.414 / 1' }}>
             <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" style={{ filter: 'sepia(1) saturate(1.7) hue-rotate(-12deg) brightness(1.08)' }} />
-            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '5.5% 8% 5%' }}>
+            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '6.5% 9% 5.5%' }}>
 
-              {/* Header: org+school (left), kingdom (right) */}
+              {/* Header: logo over school name (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3 text-emerald-700">
-                  <SchoolLogo size={62} />
-                  <div className="leading-tight">
-                    <div className="text-[15px] font-bold">អង្គការមូលនិធិដើម្បីកុមារកម្ពុជា (ខេមឃីត)</div>
-                    <div className="text-base font-bold">សាលាសហគមន៍ច្បារច្រុះ</div>
-                  </div>
+                <div className="flex flex-col items-center text-emerald-700">
+                  <SchoolLogo size={58} />
+                  <div className="text-base font-bold mt-0.5">សាលាសហគមន៍ច្បារច្រុះ</div>
                 </div>
-                <div className="text-center text-[15px] text-emerald-800">
+                <div className="text-center text-[16px] text-emerald-800">
                   <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
                   <div className="font-semibold">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
                   <div className="text-amber-600 tracking-widest">~ ~ ~ ~ ~</div>
@@ -140,11 +137,11 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
               {/* Title */}
               <div className="text-center mt-1">
                 <h1 className="text-6xl font-extrabold text-red-600 tracking-wide" style={{ fontFamily: 'inherit' }}>ប័ណ្ណសរសើរ</h1>
-                <p className="text-2xl font-bold text-slate-700 mt-1">នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
+                <p className="text-2xl font-bold text-slate-700 mt-0.5">នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
               </div>
 
               {/* Body — larger text, justified to both margins */}
-              <div className="text-[19px] leading-[2.1] text-justify mt-7">
+              <div className="text-[20px] leading-[1.8] text-justify mt-3">
                 <p>
                   សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
                   ភេទ <span className="font-bold">{student.gender}</span>{' '}
@@ -158,12 +155,12 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
                     : <>និងទទួលបាននិទ្ទេស <span className="font-bold text-red-700">{niddes.km} ({niddes.en})</span></>}
                   {' '}ប្រចាំឆ្នាំសិក្សា <span className="font-bold">២០២៥-២០២៦</span> ។
                 </p>
-                <p className="mt-2">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
+                <p className="mt-1">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
               </div>
 
               {/* Student photo — centered, directly below the text */}
-              <div className="flex flex-col items-center mt-5">
-                <div className="w-28 rounded-lg overflow-hidden bg-slate-50 border-2 border-amber-300 shadow-sm" style={{ height: '8.5rem' }}>
+              <div className="flex flex-col items-center mt-2">
+                <div className="w-24 rounded-lg overflow-hidden bg-slate-50 border-2 border-amber-300 shadow-sm" style={{ height: '7rem' }}>
                   {photo ? (
                     <img src={photo} alt={student.name} className="w-full h-full object-cover" />
                   ) : (
@@ -179,17 +176,17 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
               </div>
 
               {/* Signatures — principal (left), teacher (right), pinned to the bottom */}
-              <div className="grid grid-cols-2 gap-10 mt-auto text-[14px] text-center">
+              <div className="grid grid-cols-2 gap-10 mt-auto text-[13px] text-center">
                 <div>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
-                  <PrincipalSignature />
+                  <PrincipalSignature height={44} />
                 </div>
                 <div>
                   <p>{endDate.lunar}</p>
                   <p>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
                   <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
-                  <TeacherSignature grade={student.grade} />
+                  <TeacherSignature grade={student.grade} height={44} />
                 </div>
               </div>
             </div>
