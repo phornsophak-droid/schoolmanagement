@@ -6,7 +6,6 @@
 import React, { useRef, useState } from 'react';
 import { Printer, X, Camera } from 'lucide-react';
 import { StudentScore } from '../types';
-import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
@@ -117,17 +116,18 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
         {/* Certificate sheet (landscape) */}
         <div id="merit-cert" className="bg-white rounded-b-2xl">
           {/* Decorative frame image — place the file at public/cert-frame.png */}
-          <div className="relative w-full" style={{ aspectRatio: '1.414 / 1' }}>
-            <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" style={{ filter: 'sepia(1) saturate(1.7) hue-rotate(-12deg) brightness(1.08)' }} />
-            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '6.5% 9% 5.5%' }}>
+          <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
+            <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
+            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '6% 10.5% 5%' }}>
 
-              {/* Header: logo over school name (left), kingdom motto (right) */}
+              {/* Header: CAMKIDS org (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
-                <div className="flex flex-col items-center text-emerald-700">
-                  <SchoolLogo size={58} />
-                  <div className="text-base font-bold mt-0.5">សាលាសហគមន៍ច្បារច្រុះ</div>
+                <div className="flex flex-col items-start text-emerald-800 max-w-[52%]" style={{ fontSize: '1.9cqw' }}>
+                  <img src="/camkids-logo.png" alt="CAMKIDS" className="object-contain" style={{ height: '6.5cqw' }} />
+                  <div className="font-semibold mt-0.5">អង្គការមូលនិធិដើម្បីកុមារកម្ពុជា(ខេមឃីត)</div>
+                  <div className="font-bold">សាលាសហគមន៍ច្បារច្រុះ</div>
                 </div>
-                <div className="text-center text-[16px] text-emerald-800">
+                <div className="text-center text-emerald-800" style={{ fontSize: '1.9cqw' }}>
                   <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
                   <div className="font-semibold">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
                   <div className="text-amber-600 tracking-widest">~ ~ ~ ~ ~</div>
@@ -136,12 +136,12 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
 
               {/* Title */}
               <div className="text-center mt-1">
-                <h1 className="text-6xl font-extrabold text-red-600 tracking-wide" style={{ fontFamily: 'inherit' }}>ប័ណ្ណសរសើរ</h1>
-                <p className="text-2xl font-bold text-slate-700 mt-0.5">នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
+                <h1 className="font-extrabold text-red-600 tracking-wide" style={{ fontFamily: 'inherit', fontSize: '8.5cqw', lineHeight: 1.05 }}>ប័ណ្ណសរសើរ</h1>
+                <p className="font-bold text-slate-700" style={{ fontSize: '3.4cqw' }}>នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
               </div>
 
-              {/* Body — larger text, justified to both margins */}
-              <div className="text-[20px] leading-[1.8] text-justify mt-3">
+              {/* Body — scales with the frame, justified to both margins */}
+              <div className="text-justify mt-4" style={{ fontSize: '2.6cqw', lineHeight: 1.9 }}>
                 <p>
                   សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
                   ភេទ <span className="font-bold">{student.gender}</span>{' '}
