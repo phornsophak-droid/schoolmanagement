@@ -20,7 +20,9 @@ import {
   FileText,
   Table2,
   RotateCcw,
-  Hash
+  Hash,
+  Printer,
+  BarChart2
 } from 'lucide-react';
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
@@ -30,6 +32,7 @@ import SemesterReportCard from './SemesterReportCard';
 import HonorRoll, { HonorEntry } from './HonorRoll';
 import ClassRankingReport, { RankingRow } from './ClassRankingReport';
 import GradebookReportFooter from './GradebookReportFooter';
+import SchoolLogo from './SchoolLogo';
 import * as XLSX from 'xlsx';
 
 // Inline score cell — local text state, commits on blur/Enter so parent
@@ -311,7 +314,8 @@ export default function Gradebook({
     // tab uses the 21 monthly sub-subjects (blank, to be filled).
     const isSem = activeMode === 'semester';
     const examMonth = selectedSemester === '2' ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១';
-    const subjHeaders = isSem ? SEM_SUBJECTS.map(s => s.km) : scoreHeaders;
+    const monthlyHeaders = customSubjects ? customSubjects.map(s => s.km) : scoreHeaders;
+    const subjHeaders = isSem ? SEM_SUBJECTS.map(s => s.km) : monthlyHeaders;
     const header = ['អត្តលេខ', 'ឈ្មោះ', 'ភេទ', ...subjHeaders, 'មូលវិចារគ្រូ'];
     // Keep the class's natural roster order (no alphabetical sort) so the template
     // matches the order the user expects and can be filled/imported row-for-row.
@@ -323,7 +327,7 @@ export default function Gradebook({
         const cells = SEM_SUBJECTS.map(sub => { const v = exam ? sub.get(exam) : null; return v === null || v === undefined ? '' : v; });
         return [sample?.studentId || '', n, sample?.gender || '', ...cells, exam?.remark || ''];
       }
-      return [sample?.studentId || '', n, sample?.gender || '', ...scoreHeaders.map(() => ''), sample?.remark || ''];
+      return [sample?.studentId || '', n, sample?.gender || '', ...monthlyHeaders.map(() => ''), sample?.remark || ''];
     });
     const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
     const wb = XLSX.utils.book_new();
@@ -363,7 +367,7 @@ export default function Gradebook({
         if (genderCol < 0) genderCol = nameCol + 1;
         const scoreStart = Math.max(idCol, nameCol, genderCol) + 1;
         const isSem = activeMode === 'semester';
-        const valCount = isSem ? SEM_SUBJECTS.length : scoreHeaders.length;
+        const valCount = isSem ? SEM_SUBJECTS.length : (customSubjects ? customSubjects.length : scoreHeaders.length);
         let updated = [...students];
         let count = 0;
         for (let i = 1; i < rows.length; i++) { // row 0 = header
@@ -1014,6 +1018,96 @@ export default function Gradebook({
     setIsFormOpen(true);
   };
 
+  const handleTablePaste = (e: React.ClipboardEvent<HTMLTableSectionElement>) => {
+    if (!inlineEdit || activeMode !== 'monthly') return;
+    const text = e.clipboardData.getData('text');
+    if (!text || (!text.includes('\t') && !text.includes('\n'))) return;
+    
+    const target = e.target as HTMLElement;
+    if (target.tagName !== 'INPUT') return;
+    
+    const td = target.closest('td');
+    const tr = target.closest('tr');
+    if (!td || !tr || !tr.parentElement) return;
+    
+    e.preventDefault();
+    
+    const startRow = Array.from(tr.parentElement.children).indexOf(tr);
+    const rowInputs = Array.from(tr.querySelectorAll('input'));
+    const startCol = rowInputs.indexOf(target as HTMLInputElement);
+    
+    if (startRow === -1 || startCol === -1) return;
+    
+    const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
+    const newStudents = [...students];
+    let changed = false;
+
+    rows.forEach((rowText, rOffset) => {
+      const vals = rowText.split('\t');
+      const targetRowIdx = startRow + rOffset;
+      if (targetRowIdx >= monthlyRows.length) return;
+      const stTarget = monthlyRows[targetRowIdx];
+      
+      const stIndexInMain = newStudents.findIndex(s => s.id === stTarget.id);
+      if (stIndexInMain === -1) return;
+      
+      const st = { ...newStudents[stIndexInMain] };
+      
+      vals.forEach((valText, cOffset) => {
+        const valStr = valText.trim().replace(',', '.');
+        const num = parseFloat(valStr);
+        const finalVal = isNaN(num) ? null : num;
+        
+        const targetColIdx = startCol + cOffset;
+        if (viewingEnglish) {
+          if (!customSubjects || targetColIdx >= customSubjects.length) return;
+          const subKey = customSubjects[targetColIdx].key;
+          st.englishScores = { ...(st.englishScores || {}), [subKey]: finalVal };
+        } else {
+          const generalSubjects = [
+            { cat: 'khmer', key: 'listening' },
+            { cat: 'khmer', key: 'speaking' },
+            { cat: 'khmer', key: 'reading' },
+            { cat: 'khmer', key: 'writing' },
+            { cat: 'math', key: 'numbers' },
+            { cat: 'math', key: 'measurement' },
+            { cat: 'math', key: 'geometry' },
+            { cat: 'math', key: 'algebra' },
+            { cat: 'math', key: 'statistics' },
+            ...SCIENCE_SUBJECTS.map(s => ({ cat: 'scienceScores', key: s.key })),
+            ...SOCIAL_SUBJECTS.map(s => ({ cat: 'socialScores', key: s.key })),
+            { cat: 'single', key: 'physicalEducation' },
+            { cat: 'single', key: 'health' },
+            { cat: 'single', key: 'lifeSkills' },
+            { cat: 'single', key: 'foreignLanguage' },
+          ];
+          if (targetColIdx >= generalSubjects.length) return;
+          const mapInfo = generalSubjects[targetColIdx];
+          
+          if (mapInfo.cat === 'khmer') {
+            st.khmer = { ...(st.khmer || {}), [mapInfo.key]: finalVal } as KhmerScore;
+          } else if (mapInfo.cat === 'math') {
+            st.math = { ...(st.math || {}), [mapInfo.key]: finalVal } as MathScore;
+          } else if (mapInfo.cat === 'scienceScores') {
+            st.scienceScores = { ...(st.scienceScores || {}), [mapInfo.key]: finalVal };
+          } else if (mapInfo.cat === 'socialScores') {
+            st.socialScores = { ...(st.socialScores || {}), [mapInfo.key]: finalVal };
+          } else {
+            (st as any)[mapInfo.key] = finalVal;
+          }
+        }
+      });
+      
+      newStudents[stIndexInMain] = st;
+      changed = true;
+    });
+    
+    if (changed) {
+      onSaveStudents(newStudents);
+      alert('បាន Paste ទិន្នន័យពី Excel ចូលតារាងដោយជោគជ័យ!');
+    }
+  };
+
   // Open form to edit student scores
   const handleEditClick = (student: StudentScore) => {
     setEditingStudentId(student.id);
@@ -1422,10 +1516,10 @@ export default function Gradebook({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 print:block print:space-y-0 print:p-0 print:m-0 print:bg-white">
       {/* Class category tabs (principal): General vs Extra */}
       {currentUser?.role !== 'teacher' && (
-        <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-sm border border-slate-100 w-full">
+        <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-sm border border-slate-100 w-full print:hidden">
           <button
             onClick={() => { setClassCategory('general'); setSelectedGrade('ទាំងអស់'); }}
             className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${classCategory === 'general' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/15' : 'text-slate-500 hover:bg-slate-50'}`}
@@ -1514,15 +1608,7 @@ export default function Gradebook({
                 <Table2 size={16} />
                 {inlineEdit ? 'កំពុងបញ្ចូលក្នុងតារាង ✓' : 'បញ្ចូលក្នុងតារាង'}
               </button>
-              {activeMode === 'monthly' && (
-                <button
-                  onClick={() => setTableSort(s => (s === 'list' ? 'rank' : 'list'))}
-                  className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 font-semibold rounded-xl text-sm transition-all border bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                  title="ប្តូររបៀបតម្រៀបជួរ (តាមបញ្ជី / តាមចំណាត់ថ្នាក់)"
-                >
-                  {tableSort === 'list' ? '🔢 តម្រៀប៖ តាមបញ្ជី' : '🏆 តម្រៀប៖ ចំណាត់ថ្នាក់'}
-                </button>
-              )}
+
             </>
           )}
 
@@ -2084,7 +2170,7 @@ export default function Gradebook({
       )}
 
       {/* Mode Switcher Buttons */}
-      <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-full sm:w-fit text-xs font-semibold text-slate-600">
+      <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-full sm:w-fit text-xs font-semibold text-slate-600 print:hidden">
         <button
           onClick={() => setActiveMode('monthly')}
           className={`flex-1 sm:flex-none px-5 py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
@@ -2120,7 +2206,7 @@ export default function Gradebook({
       </div>
 
       {/* List Filter Panel */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3 print:hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <h3 className="font-semibold text-slate-800 text-base">
@@ -2170,6 +2256,30 @@ export default function Gradebook({
               title="ទាញយកតារាងពិន្ទុជា PDF (បោះពុម្ព)"
             >
               🖨 ទាញយក PDF
+            </button>
+
+            {/* Ranking toggle */}
+            {activeMode === 'monthly' && (
+              <button
+                onClick={() => setTableSort(s => (s === 'list' ? 'rank' : 'list'))}
+                className={`px-3 py-1.5 border rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
+                  tableSort === 'rank'
+                    ? 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 hover:text-purple-800'
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-800'
+                }`}
+                title="ប្តូររបៀបតម្រៀបជួរ (តាមបញ្ជី / តាមចំណាត់ថ្នាក់)"
+              >
+                {tableSort === 'list' ? '📊 តារាងចំណាត់ថ្នាក់' : '🔢 តារាងឈ្មោះ'}
+              </button>
+            )}
+
+            {/* Download PDF / Print */}
+            <button
+              onClick={() => window.print()}
+              className="px-3 py-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              title="ទាញយកជាឯកសារ PDF (បោះពុម្ព)"
+            >
+              <Printer size={13} /> ទាញយក PDF
             </button>
 
             {/* Group filter — after-hours classes split into groups */}
@@ -2256,6 +2366,27 @@ export default function Gradebook({
           </div>
         )}
 
+        {/* --- Print Header (Hidden on Screen) --- */}
+        <div className="hidden print:flex flex-col items-center justify-center mb-6 pt-4 text-slate-900 border-b-2 border-slate-900 pb-4">
+          <SchoolLogo className="w-16 h-16 mb-2 grayscale" />
+          <h2 className="text-xl font-bold font-moul text-center leading-relaxed">
+            បញ្ជីរាយនាម និងពិន្ទុសិស្ស
+          </h2>
+          <div className="flex items-center gap-8 mt-3 font-semibold text-sm">
+            <span>ថ្នាក់៖ {selectedGrade === 'ទាំងអស់' ? 'គ្រប់ថ្នាក់' : selectedGrade}</span>
+            {activeMode === 'monthly' && (
+              <span>ខែ៖ {selectedMonth === 'ទាំងអស់' ? 'គ្រប់ខែ' : selectedMonth}</span>
+            )}
+            {activeMode === 'semester' && (
+              <span>ឆមាសទី៖ {selectedSemester}</span>
+            )}
+            {activeMode === 'annual' && (
+              <span>លទ្ធផលប្រចាំឆ្នាំ</span>
+            )}
+            <span>សរុប៖ {activeMode === 'monthly' ? new Set(filteredStudents.map(s => `${s.name.trim()}_${s.grade}`)).size : activeMode === 'semester' ? filteredSemesterStudents.length : filteredAnnualStudents.length} នាក់</span>
+          </div>
+        </div>
+
         {/* Scrollable grid student table listing — header rows & first columns stay frozen */}
         <style>{`
           .gb-scroll thead th { position: sticky; top: 0; z-index: 20; background: #f8fafc; }
@@ -2277,9 +2408,9 @@ export default function Gradebook({
           <div className="gb-print-only" style={{ textAlign: 'center', padding: '8px 0', fontWeight: 'bold', fontSize: '13px' }}>
             សាលាសហគមន៍ច្បារច្រុះ — {activeMode === 'monthly' ? `តារាងពិន្ទុប្រចាំខែ ${selectedMonth}` : activeMode === 'semester' ? `តារាងពិន្ទុឆមាសទី ${selectedSemester}` : 'តារាងលទ្ធផលប្រចាំឆ្នាំ'} • {selectedGrade} • ឆ្នាំសិក្សា ២០២៥-២០២៦
           </div>
-          <div className="gb-scroll overflow-auto max-h-[78vh] border border-slate-100 rounded-xl">
+          <div className="gb-scroll overflow-auto print:overflow-visible max-h-[78vh] print:max-h-none border border-slate-100 print:border-none rounded-xl">
           {activeMode === 'monthly' ? (
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse print:text-black">
               <thead>
                 {viewingEnglish ? (
                   <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500">
@@ -2299,7 +2430,7 @@ export default function Gradebook({
                     <th className="px-4 py-3 text-center">និទ្ទេស</th>
                     <th className="px-4 py-3 text-center">លទ្ធផល</th>
                     <th className="px-4 py-3 text-center">មូលវិចារគ្រូ</th>
-                    <th className="px-4 py-3 text-right">សកម្មភាព</th>
+                    <th className="px-4 py-3 text-right print:hidden">សកម្មភាព</th>
                   </tr>
                 ) : (
                   <>
@@ -2324,7 +2455,7 @@ export default function Gradebook({
                     <th rowSpan={2} className="px-3 py-3 text-center">និទ្ទេស</th>
                     <th rowSpan={2} className="px-3 py-3 text-center">លទ្ធផល</th>
                     <th rowSpan={2} className="px-3 py-3 text-center">មូលវិចារគ្រូ</th>
-                    <th rowSpan={2} className="px-4 py-3 text-right">សកម្មភាព</th>
+                    <th rowSpan={2} className="px-4 py-3 text-right print:hidden">សកម្មភាព</th>
                   </tr>
                   <tr className="bg-slate-50/60 border-b border-slate-100 text-[10px] font-semibold text-slate-400">
                     <th className="px-2 py-2 text-center border-l border-slate-200 font-normal">ស្តាប់</th>
@@ -2346,7 +2477,7 @@ export default function Gradebook({
                   </>
                 )}
               </thead>
-              <tbody className="divide-y divide-slate-50 text-xs text-slate-700">
+              <tbody className="divide-y divide-slate-50 text-xs text-slate-700" onPaste={handleTablePaste}>
                 {monthlyRows.length > 0 ? (
                   monthlyRows.map((st, idx) => {
                     let badgeColors = 'bg-rose-50 text-rose-600 border-rose-200';
@@ -2426,7 +2557,7 @@ export default function Gradebook({
                             ? <RemarkInput value={st.remark} onCommit={text => commitRemark(st, text)} />
                             : <span className="block max-w-[140px] truncate" title={st.remark || ''}>{st.remark || '-'}</span>}
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-3 text-right print:hidden">
                           <div className="flex items-center justify-end gap-1.5">
                             {!customSubjects && (
                               <button
@@ -2485,7 +2616,7 @@ export default function Gradebook({
                   <th className="px-3 py-3 text-center">និទ្ទេស</th>
                   <th className="px-3 py-3 text-center">លទ្ធផល</th>
                   <th className="px-3 py-3 text-center">មូលវិចារគ្រូ</th>
-                  <th className="px-3 py-3 text-right">កំណត់ពិន្ទុឆមាស</th>
+                  <th className="px-3 py-3 text-right print:hidden">កំណត់ពិន្ទុឆមាស</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs text-slate-700">
@@ -2558,7 +2689,7 @@ export default function Gradebook({
                             : <span className="block max-w-[140px] truncate" title={st.examRecord?.remark || ''}>{st.examRecord?.remark || '-'}</span>}
                         </td>
 
-                        <td className="px-3 py-3.5 text-right">
+                        <td className="px-3 py-3.5 text-right print:hidden">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => {
@@ -2614,7 +2745,7 @@ export default function Gradebook({
                   <th className="px-4 py-3.5 text-center">លទ្ធផល</th>
                   <th className="px-4 py-3.5 text-center">មូលវិចារគ្រូ</th>
                   <th className="px-4 py-3.5 text-center">វាយតម្លៃបំណិន/ចរិយា</th>
-                  <th className="px-4 py-3.5 text-right">ព្រឹត្តបត្រពិន្ទុ</th>
+                  <th className="px-4 py-3.5 text-right print:hidden">ព្រឹត្តបត្រពិន្ទុ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs text-slate-700">
@@ -2677,7 +2808,7 @@ export default function Gradebook({
                             <Edit3 size={11} /> បំណិន/ចរិយា
                           </button>
                         </td>
-                        <td className="px-4 py-4 text-right">
+                        <td className="px-4 py-4 text-right print:hidden">
                           <button
                             onClick={() => {
                               const rec = students.find(s => s.name.trim() === st.name.trim() && s.grade === st.grade);

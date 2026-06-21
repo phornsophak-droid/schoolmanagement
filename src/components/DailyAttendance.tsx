@@ -729,6 +729,51 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     triggerToast(`💾 រក្សាទុកវត្តមានគ្រូជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់${client ? ' ☁️ ភ្ជាប់ Supabase ✓' : ' (មិនបានភ្ជាប់ Cloud)'}`, 'success');
   };
 
+  const handleAttendancePaste = (e: React.ClipboardEvent<HTMLTableSectionElement>) => {
+    const text = e.clipboardData.getData('text');
+    if (!text) return;
+    
+    const target = e.target as HTMLElement;
+    let tr = target.closest('tr');
+    
+    e.preventDefault();
+    
+    let startRow = 0;
+    if (tr && tr.parentElement) {
+      startRow = Array.from(tr.parentElement.children).indexOf(tr);
+      if (startRow === -1) startRow = 0;
+    }
+    
+    const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
+    const newMap = { ...activeAttendanceMap };
+    let changed = false;
+
+    rows.forEach((rowText, rOffset) => {
+      const val = rowText.split('\t')[0].trim().toLowerCase();
+      const targetRowIdx = startRow + rOffset;
+      if (targetRowIdx >= displayStudents.length) return;
+      const stTarget = displayStudents[targetRowIdx];
+      
+      let status: 'present' | 'late' | 'permission' | 'absent' | null = null;
+      if (['p', 'វ', '1', 'v', 'present', 'វត្តមាន', 'មក'].includes(val)) status = 'present';
+      else if (['l', 'យ', 'y', 'late', 'យឺត'].includes(val)) status = 'late';
+      else if (['c', 'ច', 'permission', 'ច្បាប់', 'សុំច្បាប់'].includes(val)) status = 'permission';
+      else if (['a', 'អ', '0', 'absent', 'អវត្តមាន', 'អត់ច្បាប់'].includes(val)) status = 'absent';
+      
+      if (status) {
+        newMap[stTarget.id] = status;
+        changed = true;
+      }
+    });
+    
+    if (changed) {
+      setActiveAttendanceMap(newMap);
+      triggerToast('✅ បាន Paste ទិន្នន័យវត្តមានពី Excel រួចរាល់!', 'success');
+    } else {
+      triggerToast('⚠️ មិនមានទិន្នន័យត្រឹមត្រូវសម្រាប់ Paste ទេ! សូមពិនិត្យទិន្នន័យរបស់អ្នកឡើងវិញ។', 'error');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Toast Alert overlay */}
@@ -1137,7 +1182,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                       <th className="px-5 py-3 text-center w-52">{t('att.setStatus')}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100" onPaste={handleAttendancePaste}>
                     {displayStudents.length > 0 ? (
                       displayStudents.map((std, idx) => {
                         const currentStatus = activeAttendanceMap[std.id] || 'present';
