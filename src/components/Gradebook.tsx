@@ -2392,22 +2392,8 @@ export default function Gradebook({
           .gb-scroll thead th { position: sticky; top: 0; z-index: 20; background: #f8fafc; }
           .gb-scroll thead th.gb-corner { z-index: 30; }
           .gb-scroll thead tr:nth-child(2) th { top: 33px; }
-          .gb-print-only { display: none; }
-          @media print {
-            body * { visibility: hidden !important; }
-            #gb-print, #gb-print * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            #gb-print { position: absolute; left: 0; top: 0; width: 100%; overflow: visible !important; max-height: none !important; }
-            #gb-print .rc-no-print { display: none !important; }
-            #gb-print table th:last-child, #gb-print table td:last-child { display: none !important; }
-            #gb-print thead th { position: static !important; }
-            .gb-print-only { display: block !important; }
-            @page { size: A4 landscape; margin: 8mm; }
-          }
         `}</style>
-        <div id="gb-print">
-          <div className="gb-print-only" style={{ textAlign: 'center', padding: '8px 0', fontWeight: 'bold', fontSize: '13px' }}>
-            សាលាសហគមន៍ច្បារច្រុះ — {activeMode === 'monthly' ? `តារាងពិន្ទុប្រចាំខែ ${selectedMonth}` : activeMode === 'semester' ? `តារាងពិន្ទុឆមាសទី ${selectedSemester}` : 'តារាងលទ្ធផលប្រចាំឆ្នាំ'} • {selectedGrade} • ឆ្នាំសិក្សា ២០២៥-២០២៦
-          </div>
+        <div>
           <div className="gb-scroll overflow-auto print:overflow-visible max-h-[78vh] print:max-h-none border border-slate-100 print:border-none rounded-xl">
           {activeMode === 'monthly' ? (
             <table className="w-full text-left border-collapse print:text-black">
