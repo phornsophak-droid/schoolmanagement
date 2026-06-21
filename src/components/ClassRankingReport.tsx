@@ -63,9 +63,12 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
     : period === 'ប្រឡងឆមាសទី១' ? 'ប្រឡងឆមាសទី ១'
     : period === 'ប្រឡងឆមាសទី២' ? 'ប្រឡងឆមាសទី ២'
     : 'ប្រចាំឆ្នាំ';
+  // Auto date: month-end for a monthly report, else today's date.
+  const _today = new Date();
   const dateInfo = isMonth
     ? khmerMonthEnd(period)
-    : { day: '.........', year: '២០២៦', lunar: khmerLunarFull(new Date()) };
+    : { day: toKh(_today.getDate()), year: toKh(_today.getFullYear()), lunar: khmerLunarFull(_today) };
+  const dateMonth = isMonth ? period : KHMER_MONTHS[_today.getMonth()];
 
   // Footer statistics: counts per និទ្ទេស band + scored / unscored, each with girls.
   const fem = (rows: RankingRow[]) => rows.filter(r => r.gender === 'ស្រី').length;
@@ -191,7 +194,7 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
             </div>
             <div>
               <p>{dateInfo.lunar}</p>
-              <p>ច្បារច្រុះ ថ្ងៃទី{dateInfo.day} {isMonth ? `ខែ${period}` : 'ខែ............'} ឆ្នាំ{dateInfo.year}</p>
+              <p>ច្បារច្រុះ ថ្ងៃទី{dateInfo.day} ខែ{dateMonth} ឆ្នាំ{dateInfo.year}</p>
               <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
               <TeacherSignature grade={grade} />
             </div>

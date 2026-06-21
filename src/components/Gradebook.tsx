@@ -29,6 +29,7 @@ import StudentReportCard from './StudentReportCard';
 import SemesterReportCard from './SemesterReportCard';
 import HonorRoll, { HonorEntry } from './HonorRoll';
 import ClassRankingReport, { RankingRow } from './ClassRankingReport';
+import GradebookReportFooter from './GradebookReportFooter';
 import * as XLSX from 'xlsx';
 
 // Inline score cell — local text state, commits on blur/Enter so parent
@@ -2272,10 +2273,11 @@ export default function Gradebook({
             @page { size: A4 landscape; margin: 8mm; }
           }
         `}</style>
-        <div id="gb-print" className="gb-scroll overflow-auto max-h-[78vh] border border-slate-100 rounded-xl">
+        <div id="gb-print">
           <div className="gb-print-only" style={{ textAlign: 'center', padding: '8px 0', fontWeight: 'bold', fontSize: '13px' }}>
             សាលាសហគមន៍ច្បារច្រុះ — {activeMode === 'monthly' ? `តារាងពិន្ទុប្រចាំខែ ${selectedMonth}` : activeMode === 'semester' ? `តារាងពិន្ទុឆមាសទី ${selectedSemester}` : 'តារាងលទ្ធផលប្រចាំឆ្នាំ'} • {selectedGrade} • ឆ្នាំសិក្សា ២០២៥-២០២៦
           </div>
+          <div className="gb-scroll overflow-auto max-h-[78vh] border border-slate-100 rounded-xl">
           {activeMode === 'monthly' ? (
             <table className="w-full text-left border-collapse">
               <thead>
@@ -2701,6 +2703,10 @@ export default function Gradebook({
               </tbody>
             </table>
           )}
+          </div>
+
+          {/* និទ្ទេស distribution stats + auto-dated signatures (shown + printed) */}
+          <GradebookReportFooter roster={rankingData().roster} grade={selectedGrade} />
         </div>
 
         {/* Footer actions below the score table (monthly mode) */}
