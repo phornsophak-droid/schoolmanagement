@@ -125,47 +125,46 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
                 <p className="text-lg font-bold text-slate-700 mt-1">នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
               </div>
 
-              {/* Body + photo */}
-              <div className="flex gap-6 mt-5">
-                <div className="flex-1 text-[15px] leading-loose text-justify">
-                  <p>
-                    សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
-                    {resolvedDob
-                      ? <>កើតនៅ <span className="font-semibold">{resolvedDob}</span> </>
-                      : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
-                    រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
-                    ដែលទទួលបានលទ្ធផលក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
-                    <span className="font-bold text-red-700">{niddes.km} ({niddes.en})</span> ប្រចាំខែ {student.month}{' '}
-                    ក្នុងឆ្នាំសិក្សា <span className="font-bold">២០២៥-២០២៦</span> ។
-                  </p>
-                  <p className="mt-2">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
-                </div>
-
-                {/* Photo */}
-                <div className="shrink-0">
-                  <div className="w-28 h-36 rounded-lg overflow-hidden bg-slate-50 border-2 border-amber-300 shadow-sm">
-                    {photo ? (
-                      <img src={photo} alt={student.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <button onClick={() => fileRef.current?.click()} className="rc-no-print w-full h-full flex flex-col items-center justify-center gap-1 text-slate-400 hover:bg-slate-100 transition-colors">
-                        <Camera size={22} />
-                        <span className="text-[10px] font-bold">បញ្ចូលរូបថត</span>
-                      </button>
-                    )}
-                  </div>
-                  {photo && (
-                    <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-1 w-full text-[10px] text-blue-500 hover:underline text-center">ប្តូររូប</button>
-                  )}
-                </div>
+              {/* Body */}
+              <div className="text-[15px] leading-loose text-justify mt-4">
+                <p>
+                  សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
+                  {resolvedDob
+                    ? <>កើតនៅ <span className="font-semibold">{resolvedDob}</span> </>
+                    : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
+                  រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
+                  ដែលទទួលបានលទ្ធផលក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
+                  <span className="font-bold text-red-700">{niddes.km} ({niddes.en})</span> ប្រចាំខែ {student.month}{' '}
+                  ក្នុងឆ្នាំសិក្សា <span className="font-bold">២០២៥-២០២៦</span> ។
+                </p>
+                <p className="mt-2">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
               </div>
 
-              {/* Signatures */}
-              <div className="grid grid-cols-2 gap-10 mt-8 text-[12px] text-center">
+              {/* Signatures — principal (left), student photo (center), teacher (right) */}
+              <div className="grid grid-cols-3 items-end gap-6 mt-6 text-[12px] text-center">
                 <div>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
                   <PrincipalSignature />
                 </div>
+
+                {/* Student photo — centered between the two signatures */}
+                <div className="flex flex-col items-center">
+                  <div className="w-24 h-30 rounded-lg overflow-hidden bg-slate-50 border-2 border-amber-300 shadow-sm" style={{ height: '7.5rem' }}>
+                    {photo ? (
+                      <img src={photo} alt={student.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <button onClick={() => fileRef.current?.click()} className="rc-no-print w-full h-full flex flex-col items-center justify-center gap-1 text-slate-400 hover:bg-slate-100 transition-colors">
+                        <Camera size={20} />
+                        <span className="text-[10px] font-bold">បញ្ចូលរូបថត</span>
+                      </button>
+                    )}
+                  </div>
+                  {photo && (
+                    <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-1 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
+                  )}
+                </div>
+
                 <div>
                   <p>{endDate.lunar}</p>
                   <p>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
