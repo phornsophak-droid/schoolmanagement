@@ -26,6 +26,7 @@ import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIE
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
 import { SEM_SUBJECTS } from '../utils/scoring';
 import StudentReportCard from './StudentReportCard';
+import MeritCertificate from './MeritCertificate';
 import SemesterReportCard from './SemesterReportCard';
 import HonorRoll, { HonorEntry } from './HonorRoll';
 import ClassRankingReport, { RankingRow } from './ClassRankingReport';
@@ -217,6 +218,7 @@ export default function Gradebook({
 
   // The per-student monthly report card (general classes only).
   const [reportCardStudent, setReportCardStudent] = useState<StudentScore | null>(null);
+  const [meritStudent, setMeritStudent] = useState<StudentScore | null>(null);
   // The per-student semester / annual report card.
   const [semReportStudent, setSemReportStudent] = useState<StudentScore | null>(null);
   const [semReportPeriod, setSemReportPeriod] = useState<1 | 2 | 'year'>(1);
@@ -2270,7 +2272,14 @@ export default function Gradebook({
             #gb-print table th:last-child, #gb-print table td:last-child { display: none !important; }
             #gb-print thead th { position: static !important; }
             .gb-print-only { display: block !important; }
-            @page { size: A4 landscape; margin: 8mm; }
+            /* Tidy, compact grid that fits the page */
+            #gb-print { font-size: 8px !important; }
+            #gb-print table { width: 100% !important; border-collapse: collapse !important; }
+            #gb-print th, #gb-print td { border: 0.5px solid #94a3b8 !important; padding: 1px 2px !important; font-size: 8px !important; line-height: 1.25 !important; text-align: center !important; }
+            #gb-print thead th { background: #eef2f7 !important; font-weight: 700; }
+            #gb-print td:nth-child(3), #gb-print th:nth-child(3) { text-align: left !important; white-space: nowrap; }
+            #gb-print input, #gb-print textarea, #gb-print select { border: none !important; padding: 0 !important; background: transparent !important; text-align: center !important; font-size: 8px !important; box-shadow: none !important; -webkit-appearance: none; appearance: none; }
+            @page { size: A4 landscape; margin: 7mm; }
           }
         `}</style>
         <div id="gb-print">
@@ -2435,6 +2444,15 @@ export default function Gradebook({
                                 title="ព្រឹត្តបត្រពិន្ទុសិស្ស"
                               >
                                 <FileText size={11} /> ព្រឹត្តបត្រ
+                              </button>
+                            )}
+                            {!customSubjects && (st.gradeLetter === 'A' || st.gradeLetter === 'B') && (
+                              <button
+                                onClick={() => setMeritStudent(st)}
+                                className="p-1 px-1.5 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 text-amber-700 hover:text-amber-800 transition-all font-medium inline-flex items-center gap-1 text-[10px]"
+                                title="ប័ណ្ណសរសើរ (និទ្ទេស A/B)"
+                              >
+                                🏅 ប័ណ្ណសរសើរ
                               </button>
                             )}
                             <button
@@ -2822,6 +2840,14 @@ export default function Gradebook({
           student={reportCardStudent}
           students={students}
           onClose={() => setReportCardStudent(null)}
+        />
+      )}
+
+      {meritStudent && (
+        <MeritCertificate
+          student={meritStudent}
+          students={students}
+          onClose={() => setMeritStudent(null)}
         />
       )}
 
