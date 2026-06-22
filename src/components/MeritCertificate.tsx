@@ -123,7 +123,7 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
               {/* Header: CAMKIDS org (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
                 <div className="flex flex-col items-center text-emerald-700" style={{ fontSize: '2cqw' }}>
-                  <SchoolLogo size={56} />
+                  <SchoolLogo size={96} />
                   <div className="font-bold mt-0.5">សាលាសហគមន៍ច្បារច្រុះ</div>
                 </div>
                 <div className="text-center text-emerald-800" style={{ fontSize: '1.9cqw' }}>
@@ -177,7 +177,7 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
                 <div>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
-                  <PrincipalSignature height={48} />
+                  <PrincipalSignature height={80} />
                 </div>
                 <div>
                   <p style={{ fontSize: '1.45cqw', whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
