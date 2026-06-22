@@ -1055,6 +1055,7 @@ export default function Dashboard({
                 const palette = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#14b8a6'];
                 const color = palette[idx % palette.length];
                 const pct = absenceReasonStats.max > 0 ? (row.count / absenceReasonStats.max) * 100 : 0;
+                const pctTotal = absenceReasonStats.total > 0 ? Math.round((row.count / absenceReasonStats.total) * 100) : 0;
                 return (
                   <div key={row.reason} className="flex items-center gap-3">
                     <div className="w-[44%] md:w-[34%] shrink-0 text-[11.5px] font-semibold text-slate-700 text-right truncate" title={row.reason}>{row.reason}</div>
@@ -1066,6 +1067,7 @@ export default function Dashboard({
                         <span className="text-[11px] font-black text-white">{row.count}</span>
                       </div>
                     </div>
+                    <div className="w-10 shrink-0 text-[11px] font-bold text-slate-500 text-right">{pctTotal}%</div>
                   </div>
                 );
               })}
