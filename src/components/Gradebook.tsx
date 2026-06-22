@@ -318,6 +318,13 @@ export default function Gradebook({
     const roster: RankingRow[] = rows.map(s => ({ name: s.name, gender: s.gender, overallAvg: scoreOf(s) }));
     return { roster, period };
   };
+  // Merit certificate: students + period phrase + per-mode average for the current view.
+  const meritLetterOf = (v: number | null | undefined): string => (v == null || v <= 0) ? '' : v >= 9 ? 'A' : v >= 8 ? 'B' : v >= 7 ? 'C' : v >= 6 ? 'D' : v >= 5 ? 'E' : 'F';
+  const meritInfo = (): { list: any[]; scoreOf: (s: any) => number | null; phrase: string } => {
+    if (activeMode === 'semester') return { list: filteredSemesterStudents, scoreOf: (s) => s.semesterAvg ?? null, phrase: `ប្រចាំ​ឆមាសទី ${selectedSemester} ឆ្នាំសិក្សា ២០២៥-២០២៦` };
+    if (activeMode === 'annual') return { list: filteredAnnualStudents, scoreOf: (s) => s.annualAvg ?? null, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` };
+    return { list: filteredStudents, scoreOf: (s) => s.overallAvg ?? null, phrase: `ប្រចាំខែ${selectedMonth} ឆ្នាំសិក្សា ២០២៥-២០២៦` };
+  };
   // Top-5 honor roll for the current mode (month / semester / year).
   const honorData = (): { subtitle: string; entries: HonorEntry[] } => {
     let roster: any[] = [];
@@ -3040,9 +3047,12 @@ export default function Gradebook({
             </div>
             <div className="overflow-auto p-2">
               {(() => {
-                const ab = filteredStudents.filter(s => s.gradeLetter === 'A' || s.gradeLetter === 'B');
-                if (ab.length === 0) return <p className="text-center text-slate-400 text-xs py-10">គ្មានសិស្សនិទ្ទេស A ឬ B សម្រាប់ថ្នាក់ និងខែនេះទេ។</p>;
-                return ab.map(s => (
+                const info = meritInfo();
+                const ab = info.list.filter(s => { const l = meritLetterOf(info.scoreOf(s)); return l === 'A' || l === 'B'; });
+                if (ab.length === 0) return <p className="text-center text-slate-400 text-xs py-10">គ្មានសិស្សនិទ្ទេស A ឬ B សម្រាប់ {info.phrase} ទេ។</p>;
+                return ab.map(s => {
+                  const letter = meritLetterOf(info.scoreOf(s));
+                  return (
                   <button
                     key={s.id}
                     onClick={() => { setMeritStudent(s); setMeritPickerOpen(false); }}
@@ -3051,23 +3061,32 @@ export default function Gradebook({
                     <span className="font-semibold text-slate-700 text-sm">{s.name}</span>
                     <span className="flex items-center gap-2 text-[11px]">
                       <span className="text-slate-400">{s.grade}</span>
-                      <span className={`px-2 py-0.5 rounded-full font-bold ${s.gradeLetter === 'A' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{s.gradeLetter}</span>
+                      <span className={`px-2 py-0.5 rounded-full font-bold ${letter === 'A' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{letter}</span>
                     </span>
                   </button>
-                ));
+                  );
+                });
               })()}
             </div>
           </div>
         </div>
       )}
 
-      {meritStudent && (
-        <MeritCertificate
-          student={meritStudent}
-          students={students}
-          onClose={() => setMeritStudent(null)}
-        />
-      )}
+      {meritStudent && (() => {
+        const info = meritInfo();
+        const phrase = (activeMode === 'monthly' && selectedMonth === 'ទាំងអស់')
+          ? `ប្រចាំខែ${meritStudent.month} ឆ្នាំសិក្សា ២០២៥-២០២៦`
+          : info.phrase;
+        return (
+          <MeritCertificate
+            student={meritStudent}
+            students={students}
+            scoreOverride={info.scoreOf(meritStudent)}
+            periodPhrase={phrase}
+            onClose={() => setMeritStudent(null)}
+          />
+        );
+      })()}
 
       {semReportStudent && (
         <SemesterReportCard

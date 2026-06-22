@@ -14,6 +14,8 @@ import { khmerLunarFull } from '../utils/khmerDate';
 interface MeritCertificateProps {
   student: StudentScore;
   students: StudentScore[]; // full list — to resolve dob from any of the student's rows
+  scoreOverride?: number | null; // the average for the active period (semester/annual)
+  periodPhrase?: string;         // e.g. "ប្រចាំខែមិថុនា ឆ្នាំសិក្សា ២០២៥-២០២៦"
   onClose: () => void;
 }
 
@@ -54,9 +56,10 @@ const monthEndDate = (month: string) => {
   return { day: toKh(MONTH_LAST_DAY[idx]), year: toKh(yearNum), lunar: khmerLunarFull(date) };
 };
 
-export default function MeritCertificate({ student, students, onClose }: MeritCertificateProps) {
-  const niddes = gradeBand(student.overallAvg);
+export default function MeritCertificate({ student, students, scoreOverride, periodPhrase, onClose }: MeritCertificateProps) {
+  const niddes = gradeBand(scoreOverride ?? student.overallAvg);
   const endDate = monthEndDate(student.month);
+  const period = periodPhrase || `ប្រចាំខែ${student.month} ឆ្នាំសិក្សា ២០២៥-២០២៦`;
 
   // Date of birth — fall back to any of this student's rows (by អត្តលេខ, then name).
   const dobFrom = (pred: (s: StudentScore) => boolean) => students.find(s => pred(s) && !!s.dob)?.dob;
@@ -150,13 +153,13 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
                   រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
                   ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
                   <span className="font-bold text-red-700">{niddes.km} ({niddes.en})</span>
-                  {' '}ប្រចាំឆ្នាំសិក្សា <span className="font-bold">២០២៥-២០២៦</span> ។
+                  {' '}<span className="font-bold">{period}</span> ។
                 </p>
                 <p className="mt-1">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
               </div>
 
               {/* Signatures — principal (left), student photo (center), teacher (right) */}
-              <div className="grid grid-cols-3 gap-4 mt-auto text-center items-end" style={{ fontSize: '1.9cqw' }}>
+              <div className="grid gap-3 mt-auto text-center items-end" style={{ gridTemplateColumns: '1fr auto 1fr', fontSize: '1.9cqw' }}>
                 <div style={{ transform: 'translateX(-12%)' }}>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
