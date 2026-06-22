@@ -41,7 +41,7 @@ export default function PrincipalSignature({ height = 88 }: { height?: number | 
           alt="ហត្ថលេខានាយក"
           onClick={() => ref.current?.click()}
           title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
-          style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply' }}
+          style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'contrast(1.45) brightness(1.12)' }}
         />
       ) : (
         <button

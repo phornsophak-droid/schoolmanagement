@@ -163,7 +163,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div style={{ transform: 'translateX(-12%)' }}>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
-                  <PrincipalSignature height="6.5cqw" />
+                  <PrincipalSignature height="8.5cqw" />
                 </div>
 
                 {/* Photo — centered between នាយក & គ្រូ. Empty box is screen-only (click to add). */}
