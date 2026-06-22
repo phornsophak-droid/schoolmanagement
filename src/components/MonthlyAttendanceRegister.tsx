@@ -412,7 +412,7 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
             </div>
             <div>
               <p>{sigDate}</p>
-              <p>ច្បារច្រុះ ថ្ងៃទី......... ខែ{monthName} ឆ្នាំ{toKh(year)}</p>
+              <p>ច្បារច្រុះ ថ្ងៃទី{toKh(daysInMonth)} ខែ{monthName} ឆ្នាំ{toKh(year)}</p>
               <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
               <TeacherSignature grade={grade} />
             </div>
