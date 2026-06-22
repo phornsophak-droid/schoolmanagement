@@ -37,7 +37,17 @@ const niddesOf = (v: number | null | undefined): string => {
   if (v >= 5) return 'មធ្យម';
   return 'ខ្សោយ';
 };
+const letterOf = (v: number | null | undefined): string => {
+  if (v === null || v === undefined || v <= 0) return '';
+  if (v >= 9) return 'A';
+  if (v >= 8) return 'B';
+  if (v >= 7) return 'C';
+  if (v >= 6) return 'D';
+  if (v >= 5) return 'E';
+  return 'F';
+};
 const NIDDES_BANDS = ['ល្អប្រសើរ', 'ល្អណាស់', 'ល្អ', 'ល្អបង្គួរ', 'មធ្យម', 'ខ្សោយ'];
+const BAND_LETTER: Record<string, string> = { 'ល្អប្រសើរ': 'A', 'ល្អណាស់': 'B', 'ល្អ': 'C', 'ល្អបង្គួរ': 'D', 'មធ្យម': 'E', 'ខ្សោយ': 'F' };
 
 const genderShort = (g: string) => (g === 'ស្រី' ? 'ស' : 'ប');
 
@@ -105,7 +115,7 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
       <td className="border border-slate-400 px-1 py-0.5">{r ? genderShort(r.gender) : ''}</td>
       <td className="border border-slate-400 px-1 py-0.5 font-mono">{r ? (r.overallAvg ?? 0).toFixed(2) : ''}</td>
       <td className="border border-slate-400 px-1 py-0.5">{r ? rankOf(r.overallAvg) : ''}</td>
-      <td className="border border-slate-400 px-1 py-0.5">{r ? (niddesOf(r.overallAvg) || 'គ្មានចំណាត់ថ្នាក់') : ''}</td>
+      <td className="border border-slate-400 px-1 py-0.5">{r ? (niddesOf(r.overallAvg) ? `${niddesOf(r.overallAvg)} (${letterOf(r.overallAvg)})` : 'គ្មានចំណាត់ថ្នាក់') : ''}</td>
     </tr>
   );
 
@@ -165,12 +175,15 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
 
           {/* Footer statistics */}
           <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 mt-3 text-[10.5px]">
-            {bandStats.map(s => (
+            {bandStats.map(s => {
+              const pct = roster.length > 0 ? Math.round((s.total / roster.length) * 100) : 0;
+              return (
               <div key={s.band} className="flex justify-between border-b border-dotted border-slate-200">
-                <span>និទ្ទេស {s.band}៖ <b>{toKh(s.total)}</b> នាក់</span>
+                <span>និទ្ទេស {s.band} ({BAND_LETTER[s.band]})៖ <b>{toKh(s.total)}</b> នាក់ ({pct}%)</span>
                 <span>ស្រី {toKh(s.female)} នាក់</span>
               </div>
-            ))}
+              );
+            })}
             <div className="flex justify-between border-b border-dotted border-slate-300 font-bold">
               <span>សិស្សមានចំណាត់ថ្នាក់៖ {toKh(scored.length)} នាក់</span>
               <span>ស្រី {toKh(scoredFemale)} នាក់</span>
