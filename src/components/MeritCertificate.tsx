@@ -121,7 +121,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
           {/* Decorative frame image — place the file at public/cert-frame.png */}
           <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
             <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
-            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '10% 13% 12%' }}>
+            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '9% 13% 10%' }}>
 
               {/* Header: CAMKIDS org (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
@@ -185,7 +185,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div style={{ transform: 'translateX(-12%)' }}>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
-                  <PrincipalSignature height="8.5cqw" />
+                  <PrincipalSignature height="7cqw" />
                 </div>
 
                 {/* Spacer keeps the principal & teacher columns where they were (photo moved up). */}
