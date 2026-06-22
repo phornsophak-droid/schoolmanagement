@@ -121,7 +121,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
           {/* Decorative frame image — place the file at public/cert-frame.png */}
           <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
             <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
-            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7% 9.5% 11.5%' }}>
+            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7% 12.5% 11.5%' }}>
 
               {/* Header: CAMKIDS org (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
