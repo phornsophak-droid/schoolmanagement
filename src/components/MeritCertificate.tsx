@@ -162,7 +162,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               <div className="flex justify-center mt-1">
                 {photo ? (
                   <div className="flex flex-col items-center">
-                    <div className="rounded-lg overflow-hidden border-2 border-amber-300 shadow-sm" style={{ width: '5.5cqw', height: '6.5cqw' }}>
+                    <div className="rounded-lg overflow-hidden border-2 border-amber-300 shadow-sm" style={{ width: '4.5cqw', height: '5.5cqw' }}>
                       <img src={photo} alt={student.name} className="w-full h-full object-cover" />
                     </div>
                     <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-0.5 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
@@ -171,7 +171,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   <button
                     onClick={() => fileRef.current?.click()}
                     className="rc-no-print flex flex-col items-center justify-center gap-1 text-slate-300 hover:text-blue-500 hover:border-blue-300 border border-dashed border-slate-200 rounded-lg"
-                    style={{ width: '5.5cqw', height: '6.5cqw' }}
+                    style={{ width: '4.5cqw', height: '5.5cqw' }}
                     title="ចុចដើម្បីបញ្ចូលរូបថត"
                   >
                     <Camera size={18} />
@@ -185,7 +185,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div style={{ transform: 'translateX(-12%)' }}>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
-                  <PrincipalSignature height="6cqw" />
+                  <PrincipalSignature height="8.5cqw" />
                 </div>
 
                 {/* Spacer keeps the principal & teacher columns where they were (photo moved up). */}
@@ -195,7 +195,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
                   <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
                   <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
-                  <TeacherSignature grade={student.grade} height="4.5cqw" />
+                  <TeacherSignature grade={student.grade} height="6.5cqw" />
                 </div>
               </div>
             </div>

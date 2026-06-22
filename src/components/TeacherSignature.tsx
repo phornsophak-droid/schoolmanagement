@@ -51,7 +51,7 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
           alt="ហត្ថលេខាគ្រូ"
           onClick={() => ref.current?.click()}
           title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
-          style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'contrast(2.4) brightness(1.18) saturate(1.5)' }}
+          style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'contrast(1.5) brightness(1.03) saturate(1.3)' }}
         />
       ) : (
         <button
