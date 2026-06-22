@@ -121,7 +121,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
           {/* Decorative frame image — place the file at public/cert-frame.png */}
           <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
             <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
-            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7.5% 13% 14%' }}>
+            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7.5% 13% 15.5%' }}>
 
               {/* Header: CAMKIDS org (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
@@ -143,7 +143,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               </div>
 
               {/* Body — scales with the frame, justified to both margins */}
-              <div className="text-justify mt-1" style={{ fontSize: '2.3cqw', lineHeight: 1.3 }}>
+              <div className="text-justify mt-1" style={{ fontSize: '2.3cqw', lineHeight: 1.18 }}>
                 <p>
                   សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
                   ភេទ <span className="font-bold">{student.gender}</span>{' '}
@@ -162,7 +162,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               <div className="flex justify-center mt-1">
                 {photo ? (
                   <div className="flex flex-col items-center">
-                    <div className="rounded-lg overflow-hidden border-2 border-amber-300 shadow-sm" style={{ width: '7cqw', height: '8.5cqw' }}>
+                    <div className="rounded-lg overflow-hidden border-2 border-amber-300 shadow-sm" style={{ width: '5.5cqw', height: '6.5cqw' }}>
                       <img src={photo} alt={student.name} className="w-full h-full object-cover" />
                     </div>
                     <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-0.5 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
@@ -171,7 +171,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   <button
                     onClick={() => fileRef.current?.click()}
                     className="rc-no-print flex flex-col items-center justify-center gap-1 text-slate-300 hover:text-blue-500 hover:border-blue-300 border border-dashed border-slate-200 rounded-lg"
-                    style={{ width: '7cqw', height: '8.5cqw' }}
+                    style={{ width: '5.5cqw', height: '6.5cqw' }}
                     title="ចុចដើម្បីបញ្ចូលរូបថត"
                   >
                     <Camera size={18} />
@@ -185,7 +185,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div style={{ transform: 'translateX(-12%)' }}>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
-                  <PrincipalSignature height="7cqw" />
+                  <PrincipalSignature height="6cqw" />
                 </div>
 
                 {/* Spacer keeps the principal & teacher columns where they were (photo moved up). */}
