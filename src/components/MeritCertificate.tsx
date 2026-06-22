@@ -158,7 +158,29 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <p className="mt-1">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
               </div>
 
-              {/* Signatures — principal (left), student photo (center), teacher (right) */}
+              {/* Student photo — centered just below the text. Empty box is screen-only (click to add). */}
+              <div className="flex justify-center mt-1">
+                {photo ? (
+                  <div className="flex flex-col items-center">
+                    <div className="rounded-lg overflow-hidden border-2 border-amber-300 shadow-sm" style={{ width: '8.5cqw', height: '10.5cqw' }}>
+                      <img src={photo} alt={student.name} className="w-full h-full object-cover" />
+                    </div>
+                    <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-0.5 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="rc-no-print flex flex-col items-center justify-center gap-1 text-slate-300 hover:text-blue-500 hover:border-blue-300 border border-dashed border-slate-200 rounded-lg"
+                    style={{ width: '8.5cqw', height: '10.5cqw' }}
+                    title="ចុចដើម្បីបញ្ចូលរូបថត"
+                  >
+                    <Camera size={18} />
+                    <span className="text-[9px]">បញ្ចូលរូប</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Signatures — principal (left), spacer (center), teacher (right) */}
               <div className="grid gap-3 mt-auto text-center items-end" style={{ gridTemplateColumns: '1fr auto 1fr', fontSize: '1.9cqw' }}>
                 <div style={{ transform: 'translateX(-12%)' }}>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
@@ -166,27 +188,8 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   <PrincipalSignature height="8.5cqw" />
                 </div>
 
-                {/* Photo — centered between នាយក & គ្រូ. Empty box is screen-only (click to add). */}
-                <div className="flex flex-col items-center self-center">
-                  {photo ? (
-                    <>
-                      <div className="rounded-lg overflow-hidden border-2 border-amber-300 shadow-sm" style={{ width: '6.5cqw', height: '8cqw' }}>
-                        <img src={photo} alt={student.name} className="w-full h-full object-cover" />
-                      </div>
-                      <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-1 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => fileRef.current?.click()}
-                      className="rc-no-print flex flex-col items-center justify-center gap-1 text-slate-300 hover:text-blue-500 hover:border-blue-300 border border-dashed border-slate-200 rounded-lg"
-                      style={{ width: '6.5cqw', height: '8cqw' }}
-                      title="ចុចដើម្បីបញ្ចូលរូបថត"
-                    >
-                      <Camera size={16} />
-                      <span className="text-[9px]">បញ្ចូលរូប</span>
-                    </button>
-                  )}
-                </div>
+                {/* Spacer keeps the principal & teacher columns where they were (photo moved up). */}
+                <div style={{ width: '6.5cqw' }} aria-hidden />
 
                 <div>
                   <p style={{ fontSize: '1.4cqw' }}>{endDate.lunar}</p>
