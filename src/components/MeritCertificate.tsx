@@ -121,7 +121,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
           {/* Decorative frame image — place the file at public/cert-frame.png */}
           <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
             <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
-            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '9% 13% 10%' }}>
+            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '6% 13% 12%' }}>
 
               {/* Header: CAMKIDS org (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
@@ -192,8 +192,8 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div style={{ width: '6.5cqw' }} aria-hidden />
 
                 <div>
-                  <p style={{ fontSize: '1.4cqw' }}>{endDate.lunar}</p>
-                  <p style={{ fontSize: '1.4cqw' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
+                  <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
+                  <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
                   <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
                   <TeacherSignature grade={student.grade} height="4.5cqw" />
                 </div>
