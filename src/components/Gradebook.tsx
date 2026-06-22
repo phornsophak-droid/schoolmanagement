@@ -628,6 +628,7 @@ export default function Gradebook({
 
   // Official extras: student ID + free-text note.
   const [formStudentId, setFormStudentId] = useState('');
+  const [formDob, setFormDob] = useState('');
   const [formNote, setFormNote] = useState('');
   const [formRemark, setFormRemark] = useState('');
 
@@ -1095,6 +1096,7 @@ export default function Gradebook({
     setForeignLanguage('');
     setEnglishScores({});
     setFormStudentId('');
+    setFormDob('');
     setFormNote('');
     setFormRemark('');
 
@@ -1216,6 +1218,7 @@ export default function Gradebook({
     setLifeSkills(student.lifeSkills !== null ? student.lifeSkills.toString() : '');
     setForeignLanguage(student.foreignLanguage !== null ? student.foreignLanguage.toString() : '');
     setFormStudentId(student.studentId || '');
+    setFormDob(student.dob || '');
     setFormNote(student.note || '');
     setFormRemark(student.remark || '');
 
@@ -1248,6 +1251,7 @@ export default function Gradebook({
     setLifeSkills(record?.lifeSkills != null ? record.lifeSkills.toString() : '');
     setForeignLanguage(record?.foreignLanguage != null ? record.foreignLanguage.toString() : '');
     setFormStudentId(record?.studentId || '');
+    setFormDob(record?.dob || (record ? students.find(s => s.name.trim() === record.name.trim() && s.dob)?.dob || '' : ''));
     setFormNote(record?.note || '');
     setFormRemark(record?.remark || '');
     // Sub-subject + English categories
@@ -1292,6 +1296,7 @@ export default function Gradebook({
       grade: formGrade,
       month: formMonth,
       studentId: formStudentId.trim() || undefined,
+      dob: formDob.trim() || undefined,
       note: formNote.trim() || undefined,
       remark: formRemark.trim() || undefined,
       khmer: {
@@ -1344,6 +1349,20 @@ export default function Gradebook({
     } else {
       // Add a brand-new record
       updatedList = [...students, calculatedPayload];
+    }
+
+    // Auto-propagate the date of birth onto every record of the same student
+    // (all months + their after-hours classes, matched by name ignoring the
+    // class suffix), so it's entered once and flows to every report card and
+    // certificate automatically.
+    const dobVal = formDob.trim();
+    if (dobVal) {
+      const k = idKey(calculatedPayload.name, calculatedPayload.gender);
+      updatedList = updatedList.map(s =>
+        s.id !== calculatedPayload.id && idKey(s.name, s.gender) === k && (s.dob || '') !== dobVal
+          ? { ...s, dob: dobVal }
+          : s
+      );
     }
 
     onSaveStudents(updatedList);
@@ -1852,15 +1871,27 @@ export default function Gradebook({
                 )}
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">អត្តលេខ</label>
-                <input
-                  type="text"
-                  value={formStudentId}
-                  onChange={(e) => setFormStudentId(e.target.value)}
-                  placeholder="ឧ. 17804"
-                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-slate-800"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">អត្តលេខ</label>
+                  <input
+                    type="text"
+                    value={formStudentId}
+                    onChange={(e) => setFormStudentId(e.target.value)}
+                    placeholder="ឧ. 17804"
+                    className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 mb-1">ថ្ងៃខែឆ្នាំកំណើត</label>
+                  <input
+                    type="text"
+                    value={formDob}
+                    onChange={(e) => setFormDob(e.target.value)}
+                    placeholder="ឧ. 15/03/2014"
+                    className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-slate-800"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
