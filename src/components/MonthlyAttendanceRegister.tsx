@@ -194,7 +194,7 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
     const reader = new FileReader();
     reader.onload = ev => {
       try {
-        const wb = XLSX.read(ev.target?.result, { type: 'array' });
+        const wb = XLSX.read(new Uint8Array(ev.target!.result as ArrayBuffer), { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
         // Locate the header row (has 'អត្តលេខ' and a name column).
