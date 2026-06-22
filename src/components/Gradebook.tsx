@@ -22,7 +22,8 @@ import {
   RotateCcw,
   Hash,
   Printer,
-  BarChart2
+  BarChart2,
+  CalendarDays
 } from 'lucide-react';
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
@@ -352,6 +353,7 @@ export default function Gradebook({
 
   // ---- Score import / template (Excel/CSV) ----
   const scoreFileRef = useRef<HTMLInputElement>(null);
+  const dobFileRef = useRef<HTMLInputElement>(null);
   // Subject column headers (after Name & Gender) for the import template / parser.
   const GENERAL_SCORE_HEADERS = [
     'ស្តាប់', 'និយាយ', 'អាន', 'សរសេរ',
@@ -571,6 +573,78 @@ export default function Gradebook({
     }
     onSaveStudents(updated);
     alert(`បានចម្លងអត្តលេខ ${filled} កំណត់ត្រា ✓ ពីថ្នាក់ទូទៅ (រួមថ្នាក់ក្រៅម៉ោងរបស់សិស្សដូចគ្នា)។\nនៅសល់ ${stillMissing} នាក់ ឈ្មោះមិនត្រូវគ្នាក្នុងថ្នាក់ទូទៅ — សូមបញ្ចូលដោយដៃ។`);
+  };
+
+  // Import every student's date of birth from the official roster spreadsheet
+  // (បញ្ជីឈ្មោះសិស្ស), all class sheets at once. Each sheet's columns may shift,
+  // so headers are detected per sheet. DOB is matched onto records by អត្តលេខ
+  // first, then by full name (គោត្តនាម + នាម), and applied across every record
+  // of the student (all months + after-hours classes) so it fills automatically.
+  const handleImportDob = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const clean = (v: any) => String(v ?? '').replace(/[﻿​]/g, '').trim();
+    const isDobLike = (s: string) => /\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}/.test(s);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const wb = XLSX.read(new Uint8Array(ev.target!.result as ArrayBuffer), { type: 'array' });
+        const byId = new Map<string, string>();
+        const byName = new Map<string, string>();
+        wb.SheetNames.forEach(sn => {
+          // raw:false so the text DOB cells (e.g. "14-11-2013") stay strings.
+          const rows = XLSX.utils.sheet_to_json<any[]>(wb.Sheets[sn], { header: 1, blankrows: false, raw: false });
+          // The DOB column (កំណើត) is present on every sheet; anchor on it.
+          const hIdx = rows.findIndex(r => Array.isArray(r) && r.some(c => { const t = clean(c); return t.includes('កំណើត') || t.includes('អត្តលេខ'); }));
+          if (hIdx < 0) return;
+          const header = [...(rows[hIdx] || [])].map(clean);   // densify sparse (merged-cell) rows
+          const dobCol = header.findIndex(h => h.includes('កំណើត'));
+          if (dobCol < 0) return;
+          // Some sheets omit the អត្តលេខ label — the ID still sits right after ល.រ.
+          let idCol = header.findIndex(h => h.includes('អត្តលេខ'));
+          if (idCol < 0) { const ler = header.findIndex(h => h.includes('ល.រ')); idCol = ler >= 0 ? ler + 1 : 1; }
+          const nameCol = header.findIndex(h => h.includes('គោត្តនាម') || h.includes('ឈ្មោះ') || h.includes('នាម'));
+          for (let i = hIdx + 1; i < rows.length; i++) {
+            const r = rows[i] || [];
+            const dobRaw = clean(r[dobCol]);
+            if (!isDobLike(dobRaw)) continue;              // skips sub-header rows too
+            const dob = dobRaw.replace(/[-.]/g, '/');      // normalise to DD/MM/YYYY
+            const id = clean(r[idCol]).replace(/\s+/g, '');
+            if (id) byId.set(id, dob);
+            if (nameCol >= 0) {
+              const full = `${clean(r[nameCol])} ${clean(r[nameCol + 1])}`.replace(/\s+/g, ' ').trim();
+              if (full && !/^\d/.test(full)) byName.set(full, dob);   // skip numeric (misaligned) names
+            }
+          }
+        });
+        if (byId.size === 0 && byName.size === 0) {
+          alert('រកមិនឃើញទិន្នន័យថ្ងៃខែឆ្នាំកំណើតក្នុងឯកសារនេះទេ — សូមពិនិត្យថាជាបញ្ជីឈ្មោះសិស្សត្រឹមត្រូវ។');
+          e.target.value = '';
+          return;
+        }
+        const nameKey = (n: string) => clean(n).replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+        let filled = 0;
+        const updated = students.map(s => {
+          if ((s.dob || '').trim()) return s;            // keep an existing DOB
+          const sid = clean(s.studentId).replace(/\s+/g, '');
+          const dob = (sid && byId.get(sid)) || byName.get(nameKey(s.name));
+          if (dob) { filled++; return { ...s, dob }; }
+          return s;
+        });
+        e.target.value = '';
+        if (filled === 0) {
+          alert('គ្មានកំណត់ត្រាថ្មីត្រូវបំពេញទេ — សិស្សទាំងអស់មានថ្ងៃខែឆ្នាំកំណើតរួចហើយ ឬ អត្តលេខ/ឈ្មោះមិនត្រូវគ្នា។');
+          return;
+        }
+        onSaveStudents(updated);
+        alert(`បានបញ្ចូលថ្ងៃខែឆ្នាំកំណើត ${filled} កំណត់ត្រា ✓ ពីបញ្ជីឈ្មោះសិស្ស (គ្រប់ថ្នាក់)។`);
+      } catch (err) {
+        console.error(err);
+        alert('មិនអាចអានឯកសារបានទេ — សូមប្រាកដថាជា Excel (.xlsx) នៃបញ្ជីឈ្មោះសិស្ស។');
+        e.target.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const [newClassName, setNewClassName] = useState('');
@@ -2961,6 +3035,14 @@ export default function Gradebook({
               title="បំពេញអត្តលេខដែលខ្វះ ដោយចម្លងពីកំណត់ត្រាផ្សេងរបស់សិស្សដូចគ្នា"
             >
               <Hash size={15} /> បំពេញអត្តលេខ
+            </button>
+            <input ref={dobFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportDob} className="hidden" />
+            <button
+              onClick={() => dobFileRef.current?.click()}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-teal-700 font-semibold hover:bg-teal-50 border border-teal-200 rounded-xl text-sm transition-all"
+              title="នាំចូលថ្ងៃខែឆ្នាំកំណើតពីឯកសារ «បញ្ជីឈ្មោះសិស្ស» (គ្រប់ថ្នាក់ក្នុងឯកសារ) ផ្គូផ្គងតាមអត្តលេខ"
+            >
+              <CalendarDays size={15} /> នាំចូលថ្ងៃខែឆ្នាំកំណើត
             </button>
             <button
               onClick={handleResetMonthScores}
