@@ -123,7 +123,7 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
               {/* Header: CAMKIDS org (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
                 <div className="flex flex-col items-center text-emerald-700" style={{ fontSize: '2cqw' }}>
-                  <div style={{ width: '9.5cqw' }}><SchoolLogo className="w-full h-auto" /></div>
+                  <div style={{ width: '9.5cqw', marginTop: '2.5cqw' }}><SchoolLogo className="w-full h-auto" /></div>
                   <div className="font-bold mt-0.5">សាលាសហគមន៍ច្បារច្រុះ</div>
                 </div>
                 <div className="text-center text-emerald-800" style={{ fontSize: '1.9cqw' }}>
@@ -155,30 +155,36 @@ export default function MeritCertificate({ student, students, onClose }: MeritCe
                 <p className="mt-1">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
               </div>
 
-              {/* Student photo — centered, directly below the text */}
-              <div className="flex flex-col items-center mt-1">
-                <div className="rounded-lg overflow-hidden bg-slate-50 border-2 border-amber-300 shadow-sm" style={{ width: '6cqw', height: '7.5cqw' }}>
-                  {photo ? (
-                    <img src={photo} alt={student.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <button onClick={() => fileRef.current?.click()} className="rc-no-print w-full h-full flex flex-col items-center justify-center gap-1 text-slate-400 hover:bg-slate-100 transition-colors">
-                      <Camera size={22} />
-                      <span className="text-[11px] font-bold">បញ្ចូលរូបថត</span>
-                    </button>
-                  )}
-                </div>
-                {photo && (
-                  <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-1 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
-                )}
-              </div>
-
-              {/* Signatures — principal (left), teacher (right), pinned to the bottom */}
-              <div className="grid grid-cols-2 gap-8 mt-auto text-center items-end" style={{ fontSize: '1.9cqw' }}>
+              {/* Signatures — principal (left), student photo (center), teacher (right) */}
+              <div className="grid grid-cols-3 gap-4 mt-auto text-center items-end" style={{ fontSize: '1.9cqw' }}>
                 <div style={{ transform: 'translateX(-12%)' }}>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
                   <PrincipalSignature height="6.5cqw" />
                 </div>
+
+                {/* Photo — centered between នាយក & គ្រូ. Empty box is screen-only (click to add). */}
+                <div className="flex flex-col items-center self-center">
+                  {photo ? (
+                    <>
+                      <div className="rounded-lg overflow-hidden border-2 border-amber-300 shadow-sm" style={{ width: '6.5cqw', height: '8cqw' }}>
+                        <img src={photo} alt={student.name} className="w-full h-full object-cover" />
+                      </div>
+                      <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-1 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      className="rc-no-print flex flex-col items-center justify-center gap-1 text-slate-300 hover:text-blue-500 hover:border-blue-300 border border-dashed border-slate-200 rounded-lg"
+                      style={{ width: '6.5cqw', height: '8cqw' }}
+                      title="ចុចដើម្បីបញ្ចូលរូបថត"
+                    >
+                      <Camera size={16} />
+                      <span className="text-[9px]">បញ្ចូលរូប</span>
+                    </button>
+                  )}
+                </div>
+
                 <div>
                   <p style={{ fontSize: '1.45cqw', whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
                   <p style={{ fontSize: '1.45cqw', whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
