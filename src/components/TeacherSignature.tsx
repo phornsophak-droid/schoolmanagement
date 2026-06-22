@@ -20,7 +20,7 @@ export const teacherNameForGrade = (grade: string): string => {
   return u ? stripTitle(u.name) : '';
 };
 
-export default function TeacherSignature({ grade, height = 60 }: { grade: string; height?: number }) {
+export default function TeacherSignature({ grade, height = 60 }: { grade: string; height?: number | string }) {
   const key = teacherSigKey(grade);
   const [sig, setSig] = useState<string>(() => {
     try { return localStorage.getItem(key) || ''; } catch { return ''; }
@@ -57,7 +57,7 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
         <button
           onClick={() => ref.current?.click()}
           className="rc-no-print text-[10px] text-blue-500 hover:underline"
-          style={{ marginTop: Math.round(height * 0.5) }}
+          style={{ marginTop: typeof height === 'number' ? Math.round(height * 0.5) : '2cqw' }}
         >
           បញ្ចូលហត្ថលេខាគ្រូ
         </button>

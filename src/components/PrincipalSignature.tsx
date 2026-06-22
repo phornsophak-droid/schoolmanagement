@@ -12,7 +12,7 @@ import { syncUpsertSetting } from '../lib/supabase';
 export const PRINCIPAL_SIG_KEY = 'school_principal_signature_v1';
 export const PRINCIPAL_NAME = 'ផន សុភាក់';
 
-export default function PrincipalSignature({ height = 88 }: { height?: number }) {
+export default function PrincipalSignature({ height = 88 }: { height?: number | string }) {
   const [sig, setSig] = useState<string>(() => {
     try { return localStorage.getItem(PRINCIPAL_SIG_KEY) || ''; } catch { return ''; }
   });
@@ -47,7 +47,7 @@ export default function PrincipalSignature({ height = 88 }: { height?: number })
         <button
           onClick={() => ref.current?.click()}
           className="rc-no-print text-[10px] text-blue-500 hover:underline"
-          style={{ marginTop: Math.round(height * 0.5) }}
+          style={{ marginTop: typeof height === 'number' ? Math.round(height * 0.5) : '2cqw' }}
         >
           បញ្ចូលហត្ថលេខានាយក
         </button>
