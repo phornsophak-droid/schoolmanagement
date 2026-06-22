@@ -4,14 +4,21 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Search, FileText, Loader2, GraduationCap } from 'lucide-react';
+import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award } from 'lucide-react';
 import { StudentScore } from '../types';
 import { fetchClassStudents, fetchSetting } from '../lib/supabase';
+import { semesterAvgOf, readAnnualExtra } from '../utils/scoring';
 import SchoolLogo from './SchoolLogo';
 import { PRINCIPAL_SIG_KEY } from './PrincipalSignature';
 import { teacherSigKey } from './TeacherSignature';
 import StudentReportCard from './StudentReportCard';
 import SemesterReportCard from './SemesterReportCard';
+import MeritCertificate from './MeritCertificate';
+
+const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
+// Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
+const meritLetterOf = (v: number | null | undefined): '' | 'A' | 'B' =>
+  (v == null || v <= 0) ? '' : v >= 9 ? 'A' : v >= 8 ? 'B' : '';
 
 interface ParentPortalProps {
   grades: string[];
@@ -38,6 +45,7 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
   // Open-card state
   const [monthlyRec, setMonthlyRec] = useState<StudentScore | null>(null);
   const [semCard, setSemCard] = useState<{ student: StudentScore; period: 1 | 2 | 'year' } | null>(null);
+  const [meritCard, setMeritCard] = useState<{ student: StudentScore; score: number | null; phrase: string } | null>(null);
 
   // Pull the principal signature once so it shows on the report cards parents open.
   useEffect(() => {
@@ -109,6 +117,32 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
       .filter(m => m && !m.startsWith('ប្រឡង'));
     return months.sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
   }, [childRecords]);
+
+  // Periods this child earned និទ្ទេស A or B in → a ប័ណ្ណសរសើរ (merit certificate)
+  // can be issued for each. Scores mirror the report cards: monthly overallAvg,
+  // semester = (exam + monthly)/2, year = 80% academic + skills + conduct.
+  const meritOptions = useMemo(() => {
+    if (!childName || !anyRec) return [] as { key: string; label: string; student: StudentScore; score: number; phrase: string }[];
+    const opts: { key: string; label: string; student: StudentScore; score: number; phrase: string }[] = [];
+    monthsAvailable.forEach(m => {
+      const rec = childRecords.find(r => r.month === m);
+      const score = rec?.overallAvg ?? null;
+      const l = meritLetterOf(score);
+      if (rec && l) opts.push({ key: `m-${m}`, label: `ខែ${m} (${l})`, student: rec, score: score!, phrase: `ប្រចាំខែ${m} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+    });
+    ([1, 2] as const).forEach(sem => {
+      const score = semesterAvgOf(childRecords, sem);
+      const l = meritLetterOf(score);
+      if (l) opts.push({ key: `s-${sem}`, label: `ឆមាសទី ${toKh(sem)} (${l})`, student: anyRec, score: score!, phrase: `ប្រចាំ​ឆមាសទី ${sem} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+    });
+    const semAvgs = [semesterAvgOf(childRecords, 1), semesterAvgOf(childRecords, 2)].filter((v): v is number => v !== null && v !== undefined);
+    const annualRaw = semAvgs.length ? semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length : null;
+    const ex = readAnnualExtra(anyRec.grade, childName);
+    const yearScore = annualRaw !== null ? annualRaw * 0.8 + 0.1 * ex.skills + 0.1 * ex.conduct : null;
+    const yl = meritLetterOf(yearScore);
+    if (yl) opts.push({ key: 'year', label: `ប្រចាំឆ្នាំ (${yl})`, student: anyRec, score: yearScore!, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` });
+    return opts;
+  }, [childName, anyRec, childRecords, monthsAvailable]);
 
   const filteredGrades = useMemo(() => grades.filter(g => classCategory === 'extra' ? isExtraClass(g) : !isExtraClass(g)), [grades, classCategory]);
 
@@ -257,6 +291,26 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
                 <button onClick={() => setSemCard({ student: anyRec, period: 2 })} className="px-3 py-1.5 bg-violet-50 text-violet-700 hover:bg-violet-100 rounded-lg text-xs font-semibold transition-colors">ឆមាសទី ២</button>
                 <button onClick={() => setSemCard({ student: anyRec, period: 'year' })} className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors">ប្រចាំឆ្នាំ</button>
               </div>
+
+              {/* Merit certificate — only for periods the child earned និទ្ទេស A/B */}
+              {meritOptions.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-slate-100">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
+                    <Award size={14} className="text-amber-500" /> ៤. ប័ណ្ណសរសើរ (សិស្សនិទ្ទេស A/B)
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {meritOptions.map(o => (
+                      <button
+                        key={o.key}
+                        onClick={() => setMeritCard({ student: o.student, score: o.score, phrase: o.phrase })}
+                        className="px-3 py-1.5 bg-gradient-to-br from-amber-100 to-yellow-100 text-amber-800 hover:from-amber-200 hover:to-yellow-200 border border-amber-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                      >
+                        🏅 {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -280,6 +334,15 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
           students={classStudents}
           period={semCard.period}
           onClose={() => setSemCard(null)}
+        />
+      )}
+      {meritCard && (
+        <MeritCertificate
+          student={meritCard.student}
+          students={classStudents}
+          scoreOverride={meritCard.score}
+          periodPhrase={meritCard.phrase}
+          onClose={() => setMeritCard(null)}
         />
       )}
     </div>
