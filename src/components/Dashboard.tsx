@@ -440,10 +440,6 @@ export default function Dashboard({
     });
 
     byStudent.forEach(({ status, grade, reason }, sId) => {
-      if (status === 'late') todayLateCount++;
-      else if (status === 'permission') todayPermissionCount++;
-      else if (status === 'absent') todayAbsentCount++;
-
       if (status === 'late' || status === 'permission' || status === 'absent') {
         const stu = uniqueStudentsMap.get(sId);
         const stats = cumulativeStats[sId] || { late: 0, permission: 0, absent: 0 };
@@ -461,8 +457,31 @@ export default function Dashboard({
       }
     });
 
-    // sort list by grade then name
-    list.sort((a, b) => {
+    // Merge duplicate profiles of the same person (same name + class but different
+    // internal IDs — e.g. from re-imports) into one row so a student isn't listed
+    // several times. Cumulative counts are summed; worst status / first reason wins.
+    const statusW: Record<string, number> = { late: 1, permission: 2, absent: 3 };
+    const mergedMap = new Map<string, any>();
+    list.forEach(item => {
+      const key = `${item.name.replace(/\s+/g, ' ').trim().toLowerCase()}|${item.grade}`;
+      const ex = mergedMap.get(key);
+      if (!ex) { mergedMap.set(key, { ...item }); return; }
+      ex.cumulativeLate += item.cumulativeLate;
+      ex.cumulativePermission += item.cumulativePermission;
+      ex.cumulativeAbsent += item.cumulativeAbsent;
+      if ((statusW[item.todayStatus] || 0) > (statusW[ex.todayStatus] || 0)) ex.todayStatus = item.todayStatus;
+      if (!ex.reason && item.reason) ex.reason = item.reason;
+    });
+    const mergedList = Array.from(mergedMap.values());
+
+    // Tally the day's totals from the merged rows so duplicates don't inflate them.
+    mergedList.forEach(it => {
+      if (it.todayStatus === 'late') todayLateCount++;
+      else if (it.todayStatus === 'permission') todayPermissionCount++;
+      else if (it.todayStatus === 'absent') todayAbsentCount++;
+    });
+
+    mergedList.sort((a, b) => {
       if (a.grade !== b.grade) return a.grade.localeCompare(b.grade, 'km');
       return a.name.localeCompare(b.name, 'km');
     });
@@ -473,7 +492,7 @@ export default function Dashboard({
       permissionCount: todayPermissionCount,
       absentCount: todayAbsentCount,
       totalAbsences: todayPermissionCount + todayAbsentCount,
-      list
+      list: mergedList
     };
   }, [attendanceRecords, students, effectiveDailyDate, selectedGrade, classCategory, selectedDashSession]);
 
