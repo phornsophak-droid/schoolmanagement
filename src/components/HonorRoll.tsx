@@ -9,6 +9,7 @@ import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull, khmerMonthEnd } from '../utils/khmerDate';
+import { niddesColor } from '../utils/scoring';
 
 const HONOR_KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហา', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
 
@@ -23,14 +24,6 @@ const gradeLetter = (v: number | null | undefined): string => {
   if (v >= 6) return 'D';
   if (v >= 5) return 'E';
   return 'F';
-};
-const letterColor = (l: string) => {
-  if (l === 'A') return 'bg-amber-500';
-  if (l === 'B') return 'bg-emerald-600';
-  if (l === 'C') return 'bg-blue-600';
-  if (l === 'D') return 'bg-teal-600';
-  if (l === 'E') return 'bg-orange-500';
-  return 'bg-rose-600';
 };
 
 interface HonorRollProps {
@@ -88,7 +81,7 @@ function HonorFrame({ rank, name, photo, letter, onPick, big = false }: { rank: 
         <div className={`bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-md px-4 ${big ? 'py-1.5 text-base' : 'py-1 text-sm'} font-bold border-2 border-white whitespace-nowrap flex items-center justify-center gap-2`}>
           <span>{name || '—'}</span>
           {letter && (
-            <span className={`${letterColor(letter)} text-white font-extrabold rounded-full flex items-center justify-center shadow border border-white shrink-0 ${big ? 'w-6 h-6 text-sm' : 'w-5 h-5 text-xs'}`}>
+            <span className={`text-white font-extrabold rounded-full flex items-center justify-center shadow border border-white shrink-0 ${big ? 'w-6 h-6 text-sm' : 'w-5 h-5 text-xs'}`} style={{ backgroundColor: niddesColor(letter) || '#64748b' }}>
               {letter}
             </span>
           )}

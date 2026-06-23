@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
-import { SEM_SUBJECTS } from '../utils/scoring';
+import { SEM_SUBJECTS, niddesColor } from '../utils/scoring';
 import StudentReportCard from './StudentReportCard';
 import MeritCertificate from './MeritCertificate';
 import SemesterReportCard from './SemesterReportCard';
@@ -2685,10 +2685,6 @@ export default function Gradebook({
                       badgeColors = 'bg-emerald-50 text-emerald-600 border-emerald-200';
                     }
 
-                    let gradeColor = 'text-slate-500';
-                    if (st.gradeLetter === 'A') gradeColor = 'text-blue-600 font-bold';
-                    else if (st.gradeLetter === 'B') gradeColor = 'text-blue-500 font-bold';
-                    else if (st.gradeLetter === 'C') gradeColor = 'text-emerald-600 font-bold';
 
                     return (
                       <tr key={st.id} className="hover:bg-slate-50/50 transition-colors">
@@ -2746,7 +2742,7 @@ export default function Gradebook({
                           {st.totalScore !== undefined ? st.overallAvg : '-'}
                         </td>
                         <td className="px-4 py-3 text-center font-mono font-semibold text-slate-700">{st.ranking ?? '-'}</td>
-                        <td className={`px-4 py-3 text-center ${gradeColor}`}>{st.gradeLetter}</td>
+                        <td className="px-4 py-3 text-center font-bold" style={{ color: niddesColor(st.gradeLetter) }}>{st.gradeLetter}</td>
                         <td className="px-4 py-3 text-center">
                           <span className={`px-2 py-0.5 border text-[10px] font-bold rounded-full ${badgeColors}`}>
                             {st.result}
@@ -2827,10 +2823,6 @@ export default function Gradebook({
                       badgeColors = 'bg-emerald-50 text-emerald-600 border-emerald-200';
                     }
 
-                    let gradeColor = 'text-slate-500';
-                    if (st.gradeLetter === 'A') gradeColor = 'text-blue-600 font-bold';
-                    else if (st.gradeLetter === 'B') gradeColor = 'text-blue-500 font-bold';
-                    else if (st.gradeLetter === 'C') gradeColor = 'text-emerald-600 font-bold';
 
                     return (
                       <tr key={`${st.name}_${st.grade}`} className="hover:bg-slate-50/50 transition-colors">
@@ -2875,7 +2867,7 @@ export default function Gradebook({
 
                         <td className="px-3 py-3.5 text-center font-bold font-mono text-slate-500">{st.ranking}</td>
 
-                        <td className={`px-3 py-3.5 text-center font-semibold font-sans ${gradeColor}`}>{st.gradeLetter}</td>
+                        <td className="px-3 py-3.5 text-center font-bold font-sans" style={{ color: niddesColor(st.gradeLetter) }}>{st.gradeLetter}</td>
                         
                         <td className="px-3 py-3.5 text-center">
                           <span className={`px-2 py-0.5 border text-[10px] font-bold rounded-full ${badgeColors}`}>
@@ -2956,10 +2948,6 @@ export default function Gradebook({
                       badgeColors = 'bg-emerald-50 text-emerald-600 border-emerald-205';
                     }
 
-                    let gradeColor = 'text-slate-500';
-                    if (st.gradeLetter === 'A') gradeColor = 'text-blue-600 font-bold';
-                    else if (st.gradeLetter === 'B') gradeColor = 'text-blue-500 font-bold';
-                    else if (st.gradeLetter === 'C') gradeColor = 'text-emerald-500 font-bold';
 
                     return (
                       <tr key={`${st.name}_${st.grade}_annual`} className="hover:bg-slate-50/50 transition-colors">
@@ -2985,7 +2973,7 @@ export default function Gradebook({
                         <td className="px-4 py-4 text-center font-extrabold font-mono text-white bg-emerald-600">
                           {st.annualAvg !== null && st.annualAvg !== undefined ? st.annualAvg.toFixed(2) : '-'}
                         </td>
-                        <td className={`px-4 py-4 text-center font-extrabold font-sans ${gradeColor}`}>{st.gradeLetter}</td>
+                        <td className="px-4 py-4 text-center font-extrabold font-sans" style={{ color: niddesColor(st.gradeLetter) }}>{st.gradeLetter}</td>
                         <td className="px-4 py-4 text-center font-bold text-slate-600 font-mono text-xs">
                           {st.ranking === 1 ? '🏆 ' : ''}{st.ranking}
                         </td>

@@ -12,6 +12,7 @@ import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { exportElementToPdf } from '../utils/exportPdf';
 import { tallyAbsences } from '../utils/attendance';
+import { niddesColor } from '../utils/scoring';
 
 // Render the teacher remark as a ticked-checkbox list, one selected comment per
 // line. Preset comments end with the Khmer period ។ — split on it for the lines.
@@ -241,8 +242,8 @@ export default function StudentReportCard({ student, students, onClose }: Studen
                     <td className="border border-slate-300 px-2 py-0.5 text-left">{sub.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{num(val)}</td>
                     <td className="border border-slate-300 px-1 py-0.5">{rankIn(sub.get)}</td>
-                    <td className="border border-slate-300 px-1 py-0.5">{g.km}</td>
-                    <td className="border border-slate-300 px-1 py-0.5 font-bold">{g.en}</td>
+                    <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(g.en) }}>{g.km}</td>
+                    <td className="border border-slate-300 px-1 py-0.5 font-bold" style={{ color: niddesColor(g.en) }}>{g.en}</td>
                     {i === 0 && (
                       <td className="border border-slate-300 px-1 py-0.5 align-top text-left" rowSpan={SUBJECTS.length + 3}><RemarkChecklist remark={student.remark} /></td>
                     )}
@@ -258,8 +259,8 @@ export default function StudentReportCard({ student, students, onClose }: Studen
                 <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>មធ្យមភាគ</td>
                 <td className="border border-slate-300 px-1 py-0.5 font-mono text-blue-700">{student.overallAvg !== null && student.overallAvg !== undefined ? student.overallAvg.toFixed(2) : '0.00'}</td>
                 <td className="border border-slate-300 px-1 py-0.5">{avgRank}</td>
-                <td className="border border-slate-300 px-1 py-0.5">{gradeBand(student.overallAvg).km}</td>
-                <td className="border border-slate-300 px-1 py-0.5 font-bold">{gradeBand(student.overallAvg).en}</td>
+                <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(gradeBand(student.overallAvg).en) }}>{gradeBand(student.overallAvg).km}</td>
+                <td className="border border-slate-300 px-1 py-0.5 font-bold" style={{ color: niddesColor(gradeBand(student.overallAvg).en) }}>{gradeBand(student.overallAvg).en}</td>
               </tr>
               <tr className="text-center">
                 <td className="border border-slate-300 px-1 py-0.5 text-left" colSpan={2}>ចំនួនអវត្តមាន</td>

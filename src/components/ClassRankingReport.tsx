@@ -9,6 +9,7 @@ import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull, khmerMonthEnd } from '../utils/khmerDate';
+import { niddesColor } from '../utils/scoring';
 
 export interface RankingRow {
   name: string;
@@ -115,7 +116,7 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
       <td className="border border-slate-400 px-1 py-0.5">{r ? genderShort(r.gender) : ''}</td>
       <td className="border border-slate-400 px-1 py-0.5 font-mono">{r ? (r.overallAvg ?? 0).toFixed(2) : ''}</td>
       <td className="border border-slate-400 px-1 py-0.5">{r ? rankOf(r.overallAvg) : ''}</td>
-      <td className="border border-slate-400 px-1 py-0.5">{r ? (niddesOf(r.overallAvg) ? `${niddesOf(r.overallAvg)} (${letterOf(r.overallAvg)})` : 'គ្មានចំណាត់ថ្នាក់') : ''}</td>
+      <td className="border border-slate-400 px-1 py-0.5 font-semibold" style={{ color: r ? niddesColor(letterOf(r.overallAvg)) : undefined }}>{r ? (niddesOf(r.overallAvg) ? `${niddesOf(r.overallAvg)} (${letterOf(r.overallAvg)})` : 'គ្មានចំណាត់ថ្នាក់') : ''}</td>
     </tr>
   );
 
@@ -179,7 +180,7 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
               const pct = roster.length > 0 ? Math.round((s.total / roster.length) * 100) : 0;
               return (
               <div key={s.band} className="flex justify-between border-b border-dotted border-slate-200">
-                <span>និទ្ទេស {s.band} ({BAND_LETTER[s.band]})៖ <b>{toKh(s.total)}</b> នាក់ ({pct}%)</span>
+                <span style={{ color: niddesColor(BAND_LETTER[s.band]) }} className="font-semibold">និទ្ទេស {s.band} ({BAND_LETTER[s.band]})៖ <b>{toKh(s.total)}</b> នាក់ ({pct}%)</span>
                 <span>ស្រី {toKh(s.female)} នាក់</span>
               </div>
               );
