@@ -100,18 +100,60 @@ const REMARK_PRESETS: { label: string; items: string[] }[] = [
   ] },
 ];
 
-// Inline teacher-remark cell — free text + a preset picker; commits on blur/Enter/pick.
+// Checkbox dropdown for the teacher-remark presets. Ticking a preset appends
+// its sentence; unticking removes that exact sentence — so the remark text
+// always mirrors the ticked boxes.
+function RemarkPresetPicker({ value, onChange, panelClass = 'w-64' }: { value: string; onChange: (next: string) => void; panelClass?: string }) {
+  const [open, setOpen] = useState(false);
+  const toggle = (p: string, checked: boolean) => {
+    if (checked) {
+      onChange(value.replace(p, '').replace(/\s{2,}/g, ' ').trim());   // untick → remove
+    } else {
+      const t = value.trim();
+      if (t.includes(p)) return;
+      onChange(t ? `${t} ${p}` : p);                                    // tick → append
+    }
+  };
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full text-[10px] text-blue-600 bg-blue-50/60 border border-blue-100 rounded px-1 py-0.5 outline-none cursor-pointer flex items-center justify-between gap-1"
+        title="ជ្រើសមូលវិចារសម្រេច (ធិចដើម្បីបន្ថែម)"
+      >
+        <span>➕ ជ្រើសមូលវិចារ...</span><span className="text-[8px]">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className={`absolute z-50 top-full left-0 mt-1 max-h-72 overflow-auto bg-white border border-slate-200 rounded-lg shadow-xl p-1.5 ${panelClass}`}>
+            {REMARK_PRESETS.map(g => (
+              <div key={g.label} className="mb-1">
+                <div className="font-bold text-slate-500 px-1 py-1 text-[11px]">{g.label}</div>
+                {g.items.map(it => {
+                  const checked = value.includes(it);
+                  return (
+                    <label key={it} className="flex items-start gap-1.5 px-1 py-1 rounded hover:bg-blue-50 cursor-pointer text-[11px]">
+                      <input type="checkbox" checked={checked} onChange={() => toggle(it, checked)} className="mt-0.5 shrink-0 accent-blue-600" />
+                      <span className="text-slate-700 leading-snug">{it}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Inline teacher-remark cell — free text + a preset checkbox picker; commits on blur/Enter/tick.
 function RemarkInput({ value, onCommit }: { value: string | undefined; onCommit: (v: string) => void }) {
   const [text, setText] = useState(value || '');
   const [focused, setFocused] = useState(false);
   useEffect(() => { if (!focused) setText(value || ''); }, [value, focused]);
-  const addPreset = (p: string) => {
-    const cur = text.trim();
-    if (cur.includes(p)) return; // already added — skip duplicates
-    const next = cur ? `${cur} ${p}` : p;
-    setText(next);
-    onCommit(next);
-  };
   return (
     <div className="flex flex-col gap-1 w-36">
       <input
@@ -123,19 +165,7 @@ function RemarkInput({ value, onCommit }: { value: string | undefined; onCommit:
         onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
         className="w-full text-left bg-transparent border border-transparent hover:border-slate-200 focus:border-blue-400 focus:bg-blue-50 rounded px-1 py-1 outline-none text-[11px] text-slate-700"
       />
-      <select
-        value=""
-        onChange={e => { if (e.target.value) addPreset(e.target.value); e.target.value = ''; }}
-        className="w-full text-[10px] text-blue-600 bg-blue-50/60 border border-blue-100 rounded px-1 py-0.5 outline-none cursor-pointer"
-        title="ជ្រើសមូលវិចារសម្រេច"
-      >
-        <option value="">➕ ជ្រើសមូលវិចារ...</option>
-        {REMARK_PRESETS.map(g => (
-          <optgroup key={g.label} label={g.label}>
-            {g.items.map(it => <option key={it} value={it}>{it}</option>)}
-          </optgroup>
-        ))}
-      </select>
+      <RemarkPresetPicker value={text} onChange={next => { setText(next); onCommit(next); }} />
     </div>
   );
 }
@@ -2045,27 +2075,9 @@ export default function Gradebook({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-500 mb-1">មូលវិចារគ្រូបន្ទុកថ្នាក់ (បង្ហាញលើព្រឹត្តបត្រ)</label>
-                <select
-                  value=""
-                  onChange={(e) => {
-                    const p = e.target.value;
-                    if (p) setFormRemark(prev => {
-                      const cur = prev.trim();
-                      if (cur.includes(p)) return prev; // skip duplicates
-                      return cur ? `${cur} ${p}` : p;
-                    });
-                    e.target.value = '';
-                  }}
-                  className="w-full mb-1.5 px-3 py-2 text-xs text-blue-700 bg-blue-50/60 border border-blue-100 rounded-lg outline-none cursor-pointer focus:border-blue-400"
-                  title="ជ្រើសមូលវិចារសម្រេច"
-                >
-                  <option value="">➕ ជ្រើសមូលវិចារសម្រេច...</option>
-                  {REMARK_PRESETS.map(g => (
-                    <optgroup key={g.label} label={g.label}>
-                      {g.items.map(it => <option key={it} value={it}>{it}</option>)}
-                    </optgroup>
-                  ))}
-                </select>
+                <div className="mb-1.5">
+                  <RemarkPresetPicker value={formRemark} onChange={setFormRemark} panelClass="w-full" />
+                </div>
                 <textarea
                   value={formRemark}
                   onChange={(e) => setFormRemark(e.target.value)}
