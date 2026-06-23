@@ -193,7 +193,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
                   <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
                   <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
-                  <TeacherSignature grade={student.grade} height="6.5cqw" />
+                  <TeacherSignature grade={student.grade} height="4.5cqw" />
                 </div>
               </div>
             </div>
