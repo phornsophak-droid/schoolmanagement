@@ -142,8 +142,9 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <p className="font-bold text-slate-700" style={{ fontSize: '2.4cqw' }}>នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
               </div>
 
-              {/* Body — scales with the frame, justified to both margins */}
-              <div className="text-justify mt-1" style={{ fontSize: '2.3cqw', lineHeight: 1.18 }}>
+              {/* Body — scales with the frame, justified to both margins. Sized so the
+                  date of birth lands on line 1 and the niddes on line 2 (even for long names). */}
+              <div className="text-justify mt-1" style={{ fontSize: '2.0cqw', lineHeight: 1.18 }}>
                 <p>
                   សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
                   ភេទ <span className="font-bold">{student.gender}</span>{' '}
@@ -158,16 +159,8 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <p className="mt-3">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
               </div>
 
-              {/* Date — right-aligned, above the signatures */}
-              <div className="text-right mt-auto" style={{ fontSize: '1.3cqw' }}>
-                <p style={{ whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
-                <p style={{ whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
-              </div>
-
-              {/* Signatures — principal (left), student photo (center), teacher (right). Both
-                  columns share the same 2-heading + equal-height-signature structure, so
-                  «បានឃើញ និងឯកភាព» lines up with «គ្រូប្រចាំថ្នាក់» and the names align. */}
-              <div className="grid gap-3 mt-2 text-center items-end" style={{ gridTemplateColumns: '1fr auto 1fr', fontSize: '1.9cqw' }}>
+              {/* Signatures — principal (left), student photo (center), teacher + date (right) */}
+              <div className="grid gap-3 mt-auto text-center items-end" style={{ gridTemplateColumns: '1fr auto 1fr', fontSize: '1.9cqw' }}>
                 <div style={{ transform: 'translateX(-12%)' }}>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
@@ -197,9 +190,10 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
 
                 <div>
-                  <p className="font-bold">គ្រូប្រចាំថ្នាក់</p>
-                  <p className="font-bold">&nbsp;</p>
-                  <TeacherSignature grade={student.grade} height="7.5cqw" />
+                  <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
+                  <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
+                  <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
+                  <TeacherSignature grade={student.grade} height="6.5cqw" />
                 </div>
               </div>
             </div>
