@@ -65,6 +65,9 @@ function ScoreInput({ value, onCommit }: { value: number | null | undefined; onC
 
 // Ready-made teacher-remark phrases, grouped — teachers pick (and may combine) them
 // from the inline dropdown, or type freely.
+// Arabic → Khmer numerals for display text (e.g. semester "1" → "១").
+const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
+
 const REMARK_PRESETS: { label: string; items: string[] }[] = [
   { label: '១. មតិយោបល់វិជ្ជមាន', items: [
     'ធ្វើបានល្អ ត្រូវខិតខំប្រឹងប្រែងបន្តទៀត។',
@@ -352,7 +355,7 @@ export default function Gradebook({
   // Merit certificate: students + period phrase + per-mode average for the current view.
   const meritLetterOf = (v: number | null | undefined): string => (v == null || v <= 0) ? '' : v >= 9 ? 'A' : v >= 8 ? 'B' : v >= 7 ? 'C' : v >= 6 ? 'D' : v >= 5 ? 'E' : 'F';
   const meritInfo = (): { list: any[]; scoreOf: (s: any) => number | null; phrase: string } => {
-    if (activeMode === 'semester') return { list: filteredSemesterStudents, scoreOf: (s) => s.semesterAvg ?? null, phrase: `ប្រចាំ​ឆមាសទី ${selectedSemester} ឆ្នាំសិក្សា ២០២៥-២០២៦` };
+    if (activeMode === 'semester') return { list: filteredSemesterStudents, scoreOf: (s) => s.semesterAvg ?? null, phrase: `ប្រចាំ​ឆមាសទី ${toKh(selectedSemester)} ឆ្នាំសិក្សា ២០២៥-២០២៦` };
     if (activeMode === 'annual') return { list: filteredAnnualStudents, scoreOf: (s) => s.annualAvg ?? null, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` };
     return { list: filteredStudents, scoreOf: (s) => s.overallAvg ?? null, phrase: `ប្រចាំខែ${selectedMonth} ឆ្នាំសិក្សា ២០២៥-២០២៦` };
   };
@@ -361,7 +364,7 @@ export default function Gradebook({
     let roster: any[] = [];
     let subtitle = '';
     let scoreOf = (s: any): number | null => s.overallAvg ?? null;
-    if (activeMode === 'semester') { roster = filteredSemesterStudents; subtitle = `ប្រចាំ ឆមាសទី ${selectedSemester}`; scoreOf = (s) => s.semesterAvg ?? null; }
+    if (activeMode === 'semester') { roster = filteredSemesterStudents; subtitle = `ប្រចាំ ឆមាសទី ${toKh(selectedSemester)}`; scoreOf = (s) => s.semesterAvg ?? null; }
     else if (activeMode === 'annual') { roster = filteredAnnualStudents; subtitle = 'ប្រចាំឆ្នាំ'; scoreOf = (s) => s.annualAvg ?? null; }
     else { roster = filteredStudents; subtitle = `ប្រចាំខែ ${selectedMonth === 'ទាំងអស់' ? '' : selectedMonth}`; }
     const entries = [...roster]
@@ -447,7 +450,7 @@ export default function Gradebook({
     const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'ពិន្ទុ');
-    XLSX.writeFile(wb, `គំរូពិន្ទុ${isSem ? '_ឆមាសទី' + selectedSemester : ''}_${selectedGrade}.xlsx`);
+    XLSX.writeFile(wb, `គំរូពិន្ទុ${isSem ? '_ឆមាសទី' + toKh(selectedSemester) : ''}_${selectedGrade}.xlsx`);
   };
 
   // Import scores from an uploaded Excel/CSV file into the selected class + month.
@@ -568,10 +571,10 @@ export default function Gradebook({
     const examMonth = selectedSemester === '2' ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១';
     const toRemove = students.filter(s => s.grade === selectedGrade && s.month === examMonth);
     if (toRemove.length === 0) {
-      alert(`គ្មានពិន្ទុប្រឡងឆមាសសម្រាប់ «${selectedGrade}» (ឆមាសទី ${selectedSemester}) ទេ។`);
+      alert(`គ្មានពិន្ទុប្រឡងឆមាសសម្រាប់ «${selectedGrade}» (ឆមាសទី ${toKh(selectedSemester)}) ទេ។`);
       return;
     }
-    if (!window.confirm(`លុបពិន្ទុប្រឡងឆមាស ${toRemove.length} នាក់ សម្រាប់ «${selectedGrade}» (ឆមាសទី ${selectedSemester})?\n\nប្រើពេលនាំចូលខុស — បន្ទាប់មកនាំចូលឡើងវិញ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
+    if (!window.confirm(`លុបពិន្ទុប្រឡងឆមាស ${toRemove.length} នាក់ សម្រាប់ «${selectedGrade}» (ឆមាសទី ${toKh(selectedSemester)})?\n\nប្រើពេលនាំចូលខុស — បន្ទាប់មកនាំចូលឡើងវិញ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
     const remaining = students.filter(s => !(s.grade === selectedGrade && s.month === examMonth));
     onSaveStudents(remaining);
     alert(`បានកំណត់ឡើងវិញ ✓ លុបពិន្ទុប្រឡង ${toRemove.length} នាក់ហើយ។`);
@@ -1648,7 +1651,7 @@ export default function Gradebook({
         XLSX.writeFile(wb, filename);
       }
     } else if (activeMode === 'semester') {
-      filename = `របាយការណ៍ពិន្ទុឆមាសទី${selectedSemester}_${selectedGrade}.xlsx`;
+      filename = `របាយការណ៍ពិន្ទុឆមាសទី${toKh(selectedSemester)}_${selectedGrade}.xlsx`;
       const header = ['ល.រ', 'អត្តលេខ', 'ឈ្មោះសិស្ស', 'ភេទ', 'ថ្នាក់សិក្សា', ...SEM_SUBJECTS.map(s => s.km), 'មធ្យមភាគប្រចាំខែ', 'ពិន្ទុប្រឡងឆមាស', 'មធ្យមភាគប្រចាំឆមាស', 'និទ្ទេស', 'ចំណាត់ថ្នាក់', 'លទ្ធផល', 'មូលវិចារគ្រូ'];
       
       const body = filteredSemesterStudents.map((st, i) => {
@@ -2413,7 +2416,7 @@ export default function Gradebook({
               {activeMode === 'monthly' 
                 ? 'តារាងឈ្មោះ និងពិន្ទុសិស្សប្រចាំខែ' 
                 : activeMode === 'semester' 
-                  ? `តារាងសង្ខេបពិន្ទុប្រចាំឆមាសទី ${selectedSemester}` 
+                  ? `តារាងសង្ខេបពិន្ទុប្រចាំឆមាសទី ${toKh(selectedSemester)}`
                   : 'តារាងលទ្ធផលរួមប្រចាំឆ្នាំរបស់សិស្ស (Annual Summary)'
               }
             </h3>
@@ -2578,7 +2581,7 @@ export default function Gradebook({
               <span>ខែ៖ {selectedMonth === 'ទាំងអស់' ? 'គ្រប់ខែ' : selectedMonth}</span>
             )}
             {activeMode === 'semester' && (
-              <span>ឆមាសទី៖ {selectedSemester}</span>
+              <span>ឆមាសទី៖ {toKh(selectedSemester)}</span>
             )}
             {activeMode === 'annual' && (
               <span>លទ្ធផលប្រចាំឆ្នាំ</span>
@@ -3113,7 +3116,7 @@ export default function Gradebook({
               <div className="p-3 bg-slate-50 rounded-xl space-y-1.5">
                 <p className="text-slate-500 font-semibold">សិស្ស៖ <span className="font-bold text-slate-800">{examStudentName} ({examStudentGender})</span></p>
                 <p className="text-slate-500 font-semibold">ថ្នាក់៖ <span className="font-bold text-slate-800">{examStudentGrade}</span></p>
-                <p className="text-slate-500 font-semibold">ឆមាស៖ <span className="font-bold text-indigo-750 text-indigo-600">ឆមាសទី {selectedSemester}</span></p>
+                <p className="text-slate-500 font-semibold">ឆមាស៖ <span className="font-bold text-indigo-750 text-indigo-600">ឆមាសទី {toKh(selectedSemester)}</span></p>
               </div>
 
               <div>

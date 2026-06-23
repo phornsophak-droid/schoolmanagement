@@ -133,7 +133,7 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
     ([1, 2] as const).forEach(sem => {
       const score = semesterAvgOf(childRecords, sem);
       const l = meritLetterOf(score);
-      if (l) opts.push({ key: `s-${sem}`, label: `ឆមាសទី ${toKh(sem)} (${l})`, student: anyRec, score: score!, phrase: `ប្រចាំ​ឆមាសទី ${sem} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+      if (l) opts.push({ key: `s-${sem}`, label: `ឆមាសទី ${toKh(sem)} (${l})`, student: anyRec, score: score!, phrase: `ប្រចាំ​ឆមាសទី ${toKh(sem)} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
     });
     const semAvgs = [semesterAvgOf(childRecords, 1), semesterAvgOf(childRecords, 2)].filter((v): v is number => v !== null && v !== undefined);
     const annualRaw = semAvgs.length ? semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length : null;
