@@ -155,7 +155,10 @@ export default function Dashboard({
 
   // Recorded days / months / years for the current class filter, newest first.
   const availableDates = useMemo(() => {
-    return Array.from(new Set<string>(filteredAttendance.map(r => r.date))).sort((a, b) => b.localeCompare(a));
+    const today = new Date().toISOString().split('T')[0];
+    return Array.from(new Set<string>(filteredAttendance.map(r => r.date)))
+      .filter(d => d && d <= today)   // never offer a future-dated record as "latest"
+      .sort((a, b) => b.localeCompare(a));
   }, [filteredAttendance]);
   const availableMonths = useMemo(() => {
     return Array.from(new Set<string>(filteredAttendance.map(r => r.date.slice(0, 7)))).sort((a, b) => b.localeCompare(a));
@@ -365,11 +368,14 @@ export default function Dashboard({
     };
   }, [students, filteredStudents, selectedGrade, classCategory]);
 
-  // Find the latest attendance date within the selected class category + session
+  // Find the latest attendance date within the selected class category + session.
+  // Never show a future date — cap at today so a stray future-dated record can't
+  // hijack the "today" view; fall back to today when nothing has been recorded.
   const latestAttendanceDate = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
     const catRecords = attendanceRecords.filter(r => inCat(r.grade) && inSession(r) && inGradeScope(r.grade));
-    if (catRecords.length === 0) return new Date().toISOString().split('T')[0];
-    const dates = catRecords.map(r => r.date).sort();
+    const dates = catRecords.map(r => r.date).filter(d => d && d <= today).sort();
+    if (dates.length === 0) return today;
     return dates[dates.length - 1];
   }, [attendanceRecords, classCategory, selectedDashSession, selectedGrade]);
 
