@@ -135,8 +135,14 @@ export default function SemesterReportCard({ student, students, period, onClose 
   const meBand = gradeBand(me.finalAvg);
   const colSpanEnd = isYear ? 2 : 3; // niddes columns to span in the absence row
 
-  // Auto absence tally across the period's months.
-  const absence = tallyAbsences(student.name, student.grade, months, students);
+  // Auto absence tally. Use FULL school-year coverage (Sep–Aug) so no month's
+  // absences are dropped — the scoring SEM*_MONTHS lists deliberately skip
+  // Sep/Oct/Nov/Apr, which would otherwise hide those absences here. Sem1 attendance
+  // = first half (Sep–Mar), Sem2 = second half (Apr–Aug), year = all 12 months.
+  const ATT_SEM1 = ['កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា'];
+  const ATT_SEM2 = ['មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
+  const attMonths = isYear ? [...ATT_SEM1, ...ATT_SEM2] : (period === 1 ? ATT_SEM1 : ATT_SEM2);
+  const absence = tallyAbsences(student.name, student.grade, attMonths, students);
 
   // Class-teacher remark — taken from the semester-exam record (entered with the
   // exam scores), falling back to any record for this student.

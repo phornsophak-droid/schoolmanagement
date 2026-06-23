@@ -287,8 +287,13 @@ export default function App() {
     const deduplicateStudents = (students: StudentScore[]) => {
       const best = new Map<string, any>();
       const order: string[] = [];
+      // Normalise the key exactly like studentRecordId (trim + collapse whitespace +
+      // lowercase) so whitespace/case variants of the same name collapse into one row.
+      // Otherwise they got different keys here but the SAME stamped id below → two rows
+      // sharing one id (the "duplicate name" the user sees).
+      const norm = (x: any) => (x ?? '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
       students.map((s: any) => calculateStudentFields(s)).forEach((s: any) => {
-        const key = `${s.name}_${s.gender}_${s.grade}_${s.month}`;
+        const key = `${norm(s.name)}_${norm(s.gender)}_${norm(s.grade)}_${norm(s.month)}`;
         const existing = best.get(key);
         if (!existing) { best.set(key, s); order.push(key); }
         else if (recordRichness(s) > recordRichness(existing)) { best.set(key, s); }
