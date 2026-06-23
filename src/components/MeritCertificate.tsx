@@ -159,8 +159,10 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <p className="mt-3">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
               </div>
 
-              {/* Signatures — principal (left), student photo (center), teacher + date (right) */}
-              <div className="grid gap-3 mt-auto text-center items-end" style={{ gridTemplateColumns: '1fr auto 1fr', fontSize: '1.9cqw' }}>
+              {/* Signatures — principal (left), student photo (center), teacher + date (right).
+                  Top-aligned so «បានឃើញ និងឯកភាព» sits level with the date; the teacher
+                  signature height is matched so the two names line up at the bottom too. */}
+              <div className="grid gap-3 mt-auto text-center items-start" style={{ gridTemplateColumns: '1fr auto 1fr', fontSize: '1.9cqw' }}>
                 <div style={{ transform: 'translateX(-12%)' }}>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
@@ -193,7 +195,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
                   <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
                   <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
-                  <TeacherSignature grade={student.grade} height="4.5cqw" />
+                  <TeacherSignature grade={student.grade} height="6.5cqw" />
                 </div>
               </div>
             </div>
