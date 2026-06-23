@@ -130,6 +130,7 @@ export default function Dashboard({
   // Attendance summary period + the picked value for each (null = follow the latest).
   const [reportPeriod, setReportPeriod] = useState<'day' | 'month' | 'year'>('day');
   const [selectedAttDate, setSelectedAttDate] = useState<string | null>(null);   // YYYY-MM-DD
+  const [selectedDailyDate, setSelectedDailyDate] = useState<string | null>(null); // daily-absent & reasons date picker
   const [selectedAttMonth, setSelectedAttMonth] = useState<string | null>(null); // YYYY-MM
   const [selectedAttYear, setSelectedAttYear] = useState<string | null>(null);   // YYYY
 
@@ -379,6 +380,10 @@ export default function Dashboard({
     return dates[dates.length - 1];
   }, [attendanceRecords, classCategory, selectedDashSession, selectedGrade]);
 
+  // The day shown in the daily-absent table & reasons chart — user-picked, else latest.
+  const effectiveDailyDate = selectedDailyDate || latestAttendanceDate;
+  const todayStr = new Date().toISOString().split('T')[0];
+
   // Generate Daily Absent Report Data
   const dailyAbsentReport = useMemo(() => {
     // Cumulative stats
@@ -406,7 +411,7 @@ export default function Dashboard({
     });
 
     // Today's records (All classes, no grade filter)
-    const todayRecords = attendanceRecords.filter(r => r.date === latestAttendanceDate && inCat(r.grade) && inSession(r) && inGradeScope(r.grade));
+    const todayRecords = attendanceRecords.filter(r => r.date === effectiveDailyDate && inCat(r.grade) && inSession(r) && inGradeScope(r.grade));
     
     let todayLateCount = 0;
     let todayPermissionCount = 0;
@@ -463,24 +468,24 @@ export default function Dashboard({
     });
 
     return {
-      date: latestAttendanceDate,
+      date: effectiveDailyDate,
       lateCount: todayLateCount,
       permissionCount: todayPermissionCount,
       absentCount: todayAbsentCount,
       totalAbsences: todayPermissionCount + todayAbsentCount,
       list
     };
-  }, [attendanceRecords, students, latestAttendanceDate, selectedGrade, classCategory, selectedDashSession]);
+  }, [attendanceRecords, students, effectiveDailyDate, selectedGrade, classCategory, selectedDashSession]);
 
   // Aggregate absence/lateness reasons for the chart, scoped to the latest
   // recorded day / month / year depending on the chosen mode.
   const absenceReasonStats = useMemo(() => {
-    const monthKey = (latestAttendanceDate || '').slice(0, 7); // YYYY-MM
-    const yearKey = (latestAttendanceDate || '').slice(0, 4);  // YYYY
-    const inScope = (d: string) => reasonChartMode === 'daily' ? d === latestAttendanceDate
+    const monthKey = (effectiveDailyDate || '').slice(0, 7); // YYYY-MM
+    const yearKey = (effectiveDailyDate || '').slice(0, 4);  // YYYY
+    const inScope = (d: string) => reasonChartMode === 'daily' ? d === effectiveDailyDate
       : reasonChartMode === 'monthly' ? d.slice(0, 7) === monthKey
       : d.slice(0, 4) === yearKey;
-    const scopeLabel = reasonChartMode === 'daily' ? (latestAttendanceDate || '—')
+    const scopeLabel = reasonChartMode === 'daily' ? (effectiveDailyDate || '—')
       : reasonChartMode === 'monthly' ? monthKey : yearKey;
     const counts: Record<string, number> = {};
     let total = 0;
@@ -497,7 +502,7 @@ export default function Dashboard({
     const rows = Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count);
     const max = rows.reduce((m, r) => Math.max(m, r.count), 0);
     return { rows, total, max, monthKey, scopeLabel };
-  }, [attendanceRecords, latestAttendanceDate, reasonChartMode, classCategory, selectedDashSession, selectedGrade]);
+  }, [attendanceRecords, effectiveDailyDate, reasonChartMode, classCategory, selectedDashSession, selectedGrade]);
 
   // Generate a clean, branded printable daily-absentee report (Save as PDF) via a hidden iframe.
   // Render branded report HTML to a hidden iframe and trigger the print/Save-as-PDF
@@ -1039,7 +1044,18 @@ export default function Dashboard({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl text-xs font-bold shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
+            {reasonChartMode === 'daily' && (
+              <input
+                type="date"
+                value={effectiveDailyDate || ''}
+                max={todayStr}
+                onChange={e => setSelectedDailyDate(e.target.value || null)}
+                className="px-2.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-700 cursor-pointer focus:border-indigo-500 outline-none transition-colors"
+                title="ជ្រើសរើសថ្ងៃ"
+              />
+            )}
+            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl text-xs font-bold">
               <button
                 onClick={() => setReasonChartMode('daily')}
                 className={`px-4 py-2 rounded-lg transition-all ${reasonChartMode === 'daily' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
@@ -1052,6 +1068,7 @@ export default function Dashboard({
                 onClick={() => setReasonChartMode('yearly')}
                 className={`px-4 py-2 rounded-lg transition-all ${reasonChartMode === 'yearly' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >📆 ប្រចាំឆ្នាំ</button>
+            </div>
             </div>
           </div>
 
@@ -1105,13 +1122,23 @@ export default function Dashboard({
               </p>
             </div>
           </div>
-          <button 
-            onClick={handleDownloadDailyPdf}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-sm font-bold transition duration-200 cursor-pointer shadow-md shadow-rose-200"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            {t('dash.absent.downloadDaily')}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              type="date"
+              value={effectiveDailyDate || ''}
+              max={todayStr}
+              onChange={e => setSelectedDailyDate(e.target.value || null)}
+              className="px-2.5 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-700 cursor-pointer focus:border-rose-400 outline-none transition-colors"
+              title="ជ្រើសរើសថ្ងៃ"
+            />
+            <button
+              onClick={handleDownloadDailyPdf}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-sm font-bold transition duration-200 cursor-pointer shadow-md shadow-rose-200"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              {t('dash.absent.downloadDaily')}
+            </button>
+          </div>
         </div>
 
         {/* 4 Cards Row */}
