@@ -12,11 +12,11 @@
 import { StudentScore } from '../types';
 
 // Official niddes colours by letter, shared by the score tables, report cards
-// and ranking reports so they always match: A/B red, C orange-brown, D green,
-// E blue, F dark maroon. Returns '' (inherit) for an unknown/blank grade.
+// and ranking reports so they always match: A brown-red, B red, C orange-brown,
+// D green, E blue, F dark maroon. Returns '' (inherit) for an unknown/blank grade.
 export const niddesColor = (letter: string | null | undefined): string => {
   switch ((letter || '').trim().toUpperCase()) {
-    case 'A': return '#dc2626';
+    case 'A': return '#a52a2a';
     case 'B': return '#dc2626';
     case 'C': return '#c2410c';
     case 'D': return '#16a34a';
