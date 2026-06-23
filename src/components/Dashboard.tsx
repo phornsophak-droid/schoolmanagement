@@ -199,10 +199,10 @@ export default function Dashboard({
     return effectiveAttYear ? filteredAttendance.filter(r => r.date.slice(0, 4) === effectiveAttYear) : [];
   }, [filteredAttendance, reportPeriod, effectiveAttDate, effectiveAttMonth, effectiveAttYear]);
 
-  // In the "ប្រចាំថ្ងៃ" (both shifts) view the absence counts are ADDED across the
-  // morning + afternoon shifts (a permission/absence in each shift is counted), so
-  // records pass through un-merged. Present is still based on the 459-student roster
-  // (present = enrolled − excused − absent), keeping the day total at the enrolment.
+  // Records for the period pass through un-merged here; the per-student shift merge
+  // (so a student absent in both shifts counts once) happens in derivedAbsence below,
+  // which is the source of truth for permission/absent. Present is based on the
+  // 459-student roster (present = enrolled − excused − absent).
   const periodRecordsMerged = periodRecords;
 
   // Enrolled (unique) students per general class — the roster used so that
@@ -228,6 +228,36 @@ export default function Dashboard({
   }, [enrolledByClass, selectedGrade]);
   const scopeEnrolled = useMemo(() => scopeClasses.reduce((sum, g) => sum + (enrolledByClass.get(g) || 0), 0), [scopeClasses, enrolledByClass]);
 
+  // Permission / absent per class & total, derived from studentStates (the source of
+  // truth) so the summary always matches the detailed absent list. The stored
+  // presentCount/absentCount aggregate fields can be stale (e.g. after an import),
+  // so we never trust them here. Morning + afternoon shifts are merged per student
+  // per day — best status wins (present > late > permission > absent) — exactly like
+  // the daily-absent panel below.
+  const derivedAbsence = useMemo(() => {
+    const rank: Record<string, number> = { present: 0, late: 1, permission: 2, absent: 3 };
+    const perKey = new Map<string, { status: string; grade: string }>(); // key: date|studentId
+    periodRecordsMerged.forEach(rec => {
+      const ss = rec.studentStates as Record<string, string> | undefined;
+      if (!ss) return;
+      Object.entries(ss).forEach(([sId, status]) => {
+        if (sId.endsWith('_reason') || rank[status] === undefined) return;
+        const key = `${rec.date}|${sId}`;
+        const prev = perKey.get(key);
+        if (!prev || rank[status] < rank[prev.status]) perKey.set(key, { status, grade: rec.grade });
+      });
+    });
+    const byGrade = new Map<string, { permission: number; absent: number }>();
+    let permission = 0, absent = 0;
+    perKey.forEach(({ status, grade }) => {
+      const g = byGrade.get(grade) || { permission: 0, absent: 0 };
+      if (status === 'permission') { g.permission++; permission++; }
+      else if (status === 'absent') { g.absent++; absent++; }
+      byGrade.set(grade, g);
+    });
+    return { byGrade, permission, absent };
+  }, [periodRecordsMerged]);
+
   // Distinct recorded ("operated") days within the period.
   const periodDaysCount = useMemo(() => new Set(periodRecordsMerged.map(r => r.date)).size, [periodRecordsMerged]);
 
@@ -251,9 +281,9 @@ export default function Dashboard({
       if (operatedDays === 0) return [];
       return scopeClasses.map(grade => {
         const enrolled = enrolledByClass.get(grade) || 0;
-        const r = rec.get(grade);
-        const permission = r?.permission || 0;
-        const absent = r?.absent || 0;
+        const d = derivedAbsence.byGrade.get(grade);
+        const permission = d?.permission || 0;
+        const absent = d?.absent || 0;
         const denom = enrolled * operatedDays;
         const present_total = Math.max(0, denom - permission - absent);
         const rate = denom > 0 ? Math.round((present_total / denom) * 100) : 100;
@@ -268,7 +298,7 @@ export default function Dashboard({
         return { grade, present_total: g.present + g.late, permission: g.permission, absent: g.absent, daysCount: g.days.size, rate };
       })
       .sort((a, b) => a.grade.localeCompare(b.grade, 'km'));
-  }, [periodRecordsMerged, periodDaysCount, classCategory, scopeClasses, enrolledByClass]);
+  }, [periodRecordsMerged, periodDaysCount, classCategory, scopeClasses, enrolledByClass, derivedAbsence]);
 
   const attendanceAggregates = useMemo(() => {
     const operatedDays = periodDaysCount;
@@ -285,6 +315,9 @@ export default function Dashboard({
     if (classCategory === 'general') {
       // Unrecorded students/classes count as present: present = enrolled × operated
       // days − recorded absences (excused + unexcused). Late students are present.
+      // Absences come from studentStates (derivedAbsence), not the stale count fields.
+      totalPermission = derivedAbsence.permission;
+      totalAbsent = derivedAbsence.absent;
       const denom = scopeEnrolled * operatedDays;
       totalPresent = Math.max(0, denom - totalPermission - totalAbsent);
       overallRate = denom > 0 ? Math.round((totalPresent / denom) * 100) : 0;
@@ -303,7 +336,7 @@ export default function Dashboard({
       latestDate: periodLabel,
       activeDaysCount: operatedDays
     };
-  }, [periodRecordsMerged, periodDaysCount, classCategory, scopeEnrolled, periodLabel]);
+  }, [periodRecordsMerged, periodDaysCount, classCategory, scopeEnrolled, periodLabel, derivedAbsence]);
 
   // Filter students based on selection
   const filteredStudents = useMemo(() => {
