@@ -28,7 +28,8 @@ import MonthlyAttendanceRegister from './MonthlyAttendanceRegister';
 import {
   getSupabaseClient,
   syncUpsertStudentAttendance,
-  syncUpsertTeacherAttendance
+  syncUpsertTeacherAttendance,
+  syncDeleteStudentAttendance
 } from '../lib/supabase';
 
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
@@ -184,6 +185,21 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     const client = getSupabaseClient();
     if (client) {
       updated.forEach(r => syncUpsertStudentAttendance(r).catch(err => console.warn('Supabase monthly import sync failed', err)));
+    }
+  };
+
+  // Wipe a class+month's attendance records (used before a clean re-import) — local
+  // store, cloud and live state, so re-import starts from a blank month instead of
+  // merging onto stale marks.
+  const handleMonthlyClear = (idsToRemove: string[]) => {
+    if (idsToRemove.length === 0) return;
+    const drop = new Set(idsToRemove);
+    const remaining = records.filter(r => !drop.has(r.id));
+    setRecords(remaining);
+    localStorage.setItem('school_daily_attendance', JSON.stringify(remaining));
+    const client = getSupabaseClient();
+    if (client) {
+      idsToRemove.forEach(id => syncDeleteStudentAttendance(id).catch(err => console.warn('Supabase clear sync failed', err)));
     }
   };
 
@@ -1642,6 +1658,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           records={records}
           onClose={() => setMonthlyRegisterOpen(false)}
           onImport={handleMonthlyImport}
+          onClear={handleMonthlyClear}
         />
       )}
     </div>

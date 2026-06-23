@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useRef, useState } from 'react';
-import { X, Download, Upload, Printer } from 'lucide-react';
+import { X, Download, Upload, Printer, Eraser } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
@@ -34,6 +34,7 @@ interface Props {
   records: AttRecord[];       // all student attendance records
   onClose: () => void;
   onImport: (updated: AttRecord[]) => void;  // persist imported day-marks
+  onClear?: (ids: string[]) => void;         // wipe this class+month before re-import
 }
 
 const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
@@ -61,7 +62,7 @@ const ACADEMIC_MONTHS: { m: number; y: number }[] = [
   { m: 9, y: 2026 }, { m: 10, y: 2026 },
 ];
 
-export default function MonthlyAttendanceRegister({ students, grade, year: initYear, month: initMonth, records, onClose, onImport }: Props) {
+export default function MonthlyAttendanceRegister({ students, grade, year: initYear, month: initMonth, records, onClose, onImport, onClear }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState('');
   // Month/year are selectable so a parent can view/import any month, not just the
@@ -106,6 +107,18 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
   const markOf = (studentId: string, day: number): string => {
     const s = stateOf(studentId, day);
     return s === 'absent' ? MARK_ABS : s === 'permission' ? MARK_PERM : s === 'late' ? MARK_LATE : '';
+  };
+
+  // Wipe every attendance record for this class + month, so a re-import starts clean
+  // (no stale marks merged in). Reversible only by re-importing/re-entering.
+  const handleClear = () => {
+    const ids = records
+      .filter(r => r.grade === grade && (r.date || '').startsWith(`${year}-${mm}-`))
+      .map(r => r.id);
+    if (ids.length === 0) { setToast('គ្មានកំណត់ត្រាវត្តមានសម្រាប់ខែនេះទេ'); return; }
+    if (!window.confirm(`លុបវត្តមាន «${grade}» ខែ${KH_MONTHS[month - 1]} ${toKh(year)} ទាំងអស់ (${toKh(ids.length)} ថ្ងៃ)?\n\nប្រើមុននាំចូលឡើងវិញ ដើម្បីកុំឱ្យសញ្ញាចាស់ជាន់គ្នា។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
+    onClear?.(ids);
+    setToast(`បានសម្អាតវត្តមានខែ${KH_MONTHS[month - 1]} ${toKh(year)} ✓`);
   };
 
   // Click a cell to cycle its mark and save it straight into daily attendance.
@@ -302,6 +315,11 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
             <button onClick={() => fileRef.current?.click()} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">
               <Upload size={13} /> នាំចូល Excel
             </button>
+            {onClear && (
+              <button onClick={handleClear} title="លុបវត្តមានខែនេះទាំងអស់ មុននាំចូលឡើងវិញ" className="px-3 py-2 bg-white text-rose-600 hover:bg-rose-50 border border-rose-200 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">
+                <Eraser size={13} /> សម្អាតខែនេះ
+              </button>
+            )}
             <button onClick={handleExport} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">
               <Download size={13} /> ទាញយក Excel
             </button>
