@@ -4,12 +4,13 @@
  */
 
 import React, { useMemo, useState, useRef } from 'react';
-import { Printer, X, PenLine } from 'lucide-react';
+import { Printer, X, PenLine, Download, Loader2 } from 'lucide-react';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
+import { exportElementToPdf } from '../utils/exportPdf';
 import { tallyAbsences } from '../utils/attendance';
 
 // Render the teacher remark as a ticked-checkbox list, one selected comment per
@@ -154,6 +155,16 @@ export default function StudentReportCard({ student, students, onClose }: Studen
 
   const num = (v: number | null | undefined) => (v !== null && v !== undefined && v > 0 ? v.toFixed(2) : '0.00');
 
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const handleDownloadPdf = async () => {
+    const el = document.getElementById('student-report-card');
+    if (!el) return;
+    setPdfBusy(true);
+    try { await exportElementToPdf(el, `ព្រឹត្តបត្រ_${student.name.replace(/\s+/g, '_')}_${student.month}`); }
+    catch (e) { console.error('PDF export failed', e); alert('មិនអាចបង្កើត PDF បានទេ — សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setPdfBusy(false); }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 overflow-auto p-4 flex justify-center items-start">
       <style>{printCss}</style>
@@ -163,8 +174,11 @@ export default function StudentReportCard({ student, students, onClose }: Studen
         <div className="rc-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-t-2xl border-b border-slate-100">
           <h3 className="text-sm font-bold text-slate-800">ព្រឹត្តបត្រពិន្ទុសិស្ស — {student.name}</h3>
           <div className="flex items-center gap-2">
+            <button onClick={handleDownloadPdf} disabled={pdfBusy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
+              {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} ទាញយក PDF
+            </button>
             <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
-              <Printer size={13} /> បោះពុម្ព / PDF
+              <Printer size={13} /> បោះពុម្ព
             </button>
             <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-colors">
               <X size={13} /> បិទ

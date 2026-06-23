@@ -4,12 +4,13 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { Printer, X, Camera } from 'lucide-react';
+import { Printer, X, Camera, Download, Loader2 } from 'lucide-react';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
+import { exportElementToPdf } from '../utils/exportPdf';
 
 interface MeritCertificateProps {
   student: StudentScore;
@@ -76,6 +77,15 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     try { return localStorage.getItem(photoKey) || ''; } catch { return ''; }
   });
   const fileRef = useRef<HTMLInputElement>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const handleDownloadPdf = async () => {
+    const el = document.getElementById('merit-cert');
+    if (!el) return;
+    setPdfBusy(true);
+    try { await exportElementToPdf(el, `ប័ណ្ណសរសើរ_${student.name.replace(/\s+/g, '_')}`); }
+    catch (e) { console.error('PDF export failed', e); alert('មិនអាចបង្កើត PDF បានទេ — សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setPdfBusy(false); }
+  };
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -107,8 +117,11 @@ export default function MeritCertificate({ student, students, scoreOverride, per
         <div className="rc-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-t-2xl border-b border-slate-100">
           <h3 className="text-sm font-bold text-slate-800">ប័ណ្ណសរសើរ — {student.name} ({niddes.en})</h3>
           <div className="flex items-center gap-2">
+            <button onClick={handleDownloadPdf} disabled={pdfBusy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
+              {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} ទាញយក PDF
+            </button>
             <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
-              <Printer size={13} /> បោះពុម្ព / PDF
+              <Printer size={13} /> បោះពុម្ព
             </button>
             <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-colors">
               <X size={13} /> បិទ
