@@ -21,3 +21,6 @@ certificate.docx
 
 # Office lock files
 ~$*
+
+# local cert/test scratch files
+public/_*.html
