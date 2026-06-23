@@ -144,7 +144,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
 
               {/* Body — scales with the frame, justified to both margins. Sized so the
                   date of birth lands on line 1 and the niddes on line 2 (even for long names). */}
-              <div className="text-justify mt-1" style={{ fontSize: '2.0cqw', lineHeight: 1.18 }}>
+              <div className="text-justify mt-1" style={{ fontSize: '2.0cqw', lineHeight: 1.55 }}>
                 <p>
                   សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
                   ភេទ <span className="font-bold">{student.gender}</span>{' '}
