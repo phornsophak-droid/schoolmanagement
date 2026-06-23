@@ -12,6 +12,7 @@ import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { tallyAbsences } from '../utils/attendance';
 import { SEM1_MONTHS, SEM2_MONTHS, SEM_SUBJECTS, semesterAvgOf, readAnnualExtra } from '../utils/scoring';
+import { RemarkChecklist } from './StudentReportCard';
 
 interface SemesterReportCardProps {
   student: StudentScore;       // any record of the student (for identity)
@@ -216,7 +217,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
                     <td className="border border-slate-300 px-1 py-0.5">{g.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-bold">{g.en}</td>
                     {i === 0 && (
-                      <td className="border border-slate-300 px-1 py-0.5 align-top text-left whitespace-pre-wrap" rowSpan={SEM_SUBJECTS.length + (isYear ? 6 : 5)}>{remark}</td>
+                      <td className="border border-slate-300 px-1 py-0.5 align-top text-left" rowSpan={SEM_SUBJECTS.length + (isYear ? 6 : 5)}><RemarkChecklist remark={remark} /></td>
                     )}
                   </tr>
                 );

@@ -12,6 +12,23 @@ import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { tallyAbsences } from '../utils/attendance';
 
+// Render the teacher remark as a ticked-checkbox list, one selected comment per
+// line. Preset comments end with the Khmer period ។ — split on it for the lines.
+export function RemarkChecklist({ remark }: { remark?: string }) {
+  const items = (remark || '').split('។').map(s => s.trim()).filter(Boolean);
+  if (items.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-0.5 text-left">
+      {items.map((it, i) => (
+        <div key={i} className="flex items-start gap-1 leading-snug">
+          <span className="shrink-0">☑</span>
+          <span>{it}។</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 interface StudentReportCardProps {
   student: StudentScore;
   students: StudentScore[]; // full list, used to build the class roster for ranking
@@ -213,7 +230,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
                     <td className="border border-slate-300 px-1 py-0.5">{g.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-bold">{g.en}</td>
                     {i === 0 && (
-                      <td className="border border-slate-300 px-1 py-0.5 align-top text-left whitespace-pre-wrap" rowSpan={SUBJECTS.length + 3}>{student.remark || ''}</td>
+                      <td className="border border-slate-300 px-1 py-0.5 align-top text-left" rowSpan={SUBJECTS.length + 3}><RemarkChecklist remark={student.remark} /></td>
                     )}
                   </tr>
                 );
