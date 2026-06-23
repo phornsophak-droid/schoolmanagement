@@ -352,18 +352,6 @@ async function fetchAllRows(supabase: SupabaseClient, table: string, since?: str
   return all;
 }
 
-// Single-shot select with the same optional updated_at delta + fallback.
-async function selectRows(supabase: SupabaseClient, table: string, since?: string) {
-  let q = supabase.from(table).select('*');
-  if (since) q = q.gt('updated_at', since);
-  let { data, error } = await q;
-  if (error && since && /updated_at/i.test(error.message || '')) {
-    ({ data, error } = await supabase.from(table).select('*'));
-  }
-  if (error) throw error;
-  return data;
-}
-
 // 5. Database Interaction Module API
 // Parent portal: fetch ONLY one class's student rows (all months). Read-only,
 // no realtime, no whole-database download — keeps egress tiny (~one class vs
@@ -450,18 +438,20 @@ export async function syncFetchAll(since?: string) {
     });
   }
 
-  // Fetch student attendance safely (delta when `since` is given)
+  // Fetch student attendance safely (delta when `since` is given). MUST paginate:
+  // PostgREST caps a single select at 1000 rows, so a non-paginated fetch silently
+  // dropped older months once attendance grew past 1000 records.
   let rawStudentAtt: any[] | null = null;
   try {
-    rawStudentAtt = await selectRows(supabase, 'student_attendance', since);
+    rawStudentAtt = await fetchAllRows(supabase, 'student_attendance', since);
   } catch (err) {
     console.warn("Could not fetch student_attendance", err);
   }
 
-  // Fetch teacher attendance safely (delta when `since` is given)
+  // Fetch teacher attendance safely (delta when `since` is given) — paginated too.
   let rawTeacherAtt: any[] | null = null;
   try {
-    rawTeacherAtt = await selectRows(supabase, 'teacher_attendance', since);
+    rawTeacherAtt = await fetchAllRows(supabase, 'teacher_attendance', since);
   } catch (err) {
     console.warn("Could not fetch teacher_attendance", err);
   }
