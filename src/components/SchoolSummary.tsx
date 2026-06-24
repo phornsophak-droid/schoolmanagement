@@ -79,6 +79,8 @@ export default function SchoolSummary({ students, onClose }: SchoolSummaryProps)
             {stat('អត្រាជាប់', toKh(summary.passRate) + '%', 'bg-emerald-50 border-emerald-200 text-emerald-700')}
             {stat('A / B', toKh(summary.dist.A) + ' / ' + toKh(summary.dist.B), 'bg-amber-50 border-amber-200 text-amber-700')}
             {stat('E / F', toKh(summary.dist.E) + ' / ' + toKh(summary.dist.F), 'bg-rose-50 border-rose-200 text-rose-700')}
+            {summary.absences.hasData && stat('អវត្តមាន (លើក)', toKh(summary.absences.total), 'bg-orange-50 border-orange-200 text-orange-700')}
+            {summary.absences.hasData && stat('អត្រាវត្តមាន', toKh(summary.absences.attendanceRate) + '%', 'bg-teal-50 border-teal-200 text-teal-700')}
           </div>
 
           {/* AI / copy actions */}

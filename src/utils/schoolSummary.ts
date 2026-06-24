@@ -29,6 +29,19 @@ export interface ClassSummary {
 export interface SubjectAvg { km: string; avg: number }
 export interface WeakStudent { name: string; grade: string; avg: number; letter: string }
 
+export interface ClassAbsence { grade: string; permission: number; absent: number; total: number }
+export interface StudentAbsence { name: string; grade: string; permission: number; absent: number; total: number }
+export interface MonthAbsences {
+  hasData: boolean;
+  permission: number;   // excused (ច្បាប់) session-count
+  absent: number;       // unexcused (អត់ច្បាប់) session-count
+  late: number;
+  total: number;        // permission + absent
+  attendanceRate: number; // % present of all marks
+  perClass: ClassAbsence[];
+  topStudents: StudentAbsence[];
+}
+
 export interface SchoolSummary {
   month: string;
   totalStudents: number;
@@ -40,6 +53,74 @@ export interface SchoolSummary {
   topClasses: ClassSummary[];
   weakSubjects: SubjectAvg[];         // lowest school-wide subject averages
   weakStudents: WeakStudent[];        // niddes E/F, worst first
+  absences: MonthAbsences;            // monthly absence analysis
+}
+
+// Calendar-index Khmer months → "YYYY-MM" key (school year Sep 2025 – Aug 2026),
+// matching utils/attendance.ts so the date filter lines up with the records.
+const KH_MONTHS_CAL = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
+const monthDateKey = (month: string): string => {
+  const idx = KH_MONTHS_CAL.indexOf((month || '').trim());
+  if (idx < 0) return '';
+  const year = idx >= 8 ? 2025 : 2026;
+  return `${year}-${String(idx + 1).padStart(2, '0')}`;
+};
+
+// Whole-school absence analysis for the month, from the saved daily-attendance
+// records (localStorage). General classes only, to match the rest of the summary.
+// Counts are in sessions (a full-day general-class absence = 2), as elsewhere.
+export function computeMonthAbsences(students: StudentScore[], month: string): MonthAbsences {
+  const empty: MonthAbsences = { hasData: false, permission: 0, absent: 0, late: 0, total: 0, attendanceRate: 0, perClass: [], topStudents: [] };
+  const key = monthDateKey(month);
+  if (!key) return empty;
+  let records: { date?: string; grade?: string; studentStates?: Record<string, string> }[] = [];
+  try { records = JSON.parse(localStorage.getItem('school_daily_attendance') || '[]'); } catch { return empty; }
+  if (!Array.isArray(records) || records.length === 0) return empty;
+
+  const idMap = new Map<string, { name: string; grade: string }>();
+  students.forEach(s => idMap.set(s.id, { name: s.name, grade: s.grade }));
+
+  let permission = 0, absent = 0, late = 0, present = 0, any = false;
+  const perClass = new Map<string, ClassAbsence>();
+  const perStudent = new Map<string, StudentAbsence>();
+
+  for (const r of records) {
+    if ((r.date || '').slice(0, 7) !== key) continue;
+    const grade = r.grade || '';
+    if (isExtraClass(grade)) continue;
+    const states = r.studentStates || {};
+    const ids = Object.keys(states);
+    if (ids.length === 0) continue;
+    any = true;
+    const pc = perClass.get(grade) || { grade, permission: 0, absent: 0, total: 0 };
+    for (const id of ids) {
+      const st = states[id];
+      if (st === 'present') { present++; continue; }
+      if (st === 'late') { late++; continue; }
+      if (st !== 'permission' && st !== 'absent') continue;
+      if (st === 'permission') { permission++; pc.permission++; } else { absent++; pc.absent++; }
+      pc.total++;
+      const info = idMap.get(id);
+      if (info?.name) {
+        const pkey = `${info.name}::${info.grade}`;
+        const ps = perStudent.get(pkey) || { name: info.name, grade: info.grade, permission: 0, absent: 0, total: 0 };
+        if (st === 'permission') ps.permission++; else ps.absent++;
+        ps.total++;
+        perStudent.set(pkey, ps);
+      }
+    }
+    perClass.set(grade, pc);
+  }
+  if (!any) return empty;
+  const total = permission + absent;
+  const marks = present + late + permission + absent;
+  return {
+    hasData: true,
+    permission, absent, late, total,
+    attendanceRate: marks ? Math.round((present / marks) * 100) : 0,
+    perClass: Array.from(perClass.values()).filter(c => c.total > 0).sort((a, b) => b.total - a.total),
+    topStudents: Array.from(perStudent.values()).sort((a, b) => b.total - a.total).slice(0, 8),
+  };
 }
 
 // Per-student main-subject averages (general class), for school-wide weak-subject ranking.
@@ -118,6 +199,7 @@ export function computeSchoolSummary(students: StudentScore[], month: string): S
     topClasses: classes.slice(0, 3),
     weakSubjects,
     weakStudents,
+    absences: computeMonthAbsences(students, month),
   };
 }
 
@@ -151,12 +233,32 @@ export function summaryToKhmerText(s: SchoolSummary): string {
     L.push(`🧑‍🎓 សិស្សគួរជួយបន្ថែម (មធ្យមភាគក្រោម ៦.០ — ${toKh(s.weakStudents.length)} នាក់)៖`);
     s.weakStudents.slice(0, 8).forEach(w => L.push(`   - ${w.name} (${w.grade})៖ ${toKh(w.avg.toFixed(2))} [${w.letter}]`));
   }
+  const a = s.absences;
+  if (a.hasData) {
+    L.push('');
+    L.push(`📅 ការវិភាគអវត្តមាន ប្រចាំខែ${s.month}៖`);
+    L.push(`   • អវត្តមានសរុប៖ ${toKh(a.total)} លើក (ច្បាប់ ${toKh(a.permission)} | អត់ច្បាប់ ${toKh(a.absent)})`);
+    L.push(`   • អត្រាវត្តមាន៖ ${toKh(a.attendanceRate)}%${a.late ? ` | យឺត ${toKh(a.late)} លើក` : ''}`);
+    if (a.perClass.length) {
+      L.push('   • ថ្នាក់អវត្តមានច្រើនជាងគេ៖');
+      a.perClass.slice(0, 3).forEach(c => L.push(`     - ${c.grade}៖ ${toKh(c.total)} លើក (អត់ច្បាប់ ${toKh(c.absent)})`));
+    }
+    if (a.topStudents.length) {
+      L.push('   • សិស្សអវត្តមានច្រើន៖');
+      a.topStudents.slice(0, 5).forEach(w => L.push(`     - ${w.name} (${w.grade})៖ ${toKh(w.total)} លើក (អត់ច្បាប់ ${toKh(w.absent)})`));
+    }
+  }
+
+  // Improvement points — built as a list so the numbering stays correct.
+  const tips: string[] = [];
+  if (s.weakSubjects[0]) tips.push(`ផ្ដោតលើការបង្រៀន «${s.weakSubjects[0].km}» ដែលនៅខ្សោយជាងគេ បន្ថែមលំហាត់ និងការតាមដាន។`);
+  if (s.weakClasses[0]) tips.push(`ជួយ​ថ្នាក់ «${s.weakClasses[0].grade}» ដែលមានមធ្យមភាគទាប — រៀបចំ​មេរៀន​បំប៉ន។`);
+  if (s.weakStudents.length) tips.push(`រៀបចំ​ការ​ជួយ​បន្ថែម​ដល់​សិស្ស​និទ្ទេស​ខ្សោយ ${toKh(s.weakStudents.length)} នាក់ និងជូនដំណឹងអាណាព្យាបាល។`);
+  if (a.hasData && a.absent > 0) tips.push(`តាមដាន​អវត្តមាន​អត់​ច្បាប់ (${toKh(a.absent)} លើក)${a.topStudents[0] ? ` ពិសេស​សិស្ស «${a.topStudents[0].name}»` : ''} និង​ទាក់ទង​អាណាព្យាបាល​ឱ្យ​ទាន់​ពេល។`);
+  tips.push('លើកទឹកចិត្ត​ថ្នាក់​ឆ្នើម និងចែករំលែក​បទពិសោធន៍​បង្រៀន​ល្អ​ៗ ដល់​គ្រូ​ដទៃ។');
   L.push('');
   L.push('🎯 ចំណុចគួរកែលម្អសម្រាប់ខែបន្ទាប់៖');
-  if (s.weakSubjects[0]) L.push(`   ១. ផ្ដោតលើការបង្រៀន «${s.weakSubjects[0].km}» ដែលនៅខ្សោយជាងគេ បន្ថែមលំហាត់ និងការតាមដាន។`);
-  if (s.weakClasses[0]) L.push(`   ២. ជួយ​ថ្នាក់ «${s.weakClasses[0].grade}» ដែលមានមធ្យមភាគទាប — រៀបចំ​មេរៀន​បំប៉ន។`);
-  if (s.weakStudents.length) L.push(`   ៣. រៀបចំ​ការ​ជួយ​បន្ថែម​ដល់​សិស្ស​និទ្ទេស​ខ្សោយ ${toKh(s.weakStudents.length)} នាក់ និងជូនដំណឹងអាណាព្យាបាល។`);
-  L.push(`   ៤. លើកទឹកចិត្ត​ថ្នាក់​ឆ្នើម និងចែករំលែក​បទពិសោធន៍​បង្រៀន​ល្អ​ៗ ដល់​គ្រូ​ដទៃ។`);
+  tips.forEach((t, i) => L.push(`   ${toKh(i + 1)}. ${t}`));
   return L.join('\n');
 }
 
@@ -172,5 +274,13 @@ export function summaryForPrompt(s: SchoolSummary): string {
     weakClasses: s.weakClasses.map(c => ({ class: c.grade, avg: c.avg, passRate: c.passRate })),
     weakestSubjects: s.weakSubjects,
     studentsNeedingHelp: s.weakStudents.map(w => ({ name: w.name, class: w.grade, avg: w.avg, niddes: w.letter })),
+    absences: s.absences.hasData ? {
+      totalSessions: s.absences.total,
+      excused: s.absences.permission,
+      unexcused: s.absences.absent,
+      attendanceRatePercent: s.absences.attendanceRate,
+      byClass: s.absences.perClass.map(c => ({ class: c.grade, total: c.total, unexcused: c.absent })),
+      mostAbsentStudents: s.absences.topStudents.map(w => ({ name: w.name, class: w.grade, total: w.total, unexcused: w.absent })),
+    } : 'no attendance data',
   }, null, 2);
 }
