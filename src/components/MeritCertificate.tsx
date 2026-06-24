@@ -4,12 +4,13 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { Printer, X, Camera, Download } from 'lucide-react';
+import { Printer, X, Camera, Download, Loader2 } from 'lucide-react';
 import { StudentScore } from '../types';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
+import { exportElementToPdf } from '../utils/exportPdf';
 
 interface MeritCertificateProps {
   student: StudentScore;
@@ -85,10 +86,19 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     try { return localStorage.getItem(photoKey) || ''; } catch { return ''; }
   });
   const fileRef = useRef<HTMLInputElement>(null);
-  // Use the browser's native print → "Save as PDF". It's reliable and uses the
-  // tuned print CSS (A4 landscape, colour-exact). The html2canvas path froze on
-  // complex certs (large uploaded photos), so it was dropped.
-  const handleDownloadPdf = () => window.print();
+  // Download a true landscape PDF. Android's print dialog ignores @page
+  // orientation, so window.print() can't guarantee landscape there — generate
+  // the PDF programmatically instead (the wide cert canvas → landscape page).
+  // The "បោះពុម្ព" button still uses native print for actual printers.
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const handleDownloadPdf = async () => {
+    const el = document.getElementById('merit-cert');
+    if (!el) return;
+    setPdfBusy(true);
+    try { await exportElementToPdf(el, `ប័ណ្ណសរសើរ_${student.name.replace(/\s+/g, '_')}`); }
+    catch (e) { console.error('PDF export failed', e); alert('មិនអាចបង្កើត PDF បានទេ — សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setPdfBusy(false); }
+  };
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -122,8 +132,8 @@ export default function MeritCertificate({ student, students, scoreOverride, per
         <div className="rc-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-t-2xl border-b border-slate-100">
           <h3 className="text-sm font-bold text-slate-800">ប័ណ្ណសរសើរ — {student.name} ({niddes.en})</h3>
           <div className="flex items-center gap-2">
-            <button onClick={handleDownloadPdf} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
-              <Download size={13} /> ទាញយក PDF
+            <button onClick={handleDownloadPdf} disabled={pdfBusy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
+              {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} ទាញយក PDF
             </button>
             <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
               <Printer size={13} /> បោះពុម្ព
