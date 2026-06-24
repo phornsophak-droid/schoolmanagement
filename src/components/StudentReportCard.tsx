@@ -13,6 +13,7 @@ import { khmerLunarFull } from '../utils/khmerDate';
 import { exportElementToPdf } from '../utils/exportPdf';
 import { tallyAbsences } from '../utils/attendance';
 import { niddesColor } from '../utils/scoring';
+import FitToWidth from './FitToWidth';
 
 // Render the teacher remark as a ticked-checkbox list, one selected comment per
 // line. Preset comments end with the Khmer period ។ — split on it for the lines.
@@ -152,6 +153,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
     #student-report-card, #student-report-card * { visibility: visible !important; }
     #student-report-card { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: 0; }
     .rc-no-print { display: none !important; }
+    .rc-fit-outer, .rc-fit-frame, .rc-fit-inner { width: auto !important; height: auto !important; overflow: visible !important; margin: 0 !important; transform: none !important; }
   }`;
 
   const num = (v: number | null | undefined) => (v !== null && v !== undefined && v > 0 ? v.toFixed(2) : '0.00');
@@ -187,7 +189,8 @@ export default function StudentReportCard({ student, students, onClose }: Studen
           </div>
         </div>
 
-        {/* The printable card */}
+        {/* The printable card — scaled to fit narrow phones without reflowing */}
+        <FitToWidth designWidth={768}>
         <div id="student-report-card" className="bg-white rounded-b-2xl shadow-xl p-8 text-slate-800 text-[12px] leading-relaxed">
 
           <div className="flex justify-between items-start mb-1">
@@ -285,6 +288,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
             </div>
           </div>
         </div>
+        </FitToWidth>
       </div>
     </div>
   );

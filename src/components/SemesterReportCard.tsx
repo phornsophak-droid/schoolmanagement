@@ -14,6 +14,7 @@ import { tallyAbsences } from '../utils/attendance';
 import { exportElementToPdf } from '../utils/exportPdf';
 import { SEM1_MONTHS, SEM2_MONTHS, SEM_SUBJECTS, semesterAvgOf, readAnnualExtra, niddesColor } from '../utils/scoring';
 import { RemarkChecklist } from './StudentReportCard';
+import FitToWidth from './FitToWidth';
 
 interface SemesterReportCardProps {
   student: StudentScore;       // any record of the student (for identity)
@@ -129,6 +130,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
     #semester-report-card, #semester-report-card * { visibility: visible !important; }
     #semester-report-card { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: 0; }
     .rc-no-print { display: none !important; }
+    .rc-fit-outer, .rc-fit-frame, .rc-fit-inner { width: auto !important; height: auto !important; overflow: visible !important; margin: 0 !important; transform: none !important; }
   }`;
 
   const periodTitle = isYear ? 'ប្រចាំឆ្នាំ' : `ឆមាសទី ${toKh(period as number)}`;
@@ -182,7 +184,8 @@ export default function SemesterReportCard({ student, students, period, onClose 
           </div>
         </div>
 
-        {/* Printable card */}
+        {/* Printable card — scaled to fit narrow phones without reflowing */}
+        <FitToWidth designWidth={768}>
         <div id="semester-report-card" className="bg-white rounded-b-2xl shadow-xl p-8 text-slate-800 text-[12px] leading-relaxed">
           <div className="flex justify-between items-start mb-1">
             <div className="flex flex-col items-center font-semibold text-emerald-700">
@@ -317,6 +320,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
             </div>
           </div>
         </div>
+        </FitToWidth>
       </div>
     </div>
   );
