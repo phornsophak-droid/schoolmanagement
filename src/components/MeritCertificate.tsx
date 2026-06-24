@@ -59,8 +59,17 @@ const monthEndDate = (month: string) => {
 
 export default function MeritCertificate({ student, students, scoreOverride, periodPhrase, onClose }: MeritCertificateProps) {
   const niddes = gradeBand(scoreOverride ?? student.overallAvg);
-  const endDate = monthEndDate(student.month);
   const period = periodPhrase || `ប្រចាំខែ${student.month} ឆ្នាំសិក្សា ២០២៥-២០២៦`;
+  // Issue date auto-fills from the record's month for a monthly cert. For a
+  // semester/year cert the record's "month" is an exam string (e.g. ប្រឡងឆមាសទី១),
+  // so derive the period-end calendar month from the phrase instead.
+  const isCalMonth = KH_MONTHS.includes((student.month || '').trim());
+  const dateMonth = isCalMonth ? student.month
+    : /ឆមាសទី\s*១/.test(period) ? 'មីនា'
+    : /ឆមាសទី\s*២/.test(period) ? 'សីហា'
+    : /ប្រចាំឆ្នាំ/.test(period) ? 'សីហា'
+    : student.month;
+  const endDate = monthEndDate(dateMonth);
 
   // Date of birth — fall back to any of this student's rows (by អត្តលេខ, then name).
   const dobFrom = (pred: (s: StudentScore) => boolean) => students.find(s => pred(s) && !!s.dob)?.dob;
@@ -134,7 +143,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
           {/* Decorative frame image — place the file at public/cert-frame.png */}
           <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
             <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
-            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7.5% 13% 15.5%' }}>
+            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7.5% 13% 11%' }}>
 
               {/* Header: CAMKIDS org (left), kingdom motto (right) */}
               <div className="flex items-start justify-between">
@@ -206,7 +215,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
 
                 <div>
                   <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
-                  <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{student.month} ឆ្នាំ{endDate.year}</p>
+                  <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{dateMonth} ឆ្នាំ{endDate.year}</p>
                   <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
                   <TeacherSignature grade={student.grade} height="6.5cqw" />
                 </div>
