@@ -107,6 +107,11 @@ export default function MobilePortal({
   const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat'>('home');
   const [showMenuOverlay, setShowMenuOverlay] = useState(false);
   const [showAiHelper, setShowAiHelper] = useState(false);
+  // Gradebook month/class filters on phone — must be real state, else the dropdowns
+  // are dead (they were wired to () => {} no-ops). Teachers stay locked to their
+  // class inside Gradebook regardless of the grade value.
+  const [gbMonth, setGbMonth] = useState('ទាំងអស់');
+  const [gbGrade, setGbGrade] = useState('ទាំងអស់');
 
   // Toast notifications for iframe bypass
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -1616,10 +1621,10 @@ export default function MobilePortal({
                 <div className="bg-white rounded-2xl p-2 border border-emerald-100 text-slate-800 max-h-[620px] overflow-y-auto w-full">
                   <Gradebook
                     students={students}
-                    selectedMonth="ទាំងអស់"
-                    setSelectedMonth={() => {}}
-                    selectedGrade="ទាំងអស់"
-                    setSelectedGrade={() => {}}
+                    selectedMonth={gbMonth}
+                    setSelectedMonth={setGbMonth}
+                    selectedGrade={gbGrade}
+                    setSelectedGrade={setGbGrade}
                     onSaveStudents={onSaveStudents}
                     currentUser={currentUser}
                     grades={grades}
