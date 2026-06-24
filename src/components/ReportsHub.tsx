@@ -28,6 +28,7 @@ import { motion } from 'motion/react';
 import ReportWizard from './ReportWizard';
 import ClassReport, { getReportTemplate } from './ClassReport';
 import ClassRankingReport from './ClassRankingReport';
+import SchoolSummary from './SchoolSummary';
 import { semesterAvgOf, annualAcademicRaw, annualFinalOf } from '../utils/scoring';
 import { loadSubmissions, submissionDate, ReportSubmission } from '../utils/reportSubmit';
 
@@ -102,6 +103,7 @@ export default function ReportsHub({
   
   // Tab states: 'monthly_progress' (សរសេររបាយការណ៍) or 'academic' (របាយការណ៍លទ្ធផលសិក្សាសិស្ស)
   const [activeTab, setActiveTab] = useState<'monthly_progress' | 'academic'>('monthly_progress');
+  const [showSchoolSummary, setShowSchoolSummary] = useState(false);
   
   // Report wizard activation state within the tab
   const [isWritingReport, setIsWritingReport] = useState(false);
@@ -504,13 +506,25 @@ export default function ReportsHub({
           </div>
         </div>
 
-        <button
-          onClick={onCancel}
-          className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200/60 transition-colors"
-        >
-          ត្រឡប់ទៅផ្ទាំងគ្រប់គ្រង
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSchoolSummary(true)}
+            className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 rounded-xl shadow-md transition-colors flex items-center gap-1.5"
+          >
+            <Sparkles size={14} /> សង្ខេបលទ្ធផល (AI)
+          </button>
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200/60 transition-colors"
+          >
+            ត្រឡប់ទៅផ្ទាំងគ្រប់គ្រង
+          </button>
+        </div>
       </div>
+
+      {showSchoolSummary && (
+        <SchoolSummary students={students} onClose={() => setShowSchoolSummary(false)} />
+      )}
 
       {/* 2. Top-Level Tab Selector Switcher (Hidden in print) */}
       <div className="flex border-b border-slate-200/80 bg-slate-100 p-1 rounded-xl max-w-xl mx-auto print:hidden">
