@@ -14,6 +14,44 @@ interface SchoolSummaryProps {
   onClose: () => void;
 }
 
+// Dependency-free SVG donut of the absence reasons (excused / unexcused / late).
+function AbsenceReasonChart({ segments }: { segments: { label: string; value: number; color: string }[] }) {
+  const total = segments.reduce((a, s) => a + s.value, 0);
+  if (total === 0) return null;
+  const size = 150, stroke = 26, r = (size - stroke) / 2, C = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <div className="flex items-center gap-5 flex-wrap">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
+        <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
+          {segments.filter(s => s.value > 0).map((s, i) => {
+            const len = (s.value / total) * C;
+            const seg = (
+              <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color}
+                strokeWidth={stroke} strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-offset} />
+            );
+            offset += len;
+            return seg;
+          })}
+        </g>
+        <text x="50%" y="44%" textAnchor="middle" dominantBaseline="central" className="fill-slate-800" style={{ fontSize: 22, fontWeight: 800 }}>{toKh(total)}</text>
+        <text x="50%" y="60%" textAnchor="middle" dominantBaseline="central" className="fill-slate-400" style={{ fontSize: 11 }}>លើក</text>
+      </svg>
+      <div className="space-y-1.5">
+        {segments.map((s, i) => (
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: s.color }} />
+            <span className="text-slate-600 font-semibold min-w-[78px]">{s.label}</span>
+            <span className="text-slate-800 font-bold">{toKh(s.value)}</span>
+            <span className="text-slate-400">({toKh(Math.round((s.value / total) * 100))}%)</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SchoolSummary({ students, onClose }: SchoolSummaryProps) {
   const months = useMemo(() => monthsWithData(students), [students]);
   const [month, setMonth] = useState<string>(() => months[months.length - 1] || 'មិថុនា');
@@ -82,6 +120,18 @@ export default function SchoolSummary({ students, onClose }: SchoolSummaryProps)
             {summary.absences.hasData && stat('អវត្តមាន (លើក)', toKh(summary.absences.total), 'bg-orange-50 border-orange-200 text-orange-700')}
             {summary.absences.hasData && stat('អត្រាវត្តមាន', toKh(summary.absences.attendanceRate) + '%', 'bg-teal-50 border-teal-200 text-teal-700')}
           </div>
+
+          {/* Absence-reason chart */}
+          {summary.absences.hasData && (summary.absences.permission + summary.absences.absent + summary.absences.late) > 0 && (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <h4 className="text-xs font-bold text-slate-700 mb-3">មូលហេតុនៃការអវត្តមាន — ខែ{month}</h4>
+              <AbsenceReasonChart segments={[
+                { label: 'ច្បាប់', value: summary.absences.permission, color: '#3b82f6' },
+                { label: 'អត់ច្បាប់', value: summary.absences.absent, color: '#ef4444' },
+                { label: 'យឺត', value: summary.absences.late, color: '#f59e0b' },
+              ]} />
+            </div>
+          )}
 
           {/* AI / copy actions */}
           <div className="flex items-center gap-2 flex-wrap">
