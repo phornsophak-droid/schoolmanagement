@@ -70,6 +70,11 @@ async function renderElementToCanvas(el: HTMLElement): Promise<HTMLCanvasElement
         n.style.overflow = 'visible';
         n.style.margin = '0';
       });
+      // html2canvas ignores @media print, so screen-only chrome (the
+      // "លុបហត្ថលេខា" / "ប្តូររូប" links, the empty photo-upload placeholder)
+      // would otherwise show in the PDF/image. Hide it to match print output —
+      // an actually-uploaded photo is not .rc-no-print, so it still appears.
+      doc.querySelectorAll<HTMLElement>('.rc-no-print').forEach(n => { n.style.display = 'none'; });
     },
   });
 }
