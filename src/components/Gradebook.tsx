@@ -398,10 +398,11 @@ export default function Gradebook({
   const scoreHeaders = customSubjects ? customSubjects.map(s => s.km) : GENERAL_SCORE_HEADERS;
 
   // Build a StudentScore record from a row's numeric values (order matches scoreHeaders).
-  const buildScoreRecord = (name: string, gender: 'ប្រុស' | 'ស្រី', vals: (number | null)[], month: string, existingId?: string, studentId?: string, remark?: string): StudentScore => {
+  const buildScoreRecord = (name: string, gender: 'ប្រុស' | 'ស្រី', vals: (number | null)[], month: string, existingId?: string, studentId?: string, remark?: string, group?: string): StudentScore => {
     const base = {
       id: existingId || generateUniqueId(),
       name, gender, grade: selectedGrade, month, studentId: studentId || undefined,
+      group: group || undefined,
       remark: remark || undefined,
       khmer: { listening: null, writing: null, reading: null, speaking: null },
       math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
@@ -434,18 +435,28 @@ export default function Gradebook({
     const examMonth = selectedSemester === '2' ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១';
     const monthlyHeaders = customSubjects ? customSubjects.map(s => s.km) : scoreHeaders;
     const subjHeaders = isSem ? SEM_SUBJECTS.map(s => s.km) : monthlyHeaders;
-    const header = ['អត្តលេខ', 'ឈ្មោះ', 'ភេទ', ...subjHeaders, 'មូលវិចារគ្រូ'];
+    // After-hours classes split into groups carry a ក្រុម column so groups
+    // round-trip and two same-name students (in different groups) stay distinct.
+    const hasGroup = !!customSubjects;
+    const header = ['អត្តលេខ', 'ឈ្មោះ', 'ភេទ', ...(hasGroup ? ['ក្រុម'] : []), ...subjHeaders, 'មូលវិចារគ្រូ'];
     // Keep the class's natural roster order (no alphabetical sort) so the template
     // matches the order the user expects and can be filled/imported row-for-row.
-    const names = Array.from(new Set(students.filter(s => s.grade === selectedGrade).map(s => s.name.trim())));
-    const body = names.map(n => {
-      const sample = students.find(s => s.grade === selectedGrade && s.name.trim() === n);
+    // Dedupe by name (+group for after-hours) so same-name students aren't merged.
+    const seen = new Set<string>();
+    const roster: StudentScore[] = [];
+    students.filter(s => s.grade === selectedGrade).forEach(s => {
+      const k = hasGroup ? `${s.name.trim()}__${s.group || ''}` : s.name.trim();
+      if (!seen.has(k)) { seen.add(k); roster.push(s); }
+    });
+    const body = roster.map(sample => {
+      const n = sample.name.trim();
+      const groupCell = hasGroup ? [sample.group || ''] : [];
       if (isSem) {
-        const exam = students.find(s => s.grade === selectedGrade && s.month === examMonth && s.name.trim() === n);
+        const exam = students.find(s => s.grade === selectedGrade && s.month === examMonth && s.name.trim() === n && (!hasGroup || (s.group || '') === (sample.group || '')));
         const cells = SEM_SUBJECTS.map(sub => { const v = exam ? sub.get(exam) : null; return v === null || v === undefined ? '' : v; });
-        return [sample?.studentId || '', n, sample?.gender || '', ...cells, exam?.remark || ''];
+        return [sample.studentId || '', n, sample.gender || '', ...groupCell, ...cells, exam?.remark || ''];
       }
-      return [sample?.studentId || '', n, sample?.gender || '', ...monthlyHeaders.map(() => ''), sample?.remark || ''];
+      return [sample.studentId || '', n, sample.gender || '', ...groupCell, ...monthlyHeaders.map(() => ''), sample.remark || ''];
     });
     const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
     const wb = XLSX.utils.book_new();
@@ -481,9 +492,12 @@ export default function Gradebook({
         let nameCol = headerRow.findIndex(h => h.includes('ឈ្មោះ') || h.includes('នាម'));
         let genderCol = headerRow.findIndex(h => h.includes('ភេទ'));
         const remarkCol = headerRow.findIndex(h => h.includes('មូលវិចារ'));
+        // ក្រុម (group) column for after-hours classes split into groups — lets two
+        // same-name students in different groups import as distinct rows.
+        const groupCol = headerRow.findIndex(h => h.includes('ក្រុម'));
         if (nameCol < 0) nameCol = idCol >= 0 ? idCol + 1 : 0;
         if (genderCol < 0) genderCol = nameCol + 1;
-        const scoreStart = Math.max(idCol, nameCol, genderCol) + 1;
+        const scoreStart = Math.max(idCol, nameCol, genderCol, groupCol) + 1;
         const isSem = activeMode === 'semester';
         const valCount = isSem ? SEM_SUBJECTS.length : (customSubjects ? customSubjects.length : scoreHeaders.length);
         let updated = [...students];
@@ -498,10 +512,13 @@ export default function Gradebook({
           const gender: 'ប្រុស' | 'ស្រី' = (rawGender.includes('ស្រី') || rawGender === 'f' || rawGender === 'female') ? 'ស្រី' : 'ប្រុស';
           const vals = Array.from({ length: valCount }, (_, idx) => num(row[scoreStart + idx]));
           const remark = remarkCol >= 0 ? String(row[remarkCol] ?? '').replace(/[﻿​]/g, '').trim() : '';
+          const group = groupCol >= 0 ? String(row[groupCol] ?? '').replace(/[﻿​]/g, '').replace(/\s+/g, ' ').trim() : '';
           // Match by EXACT name first — the template carries the app's own names, so this
           // maps each row to the right student regardless of row order. អត្តលេខ is used only
           // to disambiguate when several students share the same name, then as a last resort.
-          const sameScope = (s: StudentScore) => s.grade === selectedGrade && s.month === targetMonth;
+          // When a group is given, match only within that group so same-name students in
+          // different groups stay distinct (otherwise one overwrites the other).
+          const sameScope = (s: StudentScore) => s.grade === selectedGrade && s.month === targetMonth && (!group || (s.group || '') === group);
           const byName = updated.filter(s => sameScope(s) && s.name.trim() === name);
           let existing: StudentScore | undefined;
           if (byName.length === 1) existing = byName[0];
@@ -522,9 +539,10 @@ export default function Gradebook({
             SEM_SUBJECTS.forEach((sub, idx) => sub.set(rec, vals[idx]));
             rec.studentId = studentId || existing?.studentId;
             rec.remark = remark || existing?.remark;
+            rec.group = group || existing?.group;
             rec = calculateStudentFields(rec);
           } else {
-            rec = buildScoreRecord(name, gender, vals, targetMonth, existing?.id, studentId || existing?.studentId, remark || existing?.remark);
+            rec = buildScoreRecord(name, gender, vals, targetMonth, existing?.id, studentId || existing?.studentId, remark || existing?.remark, group || existing?.group);
           }
           updated = existing ? updated.map(s => s.id === existing.id ? rec : s) : [...updated, rec];
           count++;

@@ -293,7 +293,11 @@ export default function App() {
       // sharing one id (the "duplicate name" the user sees).
       const norm = (x: any) => (x ?? '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
       students.map((s: any) => calculateStudentFields(s)).forEach((s: any) => {
-        const key = `${norm(s.name)}_${norm(s.gender)}_${norm(s.grade)}_${norm(s.month)}`;
+        // Include the group (ក្រុម) in the key for after-hours classes split into
+        // groups, so same-name students in different groups don't collapse into one
+        // row. Group-less (general) records keep the original key. Must match studentRecordId.
+        const g = norm(s.group);
+        const key = `${norm(s.name)}_${norm(s.gender)}_${norm(s.grade)}_${norm(s.month)}${g ? `_${g}` : ''}`;
         const existing = best.get(key);
         if (!existing) { best.set(key, s); order.push(key); }
         else if (recordRichness(s) > recordRichness(existing)) { best.set(key, s); }
@@ -302,7 +306,7 @@ export default function App() {
       // the same row on every device and can never accumulate duplicate copies.
       return order.map(k => {
         const s = best.get(k);
-        return { ...s, id: studentRecordId(s.name, s.gender, s.grade, s.month) };
+        return { ...s, id: studentRecordId(s.name, s.gender, s.grade, s.month, s.group) };
       });
     };
 
@@ -880,7 +884,7 @@ export default function App() {
     // and removed — keeping the cloud clean instead of leaving an orphan copy.
     updatedList = updatedList.map(s => ({
       ...s,
-      id: studentRecordId(s.name, s.gender, (s as any).grade, (s as any).month),
+      id: studentRecordId(s.name, s.gender, (s as any).grade, (s as any).month, (s as any).group),
     }));
 
     const prevById = new Map(students.map(prevS => [prevS.id, prevS]));

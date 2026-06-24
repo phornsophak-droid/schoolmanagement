@@ -25,11 +25,20 @@ export function generateUniqueId(): string {
 }
 
 // Deterministic id for a student score record, derived from its natural key
-// (name + gender + grade + month). The SAME student always maps to the SAME id
-// on every device, so cloud upserts overwrite in place and can never pile up
-// duplicate rows. Must stay byte-for-byte identical to the cloud-dedupe script.
-export function studentRecordId(name: string, gender: string, grade: string, month: string): string {
-  const key = [name, gender, grade, month]
+// (name + gender + grade + month [+ group]). The SAME student always maps to the
+// SAME id on every device, so cloud upserts overwrite in place and can never pile
+// up duplicate rows.
+//
+// `group` (ក្រុម) is appended ONLY for after-hours classes that split a class into
+// groups — without it, two different students who share a name+gender in the same
+// class/month collapse onto one id and one is dropped (import "doesn't stick").
+// General classes have no group, so their key/id stay byte-for-byte identical to
+// the original scheme (and the cloud-dedupe script) — no migration for them.
+export function studentRecordId(name: string, gender: string, grade: string, month: string, group?: string): string {
+  const parts = [name, gender, grade, month];
+  const g = (group ?? '').toString().trim();
+  if (g) parts.push(g);
+  const key = parts
     .map(x => (x ?? '').toString().trim().toLowerCase().replace(/\s+/g, ' '))
     .join('|');
   const h = (seed: number): string => {
