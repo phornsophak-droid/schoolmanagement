@@ -53,7 +53,7 @@ export default function PrincipalSignature({ height = 88 }: { height?: number | 
           title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
           style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'brightness(1.18) contrast(1.9)' }}
         />
-        <button onClick={removeSig} className="rc-no-print text-[10px] text-rose-500 hover:underline">លុបហត្ថលេខា</button>
+        <button onClick={removeSig} title="លុបហត្ថលេខា" className="rc-no-print text-[10px] text-transparent hover:text-rose-500 hover:underline transition-colors">លុបហត្ថលេខា</button>
         </>
       ) : (
         <button

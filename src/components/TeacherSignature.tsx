@@ -63,7 +63,7 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
           title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
           style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'brightness(1.18) contrast(1.9) saturate(1.3)' }}
         />
-        <button onClick={removeSig} className="rc-no-print text-[10px] text-rose-500 hover:underline">លុបហត្ថលេខា</button>
+        <button onClick={removeSig} title="លុបហត្ថលេខា" className="rc-no-print text-[10px] text-transparent hover:text-rose-500 hover:underline transition-colors">លុបហត្ថលេខា</button>
         </>
       ) : (
         <button
