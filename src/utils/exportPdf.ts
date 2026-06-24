@@ -14,47 +14,73 @@ const isIOS = (): boolean =>
   /iP(hone|ad|od)/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-// Render a DOM element to a single-image PDF page. Because the page is a
-// rasterized snapshot, it looks pixel-identical on every device (no reflow) and
-// embeds whatever is on screen — including the principal/teacher signatures.
-// Output is normalized to ~1500px wide so quality is the same on phone or PC.
-//
-// Call this synchronously from the click handler (before any other await): on
-// iOS we open the target tab now so it stays inside the user gesture.
-export async function exportElementToPdf(el: HTMLElement, filename: string): Promise<void> {
-  // iOS Safari ignores <a download> and drops the user gesture across the async
-  // render, so the normal save silently fails. Open the tab synchronously here
-  // (still within the tap) and point it at the finished PDF; iOS then shows the
-  // PDF with a Share → "Save to Files" action.
-  const iosTab = isIOS() ? window.open('', '_blank') : null;
-  if (iosTab) {
-    try { iosTab.document.write('<!doctype html><meta name="viewport" content="width=device-width"><title>PDF</title><body style="font-family:sans-serif;margin:2rem;color:#475569">កំពុងបង្កើត PDF...</body>'); }
+// iOS Safari ignores <a download> and drops the user gesture across the async
+// render, so a normal save silently fails. Open a tab synchronously during the
+// tap (so it isn't blocked) and, once the file is ready, point it at the blob;
+// iOS shows it with a Share → "Save to Files" / "Save Image" action.
+const openIosTab = (kind: string): Window | null => {
+  if (!isIOS()) return null;
+  const tab = window.open('', '_blank');
+  if (tab) {
+    try { tab.document.write(`<!doctype html><meta name="viewport" content="width=device-width"><title>${kind}</title><body style="font-family:sans-serif;margin:2rem;color:#475569">កំពុងបង្កើត${kind}...</body>`); }
     catch { /* ignore — about:blank may already be cross-origin-guarded */ }
   }
+  return tab;
+};
 
+// Deliver a finished blob: navigate the pre-opened iOS tab to it, or trigger a
+// normal download on desktop/Android (where <a download> works).
+const deliverBlob = (blob: Blob, filename: string, iosTab: Window | null): void => {
+  const url = URL.createObjectURL(blob);
+  if (iosTab) {
+    iosTab.location.href = url;
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+};
+
+// Rasterize a DOM element to a canvas. Because it's a snapshot it looks
+// pixel-identical on every device (no reflow) and embeds whatever is on screen
+// — including the principal/teacher signatures. Normalized to ~1500px wide so
+// quality is the same on phone or PC.
+async function renderElementToCanvas(el: HTMLElement): Promise<HTMLCanvasElement> {
+  const scale = Math.min(4, Math.max(2, 1500 / (el.offsetWidth || 1000)));
+  return html2canvas(el, {
+    scale,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false,
+    windowWidth: el.scrollWidth,
+    // On phones the report cards sit inside a FitToWidth transform:scale()
+    // wrapper. html2canvas renders text at natural size but positions it with
+    // the scaled coordinates → garbled overlap. Neutralise the wrapper in the
+    // (sandboxed) clone so the card is captured at its full, un-scaled size.
+    onclone: (doc: Document) => {
+      doc.querySelectorAll<HTMLElement>('.rc-fit-outer, .rc-fit-frame, .rc-fit-inner').forEach(n => {
+        n.style.transform = 'none';
+        n.style.width = 'auto';
+        n.style.height = 'auto';
+        n.style.overflow = 'visible';
+        n.style.margin = '0';
+      });
+    },
+  });
+}
+
+// Render an element to a single-image PDF page (landscape if the snapshot is
+// wider than tall). Call synchronously from the click handler (before any other
+// await) so the iOS tab stays inside the user gesture.
+export async function exportElementToPdf(el: HTMLElement, filename: string): Promise<void> {
+  const iosTab = openIosTab(' PDF');
   try {
-    const scale = Math.min(4, Math.max(2, 1500 / (el.offsetWidth || 1000)));
-    const canvas = await html2canvas(el, {
-      scale,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      windowWidth: el.scrollWidth,
-      // On phones the report cards sit inside a FitToWidth transform:scale()
-      // wrapper. html2canvas renders text at natural size but positions it with
-      // the scaled coordinates → garbled overlap. Neutralise the wrapper in the
-      // (sandboxed) clone so the card is captured at its full, un-scaled size.
-      onclone: (doc: Document) => {
-        doc.querySelectorAll<HTMLElement>('.rc-fit-outer, .rc-fit-frame, .rc-fit-inner').forEach(n => {
-          n.style.transform = 'none';
-          n.style.width = 'auto';
-          n.style.height = 'auto';
-          n.style.overflow = 'visible';
-          n.style.margin = '0';
-        });
-      },
-    });
-
+    const canvas = await renderElementToCanvas(el);
     const imgW = canvas.width;
     const imgH = canvas.height;
     const orientation = imgW >= imgH ? 'landscape' : 'portrait';
@@ -79,6 +105,23 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
     } else {
       pdf.save(name);
     }
+  } catch (e) {
+    if (iosTab) iosTab.close();
+    throw e;
+  }
+}
+
+// Render an element to a downloadable PNG image (lossless — keeps Khmer text and
+// the certificate frame crisp). Same iOS-tab handling as the PDF export. Call
+// synchronously from the click handler.
+export async function exportElementToImage(el: HTMLElement, filename: string): Promise<void> {
+  const iosTab = openIosTab('រូបភាព');
+  try {
+    const canvas = await renderElementToCanvas(el);
+    const name = filename.endsWith('.png') ? filename : `${filename}.png`;
+    const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('toBlob returned null');
+    deliverBlob(blob, name, iosTab);
   } catch (e) {
     if (iosTab) iosTab.close();
     throw e;
