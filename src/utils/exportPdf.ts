@@ -40,6 +40,19 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
       backgroundColor: '#ffffff',
       logging: false,
       windowWidth: el.scrollWidth,
+      // On phones the report cards sit inside a FitToWidth transform:scale()
+      // wrapper. html2canvas renders text at natural size but positions it with
+      // the scaled coordinates → garbled overlap. Neutralise the wrapper in the
+      // (sandboxed) clone so the card is captured at its full, un-scaled size.
+      onclone: (doc: Document) => {
+        doc.querySelectorAll<HTMLElement>('.rc-fit-outer, .rc-fit-frame, .rc-fit-inner').forEach(n => {
+          n.style.transform = 'none';
+          n.style.width = 'auto';
+          n.style.height = 'auto';
+          n.style.overflow = 'visible';
+          n.style.margin = '0';
+        });
+      },
     });
 
     const imgW = canvas.width;
