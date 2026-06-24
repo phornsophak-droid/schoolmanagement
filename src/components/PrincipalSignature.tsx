@@ -36,12 +36,15 @@ export default function PrincipalSignature({ height = 88 }: { height?: number | 
     <div className="flex flex-col items-center">
       <input ref={ref} type="file" accept="image/*" onChange={onFile} className="hidden" />
       {sig ? (
+        // mix-blend-multiply drops a WHITE background into the paper; brightness+
+        // contrast first knock a phone-photographed signature's dim grey paper up
+        // to white so no grey box shows on the certificate's parchment.
         <img
           src={sig}
           alt="ហត្ថលេខានាយក"
           onClick={() => ref.current?.click()}
           title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
-          style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'contrast(1.65) brightness(1.04)' }}
+          style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'brightness(1.18) contrast(1.9)' }}
         />
       ) : (
         <button

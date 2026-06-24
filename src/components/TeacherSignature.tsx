@@ -46,12 +46,15 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
     <div className="flex flex-col items-center">
       <input ref={ref} type="file" accept="image/*" onChange={onFile} className="hidden" />
       {sig ? (
+        // See PrincipalSignature: brightness+contrast whiten a photographed
+        // signature's grey paper so multiply leaves no box; saturate keeps a
+        // coloured stamp/ink vivid.
         <img
           src={sig}
           alt="ហត្ថលេខាគ្រូ"
           onClick={() => ref.current?.click()}
           title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
-          style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'contrast(1.5) brightness(1.03) saturate(1.3)' }}
+          style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'brightness(1.18) contrast(1.9) saturate(1.3)' }}
         />
       ) : (
         <button
