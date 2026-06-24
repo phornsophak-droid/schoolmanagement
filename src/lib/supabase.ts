@@ -808,6 +808,18 @@ export async function syncUpsertSetting(key: string, value: any) {
   }
 }
 
+// Remove a setting entirely (all rows for the key — heals duplicates too).
+export async function syncDeleteSetting(key: string) {
+  noteCloudWrite();
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('school_settings')
+    .delete()
+    .eq('setting_key', key);
+  if (error) console.error(`Failed to delete setting ${key} from Supabase`, error);
+}
+
 // 10. Factory reset — delete all student/score/attendance/report DATA from the
 // cloud. Class list (school_grades) and settings (teacher accounts) are kept.
 export async function syncClearAllData() {
