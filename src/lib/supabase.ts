@@ -785,11 +785,26 @@ export async function syncUpsertSetting(key: string, value: any) {
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
-  const { error } = await supabase
+  // NOTE: a plain .upsert() resolves conflicts on the table's primary key. If
+  // setting_key isn't that key, every save INSERTS a new row, so changing a
+  // value (e.g. replacing a signature) just adds a duplicate and the old row can
+  // win on read → "the change doesn't stick". Instead update every row for this
+  // key (also healing any duplicates already in the table) and insert only when
+  // none exist. Works with or without a unique constraint on setting_key.
+  const { data: updated, error: updErr } = await supabase
     .from('school_settings')
-    .upsert({ setting_key: key, setting_value: value });
-  if (error) {
-    console.error(`Failed to upsert setting ${key} to Supabase`, error);
+    .update({ setting_value: value })
+    .eq('setting_key', key)
+    .select('setting_key');
+  if (updErr) {
+    console.error(`Failed to update setting ${key} in Supabase`, updErr);
+    return;
+  }
+  if (!updated || updated.length === 0) {
+    const { error: insErr } = await supabase
+      .from('school_settings')
+      .insert({ setting_key: key, setting_value: value });
+    if (insErr) console.error(`Failed to insert setting ${key} into Supabase`, insErr);
   }
 }
 
