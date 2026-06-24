@@ -4,7 +4,10 @@
  */
 
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// html2canvas-pro (maintained fork) supports modern CSS colour functions like
+// oklch(), which Tailwind v4 emits. The original html2canvas 1.x throws on oklch
+// → every report-card / certificate PDF export failed.
+import html2canvas from 'html2canvas-pro';
 
 // Render a DOM element to a single-image PDF page. Because the page is a
 // rasterized snapshot, it looks pixel-identical on every device (no reflow) and
