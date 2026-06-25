@@ -128,6 +128,13 @@ export async function initAttendanceStore(): Promise<void> {
 
 export function loadAttendance(): AnyRec[] { return cache; }
 
+// Wipe the attendance cache (used by Factory Reset, which must clear IndexedDB too).
+export async function clearAttendanceStore(): Promise<void> {
+  cache = [];
+  try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
+  try { await idbSet(IDB_KEY, []); } catch { /* ignore */ }
+}
+
 // Save attendance. With IndexedDB there is effectively no quota wall, so this
 // just updates the cache and write-throughs to IndexedDB. If IndexedDB is
 // unavailable it falls back to the compressed localStorage path. Never throws.

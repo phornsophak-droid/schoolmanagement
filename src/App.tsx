@@ -128,8 +128,8 @@ import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
-import { persistAttendance, loadAttendance, initAttendanceStore } from './utils/attendanceStore';
-import { safeSetJSON } from './utils/safeStore';
+import { persistAttendance, loadAttendance, initAttendanceStore, clearAttendanceStore } from './utils/attendanceStore';
+import { persistScores, loadScores, initScoresStore, clearScoresStore } from './utils/scoresStore';
 import { useT, LanguageToggle } from './i18n';
 
 
@@ -227,7 +227,7 @@ export default function App() {
   // 0. Load the attendance store from IndexedDB (and migrate any old localStorage
   // copy into it) before the authenticated app renders — removes the ~5 MB cap.
   const [storeReady, setStoreReady] = useState(false);
-  useEffect(() => { initAttendanceStore().finally(() => setStoreReady(true)); }, []);
+  useEffect(() => { Promise.all([initAttendanceStore(), initScoresStore()]).finally(() => setStoreReady(true)); }, []);
 
   // 1. Initial State Hydration with safety fallback (LocalStorage)
   useEffect(() => {
@@ -345,7 +345,7 @@ export default function App() {
       if (factoryResetRef.current) return; // a wipe is in progress; ignore cloud data
       const deduped = deduplicateStudents(rawStudents);
       let localPrev: StudentScore[] = [];
-      try { localPrev = deduplicateStudents(JSON.parse(localStorage.getItem('school_student_scores_v2') || '[]')); } catch { /* ignore */ }
+      try { localPrev = deduplicateStudents(loadScores()); } catch { /* ignore */ }
       if (localPrev.length > 20 && deduped.length < localPrev.length * 0.8) {
         console.warn(`Cloud student count (${deduped.length}) far below local (${localPrev.length}); keeping local and re-pushing to cloud.`);
         setStudents(localPrev);
@@ -353,7 +353,7 @@ export default function App() {
         return;
       }
       setStudents(deduped);
-      safeSetJSON('school_student_scores_v2', deduped);
+      persistScores(deduped);
     };
 
     // Merge an incremental score delta (only rows changed since last sync) into the
@@ -362,35 +362,28 @@ export default function App() {
       if (factoryResetRef.current) return;
       if (!delta || delta.length === 0) return;
       let prev: StudentScore[] = [];
-      try { prev = JSON.parse(localStorage.getItem('school_student_scores_v2') || '[]'); } catch { /* ignore */ }
+      try { prev = loadScores(); } catch { /* ignore */ }
       const byId = new Map(prev.map(s => [s.id, s]));
       delta.forEach(s => { if (s && (s as any).id != null) byId.set((s as any).id, s); });
       const merged = deduplicateStudents(Array.from(byId.values()));
       setStudents(merged);
-      safeSetJSON('school_student_scores_v2', merged);
+      persistScores(merged);
     };
 
-    // Student Scores Hydration
-    const cachedScores = localStorage.getItem('school_student_scores_v2');
+    // Student Scores Hydration (from the IndexedDB-backed cache)
+    const cachedScores = loadScores();
     let memoryStudents: StudentScore[] = [];
-    if (cachedScores) {
-      try {
-        const parsed = JSON.parse(cachedScores);
-        const deduped = deduplicateStudents(parsed);
-        memoryStudents = deduped;
-        setStudents(deduped);
-        safeSetJSON('school_student_scores_v2', deduped);
-        if (deduped.length !== parsed.length) {
-           syncGradesBulk(grades); // sync fallback maybe, wait we need to sync students.
-           // actually we will do bulk sync below if there's supabase
-        }
-      } catch (e) {
-        console.error('Failed to parse students list', e);
-        setStudents([]);
+    if (cachedScores.length > 0) {
+      const deduped = deduplicateStudents(cachedScores);
+      memoryStudents = deduped;
+      setStudents(deduped);
+      persistScores(deduped);
+      if (deduped.length !== cachedScores.length) {
+        syncGradesBulk(grades);
       }
     } else {
       setStudents([]);
-      safeSetJSON('school_student_scores_v2', []);
+      persistScores([]);
     }
 
     // Reports Hydration
@@ -560,7 +553,7 @@ export default function App() {
                 if (id == null) return;
                 setStudents(prev => {
                   const next = prev.filter(s => (s as any).id !== id);
-                  safeSetJSON('school_student_scores_v2', next);
+                  persistScores(next);
                   return next;
                 });
               };
@@ -678,7 +671,7 @@ export default function App() {
 
       if (data.students) {
         setStudents(data.students);
-        safeSetJSON('school_student_scores_v2', data.students);
+        persistScores(data.students);
         parts.push(`${data.students.length} សិស្ស`);
       }
       if (data.reports) {
@@ -827,7 +820,7 @@ export default function App() {
         'ថ្នាក់អប់រំសុខភាព'
       ];
       setStudents(initialStudents);
-      safeSetJSON('school_student_scores_v2', initialStudents);
+      persistScores(initialStudents);
       setReports(initialReports);
       localStorage.setItem('school_reports_v2', JSON.stringify(initialReports));
       setGrades(defaultGradesList);
@@ -840,7 +833,7 @@ export default function App() {
   const clearLocalStudentsAndReports = () => {
     if (window.confirm("⚠️ ព្រមាន៖ តើលោកអ្នកពិតជាចង់លុបទិន្នន័យសិស្ស និងរបាយការណ៍ទាំងអស់ចេញពីឧបករណ៍នេះមែនទេ? (ទិន្នន័យនឹងត្រូវជម្រះទៅជា 0)")) {
       setStudents([]);
-      safeSetJSON('school_student_scores_v2', []);
+      persistScores([]);
       setReports([]);
       localStorage.setItem('school_reports_v2', JSON.stringify([]));
       alert("បានលុបទិន្នន័យសិស្ស និងរបាយការណ៍ទាំងអស់ចេញពីឧបករណ៍នេះរួចរាល់ហើយ! លោកអ្នកអាចចុចប៊ូតុង \"📤 បញ្ជូនឡើង (Push)\" ដើម្បីសរសេរជាន់លើទិន្នន័យលើ Cloud Supabase ឱ្យទៅជាទទេដូចគ្នា។");
@@ -932,7 +925,7 @@ export default function App() {
     });
 
     setStudents(updatedList);
-    const localOk = safeSetJSON('school_student_scores_v2', updatedList);
+    const localOk = persistScores(updatedList);
     markLocalWrite();
     if (!localOk) showCloudToast('⚠️ ឧបករណ៍ផ្ទុកក្នុងម៉ាស៊ីនពេញ — ត្រូវការ Cloud ភ្ជាប់ ដើម្បីកុំឱ្យបាត់ទិន្នន័យ', false);
 
@@ -1023,7 +1016,7 @@ export default function App() {
       return s;
     });
     setStudents(updatedStudents);
-    safeSetJSON('school_student_scores_v2', updatedStudents);
+    persistScores(updatedStudents);
 
     // 3. Rename inside reports list
     const updatedReports = reports.map(r => {
@@ -1193,7 +1186,7 @@ export default function App() {
         if (window.confirm("តើលោកអ្នកពិតជាចង់នាំចូលទិន្នន័យពីឯកសារចម្លងនេះមែនទេ? ទិន្នន័យបច្ចុប្បន្នទាំងអស់នៅលើឧបករណ៍បច្ចុប្បន្ននេះនឹងត្រូវលុបជំនួសដោយទិន្នន័យចម្លងថ្មីវិញទាំងស្រុង!")) {
           if (backupData.students) {
             setStudents(backupData.students);
-            safeSetJSON('school_student_scores_v2', backupData.students);
+            persistScores(backupData.students);
           }
           if (backupData.reports) {
             setReports(backupData.reports);
@@ -1238,9 +1231,11 @@ export default function App() {
     } catch (err) {
       console.error('Factory reset cloud clear failed', err);
     }
-    // Clear local data (keep grades + custom teachers/pins)
+    // Clear local data (keep grades + custom teachers/pins). Scores & attendance
+    // live in IndexedDB now, so clear those stores too — not just localStorage.
     ['school_student_scores_v2', 'school_daily_attendance', 'school_teachers_daily_attendance', 'school_reports_v2']
       .forEach(k => localStorage.removeItem(k));
+    await Promise.all([clearScoresStore(), clearAttendanceStore()]).catch(() => { /* ignore */ });
     setStudents([]);
     setReports([]);
     alert('បានលុបទិន្នន័យទាំងអស់រួចរាល់! មុខងារ ថ្នាក់ និងគណនីគ្រូ នៅដដែល។ ទំព័រនឹងដំណើរការឡើងវិញ។');
