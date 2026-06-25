@@ -81,8 +81,8 @@ const describeSupabaseError = (err: any): string => {
   if (typeof err === 'string') return err;
   const parts: string[] = [];
   if (err.message) parts.push(String(err.message));
-  if (err.code != null) parts.push(`code: ${err.code}`);
-  if (err.status != null) parts.push(`status: ${err.status}`);
+  if (err.code != null && err.code !== '') parts.push(`code: ${err.code}`);
+  if (err.status != null && err.status !== '') parts.push(`status: ${err.status}`);
   if (err.hint) parts.push(`hint: ${err.hint}`);
   if (err.details && err.details !== err.message) parts.push(String(err.details));
   if (parts.length === 0) { try { return JSON.stringify(err); } catch { return String(err); } }
@@ -128,7 +128,7 @@ import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
-import { persistAttendance, loadAttendance, migrateAttendanceFormat } from './utils/attendanceStore';
+import { persistAttendance, loadAttendance, initAttendanceStore } from './utils/attendanceStore';
 import { safeSetJSON } from './utils/safeStore';
 import { useT, LanguageToggle } from './i18n';
 
@@ -224,9 +224,10 @@ export default function App() {
   const [pinChangeNew, setPinChangeNew] = useState('');
   const [pinChangeError, setPinChangeError] = useState('');
 
-  // 0. One-time: compress any existing (legacy) attendance to reclaim space before
-  // anything else writes to localStorage — this is what frees room for scores again.
-  useEffect(() => { migrateAttendanceFormat(); }, []);
+  // 0. Load the attendance store from IndexedDB (and migrate any old localStorage
+  // copy into it) before the authenticated app renders — removes the ~5 MB cap.
+  const [storeReady, setStoreReady] = useState(false);
+  useEffect(() => { initAttendanceStore().finally(() => setStoreReady(true)); }, []);
 
   // 1. Initial State Hydration with safety fallback (LocalStorage)
   useEffect(() => {
@@ -1263,6 +1264,16 @@ export default function App() {
   }
   if (!currentUser) {
     return <LoginPortal onLoginSuccess={handleLoginSuccess} onParentAccess={() => setParentMode(true)} />;
+  }
+  // Wait for the attendance store (IndexedDB) to finish loading before the main
+  // app renders, so no attendance reader runs against an empty cache. This is a
+  // brief blink — IndexedDB loads in milliseconds.
+  if (!storeReady) {
+    return (
+      <div className="min-h-screen bg-[#F4F7FA] flex items-center justify-center text-slate-500 text-sm font-sans">
+        កំពុងផ្ទុកទិន្នន័យ...
+      </div>
+    );
   }
 
   return (
