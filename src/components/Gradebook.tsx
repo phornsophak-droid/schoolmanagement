@@ -232,10 +232,15 @@ export default function Gradebook({
   onAddGrade,
   onDeleteGrade
 }: GradebookProps) {
-  // Teachers are hard-locked to their own class for all viewing/filtering. Compute the
-  // effective grade locally so it holds even when the parent's setSelectedGrade is a
-  // no-op (e.g. the mobile portal passes () => {}). Principals/admins use the selection.
-  const selectedGrade = (currentUser?.role === 'teacher' && currentUser.grade && currentUser.grade !== 'ទាំងអស់')
+  // An after-hours teacher (e.g. English) teaches several groups (3A, 3B...) within their subject.
+  const isExtraTeacher = currentUser?.role === 'teacher' && isExtraClass(currentUser.grade);
+  // A GENERAL teacher is hard-locked to their one class. An EXTRA-subject teacher
+  // owns several groups, so they may switch among them via the dropdown
+  // (selectedGradeProp) — their account's grade is the generic subject name, which
+  // has no student records of its own, so we must NOT pin selectedGrade to it.
+  // Compute the effective grade locally so it holds even when the parent's
+  // setSelectedGrade is a no-op (e.g. the mobile portal passes () => {}).
+  const selectedGrade = (currentUser?.role === 'teacher' && currentUser.grade && currentUser.grade !== 'ទាំងអស់' && !isExtraTeacher)
     ? currentUser.grade
     : selectedGradeProp;
 
@@ -243,8 +248,6 @@ export default function Gradebook({
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
   const gradesList = (grades || DEFAULT_GRADES_LIST).filter(g => inCat(g));
-  // An after-hours teacher (e.g. English) teaches several groups (3A, 3B...) within their subject.
-  const isExtraTeacher = currentUser?.role === 'teacher' && isExtraClass(currentUser.grade);
   const teacherSubjectGrades = isExtraTeacher
     ? (grades || DEFAULT_GRADES_LIST).filter(g => g.includes(getSubjectKey(currentUser!.grade)))
     : [];
@@ -700,11 +703,21 @@ export default function Gradebook({
 
   const [newClassName, setNewClassName] = useState('');
   const [isClassManagerOpen, setIsClassManagerOpen] = useState(false);
-  // Lock grade selection (and category) to teacher's own class
+  // Lock grade selection (and category) to teacher's own class. A general teacher
+  // pins to their single class; an extra-subject teacher defaults to the FIRST real
+  // group of their subject (their account grade is the generic subject name, which
+  // owns no student records) and can switch groups from the dropdown.
   useEffect(() => {
     if (currentUser && currentUser.role === 'teacher') {
-      setSelectedGrade(currentUser.grade);
-      setClassCategory(isExtraClass(currentUser.grade) ? 'extra' : 'general');
+      if (isExtraTeacher) {
+        setClassCategory('extra');
+        if (!teacherSubjectGrades.includes(selectedGradeProp)) {
+          setSelectedGrade(teacherSubjectGrades[0] || currentUser.grade);
+        }
+      } else {
+        setSelectedGrade(currentUser.grade);
+        setClassCategory('general');
+      }
     }
   }, [currentUser, setSelectedGrade]);
 
@@ -2558,7 +2571,7 @@ export default function Gradebook({
                   </select>
                 ) : (
                   <span className="px-3 py-1 text-[11px] bg-blue-50 text-blue-700/90 font-bold border-l border-slate-200 font-sans">
-                    ថ្នាក់៖ {currentUser.grade} 🔒
+                    ថ្នាក់៖ {isExtraTeacher ? selectedGrade : currentUser.grade} 🔒
                   </span>
                 )
               ) : (
