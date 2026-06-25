@@ -5,7 +5,7 @@
 
 import React, { useMemo, useState, useRef } from 'react';
 import { Printer, X, PenLine, Download, Loader2 } from 'lucide-react';
-import { StudentScore } from '../types';
+import { StudentScore, getCustomSubjects } from '../types';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
@@ -91,6 +91,18 @@ const monthEndDate = (month: string) => {
 };
 
 export default function StudentReportCard({ student, students, onClose }: StudentReportCardProps) {
+  // After-hours classes (English, Health, Drawing…) score on their own criteria,
+  // stored in englishScores. Build the row list from those instead of the 21
+  // general subjects so their report card shows the right lines. General classes
+  // keep the fixed SUBJECTS list.
+  const custom = getCustomSubjects(student.grade);
+  const subjects = useMemo(
+    () => custom
+      ? custom.map(s => ({ km: s.km, get: (st: StudentScore) => st.englishScores?.[s.key] }))
+      : SUBJECTS,
+    [custom]
+  );
+
   // Classmates (same class & month) used for per-subject ranking.
   const roster = useMemo(
     () => students.filter(s => s.grade === student.grade && s.month === student.month),
@@ -217,6 +229,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
             <div><span className="font-bold">ថ្ងៃខែឆ្នាំកំណើត៖</span> {resolvedDob || '...........'}</div>
             <div><span className="font-bold">អត្តលេខ៖</span> {student.studentId || '...........'}</div>
             <div><span className="font-bold">លទ្ធផលសិក្សា៖</span> {student.grade}</div>
+            {student.group && <div><span className="font-bold">ក្រុម៖</span> {student.group}</div>}
           </div>
 
           {/* Scores table */}
@@ -236,7 +249,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
               </tr>
             </thead>
             <tbody>
-              {SUBJECTS.map((sub, i) => {
+              {subjects.map((sub, i) => {
                 const val = sub.get(student);
                 const g = gradeBand(val);
                 return (
@@ -248,7 +261,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
                     <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(g.en) }}>{g.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-bold" style={{ color: niddesColor(g.en) }}>{g.en}</td>
                     {i === 0 && (
-                      <td className="border border-slate-300 px-1 py-0.5 align-top text-left" rowSpan={SUBJECTS.length + 3}><RemarkChecklist remark={student.remark} /></td>
+                      <td className="border border-slate-300 px-1 py-0.5 align-top text-left" rowSpan={subjects.length + 3}><RemarkChecklist remark={student.remark} /></td>
                     )}
                   </tr>
                 );

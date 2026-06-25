@@ -2786,15 +2786,13 @@ export default function Gradebook({
                         </td>
                         <td className="px-4 py-3 text-right print:hidden">
                           <div className="flex items-center justify-end gap-1.5">
-                            {!customSubjects && (
-                              <button
-                                onClick={() => setReportCardStudent(st)}
-                                className="p-1 px-1.5 bg-indigo-50 border border-indigo-200 rounded hover:bg-indigo-100 text-indigo-600 hover:text-indigo-800 transition-all font-medium inline-flex items-center gap-1 text-[10px]"
-                                title="ព្រឹត្តបត្រពិន្ទុសិស្ស"
-                              >
-                                <FileText size={11} /> ព្រឹត្តបត្រ
-                              </button>
-                            )}
+                            <button
+                              onClick={() => setReportCardStudent(st)}
+                              className="p-1 px-1.5 bg-indigo-50 border border-indigo-200 rounded hover:bg-indigo-100 text-indigo-600 hover:text-indigo-800 transition-all font-medium inline-flex items-center gap-1 text-[10px]"
+                              title="ព្រឹត្តបត្រពិន្ទុសិស្ស"
+                            >
+                              <FileText size={11} /> ព្រឹត្តបត្រ
+                            </button>
                             <button
                               onClick={() => handleEditClick(st)}
                               className="p-1 px-1.5 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-all font-medium inline-flex items-center gap-1 text-[10px]"
