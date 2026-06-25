@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { SchoolReport, StudentScore, SchoolUser } from '../types';
 import { loadAttendance } from '../utils/attendanceStore';
+import { distinctStudentKey } from '../utils/studentKey';
 import schoolLogo from '../assets/logo.png';
 import { useT } from '../i18n';
 
@@ -362,7 +363,7 @@ export default function Dashboard({
     students.forEach(s => {
       if (!inCat(s.grade)) return;
       if (selectedGrade !== 'ទាំងអស់' && selectedGrade !== 'boldsymbol' && s.grade !== selectedGrade) return;
-      const key = `${s.name.trim()}_${s.grade}`;
+      const key = distinctStudentKey(s.name, s.grade);
       if (!enrolledMap.has(key)) enrolledMap.set(key, s);
     });
     const enrolled = Array.from(enrolledMap.values());
@@ -373,7 +374,7 @@ export default function Dashboard({
     // Score metrics: this month's results only.
     const uniqueStudentsMap = new Map<string, StudentScore>();
     filteredStudents.forEach(s => {
-      const key = `${s.name.trim()}_${s.grade}`;
+      const key = distinctStudentKey(s.name, s.grade);
       if (!uniqueStudentsMap.has(key)) uniqueStudentsMap.set(key, s);
     });
     const uniqueProfiles = Array.from(uniqueStudentsMap.values());

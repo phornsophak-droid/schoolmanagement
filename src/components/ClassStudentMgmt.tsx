@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { StudentScore, SchoolUser } from '../types';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
+import { distinctStudentKey } from '../utils/studentKey';
 import { syncUpsertSetting } from '../lib/supabase';
 import { useT } from '../i18n';
 import * as XLSX from 'xlsx';
@@ -171,7 +172,7 @@ export default function ClassStudentMgmt({
     const map = new Map<string, StudentScore>();
     students.forEach(s => {
       if (!inCat(s.grade)) return;
-      const key = `${s.name.trim()}_${s.grade}`;
+      const key = distinctStudentKey(s.name, s.grade);
       if (!map.has(key)) map.set(key, s);
     });
     return Array.from(map.values());
@@ -188,7 +189,7 @@ export default function ClassStudentMgmt({
     });
     const seen = new Set<string>();
     students.forEach(s => {
-      const key = `${s.name.trim()}_${s.grade}`;
+      const key = distinctStudentKey(s.name, s.grade);
       if (seen.has(key)) return; // count each student once, not per-month
       seen.add(key);
       if (stats[s.grade]) {
@@ -204,7 +205,7 @@ export default function ClassStudentMgmt({
   const uniqueStudentProfiles = useMemo(() => {
     const map = new Map<string, StudentScore>();
     students.forEach(s => {
-      const key = `${s.name.trim()}_${s.grade}`;
+      const key = distinctStudentKey(s.name, s.grade);
       if (!map.has(key)) {
         map.set(key, s);
       }
