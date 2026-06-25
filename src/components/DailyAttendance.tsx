@@ -31,6 +31,7 @@ import {
   syncUpsertTeacherAttendance,
   syncDeleteStudentAttendance
 } from '../lib/supabase';
+import { persistAttendance } from '../utils/attendanceStore';
 
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
 // 'គ្លេស' (the English-language root) catches spelling variants like អង់គ្លេស / អ់គ្លេស.
@@ -181,7 +182,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     const ids = new Set(updated.map(r => r.id));
     const merged = [...updated, ...records.filter(r => !ids.has(r.id))];
     setRecords(merged);
-    localStorage.setItem('school_daily_attendance', JSON.stringify(merged));
+    persistAttendance(merged);
     const client = getSupabaseClient();
     if (client) {
       updated.forEach(r => syncUpsertStudentAttendance(r).catch(err => console.warn('Supabase monthly import sync failed', err)));
@@ -196,7 +197,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     const drop = new Set(idsToRemove);
     const remaining = records.filter(r => !drop.has(r.id));
     setRecords(remaining);
-    localStorage.setItem('school_daily_attendance', JSON.stringify(remaining));
+    persistAttendance(remaining);
     const client = getSupabaseClient();
     if (client) {
       idsToRemove.forEach(id => syncDeleteStudentAttendance(id).catch(err => console.warn('Supabase clear sync failed', err)));
@@ -620,18 +621,26 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     ];
 
     setRecords(updated);
-    localStorage.setItem('school_daily_attendance', JSON.stringify(updated));
 
-    // Live background cloud sync
+    // Cloud sync FIRST — Supabase is the authoritative store, so a full local
+    // cache must never block the save (that previously threw and lost the record).
     const client = getSupabaseClient();
     if (client) {
       syncUpsertStudentAttendance(newRecord).catch(err => {
         console.warn('Supabase student attendance save failed', err);
-        triggerToast('⚠️ រក្សាទុកក្នុងម៉ាស៊ីន — ភ្ជាប់ Cloud បរាជ័យ', 'error');
+        triggerToast('⚠️ ភ្ជាប់ Cloud បរាជ័យ — សូមពិនិត្យអ៊ីនធឺណិត', 'error');
       });
     }
 
-    triggerToast(`💾 រក្សាទុកវត្តមានជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់${client ? ' ☁️ ភ្ជាប់ Supabase ✓' : ' (មិនបានភ្ជាប់ Cloud)'}`, 'success');
+    // Local cache — prunes the oldest records if the browser quota is exceeded
+    // (the cloud keeps full history); never throws.
+    const { ok, evicted } = persistAttendance(updated);
+    if (evicted > 0) console.warn(`Attendance cache trimmed ${evicted} old local record(s); full history stays in Supabase.`);
+    if (!ok) {
+      triggerToast('⚠️ ឧបករណ៍ផ្ទុកក្នុងម៉ាស៊ីនពេញ! ត្រូវការ Cloud ភ្ជាប់ ដើម្បីកុំឱ្យបាត់ទិន្នន័យ', 'error');
+    } else {
+      triggerToast(`💾 រក្សាទុកវត្តមានជោគជ័យ៖ សរុប ${p} នាក់វត្តមាន | ${y} នាក់យឺត | ${l} នាក់ច្បាប់ | ${a} នាក់អត់ច្បាប់${client ? ' ☁️ ភ្ជាប់ Supabase ✓' : ' (មិនបានភ្ជាប់ Cloud)'}`, 'success');
+    }
   };
 
   // Filter teachers matching search query and role-based access

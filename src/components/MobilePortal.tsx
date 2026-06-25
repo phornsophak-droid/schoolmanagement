@@ -42,6 +42,7 @@ import Gradebook from './Gradebook';
 import DailyAttendance from './DailyAttendance';
 import Dashboard from './Dashboard';
 import { SchoolLogo } from './SchoolLogo';
+import { persistAttendance } from '../utils/attendanceStore';
 
 // Morning / afternoon session split — general (non-extra) classes only.
 const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
@@ -229,8 +230,10 @@ export default function MobilePortal({
     ];
 
     setSavedAttendanceRecords(updated);
-    localStorage.setItem('school_daily_attendance', JSON.stringify(updated));
-    showToast(`✅ បានរក្សាទុកវត្តមាន! (វត្តមាន: ${present}, យឺត: ${late}, ច្បាប់: ${permission}, អវត្តមាន: ${absent})`);
+    const { ok } = persistAttendance(updated);
+    showToast(ok
+      ? `✅ បានរក្សាទុកវត្តមាន! (វត្តមាន: ${present}, យឺត: ${late}, ច្បាប់: ${permission}, អវត្តមាន: ${absent})`
+      : '⚠️ ឧបករណ៍ផ្ទុកក្នុងម៉ាស៊ីនពេញ — ត្រូវការ Cloud ភ្ជាប់ ដើម្បីកុំឱ្យបាត់ទិន្នន័យ');
   };
 
   // States for sub-apps

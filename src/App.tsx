@@ -107,6 +107,7 @@ import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
+import { persistAttendance } from './utils/attendanceStore';
 import { useT, LanguageToggle } from './i18n';
 
 
@@ -412,7 +413,7 @@ export default function App() {
             if (needFull) {
               if (data.students && data.students.length > 0) applyCloudStudents(data.students);
               if (data.studentAttendance && data.studentAttendance.length > 0) {
-                localStorage.setItem('school_daily_attendance', JSON.stringify(data.studentAttendance));
+                persistAttendance(data.studentAttendance);
               }
               if (data.teacherAttendance && data.teacherAttendance.length > 0) {
                 localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(data.teacherAttendance));
@@ -481,7 +482,7 @@ export default function App() {
                     mergeRowsById('school_teachers_daily_attendance', newData.teacherAttendance);
                   } else {
                     if (newData.students) applyCloudStudents(newData.students);
-                    if (newData.studentAttendance && newData.studentAttendance.length > 0) localStorage.setItem('school_daily_attendance', JSON.stringify(newData.studentAttendance));
+                    if (newData.studentAttendance && newData.studentAttendance.length > 0) persistAttendance(newData.studentAttendance);
                     if (newData.teacherAttendance && newData.teacherAttendance.length > 0) localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(newData.teacherAttendance));
                   }
                   if (newData.reports) {
@@ -659,7 +660,7 @@ export default function App() {
         localStorage.setItem('school_grades_v2', JSON.stringify(data.grades));
       }
       if (data.studentAttendance && data.studentAttendance.length > 0) {
-        localStorage.setItem('school_daily_attendance', JSON.stringify(data.studentAttendance));
+        persistAttendance(data.studentAttendance);
         parts.push(`${data.studentAttendance.length} វត្តមានសិស្ស`);
       }
       if (data.teacherAttendance && data.teacherAttendance.length > 0) {
@@ -1177,7 +1178,7 @@ export default function App() {
             localStorage.setItem('school_custom_teachers_v2', JSON.stringify(backupData.customTeachers));
           }
           if (backupData.studentAttendance) {
-            localStorage.setItem('school_daily_attendance', JSON.stringify(backupData.studentAttendance));
+            persistAttendance(backupData.studentAttendance);
           }
           if (backupData.teacherAttendance) {
             localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(backupData.teacherAttendance));
