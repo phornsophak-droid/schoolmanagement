@@ -112,6 +112,7 @@ import DailyAttendance from './components/DailyAttendance';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
 import { persistAttendance, loadAttendance } from './utils/attendanceStore';
+import { safeSetJSON } from './utils/safeStore';
 import { useT, LanguageToggle } from './i18n';
 
 
@@ -330,7 +331,7 @@ export default function App() {
         return;
       }
       setStudents(deduped);
-      localStorage.setItem('school_student_scores_v2', JSON.stringify(deduped));
+      safeSetJSON('school_student_scores_v2', deduped);
     };
 
     // Merge an incremental score delta (only rows changed since last sync) into the
@@ -344,7 +345,7 @@ export default function App() {
       delta.forEach(s => { if (s && (s as any).id != null) byId.set((s as any).id, s); });
       const merged = deduplicateStudents(Array.from(byId.values()));
       setStudents(merged);
-      localStorage.setItem('school_student_scores_v2', JSON.stringify(merged));
+      safeSetJSON('school_student_scores_v2', merged);
     };
 
     // Student Scores Hydration
@@ -356,7 +357,7 @@ export default function App() {
         const deduped = deduplicateStudents(parsed);
         memoryStudents = deduped;
         setStudents(deduped);
-        localStorage.setItem('school_student_scores_v2', JSON.stringify(deduped));
+        safeSetJSON('school_student_scores_v2', deduped);
         if (deduped.length !== parsed.length) {
            syncGradesBulk(grades); // sync fallback maybe, wait we need to sync students.
            // actually we will do bulk sync below if there's supabase
@@ -367,7 +368,7 @@ export default function App() {
       }
     } else {
       setStudents([]);
-      localStorage.setItem('school_student_scores_v2', JSON.stringify([]));
+      safeSetJSON('school_student_scores_v2', []);
     }
 
     // Reports Hydration
@@ -537,7 +538,7 @@ export default function App() {
                 if (id == null) return;
                 setStudents(prev => {
                   const next = prev.filter(s => (s as any).id !== id);
-                  localStorage.setItem('school_student_scores_v2', JSON.stringify(next));
+                  safeSetJSON('school_student_scores_v2', next);
                   return next;
                 });
               };
@@ -655,7 +656,7 @@ export default function App() {
 
       if (data.students) {
         setStudents(data.students);
-        localStorage.setItem('school_student_scores_v2', JSON.stringify(data.students));
+        safeSetJSON('school_student_scores_v2', data.students);
         parts.push(`${data.students.length} សិស្ស`);
       }
       if (data.reports) {
@@ -804,7 +805,7 @@ export default function App() {
         'ថ្នាក់អប់រំសុខភាព'
       ];
       setStudents(initialStudents);
-      localStorage.setItem('school_student_scores_v2', JSON.stringify(initialStudents));
+      safeSetJSON('school_student_scores_v2', initialStudents);
       setReports(initialReports);
       localStorage.setItem('school_reports_v2', JSON.stringify(initialReports));
       setGrades(defaultGradesList);
@@ -817,7 +818,7 @@ export default function App() {
   const clearLocalStudentsAndReports = () => {
     if (window.confirm("⚠️ ព្រមាន៖ តើលោកអ្នកពិតជាចង់លុបទិន្នន័យសិស្ស និងរបាយការណ៍ទាំងអស់ចេញពីឧបករណ៍នេះមែនទេ? (ទិន្នន័យនឹងត្រូវជម្រះទៅជា 0)")) {
       setStudents([]);
-      localStorage.setItem('school_student_scores_v2', JSON.stringify([]));
+      safeSetJSON('school_student_scores_v2', []);
       setReports([]);
       localStorage.setItem('school_reports_v2', JSON.stringify([]));
       alert("បានលុបទិន្នន័យសិស្ស និងរបាយការណ៍ទាំងអស់ចេញពីឧបករណ៍នេះរួចរាល់ហើយ! លោកអ្នកអាចចុចប៊ូតុង \"📤 បញ្ជូនឡើង (Push)\" ដើម្បីសរសេរជាន់លើទិន្នន័យលើ Cloud Supabase ឱ្យទៅជាទទេដូចគ្នា។");
@@ -909,8 +910,9 @@ export default function App() {
     });
 
     setStudents(updatedList);
-    localStorage.setItem('school_student_scores_v2', JSON.stringify(updatedList));
+    const localOk = safeSetJSON('school_student_scores_v2', updatedList);
     markLocalWrite();
+    if (!localOk) showCloudToast('⚠️ ឧបករណ៍ផ្ទុកក្នុងម៉ាស៊ីនពេញ — ត្រូវការ Cloud ភ្ជាប់ ដើម្បីកុំឱ្យបាត់ទិន្នន័យ', false);
 
     // Live background cloud sync
     const client = getSupabaseClient();
@@ -999,7 +1001,7 @@ export default function App() {
       return s;
     });
     setStudents(updatedStudents);
-    localStorage.setItem('school_student_scores_v2', JSON.stringify(updatedStudents));
+    safeSetJSON('school_student_scores_v2', updatedStudents);
 
     // 3. Rename inside reports list
     const updatedReports = reports.map(r => {
@@ -1169,7 +1171,7 @@ export default function App() {
         if (window.confirm("តើលោកអ្នកពិតជាចង់នាំចូលទិន្នន័យពីឯកសារចម្លងនេះមែនទេ? ទិន្នន័យបច្ចុប្បន្នទាំងអស់នៅលើឧបករណ៍បច្ចុប្បន្ននេះនឹងត្រូវលុបជំនួសដោយទិន្នន័យចម្លងថ្មីវិញទាំងស្រុង!")) {
           if (backupData.students) {
             setStudents(backupData.students);
-            localStorage.setItem('school_student_scores_v2', JSON.stringify(backupData.students));
+            safeSetJSON('school_student_scores_v2', backupData.students);
           }
           if (backupData.reports) {
             setReports(backupData.reports);
