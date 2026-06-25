@@ -235,7 +235,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
                     <td className="border border-slate-300 px-1 py-0.5">{KH_NUM[i]}</td>
                     <td className="border border-slate-300 px-2 py-0.5 text-left">{sub.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(val)}</td>
-                    <td className="border border-slate-300 px-1 py-0.5">{isYear ? rankBySubject(i) : ''}</td>
+                    <td className="border border-slate-300 px-1 py-0.5">{rankBySubject(i)}</td>
                     <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(g.en) }}>{g.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-bold" style={{ color: niddesColor(g.en) }}>{g.en}</td>
                     {i === 0 && (
