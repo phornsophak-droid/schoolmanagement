@@ -42,7 +42,7 @@ export default function PrincipalSignature({ height = 88 }: { height?: number | 
     <div className="flex flex-col items-center">
       <input ref={ref} type="file" accept="image/*" onChange={onFile} className="hidden" />
       {sig ? (
-        <>
+        <div className="relative flex flex-col items-center group">
         {/* mix-blend-multiply drops a WHITE background into the paper; brightness+
             contrast first knock a phone-photographed signature's dim grey paper up
             to white so no grey box shows on the certificate's parchment. */}
@@ -53,8 +53,11 @@ export default function PrincipalSignature({ height = 88 }: { height?: number | 
           title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
           style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'brightness(1.18) contrast(1.9)' }}
         />
-        <button onClick={removeSig} title="លុបហត្ថលេខា" className="rc-no-print text-[10px] text-transparent hover:text-rose-500 hover:underline transition-colors">លុបហត្ថលេខា</button>
-        </>
+        {/* Absolutely positioned so the (hidden) delete link adds NO vertical flow
+            space — in flow it pushed the name down onto the certificate frame on
+            screen. Shown + clickable only on hover. */}
+        <button onClick={removeSig} title="លុបហត្ថលេខា" className="rc-no-print absolute inset-x-0 bottom-0 text-[10px] text-rose-500 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">លុបហត្ថលេខា</button>
+        </div>
       ) : (
         <button
           onClick={() => ref.current?.click()}

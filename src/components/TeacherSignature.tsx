@@ -65,7 +65,7 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
     <div className="flex flex-col items-center">
       <input ref={ref} type="file" accept="image/*" onChange={onFile} className="hidden" />
       {sig ? (
-        <>
+        <div className="relative flex flex-col items-center group">
         {/* See PrincipalSignature: brightness+contrast whiten a photographed
             signature's grey paper so multiply leaves no box; saturate keeps a
             coloured stamp/ink vivid. */}
@@ -76,8 +76,11 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
           title="ចុចលើហត្ថលេខាដើម្បីប្តូរ"
           style={{ height, objectFit: 'contain', cursor: 'pointer', mixBlendMode: 'multiply', filter: 'brightness(1.18) contrast(1.9) saturate(1.3)' }}
         />
-        <button onClick={removeSig} title="លុបហត្ថលេខា" className="rc-no-print text-[10px] text-transparent hover:text-rose-500 hover:underline transition-colors">លុបហត្ថលេខា</button>
-        </>
+        {/* Absolutely positioned so the (hidden) delete link adds NO vertical flow
+            space — in flow it pushed the name down onto the certificate frame on
+            screen. Shown + clickable only on hover. */}
+        <button onClick={removeSig} title="លុបហត្ថលេខា" className="rc-no-print absolute inset-x-0 bottom-0 text-[10px] text-rose-500 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">លុបហត្ថលេខា</button>
+        </div>
       ) : (
         <button
           onClick={() => ref.current?.click()}
