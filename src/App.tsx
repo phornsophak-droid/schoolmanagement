@@ -72,6 +72,23 @@ const stampSync = (startedAtMs: number, full: boolean) => {
   if (full) localStorage.setItem('cloud_last_full_sync_at', String(startedAtMs));
 };
 // Merge an incremental delta of rows into a cached array localStorage key (upsert by id).
+// Turn a Supabase/PostgREST error object into a readable, diagnosable string
+// instead of "[object Object]". Surfaces the message + code/status/hint so the
+// status panel and console show WHY it failed (paused project, wrong ref → 404,
+// JWT/auth → 401/PGRST301, egress limit, RLS, missing table, …).
+const describeSupabaseError = (err: any): string => {
+  if (err == null) return 'Unknown error';
+  if (typeof err === 'string') return err;
+  const parts: string[] = [];
+  if (err.message) parts.push(String(err.message));
+  if (err.code != null) parts.push(`code: ${err.code}`);
+  if (err.status != null) parts.push(`status: ${err.status}`);
+  if (err.hint) parts.push(`hint: ${err.hint}`);
+  if (err.details && err.details !== err.message) parts.push(String(err.details));
+  if (parts.length === 0) { try { return JSON.stringify(err); } catch { return String(err); } }
+  return parts.join(' | ');
+};
+
 const mergeRowsById = (key: string, delta: any[] | null | undefined) => {
   if (!delta || delta.length === 0) return;
   const isAtt = key === 'school_daily_attendance'; // stored compressed — go through the helpers
@@ -587,9 +604,9 @@ export default function App() {
             }
           })
           .catch(err => {
-            console.error('Initial Supabase fetch failed', err);
+            console.error('Initial Supabase fetch failed:', describeSupabaseError(err), err);
             setSupabaseStatus('error');
-            setSupabaseErrorMsg(err?.message || 'Error fetching data');
+            setSupabaseErrorMsg(describeSupabaseError(err));
           });
       } else {
         setSupabaseStatus('unconfigured');
@@ -713,11 +730,11 @@ export default function App() {
       }
       return true;
     } catch (err: any) {
-      console.error('Supabase manual pull failed', err);
+      console.error('Supabase manual pull failed:', describeSupabaseError(err), err);
       setSupabaseStatus('error');
-      setSupabaseErrorMsg(err?.message || 'Error loading records');
+      setSupabaseErrorMsg(describeSupabaseError(err));
       if (!quiet) {
-        alert('បរាជ័យក្នុងការទាញទិន្នន័យ៖ ' + (err?.message || 'សូមពិនិត្យមើល URL and Anon key របស់អ្នកឡើងវិញ!'));
+        alert('បរាជ័យក្នុងការទាញទិន្នន័យ៖ ' + describeSupabaseError(err) + '\n\nសូមពិនិត្យ URL/Anon key ឬថាគម្រោង Supabase ត្រូវបានផ្អាក (Paused) ឬអត់។');
       }
       return false;
     }
@@ -779,10 +796,10 @@ export default function App() {
       alert('បានបញ្ជូន និងរក្សាទុកទិន្នន័យទៅកាន់ Supabase Consolidated Database ដោយជោគជ័យ!');
       return true;
     } catch (err: any) {
-      console.error('Supabase write all failed', err);
+      console.error('Supabase write all failed:', describeSupabaseError(err), err);
       setSupabaseStatus('error');
-      setSupabaseErrorMsg(err?.message || 'Error saving records');
-      alert('បរាជ័យក្នុងការបញ្ជូនទិន្នន័យ៖ ' + (err?.message || 'សូមពិនិត្យការកំណត់ ឬសិទ្ធិរបស់ RLS របស់អ្នកឡើងវិញ!'));
+      setSupabaseErrorMsg(describeSupabaseError(err));
+      alert('បរាជ័យក្នុងការបញ្ជូនទិន្នន័យ៖ ' + describeSupabaseError(err) + '\n\nសូមពិនិត្យការកំណត់ URL/Key សិទ្ធិ RLS ឬថាគម្រោងត្រូវបានផ្អាក។');
       return false;
     }
   };
