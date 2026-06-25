@@ -7,6 +7,17 @@ import React, { useRef, useState } from 'react';
 import { syncUpsertSetting, syncDeleteSetting } from '../lib/supabase';
 import { downscaleImageFile } from '../utils/image';
 import { AVAILABLE_USERS } from './LoginPortal';
+import { isEnglishClass, isHealthClass, isDrawingClass, isComputerClass, isSportsClass } from '../types';
+
+// An after-hours teacher's account grade is the generic subject ("ថ្នាក់ភាសាអង់គ្លេស")
+// while their students' grade carries the group ("ថ្នាក់ភាសាអង់គ្លេស 3"). Match by
+// shared subject so the right teacher's name still resolves for those classes.
+const sameExtraSubject = (a: string, b: string) =>
+  (isEnglishClass(a) && isEnglishClass(b)) ||
+  (isHealthClass(a) && isHealthClass(b)) ||
+  (isDrawingClass(a) && isDrawingClass(b)) ||
+  (isComputerClass(a) && isComputerClass(b)) ||
+  (isSportsClass(a) && isSportsClass(b));
 
 // Per-class homeroom-teacher signature, uploaded once per class and reused on
 // every report/table for that class. Stored locally and mirrored to the cloud
@@ -17,7 +28,9 @@ export const TEACHER_SIG_PREFIX = 'school_teacher_signature::';
 // Drop the honorific prefix so only the teacher's name shows (e.g. ស៊ុំ សំណាង).
 const stripTitle = (n: string) => n.replace(/^(លោកគ្រូ|អ្នកគ្រូ|លោកស្រី|អ្នកស្រី|លោក|អ្នក)\s+/, '').trim();
 export const teacherNameForGrade = (grade: string): string => {
-  const u = AVAILABLE_USERS.find(x => x.role === 'teacher' && x.grade === grade);
+  const teachers = AVAILABLE_USERS.filter(x => x.role === 'teacher');
+  const u = teachers.find(x => x.grade === grade)
+    || teachers.find(x => sameExtraSubject(x.grade, grade));
   return u ? stripTitle(u.name) : '';
 };
 
