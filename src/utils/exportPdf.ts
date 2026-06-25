@@ -54,9 +54,12 @@ async function renderElementToCanvas(el: HTMLElement): Promise<HTMLCanvasElement
   // Wait for the Khmer web fonts (incl. the BOLD weight used in the table headers)
   // to finish loading. If we capture before bold Khmer is ready html2canvas can't
   // measure the glyphs and the <th> header text comes out blank on some browsers
-  // (e.g. desktop Chrome). Then settle one frame so metrics are final.
+  // (e.g. desktop Chrome). Then settle briefly so metrics are final.
+  // NOTE: use setTimeout, NOT requestAnimationFrame — on iOS we open the result
+  // tab first, which backgrounds this page and pauses rAF, so an rAF await would
+  // hang forever ("កំពុងបង្កើត PDF..." never finishes). setTimeout still fires.
   try { await (document as any).fonts?.ready; } catch { /* fonts API absent — proceed */ }
-  await new Promise(requestAnimationFrame);
+  await new Promise(resolve => setTimeout(resolve, 50));
 
   const scale = Math.min(4, Math.max(2, 1500 / (el.offsetWidth || 1000)));
   return html2canvas(el, {
