@@ -111,7 +111,7 @@ import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
-import { persistAttendance, loadAttendance } from './utils/attendanceStore';
+import { persistAttendance, loadAttendance, migrateAttendanceFormat } from './utils/attendanceStore';
 import { safeSetJSON } from './utils/safeStore';
 import { useT, LanguageToggle } from './i18n';
 
@@ -206,6 +206,10 @@ export default function App() {
   const [pinChangeOld, setPinChangeOld] = useState('');
   const [pinChangeNew, setPinChangeNew] = useState('');
   const [pinChangeError, setPinChangeError] = useState('');
+
+  // 0. One-time: compress any existing (legacy) attendance to reclaim space before
+  // anything else writes to localStorage — this is what frees room for scores again.
+  useEffect(() => { migrateAttendanceFormat(); }, []);
 
   // 1. Initial State Hydration with safety fallback (LocalStorage)
   useEffect(() => {

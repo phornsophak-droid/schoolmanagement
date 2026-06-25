@@ -84,6 +84,23 @@ export function loadAttendance(): AnyRec[] {
   } catch { return []; }
 }
 
+// One-time migration: existing attendance is still in the legacy uncompressed
+// form (compression only kicks in on a write). Re-save it compressed on startup
+// to reclaim ~77% of its space immediately — which is what frees room for scores
+// again. Safe + cheap: no-ops if already compressed or empty.
+export function migrateAttendanceFormat(): { migrated: boolean; beforeKB: number; afterKB: number } {
+  let raw: string | null = null;
+  try { raw = localStorage.getItem(KEY); } catch { return { migrated: false, beforeKB: 0, afterKB: 0 }; }
+  if (!raw || raw[0] !== '[') return { migrated: false, beforeKB: 0, afterKB: 0 }; // empty or already compressed
+  const beforeKB = Math.round((raw.length * 2) / 1024);
+  persistAttendance(loadAttendance());
+  let after = '';
+  try { after = localStorage.getItem(KEY) || ''; } catch { /* ignore */ }
+  const afterKB = Math.round((after.length * 2) / 1024);
+  console.info(`Attendance storage compressed: ${beforeKB} KB → ${afterKB} KB`);
+  return { migrated: true, beforeKB, afterKB };
+}
+
 // Persist daily-attendance records (compressed). If the quota is still hit, drop
 // the OLDEST records from the LOCAL cache and retry — Supabase keeps the full
 // history and re-hydrates on next load. Never throws. Returns whether it saved
