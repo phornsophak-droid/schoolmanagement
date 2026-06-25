@@ -52,6 +52,27 @@ function AbsenceReasonChart({ segments }: { segments: { label: string; value: nu
   );
 }
 
+// Horizontal bars of WHY students were away (the per-student reason field).
+function ReasonBars({ reasons }: { reasons: { reason: string; count: number }[] }) {
+  const top = reasons.slice(0, 6);
+  const max = Math.max(1, ...top.map(r => r.count));
+  const total = reasons.reduce((a, r) => a + r.count, 0) || 1;
+  return (
+    <div className="space-y-2">
+      {top.map((r, i) => (
+        <div key={i} className="flex items-center gap-2 text-xs">
+          <span className="w-44 shrink-0 text-slate-600 truncate" title={r.reason}>{r.reason}</span>
+          <div className="flex-1 h-4 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-4 rounded-full bg-gradient-to-r from-indigo-500 to-blue-500" style={{ width: `${Math.round((r.count / max) * 100)}%` }} />
+          </div>
+          <span className="w-6 text-right font-bold text-slate-800">{toKh(r.count)}</span>
+          <span className="w-10 text-right text-slate-400">{toKh(Math.round((r.count / total) * 100))}%</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function SchoolSummary({ students, onClose }: SchoolSummaryProps) {
   const months = useMemo(() => monthsWithData(students), [students]);
   const [month, setMonth] = useState<string>(() => months[months.length - 1] || 'មិថុនា');
@@ -121,10 +142,16 @@ export default function SchoolSummary({ students, onClose }: SchoolSummaryProps)
             {summary.absences.hasData && stat('អត្រាវត្តមាន', toKh(summary.absences.attendanceRate) + '%', 'bg-teal-50 border-teal-200 text-teal-700')}
           </div>
 
-          {/* Absence-reason chart */}
-          {summary.absences.hasData && (summary.absences.permission + summary.absences.absent + summary.absences.late) > 0 && (
+          {/* Absence breakdown — by reason (why) and by type (excused/unexcused/late) */}
+          {summary.absences.hasData && summary.absences.reasons.length > 0 && (
             <div className="rounded-xl border border-slate-200 bg-white p-4">
               <h4 className="text-xs font-bold text-slate-700 mb-3">មូលហេតុនៃការអវត្តមាន — ខែ{month}</h4>
+              <ReasonBars reasons={summary.absences.reasons} />
+            </div>
+          )}
+          {summary.absences.hasData && (summary.absences.permission + summary.absences.absent + summary.absences.late) > 0 && (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <h4 className="text-xs font-bold text-slate-700 mb-3">ប្រភេទនៃការអវត្តមាន — ខែ{month}</h4>
               <AbsenceReasonChart segments={[
                 { label: 'ច្បាប់', value: summary.absences.permission, color: '#3b82f6' },
                 { label: 'អត់ច្បាប់', value: summary.absences.absent, color: '#ef4444' },

@@ -31,6 +31,7 @@ export interface WeakStudent { name: string; grade: string; avg: number; letter:
 
 export interface ClassAbsence { grade: string; permission: number; absent: number; total: number }
 export interface StudentAbsence { name: string; grade: string; permission: number; absent: number; total: number }
+export interface ReasonCount { reason: string; count: number }
 export interface MonthAbsences {
   hasData: boolean;
   permission: number;   // excused (ច្បាប់) session-count
@@ -40,6 +41,7 @@ export interface MonthAbsences {
   attendanceRate: number; // % present of all marks
   perClass: ClassAbsence[];
   topStudents: StudentAbsence[];
+  reasons: ReasonCount[];   // why students were away (from the per-student reason field)
 }
 
 export interface SchoolSummary {
@@ -70,7 +72,7 @@ const monthDateKey = (month: string): string => {
 // records (localStorage). General classes only, to match the rest of the summary.
 // Counts are in sessions (a full-day general-class absence = 2), as elsewhere.
 export function computeMonthAbsences(students: StudentScore[], month: string): MonthAbsences {
-  const empty: MonthAbsences = { hasData: false, permission: 0, absent: 0, late: 0, total: 0, attendanceRate: 0, perClass: [], topStudents: [] };
+  const empty: MonthAbsences = { hasData: false, permission: 0, absent: 0, late: 0, total: 0, attendanceRate: 0, perClass: [], topStudents: [], reasons: [] };
   const key = monthDateKey(month);
   if (!key) return empty;
   let records: { date?: string; grade?: string; studentStates?: Record<string, string> }[] = [];
@@ -83,6 +85,12 @@ export function computeMonthAbsences(students: StudentScore[], month: string): M
   let permission = 0, absent = 0, late = 0, present = 0, any = false;
   const perClass = new Map<string, ClassAbsence>();
   const perStudent = new Map<string, StudentAbsence>();
+  const reasonCounts = new Map<string, number>();
+  // The per-student reason is stored alongside the state as "<id>_reason".
+  const tallyReason = (states: Record<string, string>, id: string) => {
+    const reason = (states[`${id}_reason`] || '').trim();
+    if (reason && reason !== 'ផ្សេងៗ') reasonCounts.set(reason, (reasonCounts.get(reason) || 0) + 1);
+  };
 
   for (const r of records) {
     if ((r.date || '').slice(0, 7) !== key) continue;
@@ -94,11 +102,13 @@ export function computeMonthAbsences(students: StudentScore[], month: string): M
     any = true;
     const pc = perClass.get(grade) || { grade, permission: 0, absent: 0, total: 0 };
     for (const id of ids) {
+      if (id.endsWith('_reason')) continue; // skip the paired reason entries
       const st = states[id];
       if (st === 'present') { present++; continue; }
-      if (st === 'late') { late++; continue; }
+      if (st === 'late') { late++; tallyReason(states, id); continue; }
       if (st !== 'permission' && st !== 'absent') continue;
       if (st === 'permission') { permission++; pc.permission++; } else { absent++; pc.absent++; }
+      tallyReason(states, id);
       pc.total++;
       const info = idMap.get(id);
       if (info?.name) {
@@ -120,6 +130,7 @@ export function computeMonthAbsences(students: StudentScore[], month: string): M
     attendanceRate: marks ? Math.round((present / marks) * 100) : 0,
     perClass: Array.from(perClass.values()).filter(c => c.total > 0).sort((a, b) => b.total - a.total),
     topStudents: Array.from(perStudent.values()).sort((a, b) => b.total - a.total).slice(0, 8),
+    reasons: Array.from(reasonCounts.entries()).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count),
   };
 }
 
@@ -247,6 +258,10 @@ export function summaryToKhmerText(s: SchoolSummary): string {
       L.push('   • សិស្សអវត្តមានច្រើន៖');
       a.topStudents.slice(0, 5).forEach(w => L.push(`     - ${w.name} (${w.grade})៖ ${toKh(w.total)} លើក (អត់ច្បាប់ ${toKh(w.absent)})`));
     }
+    if (a.reasons.length) {
+      L.push('   • មូលហេតុចម្បង៖');
+      a.reasons.slice(0, 5).forEach(rc => L.push(`     - ${rc.reason}៖ ${toKh(rc.count)} លើក`));
+    }
   }
 
   // Improvement points — built as a list so the numbering stays correct.
@@ -255,6 +270,7 @@ export function summaryToKhmerText(s: SchoolSummary): string {
   if (s.weakClasses[0]) tips.push(`ជួយ​ថ្នាក់ «${s.weakClasses[0].grade}» ដែលមានមធ្យមភាគទាប — រៀបចំ​មេរៀន​បំប៉ន។`);
   if (s.weakStudents.length) tips.push(`រៀបចំ​ការ​ជួយ​បន្ថែម​ដល់​សិស្ស​និទ្ទេស​ខ្សោយ ${toKh(s.weakStudents.length)} នាក់ និងជូនដំណឹងអាណាព្យាបាល។`);
   if (a.hasData && a.absent > 0) tips.push(`តាមដាន​អវត្តមាន​អត់​ច្បាប់ (${toKh(a.absent)} លើក)${a.topStudents[0] ? ` ពិសេស​សិស្ស «${a.topStudents[0].name}»` : ''} និង​ទាក់ទង​អាណាព្យាបាល​ឱ្យ​ទាន់​ពេល។`);
+  if (a.hasData && a.reasons[0]) tips.push(`ដោះស្រាយ​មូលហេតុ​អវត្តមាន​ចម្បង «${a.reasons[0].reason}» (${toKh(a.reasons[0].count)} លើក)។`);
   tips.push('លើកទឹកចិត្ត​ថ្នាក់​ឆ្នើម និងចែករំលែក​បទពិសោធន៍​បង្រៀន​ល្អ​ៗ ដល់​គ្រូ​ដទៃ។');
   L.push('');
   L.push('🎯 ចំណុចគួរកែលម្អសម្រាប់ខែបន្ទាប់៖');
@@ -281,6 +297,7 @@ export function summaryForPrompt(s: SchoolSummary): string {
       attendanceRatePercent: s.absences.attendanceRate,
       byClass: s.absences.perClass.map(c => ({ class: c.grade, total: c.total, unexcused: c.absent })),
       mostAbsentStudents: s.absences.topStudents.map(w => ({ name: w.name, class: w.grade, total: w.total, unexcused: w.absent })),
+      reasons: s.absences.reasons.map(r => ({ reason: r.reason, count: r.count })),
     } : 'no attendance data',
   }, null, 2);
 }
