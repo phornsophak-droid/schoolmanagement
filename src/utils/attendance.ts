@@ -11,6 +11,8 @@
 // Each saved record is one session (morning/afternoon), so a full-day absence in a
 // general class counts as 2 — the same convention the attendance module displays.
 
+import { loadAttendance } from './attendanceStore';
+
 const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
 
 interface AttRecord { date?: string; grade?: string; studentStates?: Record<string, string>; }
@@ -25,9 +27,8 @@ export function tallyAbsences(
 ): AbsenceTally {
   const empty: AbsenceTally = { permission: 0, absent: 0, total: 0 };
 
-  let records: AttRecord[] = [];
-  try { records = JSON.parse(localStorage.getItem('school_daily_attendance') || '[]'); } catch { return empty; }
-  if (!Array.isArray(records)) return empty;
+  const records = loadAttendance() as AttRecord[];
+  if (records.length === 0) return empty;
 
   // The same person has one score row per month (each with its own id), but
   // attendance is keyed by whichever id was first seen. Match the whole set.

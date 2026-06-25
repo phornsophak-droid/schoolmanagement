@@ -4,6 +4,7 @@
  */
 
 import { StudentScore } from '../types';
+import { loadAttendance } from './attendanceStore';
 
 // Whole-school academic summary for one month — computed locally from the
 // scores already in memory (no network, no data leaves the app). The optional
@@ -75,9 +76,8 @@ export function computeMonthAbsences(students: StudentScore[], month: string): M
   const empty: MonthAbsences = { hasData: false, permission: 0, absent: 0, late: 0, total: 0, attendanceRate: 0, perClass: [], topStudents: [], reasons: [] };
   const key = monthDateKey(month);
   if (!key) return empty;
-  let records: { date?: string; grade?: string; studentStates?: Record<string, string> }[] = [];
-  try { records = JSON.parse(localStorage.getItem('school_daily_attendance') || '[]'); } catch { return empty; }
-  if (!Array.isArray(records) || records.length === 0) return empty;
+  const records = loadAttendance() as { date?: string; grade?: string; studentStates?: Record<string, string> }[];
+  if (records.length === 0) return empty;
 
   const idMap = new Map<string, { name: string; grade: string }>();
   students.forEach(s => idMap.set(s.id, { name: s.name, grade: s.grade }));

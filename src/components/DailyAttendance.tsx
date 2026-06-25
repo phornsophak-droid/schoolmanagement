@@ -31,7 +31,7 @@ import {
   syncUpsertTeacherAttendance,
   syncDeleteStudentAttendance
 } from '../lib/supabase';
-import { persistAttendance } from '../utils/attendanceStore';
+import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
 // 'គ្លេស' (the English-language root) catches spelling variants like អង់គ្លេស / អ់គ្លេស.
@@ -206,14 +206,8 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
 
   // Load persistence records for students
   const [records, setRecords] = useState<AttendanceRecord[]>(() => {
-    const saved = localStorage.getItem('school_daily_attendance');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse saved attendance records', e);
-      }
-    }
+    const saved = loadAttendance() as AttendanceRecord[];
+    if (saved.length > 0) return saved;
     return [
       {
         id: 'att-mock-1',

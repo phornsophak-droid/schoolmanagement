@@ -22,6 +22,7 @@ import {
   Clock
 } from 'lucide-react';
 import { SchoolReport, StudentScore, SchoolUser } from '../types';
+import { loadAttendance } from '../utils/attendanceStore';
 import schoolLogo from '../assets/logo.png';
 import { useT } from '../i18n';
 
@@ -135,14 +136,8 @@ export default function Dashboard({
   const [selectedAttYear, setSelectedAttYear] = useState<string | null>(null);   // YYYY
 
   useEffect(() => {
-    const saved = localStorage.getItem('school_daily_attendance');
-    if (saved) {
-      try {
-        setAttendanceRecords(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to load attendance records in Dashboard', e);
-      }
-    }
+    const saved = loadAttendance();
+    if (saved.length > 0) setAttendanceRecords(saved as any);
   }, []);
 
   const filteredAttendance = useMemo(() => {

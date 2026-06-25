@@ -42,7 +42,7 @@ import Gradebook from './Gradebook';
 import DailyAttendance from './DailyAttendance';
 import Dashboard from './Dashboard';
 import { SchoolLogo } from './SchoolLogo';
-import { persistAttendance } from '../utils/attendanceStore';
+import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 
 // Morning / afternoon session split — general (non-extra) classes only.
 const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
@@ -132,14 +132,8 @@ export default function MobilePortal({
   const [activeAttendanceMap, setActiveAttendanceMap] = useState<{ [studentId: string]: 'present' | 'late' | 'permission' | 'absent' }>({});
 
   const [savedAttendanceRecords, setSavedAttendanceRecords] = useState<AttendanceRecord[]>(() => {
-    const saved = localStorage.getItem('school_daily_attendance');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        // Fallback
-      }
-    }
+    const saved = loadAttendance() as AttendanceRecord[];
+    if (saved.length > 0) return saved;
     return [
       {
         id: 'att-mock-1',

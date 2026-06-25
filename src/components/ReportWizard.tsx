@@ -31,6 +31,7 @@ import {
   SchoolUser
 } from '../types';
 import { generateUniqueId } from '../mockData';
+import { loadAttendance } from '../utils/attendanceStore';
 import ClassReport, { getReportTemplate } from './ClassReport';
 
 interface ReportWizardProps {
@@ -238,8 +239,7 @@ export default function ReportWizard({
     // Total absences (permission + unexcused) for this class during the month,
     // counted from the recorded daily attendance.
     try {
-      const raw = localStorage.getItem('school_daily_attendance');
-      const recs: any[] = raw ? JSON.parse(raw) : [];
+      const recs: any[] = loadAttendance();
       const mIdx = KHMER_MONTHS_ORDER.indexOf(month);
       const mm = mIdx >= 0 ? String(mIdx + 1).padStart(2, '0') : '';
       const genderById = new Map(students.map(s => [s.id, s.gender]));

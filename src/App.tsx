@@ -74,11 +74,15 @@ const stampSync = (startedAtMs: number, full: boolean) => {
 // Merge an incremental delta of rows into a cached array localStorage key (upsert by id).
 const mergeRowsById = (key: string, delta: any[] | null | undefined) => {
   if (!delta || delta.length === 0) return;
+  const isAtt = key === 'school_daily_attendance'; // stored compressed — go through the helpers
   let prev: any[] = [];
-  try { prev = JSON.parse(localStorage.getItem(key) || '[]'); } catch { /* ignore */ }
+  if (isAtt) prev = loadAttendance();
+  else { try { prev = JSON.parse(localStorage.getItem(key) || '[]'); } catch { /* ignore */ } }
   const byId = new Map(prev.map((r: any) => [r.id, r]));
   delta.forEach((r: any) => { if (r && r.id != null) byId.set(r.id, r); });
-  localStorage.setItem(key, JSON.stringify(Array.from(byId.values())));
+  const merged = Array.from(byId.values());
+  if (isAtt) persistAttendance(merged);
+  else localStorage.setItem(key, JSON.stringify(merged));
 };
 
 // Restore submitted work reports pulled from the cloud: keep the index, and write
@@ -107,7 +111,7 @@ import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
-import { persistAttendance } from './utils/attendanceStore';
+import { persistAttendance, loadAttendance } from './utils/attendanceStore';
 import { useT, LanguageToggle } from './i18n';
 
 
@@ -518,6 +522,10 @@ export default function App() {
               // primary key — no extra fetch, reflects live.
               const removeFromArrayKey = (key: string, id: any) => {
                 if (id == null) return;
+                if (key === 'school_daily_attendance') { // stored compressed
+                  persistAttendance(loadAttendance().filter((r: any) => r.id !== id));
+                  return;
+                }
                 try {
                   const arr = JSON.parse(localStorage.getItem(key) || '[]');
                   if (Array.isArray(arr)) localStorage.setItem(key, JSON.stringify(arr.filter((r: any) => r.id !== id)));
@@ -740,16 +748,13 @@ export default function App() {
       }
 
       // 4. Bulk push student attendance records
-      const localStudentAtt = localStorage.getItem('school_daily_attendance');
-      if (localStudentAtt) {
-        try {
-          const parsed = JSON.parse(localStudentAtt);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            await syncUpsertStudentAttendanceBulk(parsed);
-          }
-        } catch (e) {
-          console.error('Failed to sync student attendance during pushToSupabase', e);
+      try {
+        const parsed = loadAttendance();
+        if (parsed.length > 0) {
+          await syncUpsertStudentAttendanceBulk(parsed);
         }
+      } catch (e) {
+        console.error('Failed to sync student attendance during pushToSupabase', e);
       }
 
       // 5. Bulk push teacher attendance records
@@ -1120,7 +1125,7 @@ export default function App() {
       reports: reports,
       grades: grades,
       customTeachers: parsedTeachers,
-      studentAttendance: readJson('school_daily_attendance'),
+      studentAttendance: loadAttendance(), // stored compressed — decode for the backup
       teacherAttendance: readJson('school_teachers_daily_attendance')
     };
 
