@@ -31,6 +31,23 @@ import { useT } from '../i18n';
 const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
 
+// A class typed without its section (e.g. "ថ្នាក់ទី៣") is a stray/legacy grade
+// when sectioned variants of it ("ថ្នាក់ទី៣ក", "ថ្នាក់ទី៣ខ") also exist — those
+// records were entered without a section and don't belong to a real class. We
+// drop the bare grade so it never shows as its own row or inflates the count.
+// (A genuinely single-section class like "ថ្នាក់ទី៦" has no variant → kept.)
+const CLASS_SECTIONS = ['ក', 'ខ', 'គ', 'ឃ', 'ង'];
+const findPhantomGrades = (allGrades: string[]): Set<string> => {
+  const norm = (s: string) => (s || '').replace(/\s+/g, '');
+  const normSet = new Set(allGrades.map(norm));
+  const phantom = new Set<string>();
+  allGrades.forEach(g => {
+    const n = norm(g);
+    if (n && CLASS_SECTIONS.some(sec => normSet.has(n + sec))) phantom.add(g);
+  });
+  return phantom;
+};
+
 interface AttendanceRecord {
   id: string;
   date: string;
@@ -72,7 +89,7 @@ export const KHMER_GRADES = [
 
 export default function Dashboard({
   reports,
-  students,
+  students: studentsRaw,
   selectedMonth,
   setSelectedMonth,
   selectedGrade,
@@ -127,7 +144,14 @@ export default function Dashboard({
   }, [grades, classCategory]);
 
   // Load Saved Attendance Records
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [attendanceRecordsRaw, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+
+  // Sectionless stray grades (e.g. "ថ្នាក់ទី៣" when ៣ក/៣ខ exist) are dropped at
+  // the source so they never appear as their own class row nor inflate the
+  // student count — everything below sees only the real classes (459 / 13).
+  const phantomGrades = useMemo(() => findPhantomGrades(studentsRaw.map(s => s.grade)), [studentsRaw]);
+  const students = useMemo(() => studentsRaw.filter(s => !phantomGrades.has(s.grade)), [studentsRaw, phantomGrades]);
+  const attendanceRecords = useMemo(() => attendanceRecordsRaw.filter(r => !phantomGrades.has(r.grade)), [attendanceRecordsRaw, phantomGrades]);
   const [reasonChartMode, setReasonChartMode] = useState<'daily' | 'monthly' | 'yearly'>('daily');
   // Attendance summary period + the picked value for each (null = follow the latest).
   const [reportPeriod, setReportPeriod] = useState<'day' | 'month' | 'year'>('day');
