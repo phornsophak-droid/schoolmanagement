@@ -51,21 +51,38 @@ const deliverBlob = (blob: Blob, filename: string, iosTab: Window | null): void 
 // — including the principal/teacher signatures. Normalized to ~1500px wide so
 // quality is the same on phone or PC.
 async function renderElementToCanvas(el: HTMLElement): Promise<HTMLCanvasElement> {
+  // Wait for the Khmer web fonts (incl. the BOLD weight used in the table headers)
+  // to finish loading. If we capture before bold Khmer is ready html2canvas can't
+  // measure the glyphs and the <th> header text comes out blank on some browsers
+  // (e.g. desktop Chrome). Then settle one frame so metrics are final.
+  try { await (document as any).fonts?.ready; } catch { /* fonts API absent — proceed */ }
+  await new Promise(requestAnimationFrame);
+
   const scale = Math.min(4, Math.max(2, 1500 / (el.offsetWidth || 1000)));
   return html2canvas(el, {
     scale,
     useCORS: true,
     backgroundColor: '#ffffff',
     logging: false,
-    windowWidth: el.scrollWidth,
+    windowWidth: Math.max(el.scrollWidth, el.offsetWidth, 800),
     // On phones the report cards sit inside a FitToWidth transform:scale()
     // wrapper. html2canvas renders text at natural size but positions it with
     // the scaled coordinates → garbled overlap. Neutralise the wrapper in the
     // (sandboxed) clone so the card is captured at its full, un-scaled size.
     onclone: (doc: Document) => {
-      doc.querySelectorAll<HTMLElement>('.rc-fit-outer, .rc-fit-frame, .rc-fit-inner').forEach(n => {
+      doc.querySelectorAll<HTMLElement>('.rc-fit-outer, .rc-fit-frame').forEach(n => {
         n.style.transform = 'none';
         n.style.width = 'auto';
+        n.style.maxWidth = 'none';
+        n.style.height = 'auto';
+        n.style.overflow = 'visible';
+        n.style.margin = '0';
+      });
+      // Keep the inner's design width (e.g. 768px) — only undo the scale. Setting
+      // width:auto here lets the card collapse to the phone's narrow viewport, so
+      // the capture comes out cramped with overlapping text.
+      doc.querySelectorAll<HTMLElement>('.rc-fit-inner').forEach(n => {
+        n.style.transform = 'none';
         n.style.height = 'auto';
         n.style.overflow = 'visible';
         n.style.margin = '0';

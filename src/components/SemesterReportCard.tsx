@@ -213,18 +213,17 @@ export default function SemesterReportCard({ student, students, period, onClose 
           </div>
 
           <table className="w-full border-collapse text-[12px]">
+            {/* Flat header row — no rowSpan/colSpan, which html2canvas drops on some
+                browsers (the merged "និទ្ទេស" header came out blank in the PDF). */}
             <thead>
               <tr className="bg-slate-100">
-                <th className="border border-slate-300 px-1 py-1 w-10" rowSpan={2}>ល.រ</th>
-                <th className="border border-slate-300 px-2 py-1 text-left" rowSpan={2}>ឈ្មោះមុខវិជ្ជា</th>
-                <th className="border border-slate-300 px-1 py-1 w-16" rowSpan={2}>ពិន្ទុ</th>
-                <th className="border border-slate-300 px-1 py-1 w-20" rowSpan={2}>ចំណាត់ថ្នាក់</th>
-                <th className="border border-slate-300 px-1 py-1" colSpan={2}>និទ្ទេស</th>
-                <th className="border border-slate-300 px-1 py-1 w-28" rowSpan={2}>មូលវិចារគ្រូបន្ទុកថ្នាក់</th>
-              </tr>
-              <tr className="bg-slate-100">
-                <th className="border border-slate-300 px-1 py-1 w-24">ភាសាខ្មែរ</th>
-                <th className="border border-slate-300 px-1 py-1 w-16">English</th>
+                <th className="border border-slate-300 px-1 py-1 w-10">ល.រ</th>
+                <th className="border border-slate-300 px-2 py-1 text-left">ឈ្មោះមុខវិជ្ជា</th>
+                <th className="border border-slate-300 px-1 py-1 w-16">ពិន្ទុ</th>
+                <th className="border border-slate-300 px-1 py-1 w-20">ចំណាត់ថ្នាក់</th>
+                <th className="border border-slate-300 px-1 py-1 w-24">និទ្ទេស</th>
+                <th className="border border-slate-300 px-1 py-1 w-16">អក្សរ</th>
+                <th className="border border-slate-300 px-1 py-1 w-28">មូលវិចារគ្រូបន្ទុកថ្នាក់</th>
               </tr>
             </thead>
             <tbody>
