@@ -245,17 +245,16 @@ export default function StudentReportCard({ student, students, onClose }: Studen
 
           {/* Scores table */}
           <table className="w-full border-collapse text-[12px]">
-            {/* A single, flat header row — no rowSpan/colSpan. html2canvas (used for
-                the PDF/image export) drops the text of spanned <th> cells on some
-                browsers, so the merged "និទ្ទេស" header came out blank in the PDF. */}
+            {/* Single header row; "និទ្ទេស" spans its two value columns (word + letter)
+                like the official template. Only ONE colSpan and no rowSpan, plus the
+                fonts.ready wait in exportPdf, so the PDF header no longer drops text. */}
             <thead>
               <tr className="bg-slate-100">
                 <th className="border border-slate-300 px-1 py-1 w-10">ល.រ{bilingual && <span className="block text-[8px] font-normal text-slate-500">No.</span>}</th>
                 <th className="border border-slate-300 px-2 py-1 text-left">ឈ្មោះមុខវិជ្ជា{bilingual && <span className="block text-[8px] font-normal text-slate-500">Subject</span>}</th>
                 <th className="border border-slate-300 px-1 py-1 w-16">ពិន្ទុ{bilingual && <span className="block text-[8px] font-normal text-slate-500">Score</span>}</th>
                 <th className="border border-slate-300 px-1 py-1 w-20">ចំណាត់ថ្នាក់{bilingual && <span className="block text-[8px] font-normal text-slate-500">Rank</span>}</th>
-                <th className="border border-slate-300 px-1 py-1 w-24">និទ្ទេស{bilingual && <span className="block text-[8px] font-normal text-slate-500">Grade</span>}</th>
-                <th className="border border-slate-300 px-1 py-1 w-16">អក្សរ{bilingual && <span className="block text-[8px] font-normal text-slate-500">Letter</span>}</th>
+                <th className="border border-slate-300 px-1 py-1 w-40" colSpan={2}>និទ្ទេស{bilingual && <span className="block text-[8px] font-normal text-slate-500">Grade</span>}</th>
                 <th className="border border-slate-300 px-1 py-1 w-28">មូលវិចារគ្រូបន្ទុកថ្នាក់{bilingual && <span className="block text-[8px] font-normal text-slate-500">Teacher's Remark</span>}</th>
               </tr>
             </thead>
