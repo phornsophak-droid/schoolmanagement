@@ -6,6 +6,7 @@
 import React, { useRef, useState } from 'react';
 import { Printer, X, Camera, Download, Loader2, Image as ImageIcon } from 'lucide-react';
 import { StudentScore } from '../types';
+import { baseStudentName } from '../utils/studentKey';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
@@ -77,6 +78,9 @@ export default function MeritCertificate({ student, students, scoreOverride, per
   const resolvedDob = student.dob
     || (sid ? dobFrom(s => (s as any).studentId === sid) : '')
     || dobFrom(s => s.name?.trim() === student.name?.trim())
+    // After-hours classes tag the name ("… (PE)"); match the general-class row by
+    // the base name so the dob carries over to extra-class certificates too.
+    || dobFrom(s => baseStudentName(s.name) === baseStudentName(student.name))
     || '';
   const dobText = formatDob(resolvedDob);
 

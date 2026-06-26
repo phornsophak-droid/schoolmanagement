@@ -23,6 +23,13 @@ export const distinctStudentKey = (name?: string, grade?: string): string => {
   return `${nameKey}|${gradeKey}`;
 };
 
+// Student names in after-hours classes carry a subject tag, e.g.
+// "វិទ្ធ កុលា (PE)", while the same student's general-class row is just
+// "វិទ្ធ កុលា". Strip a trailing "(...)" (and normalise spacing/case) so the two
+// can be matched to resolve shared fields like date of birth / អត្តលេខ.
+export const baseStudentName = (name?: string): string =>
+  (name || '').toString().replace(INVISIBLE, '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
 // Class section letters (ក ខ គ …). A grade typed WITHOUT a section (e.g.
 // "ថ្នាក់ទី៣") is a stray/legacy mis-entry when sectioned variants of it
 // ("ថ្នាក់ទី៣ក", "ថ្នាក់ទី៣ខ") also exist — those records belong to the real

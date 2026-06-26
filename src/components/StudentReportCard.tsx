@@ -6,6 +6,7 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Printer, X, PenLine, Download, Loader2 } from 'lucide-react';
 import { StudentScore, getCustomSubjects } from '../types';
+import { baseStudentName } from '../utils/studentKey';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
@@ -134,6 +135,9 @@ export default function StudentReportCard({ student, students, onClose }: Studen
   const resolvedDob = student.dob
     || (sid ? dobFrom(s => (s as any).studentId === sid) : '')
     || dobFrom(s => s.name?.trim() === nm)
+    // After-hours classes tag the name ("… (PE)"); match the general-class row by
+    // the base name so the dob carries over to extra-class report cards too.
+    || dobFrom(s => baseStudentName(s.name) === baseStudentName(student.name))
     || '';
 
   // Auto end-of-month date for the signature block.
