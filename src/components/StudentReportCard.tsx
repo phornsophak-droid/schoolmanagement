@@ -5,7 +5,7 @@
 
 import React, { useMemo, useState, useRef } from 'react';
 import { Printer, X, PenLine, Download, Loader2 } from 'lucide-react';
-import { StudentScore, getCustomSubjects } from '../types';
+import { StudentScore, getCustomSubjects, isEnglishClass, ENGLISH_SUBJECTS } from '../types';
 import { baseStudentName } from '../utils/studentKey';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
@@ -98,10 +98,15 @@ export default function StudentReportCard({ student, students, onClose }: Studen
   // keep the fixed SUBJECTS list.
   const custom = getCustomSubjects(student.grade);
   const subjects = useMemo(
-    () => custom
-      ? custom.map(s => ({ km: s.km, get: (st: StudentScore) => st.englishScores?.[s.key] }))
-      : SUBJECTS,
-    [custom]
+    () => {
+      // English class: show the bilingual subject name, e.g. "ស្តាប់ (Listening)".
+      if (isEnglishClass(student.grade)) {
+        return ENGLISH_SUBJECTS.map(s => ({ km: `${s.km} (${s.en})`, get: (st: StudentScore) => st.englishScores?.[s.key] }));
+      }
+      if (custom) return custom.map(s => ({ km: s.km, get: (st: StudentScore) => st.englishScores?.[s.key] }));
+      return SUBJECTS;
+    },
+    [custom, student.grade]
   );
 
   // Classmates (same class & month) used for per-subject ranking.
