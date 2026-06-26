@@ -245,6 +245,13 @@ export default function StudentReportCard({ student, students, onClose }: Studen
 
           {/* Scores table */}
           <table className="w-full border-collapse text-[12px]">
+            {/* Force the two និទ្ទេស sub-columns (word + letter) to equal width. */}
+            <colgroup>
+              <col /><col /><col /><col />
+              <col style={{ width: '84px' }} />
+              <col style={{ width: '84px' }} />
+              <col />
+            </colgroup>
             {/* Single header row; "និទ្ទេស" spans its two value columns (word + letter)
                 like the official template. Only ONE colSpan and no rowSpan, plus the
                 fonts.ready wait in exportPdf, so the PDF header no longer drops text. */}
