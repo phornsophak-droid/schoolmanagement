@@ -5,6 +5,26 @@
 
 import { StudentScore } from '../types';
 import { loadAttendance } from './attendanceStore';
+import { SEM1_MONTHS, SEM2_MONTHS, semesterAvgOf, annualFinalOf } from './scoring';
+import { distinctStudentKey } from './studentKey';
+
+// The summary can cover one month, a semester, or the whole year.
+export type SummaryPeriod =
+  | { kind: 'month'; month: string }
+  | { kind: 'semester'; sem: 1 | 2 }
+  | { kind: 'year' };
+
+// The calendar months a period spans (used for attendance + subject aggregation).
+export function periodMonths(p: SummaryPeriod): string[] {
+  if (p.kind === 'month') return [p.month];
+  if (p.kind === 'semester') return p.sem === 1 ? SEM1_MONTHS : SEM2_MONTHS;
+  return [...SEM1_MONTHS, ...SEM2_MONTHS];
+}
+export function periodLabel(p: SummaryPeriod): string {
+  if (p.kind === 'month') return `ប្រចាំខែ${p.month}`;
+  if (p.kind === 'semester') return `ប្រចាំឆមាសទី ${toKh(p.sem)}`;
+  return 'ប្រចាំឆ្នាំ';
+}
 
 // Whole-school academic summary for one month — computed locally from the
 // scores already in memory (no network, no data leaves the app). The optional
@@ -46,7 +66,7 @@ export interface MonthAbsences {
 }
 
 export interface SchoolSummary {
-  month: string;
+  periodLabel: string;
   totalStudents: number;
   schoolAvg: number | null;
   dist: Record<string, number>;       // A..F head-counts
@@ -72,10 +92,10 @@ const monthDateKey = (month: string): string => {
 // Whole-school absence analysis for the month, from the saved daily-attendance
 // records (localStorage). General classes only, to match the rest of the summary.
 // Counts are in sessions (a full-day general-class absence = 2), as elsewhere.
-export function computeMonthAbsences(students: StudentScore[], month: string): MonthAbsences {
+export function computePeriodAbsences(students: StudentScore[], months: string[]): MonthAbsences {
   const empty: MonthAbsences = { hasData: false, permission: 0, absent: 0, late: 0, total: 0, attendanceRate: 0, perClass: [], topStudents: [], reasons: [] };
-  const key = monthDateKey(month);
-  if (!key) return empty;
+  const keys = new Set(months.map(monthDateKey).filter(Boolean));
+  if (keys.size === 0) return empty;
   const records = loadAttendance() as { date?: string; grade?: string; studentStates?: Record<string, string> }[];
   if (records.length === 0) return empty;
 
@@ -93,7 +113,7 @@ export function computeMonthAbsences(students: StudentScore[], month: string): M
   };
 
   for (const r of records) {
-    if ((r.date || '').slice(0, 7) !== key) continue;
+    if (!keys.has((r.date || '').slice(0, 7))) continue;
     const grade = r.grade || '';
     if (isExtraClass(grade)) continue;
     const states = r.studentStates || {};
@@ -159,21 +179,44 @@ export function monthsWithData(students: StudentScore[]): string[] {
   return Array.from(set).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
 }
 
-export function computeSchoolSummary(students: StudentScore[], month: string): SchoolSummary {
-  const rows = students.filter(s => !isExtraClass(s.grade) && s.month === month && s.overallAvg != null);
-  const avgs = rows.map(s => s.overallAvg as number);
+interface StudentGroup { name: string; grade: string; gender: 'ប្រុស' | 'ស្រី'; records: StudentScore[]; }
 
+// One entry per distinct general-class student (whitespace-insensitive identity),
+// gathering all of their score rows so semester/annual figures can be computed.
+function groupGeneralStudents(students: StudentScore[]): StudentGroup[] {
+  const map = new Map<string, StudentGroup>();
+  students.forEach(s => {
+    if (isExtraClass(s.grade)) return;
+    const key = distinctStudentKey(s.name, s.grade);
+    let g = map.get(key);
+    if (!g) { g = { name: s.name.trim(), grade: s.grade, gender: s.gender, records: [] }; map.set(key, g); }
+    g.records.push(s);
+  });
+  return Array.from(map.values());
+}
+
+// A student's single figure for the chosen period: monthly overallAvg, the
+// semester average (exam + monthly)/2, or the annual final (80% + skills + conduct).
+function periodScore(g: StudentGroup, p: SummaryPeriod): number | null {
+  if (p.kind === 'month') return g.records.find(r => r.month === p.month)?.overallAvg ?? null;
+  if (p.kind === 'semester') return semesterAvgOf(g.records, p.sem);
+  return annualFinalOf(g.records, g.grade, g.name);
+}
+
+export function computeSchoolSummary(students: StudentScore[], period: SummaryPeriod): SchoolSummary {
+  const months = periodMonths(period);
+  const scored = groupGeneralStudents(students)
+    .map(g => ({ g, score: periodScore(g, period) }))
+    .filter((x): x is { g: StudentGroup; score: number } => x.score != null && x.score > 0);
+
+  const avgs = scored.map(x => x.score);
   const dist: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
   avgs.forEach(v => { dist[band(v)]++; });
   const passRate = avgs.length ? Math.round((avgs.filter(v => v >= 5).length / avgs.length) * 100) : 0;
 
   // Per general class.
   const byGrade = new Map<string, number[]>();
-  rows.forEach(s => {
-    const arr = byGrade.get(s.grade) || [];
-    arr.push(s.overallAvg as number);
-    byGrade.set(s.grade, arr);
-  });
+  scored.forEach(({ g, score }) => { const a = byGrade.get(g.grade) || []; a.push(score); byGrade.set(g.grade, a); });
   const classes: ClassSummary[] = Array.from(byGrade.entries()).map(([grade, vals]) => ({
     grade,
     count: vals.length,
@@ -181,27 +224,27 @@ export function computeSchoolSummary(students: StudentScore[], month: string): S
     passRate: Math.round((vals.filter(v => v >= 5).length / vals.length) * 100),
   })).sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0));
 
-  // School-wide subject averages → weakest first.
+  // School-wide subject averages (over the period's months) → weakest first.
   const subjBuckets: Record<string, number[]> = {};
-  rows.forEach(s => subjectAverages(s).forEach(({ km, v }) => {
-    if (v != null && v > 0) (subjBuckets[km] = subjBuckets[km] || []).push(v);
-  }));
+  scored.forEach(({ g }) => g.records.filter(r => months.includes(r.month)).forEach(r =>
+    subjectAverages(r).forEach(({ km, v }) => { if (v != null && v > 0) (subjBuckets[km] = subjBuckets[km] || []).push(v); })
+  ));
   const weakSubjects: SubjectAvg[] = Object.entries(subjBuckets)
     .map(([km, vals]) => ({ km, avg: r2(mean(vals)) as number }))
     .filter(s => s.avg != null)
     .sort((a, b) => a.avg - b.avg)
     .slice(0, 3);
 
-  // Students needing help (niddes E/F), worst first.
-  const weakStudents: WeakStudent[] = rows
-    .filter(s => (s.overallAvg as number) < 6)
-    .map(s => ({ name: s.name, grade: s.grade, avg: r2(s.overallAvg as number) as number, letter: band(s.overallAvg as number) }))
+  // Students needing help (below niddes D), worst first.
+  const weakStudents: WeakStudent[] = scored
+    .filter(x => x.score < 6)
+    .map(({ g, score }) => ({ name: g.name, grade: g.grade, avg: r2(score) as number, letter: band(score) }))
     .sort((a, b) => a.avg - b.avg)
     .slice(0, 12);
 
   return {
-    month,
-    totalStudents: rows.length,
+    periodLabel: periodLabel(period),
+    totalStudents: scored.length,
     schoolAvg: r2(mean(avgs)),
     dist,
     passRate,
@@ -210,16 +253,16 @@ export function computeSchoolSummary(students: StudentScore[], month: string): S
     topClasses: classes.slice(0, 3),
     weakSubjects,
     weakStudents,
-    absences: computeMonthAbsences(students, month),
+    absences: computePeriodAbsences(students, months),
   };
 }
 
 // Plain-Khmer report + next-month improvement points, computed from the numbers
 // (no AI). This is what shows by default and the fallback when AI is unavailable.
 export function summaryToKhmerText(s: SchoolSummary): string {
-  if (s.totalStudents === 0) return `គ្មានទិន្នន័យពិន្ទុសម្រាប់ខែ${s.month} នៅឡើយទេ។`;
+  if (s.totalStudents === 0) return `គ្មានទិន្នន័យពិន្ទុសម្រាប់${s.periodLabel} នៅឡើយទេ។`;
   const L: string[] = [];
-  L.push(`📊 សេចក្ដីសង្ខេបលទ្ធផលសិក្សារួមសាលា ប្រចាំខែ${s.month}`);
+  L.push(`📊 សេចក្ដីសង្ខេបលទ្ធផលសិក្សារួមសាលា ${s.periodLabel}`);
   L.push('');
   L.push(`• សិស្សដែលមានពិន្ទុសរុប៖ ${toKh(s.totalStudents)} នាក់`);
   L.push(`• មធ្យមភាគរួមសាលា៖ ${s.schoolAvg != null ? toKh(s.schoolAvg.toFixed(2)) : '-'} (និទ្ទេស ${s.schoolAvg != null ? band(s.schoolAvg) : '-'})`);
@@ -247,7 +290,7 @@ export function summaryToKhmerText(s: SchoolSummary): string {
   const a = s.absences;
   if (a.hasData) {
     L.push('');
-    L.push(`📅 ការវិភាគអវត្តមាន ប្រចាំខែ${s.month}៖`);
+    L.push(`📅 ការវិភាគអវត្តមាន ${s.periodLabel}៖`);
     L.push(`   • អវត្តមានសរុប៖ ${toKh(a.total)} លើក (ច្បាប់ ${toKh(a.permission)} | អត់ច្បាប់ ${toKh(a.absent)})`);
     L.push(`   • អត្រាវត្តមាន៖ ${toKh(a.attendanceRate)}%${a.late ? ` | យឺត ${toKh(a.late)} លើក` : ''}`);
     if (a.perClass.length) {
@@ -273,7 +316,7 @@ export function summaryToKhmerText(s: SchoolSummary): string {
   if (a.hasData && a.reasons[0]) tips.push(`ដោះស្រាយ​មូលហេតុ​អវត្តមាន​ចម្បង «${a.reasons[0].reason}» (${toKh(a.reasons[0].count)} លើក)។`);
   tips.push('លើកទឹកចិត្ត​ថ្នាក់​ឆ្នើម និងចែករំលែក​បទពិសោធន៍​បង្រៀន​ល្អ​ៗ ដល់​គ្រូ​ដទៃ។');
   L.push('');
-  L.push('🎯 ចំណុចគួរកែលម្អសម្រាប់ខែបន្ទាប់៖');
+  L.push('🎯 ចំណុចគួរកែលម្អសម្រាប់ដំណាក់កាលបន្ទាប់៖');
   tips.forEach((t, i) => L.push(`   ${toKh(i + 1)}. ${t}`));
   return L.join('\n');
 }
@@ -281,7 +324,7 @@ export function summaryToKhmerText(s: SchoolSummary): string {
 // Compact JSON-ish digest handed to the AI so it polishes wording from real data.
 export function summaryForPrompt(s: SchoolSummary): string {
   return JSON.stringify({
-    month: s.month,
+    period: s.periodLabel,
     totalStudents: s.totalStudents,
     schoolAverage: s.schoolAvg,
     passRatePercent: s.passRate,

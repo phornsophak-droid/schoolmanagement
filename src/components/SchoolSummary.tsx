@@ -6,7 +6,7 @@
 import React, { useMemo, useState } from 'react';
 import { X, Sparkles, Loader2, Copy, Check, BarChart3 } from 'lucide-react';
 import { StudentScore } from '../types';
-import { computeSchoolSummary, monthsWithData, summaryToKhmerText, summaryForPrompt, toKh } from '../utils/schoolSummary';
+import { computeSchoolSummary, monthsWithData, summaryToKhmerText, summaryForPrompt, toKh, SummaryPeriod } from '../utils/schoolSummary';
 import { hasGemini, generateSchoolSummaryAI } from '../lib/gemini';
 
 interface SchoolSummaryProps {
@@ -75,9 +75,16 @@ function ReasonBars({ reasons }: { reasons: { reason: string; count: number }[] 
 
 export default function SchoolSummary({ students, onClose }: SchoolSummaryProps) {
   const months = useMemo(() => monthsWithData(students), [students]);
+  const [periodKind, setPeriodKind] = useState<'month' | 'sem1' | 'sem2' | 'year'>('month');
   const [month, setMonth] = useState<string>(() => months[months.length - 1] || 'មិថុនា');
-  const summary = useMemo(() => computeSchoolSummary(students, month), [students, month]);
+  const period = useMemo<SummaryPeriod>(() =>
+    periodKind === 'sem1' ? { kind: 'semester', sem: 1 }
+    : periodKind === 'sem2' ? { kind: 'semester', sem: 2 }
+    : periodKind === 'year' ? { kind: 'year' }
+    : { kind: 'month', month }, [periodKind, month]);
+  const summary = useMemo(() => computeSchoolSummary(students, period), [students, period]);
   const computedText = useMemo(() => summaryToKhmerText(summary), [summary]);
+  const resetAi = () => { setAiText(null); setAiError(''); };
 
   const [aiText, setAiText] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
@@ -87,7 +94,7 @@ export default function SchoolSummary({ students, onClose }: SchoolSummaryProps)
   const runAi = async () => {
     setAiBusy(true); setAiError(''); setAiText(null);
     try {
-      const text = await generateSchoolSummaryAI(summaryForPrompt(summary), month);
+      const text = await generateSchoolSummaryAI(summaryForPrompt(summary), summary.periodLabel);
       setAiText(text);
     } catch (e) {
       console.error('AI summary failed', e);
@@ -123,12 +130,24 @@ export default function SchoolSummary({ students, onClose }: SchoolSummaryProps)
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Month selector */}
+          {/* Period selector — month / semester / year */}
           <div className="flex items-center gap-2 flex-wrap">
-            <label className="text-xs font-bold text-slate-600">ខែ៖</label>
-            <select value={month} onChange={e => { setMonth(e.target.value); setAiText(null); setAiError(''); }} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:border-indigo-500 focus:outline-none">
-              {(months.length ? months : [month]).map(m => <option key={m} value={m}>ខែ{m}</option>)}
-            </select>
+            <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
+              {([['month', 'ប្រចាំខែ'], ['sem1', 'ឆមាសទី១'], ['sem2', 'ឆមាសទី២'], ['year', 'ប្រចាំឆ្នាំ']] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  onClick={() => { setPeriodKind(k); resetAi(); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${periodKind === k ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {periodKind === 'month' && (
+              <select value={month} onChange={e => { setMonth(e.target.value); resetAi(); }} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:border-indigo-500 focus:outline-none">
+                {(months.length ? months : [month]).map(m => <option key={m} value={m}>ខែ{m}</option>)}
+              </select>
+            )}
           </div>
 
           {/* Stats */}
@@ -145,13 +164,13 @@ export default function SchoolSummary({ students, onClose }: SchoolSummaryProps)
           {/* Absence breakdown — by reason (why) and by type (excused/unexcused/late) */}
           {summary.absences.hasData && summary.absences.reasons.length > 0 && (
             <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <h4 className="text-xs font-bold text-slate-700 mb-3">មូលហេតុនៃការអវត្តមាន — ខែ{month}</h4>
+              <h4 className="text-xs font-bold text-slate-700 mb-3">មូលហេតុនៃការអវត្តមាន — {summary.periodLabel}</h4>
               <ReasonBars reasons={summary.absences.reasons} />
             </div>
           )}
           {summary.absences.hasData && (summary.absences.permission + summary.absences.absent + summary.absences.late) > 0 && (
             <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <h4 className="text-xs font-bold text-slate-700 mb-3">ប្រភេទនៃការអវត្តមាន — ខែ{month}</h4>
+              <h4 className="text-xs font-bold text-slate-700 mb-3">ប្រភេទនៃការអវត្តមាន — {summary.periodLabel}</h4>
               <AbsenceReasonChart segments={[
                 { label: 'ច្បាប់', value: summary.absences.permission, color: '#3b82f6' },
                 { label: 'អត់ច្បាប់', value: summary.absences.absent, color: '#ef4444' },
