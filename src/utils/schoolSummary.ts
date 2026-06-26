@@ -356,7 +356,12 @@ export function summaryToKhmerText(s: SchoolSummary): string {
 }
 
 // Compact JSON-ish digest handed to the AI so it polishes wording from real data.
+// PRIVACY: this leaves the app to a third-party AI (Google Gemini), so it carries
+// NO individual student names — only counts and class/subject-level aggregates.
+// The in-app report (summaryToKhmerText) still shows names locally.
 export function summaryForPrompt(s: SchoolSummary): string {
+  const weakByClass: Record<string, number> = {};
+  s.weakStudents.forEach(w => { weakByClass[w.grade] = (weakByClass[w.grade] || 0) + 1; });
   return JSON.stringify({
     period: s.periodLabel,
     scope: s.scope ? `ថ្នាក់ ${s.scope}` : 'រួមសាលា',
@@ -368,14 +373,14 @@ export function summaryForPrompt(s: SchoolSummary): string {
     weakClasses: s.weakClasses.map(c => ({ class: c.grade, avg: c.avg, passRate: c.passRate })),
     subjectAverages: s.subjects,
     weakestSubjects: s.weakSubjects,
-    studentsNeedingHelp: s.weakStudents.map(w => ({ name: w.name, class: w.grade, avg: w.avg, niddes: w.letter })),
+    studentsNeedingHelp: { count: s.weakStudents.length, byClass: weakByClass },
     absences: s.absences.hasData ? {
       totalSessions: s.absences.total,
       excused: s.absences.permission,
       unexcused: s.absences.absent,
       attendanceRatePercent: s.absences.attendanceRate,
       byClass: s.absences.perClass.map(c => ({ class: c.grade, total: c.total, unexcused: c.absent })),
-      mostAbsentStudents: s.absences.topStudents.map(w => ({ name: w.name, class: w.grade, total: w.total, unexcused: w.absent })),
+      frequentlyAbsentCount: s.absences.topStudents.length,
       reasons: s.absences.reasons.map(r => ({ reason: r.reason, count: r.count })),
     } : 'no attendance data',
   }, null, 2);
