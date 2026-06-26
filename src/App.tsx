@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 import { StudentScore, SchoolReport, SchoolUser } from './types';
+import { findPhantomGrades } from './utils/studentKey';
 import { initialStudents, initialReports, calculateStudentFields, studentRecordId } from './mockData';
 import { 
   getSupabaseConfig, 
@@ -175,6 +176,8 @@ export default function App() {
   // Data Persistence states
   const [students, setStudents] = useState<StudentScore[]>([]);
   const [reports, setReports] = useState<SchoolReport[]>([]);
+  // Guards the one-time phantom-grade cleanup so it can't run twice in a session.
+  const phantomCleanupRan = useRef(false);
   const [grades, setGrades] = useState<string[]>([
     'មត្តេយ្យ ១',
     'មត្តេយ្យ ២',
@@ -1057,6 +1060,56 @@ export default function App() {
       }
     }
   };
+
+  // One-time data hygiene (PRINCIPAL ONLY): permanently remove stray sectionless
+  // grades like "ថ្នាក់ទី៣" (a mis-entry when ៣ក/៣ខ exist) and every student record
+  // stuck on them — they inflated the general-class head-count (481 vs the real
+  // 459). The principal's device is the authority; deletions sync to the cloud so
+  // all devices clear them. Adding a brand-new real class is unaffected (it has no
+  // sectioned sibling). Ongoing prevention is handled by the display filters in
+  // Dashboard / ClassStudentMgmt. Runs once, guarded by a flag + ref.
+  useEffect(() => {
+    if (currentUser?.role !== 'principal') return;
+    if (phantomCleanupRan.current) return;
+    if (students.length === 0) return; // wait until data has loaded
+    if (localStorage.getItem('phantom_grade_cleanup_v1')) return;
+
+    const phantom = findPhantomGrades([...new Set([...students.map(s => s.grade), ...grades])]);
+    if (phantom.size === 0) {
+      localStorage.setItem('phantom_grade_cleanup_v1', '1');
+      return;
+    }
+    phantomCleanupRan.current = true; // synchronous re-entry guard
+
+    (async () => {
+      try {
+        // Drop the phantom-grade students (handleSaveStudents diffs vs the current
+        // list and syncs each deletion to the cloud).
+        const cleanStudents = students.filter(s => !phantom.has(s.grade));
+        const removed = students.length - cleanStudents.length;
+        if (removed > 0) await handleSaveStudents(cleanStudents);
+
+        // Drop the phantom grades from the class list (+ cloud).
+        const cleanGrades = grades.filter(g => !phantom.has(g));
+        if (cleanGrades.length !== grades.length) {
+          setGrades(cleanGrades);
+          localStorage.setItem('school_grades_v2', JSON.stringify(cleanGrades));
+          const client = getSupabaseClient();
+          if (client) {
+            for (const g of phantom) {
+              try { await syncDeleteGrade(g); } catch { /* offline — cleared locally */ }
+            }
+          }
+        }
+
+        localStorage.setItem('phantom_grade_cleanup_v1', '1');
+        showCloudToast(`បានលុបថ្នាក់ខុស (${[...phantom].join(', ')}) និងសិស្ស ${removed} នាក់ ✓`, true);
+      } catch (err) {
+        console.warn('Phantom-grade cleanup failed', err);
+        phantomCleanupRan.current = false; // allow a retry next load
+      }
+    })();
+  }, [currentUser, students, grades]);
 
   const handleSaveReport = async (report: SchoolReport) => {
     let updatedReportsList: SchoolReport[];
