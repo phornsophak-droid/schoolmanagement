@@ -67,6 +67,7 @@ export interface MonthAbsences {
 
 export interface SchoolSummary {
   periodLabel: string;
+  scope: string;                      // '' = whole school; otherwise the class name
   totalStudents: number;
   schoolAvg: number | null;
   dist: Record<string, number>;       // A..F head-counts
@@ -93,7 +94,7 @@ const monthDateKey = (month: string): string => {
 // Whole-school absence analysis for the month, from the saved daily-attendance
 // records (localStorage). General classes only, to match the rest of the summary.
 // Counts are in sessions (a full-day general-class absence = 2), as elsewhere.
-export function computePeriodAbsences(students: StudentScore[], months: string[]): MonthAbsences {
+export function computePeriodAbsences(students: StudentScore[], months: string[], scopeGrade?: string): MonthAbsences {
   const empty: MonthAbsences = { hasData: false, permission: 0, absent: 0, late: 0, total: 0, attendanceRate: 0, perClass: [], topStudents: [], reasons: [] };
   const keys = new Set(months.map(monthDateKey).filter(Boolean));
   if (keys.size === 0) return empty;
@@ -116,7 +117,7 @@ export function computePeriodAbsences(students: StudentScore[], months: string[]
   for (const r of records) {
     if (!keys.has((r.date || '').slice(0, 7))) continue;
     const grade = r.grade || '';
-    if (isExtraClass(grade)) continue;
+    if (scopeGrade ? grade !== scopeGrade : isExtraClass(grade)) continue;
     const states = r.studentStates || {};
     const ids = Object.keys(states);
     if (ids.length === 0) continue;
@@ -182,12 +183,14 @@ export function monthsWithData(students: StudentScore[]): string[] {
 
 interface StudentGroup { name: string; grade: string; gender: 'ប្រុស' | 'ស្រី'; records: StudentScore[]; }
 
-// One entry per distinct general-class student (whitespace-insensitive identity),
-// gathering all of their score rows so semester/annual figures can be computed.
-function groupGeneralStudents(students: StudentScore[]): StudentGroup[] {
+// One entry per distinct student (whitespace-insensitive identity), gathering all
+// of their score rows so semester/annual figures can be computed. By default only
+// general classes are included; when scopeGrade is set (a teacher viewing their own
+// class) it includes ONLY that grade — even if it's an after-hours class.
+function groupGeneralStudents(students: StudentScore[], scopeGrade?: string): StudentGroup[] {
   const map = new Map<string, StudentGroup>();
   students.forEach(s => {
-    if (isExtraClass(s.grade)) return;
+    if (scopeGrade ? s.grade !== scopeGrade : isExtraClass(s.grade)) return;
     const key = distinctStudentKey(s.name, s.grade);
     let g = map.get(key);
     if (!g) { g = { name: s.name.trim(), grade: s.grade, gender: s.gender, records: [] }; map.set(key, g); }
@@ -204,9 +207,9 @@ function periodScore(g: StudentGroup, p: SummaryPeriod): number | null {
   return annualFinalOf(g.records, g.grade, g.name);
 }
 
-export function computeSchoolSummary(students: StudentScore[], period: SummaryPeriod): SchoolSummary {
+export function computeSchoolSummary(students: StudentScore[], period: SummaryPeriod, scopeGrade?: string): SchoolSummary {
   const months = periodMonths(period);
-  const scored = groupGeneralStudents(students)
+  const scored = groupGeneralStudents(students, scopeGrade)
     .map(g => ({ g, score: periodScore(g, period) }))
     .filter((x): x is { g: StudentGroup; score: number } => x.score != null && x.score > 0);
 
@@ -245,6 +248,7 @@ export function computeSchoolSummary(students: StudentScore[], period: SummaryPe
 
   return {
     periodLabel: periodLabel(period),
+    scope: scopeGrade || '',
     totalStudents: scored.length,
     schoolAvg: r2(mean(avgs)),
     dist,
@@ -255,7 +259,7 @@ export function computeSchoolSummary(students: StudentScore[], period: SummaryPe
     subjects,
     weakSubjects,
     weakStudents,
-    absences: computePeriodAbsences(students, months),
+    absences: computePeriodAbsences(students, months, scopeGrade),
   };
 }
 
@@ -266,8 +270,9 @@ export function summaryToKhmerText(s: SchoolSummary): string {
   if (s.totalStudents === 0) return `គ្មានទិន្នន័យពិន្ទុសម្រាប់${s.periodLabel} នៅឡើយទេ។`;
   const a = s.absences;
   const fx = (v: number) => toKh(v.toFixed(2));
+  const where = s.scope ? `ថ្នាក់ ${s.scope}` : 'រួមសាលា';
   const L: string[] = [];
-  L.push(`📊 របាយការណ៍សង្ខេបលទ្ធផលសិក្សារួមសាលា ${s.periodLabel}`);
+  L.push(`📊 របាយការណ៍សង្ខេបលទ្ធផលសិក្សា${where} ${s.periodLabel}`);
 
   // 1. Academic results
   L.push('');
@@ -354,6 +359,7 @@ export function summaryToKhmerText(s: SchoolSummary): string {
 export function summaryForPrompt(s: SchoolSummary): string {
   return JSON.stringify({
     period: s.periodLabel,
+    scope: s.scope ? `ថ្នាក់ ${s.scope}` : 'រួមសាលា',
     totalStudents: s.totalStudents,
     schoolAverage: s.schoolAvg,
     passRatePercent: s.passRate,

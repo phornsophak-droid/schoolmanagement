@@ -235,7 +235,12 @@ export default function App() {
   useEffect(() => { Promise.all([initAttendanceStore(), initScoresStore()]).finally(() => setStoreReady(true)); }, []);
 
   // 1. Initial State Hydration with safety fallback (LocalStorage)
+  // Wait for the IndexedDB stores to load first: loadScores()/loadAttendance()
+  // read from their in-memory cache, which initAttendanceStore/initScoresStore
+  // populate from IndexedDB. Running before they finish would hydrate from an
+  // empty cache (and, with Supabase down, leave the app empty).
   useEffect(() => {
+    if (!storeReady) return;
     // Session Hydration
     const cachedUser = localStorage.getItem('school_current_user_v2');
     if (cachedUser) {
@@ -623,7 +628,7 @@ export default function App() {
         activeChannel = null;
       }
     };
-  }, []);
+  }, [storeReady]);
   const pullFromSupabase = async (quiet = false) => {
     const client = getSupabaseClient();
     if (!client) {

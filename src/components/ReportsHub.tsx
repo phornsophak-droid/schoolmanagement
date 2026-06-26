@@ -523,7 +523,7 @@ export default function ReportsHub({
       </div>
 
       {showSchoolSummary && (
-        <SchoolSummary students={students} onClose={() => setShowSchoolSummary(false)} />
+        <SchoolSummary students={students} scopeGrade={teacherLocked ? teacherGrade : undefined} onClose={() => setShowSchoolSummary(false)} />
       )}
 
       {/* 2. Top-Level Tab Selector Switcher (Hidden in print) */}

@@ -11,6 +11,7 @@ import { hasGemini, generateSchoolSummaryAI } from '../lib/gemini';
 
 interface SchoolSummaryProps {
   students: StudentScore[];
+  scopeGrade?: string; // set for a class teacher → summarise only their class
   onClose: () => void;
 }
 
@@ -73,7 +74,7 @@ function ReasonBars({ reasons }: { reasons: { reason: string; count: number }[] 
   );
 }
 
-export default function SchoolSummary({ students, onClose }: SchoolSummaryProps) {
+export default function SchoolSummary({ students, scopeGrade, onClose }: SchoolSummaryProps) {
   const months = useMemo(() => monthsWithData(students), [students]);
   const [periodKind, setPeriodKind] = useState<'month' | 'sem1' | 'sem2' | 'year'>('month');
   const [month, setMonth] = useState<string>(() => months[months.length - 1] || 'មិថុនា');
@@ -82,7 +83,7 @@ export default function SchoolSummary({ students, onClose }: SchoolSummaryProps)
     : periodKind === 'sem2' ? { kind: 'semester', sem: 2 }
     : periodKind === 'year' ? { kind: 'year' }
     : { kind: 'month', month }, [periodKind, month]);
-  const summary = useMemo(() => computeSchoolSummary(students, period), [students, period]);
+  const summary = useMemo(() => computeSchoolSummary(students, period, scopeGrade), [students, period, scopeGrade]);
   const computedText = useMemo(() => summaryToKhmerText(summary), [summary]);
   const resetAi = () => { setAiText(null); setAiError(''); };
 
@@ -122,7 +123,7 @@ export default function SchoolSummary({ students, onClose }: SchoolSummaryProps)
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center shadow-md"><BarChart3 size={18} /></div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800">សង្ខេបលទ្ធផលសិក្សារួមសាលា</h3>
+              <h3 className="text-sm font-bold text-slate-800">{scopeGrade ? `សង្ខេបលទ្ធផលថ្នាក់ ${scopeGrade}` : 'សង្ខេបលទ្ធផលសិក្សារួមសាលា'}</h3>
               <p className="text-[11px] text-slate-500">លទ្ធផល · របាយការណ៍ · ចំណុចកែលម្អខែបន្ទាប់</p>
             </div>
           </div>
