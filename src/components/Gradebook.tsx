@@ -710,7 +710,11 @@ export default function Gradebook({
         const updated = students.map(s => {
           if ((s.dob || '').trim()) return s;            // keep an existing DOB
           const sid = clean(s.studentId).replace(/\s+/g, '');
-          const dob = (sid && byId.get(sid)) || byName.get(nameKey(s.name));
+          const nk = nameKey(s.name);
+          // Try the name as-is, then word-order-independent (the index holds both),
+          // so a roster that lists "នាម គោត្តនាម" still matches a score row written
+          // "គោត្តនាម នាម" — common for kindergarten, which usually has no អត្តលេខ.
+          const dob = (sid && byId.get(sid)) || byName.get(nk) || byName.get(sortKey(nk));
           if (dob) { filled++; return { ...s, dob }; }
           return s;
         });
