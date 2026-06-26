@@ -74,6 +74,7 @@ export interface SchoolSummary {
   classes: ClassSummary[];
   weakClasses: ClassSummary[];
   topClasses: ClassSummary[];
+  subjects: SubjectAvg[];             // ALL school-wide subject averages, weakest first
   weakSubjects: SubjectAvg[];         // lowest school-wide subject averages
   weakStudents: WeakStudent[];        // niddes E/F, worst first
   absences: MonthAbsences;            // monthly absence analysis
@@ -229,11 +230,11 @@ export function computeSchoolSummary(students: StudentScore[], period: SummaryPe
   scored.forEach(({ g }) => g.records.filter(r => months.includes(r.month)).forEach(r =>
     subjectAverages(r).forEach(({ km, v }) => { if (v != null && v > 0) (subjBuckets[km] = subjBuckets[km] || []).push(v); })
   ));
-  const weakSubjects: SubjectAvg[] = Object.entries(subjBuckets)
+  const subjects: SubjectAvg[] = Object.entries(subjBuckets)
     .map(([km, vals]) => ({ km, avg: r2(mean(vals)) as number }))
     .filter(s => s.avg != null)
-    .sort((a, b) => a.avg - b.avg)
-    .slice(0, 3);
+    .sort((a, b) => a.avg - b.avg);
+  const weakSubjects = subjects.slice(0, 3);
 
   // Students needing help (below niddes D), worst first.
   const weakStudents: WeakStudent[] = scored
@@ -251,73 +252,101 @@ export function computeSchoolSummary(students: StudentScore[], period: SummaryPe
     classes,
     weakClasses: [...classes].sort((a, b) => (a.avg ?? 0) - (b.avg ?? 0)).slice(0, 3),
     topClasses: classes.slice(0, 3),
+    subjects,
     weakSubjects,
     weakStudents,
     absences: computePeriodAbsences(students, months),
   };
 }
 
-// Plain-Khmer report + next-month improvement points, computed from the numbers
-// (no AI). This is what shows by default and the fallback when AI is unavailable.
+// A structured Khmer analysis report computed from the numbers (no AI). Sections:
+// results · subjects · absences · students needing support · challenges · next
+// actions for teachers & the school. Shown by default and as the AI fallback.
 export function summaryToKhmerText(s: SchoolSummary): string {
   if (s.totalStudents === 0) return `គ្មានទិន្នន័យពិន្ទុសម្រាប់${s.periodLabel} នៅឡើយទេ។`;
-  const L: string[] = [];
-  L.push(`📊 សេចក្ដីសង្ខេបលទ្ធផលសិក្សារួមសាលា ${s.periodLabel}`);
-  L.push('');
-  L.push(`• សិស្សដែលមានពិន្ទុសរុប៖ ${toKh(s.totalStudents)} នាក់`);
-  L.push(`• មធ្យមភាគរួមសាលា៖ ${s.schoolAvg != null ? toKh(s.schoolAvg.toFixed(2)) : '-'} (និទ្ទេស ${s.schoolAvg != null ? band(s.schoolAvg) : '-'})`);
-  L.push(`• អត្រាជាប់ (≥៥)៖ ${toKh(s.passRate)}%`);
-  L.push(`• ការបែងចែកនិទ្ទេស៖ A:${toKh(s.dist.A)} B:${toKh(s.dist.B)} C:${toKh(s.dist.C)} D:${toKh(s.dist.D)} E:${toKh(s.dist.E)} F:${toKh(s.dist.F)}`);
-  L.push('');
-  if (s.topClasses.length) {
-    L.push('🏆 ថ្នាក់ឆ្នើម៖');
-    s.topClasses.forEach(c => L.push(`   - ${c.grade}៖ មធ្យមភាគ ${toKh((c.avg ?? 0).toFixed(2))} (${toKh(c.count)} នាក់)`));
-  }
-  if (s.weakClasses.length) {
-    L.push('⚠️ ថ្នាក់គួរយកចិត្តទុកដាក់៖');
-    s.weakClasses.forEach(c => L.push(`   - ${c.grade}៖ មធ្យមភាគ ${toKh((c.avg ?? 0).toFixed(2))} | ជាប់ ${toKh(c.passRate)}%`));
-  }
-  if (s.weakSubjects.length) {
-    L.push('');
-    L.push('📉 មុខវិជ្ជាដែលនៅខ្សោយ (មធ្យមភាគទាបជាងគេ)៖');
-    s.weakSubjects.forEach(sub => L.push(`   - ${sub.km}៖ ${toKh(sub.avg.toFixed(2))}`));
-  }
-  if (s.weakStudents.length) {
-    L.push('');
-    L.push(`🧑‍🎓 សិស្សគួរជួយបន្ថែម (មធ្យមភាគក្រោម ៦.០ — ${toKh(s.weakStudents.length)} នាក់)៖`);
-    s.weakStudents.slice(0, 8).forEach(w => L.push(`   - ${w.name} (${w.grade})៖ ${toKh(w.avg.toFixed(2))} [${w.letter}]`));
-  }
   const a = s.absences;
+  const fx = (v: number) => toKh(v.toFixed(2));
+  const L: string[] = [];
+  L.push(`📊 របាយការណ៍សង្ខេបលទ្ធផលសិក្សារួមសាលា ${s.periodLabel}`);
+
+  // 1. Academic results
+  L.push('');
+  L.push('① លទ្ធផលសិក្សារួម៖');
+  L.push(`   • សិស្សសរុប៖ ${toKh(s.totalStudents)} នាក់ | មធ្យមភាគ៖ ${s.schoolAvg != null ? fx(s.schoolAvg) : '-'} (និទ្ទេស ${s.schoolAvg != null ? band(s.schoolAvg) : '-'}) | អត្រាជាប់៖ ${toKh(s.passRate)}%`);
+  L.push(`   • ការបែងចែកនិទ្ទេស៖ A:${toKh(s.dist.A)} B:${toKh(s.dist.B)} C:${toKh(s.dist.C)} D:${toKh(s.dist.D)} E:${toKh(s.dist.E)} F:${toKh(s.dist.F)}`);
+  if (s.topClasses.length) L.push(`   • ថ្នាក់ឆ្នើម៖ ${s.topClasses.map(c => `${c.grade} (${fx(c.avg ?? 0)})`).join(', ')}`);
+  if (s.weakClasses.length) L.push(`   • ថ្នាក់គួរយកចិត្តទុកដាក់៖ ${s.weakClasses.map(c => `${c.grade} (${fx(c.avg ?? 0)}, ជាប់ ${toKh(c.passRate)}%)`).join(', ')}`);
+
+  // 2. Subjects
+  if (s.subjects.length) {
+    const strong = [...s.subjects].slice(-3).reverse();
+    L.push('');
+    L.push('② ការវិភាគតាមមុខវិជ្ជា៖');
+    L.push(`   • មុខវិជ្ជាខ្លាំង៖ ${strong.map(x => `${x.km} ${fx(x.avg)}`).join(', ')}`);
+    L.push(`   • មុខវិជ្ជាខ្សោយ៖ ${s.weakSubjects.map(x => `${x.km} ${fx(x.avg)}`).join(', ')}`);
+  }
+
+  // 3. Absences
   if (a.hasData) {
     L.push('');
-    L.push(`📅 ការវិភាគអវត្តមាន ${s.periodLabel}៖`);
-    L.push(`   • អវត្តមានសរុប៖ ${toKh(a.total)} លើក (ច្បាប់ ${toKh(a.permission)} | អត់ច្បាប់ ${toKh(a.absent)})`);
-    L.push(`   • អត្រាវត្តមាន៖ ${toKh(a.attendanceRate)}%${a.late ? ` | យឺត ${toKh(a.late)} លើក` : ''}`);
-    if (a.perClass.length) {
-      L.push('   • ថ្នាក់អវត្តមានច្រើនជាងគេ៖');
-      a.perClass.slice(0, 3).forEach(c => L.push(`     - ${c.grade}៖ ${toKh(c.total)} លើក (អត់ច្បាប់ ${toKh(c.absent)})`));
+    L.push('③ ការវិភាគអវត្តមាន៖');
+    L.push(`   • អវត្តមានសរុប៖ ${toKh(a.total)} លើក (ច្បាប់ ${toKh(a.permission)} | អត់ច្បាប់ ${toKh(a.absent)}) | អត្រាវត្តមាន៖ ${toKh(a.attendanceRate)}%`);
+    if (a.perClass.length) L.push(`   • ថ្នាក់អវត្តមានច្រើន៖ ${a.perClass.slice(0, 3).map(c => `${c.grade} (${toKh(c.total)})`).join(', ')}`);
+    if (a.reasons.length) L.push(`   • មូលហេតុចម្បង៖ ${a.reasons.slice(0, 4).map(r => `${r.reason} (${toKh(r.count)})`).join(', ')}`);
+  }
+
+  // 4. Students needing support (teacher + parent)
+  const absentByName = new Map(a.topStudents.map(w => [`${w.name}::${w.grade}`, w]));
+  const needContact = a.topStudents.filter(w => w.absent >= 2);
+  if (s.weakStudents.length || needContact.length) {
+    L.push('');
+    L.push('④ សិស្សត្រូវការការគាំទ្រ (គ្រូ + មាតាបិតា)៖');
+    if (s.weakStudents.length) {
+      L.push(`   • ខ្សោយផ្នែកសិក្សា (${toKh(s.weakStudents.length)} នាក់)៖`);
+      s.weakStudents.slice(0, 8).forEach(w => {
+        const ab = absentByName.get(`${w.name}::${w.grade}`);
+        L.push(`     - ${w.name} (${w.grade})៖ ${fx(w.avg)} [${w.letter}]${ab ? ` + អវត្តមាន ${toKh(ab.total)} លើក` : ''}`);
+      });
     }
-    if (a.topStudents.length) {
-      L.push('   • សិស្សអវត្តមានច្រើន៖');
-      a.topStudents.slice(0, 5).forEach(w => L.push(`     - ${w.name} (${w.grade})៖ ${toKh(w.total)} លើក (អត់ច្បាប់ ${toKh(w.absent)})`));
-    }
-    if (a.reasons.length) {
-      L.push('   • មូលហេតុចម្បង៖');
-      a.reasons.slice(0, 5).forEach(rc => L.push(`     - ${rc.reason}៖ ${toKh(rc.count)} លើក`));
+    if (needContact.length) {
+      L.push(`   • គួរទាក់ទងមាតាបិតា (អវត្តមានញឹកញាប់)៖ ${needContact.slice(0, 6).map(w => `${w.name} (${w.grade}, អត់ច្បាប់ ${toKh(w.absent)})`).join(', ')}`);
     }
   }
 
-  // Improvement points — built as a list so the numbering stays correct.
-  const tips: string[] = [];
-  if (s.weakSubjects[0]) tips.push(`ផ្ដោតលើការបង្រៀន «${s.weakSubjects[0].km}» ដែលនៅខ្សោយជាងគេ បន្ថែមលំហាត់ និងការតាមដាន។`);
-  if (s.weakClasses[0]) tips.push(`ជួយ​ថ្នាក់ «${s.weakClasses[0].grade}» ដែលមានមធ្យមភាគទាប — រៀបចំ​មេរៀន​បំប៉ន។`);
-  if (s.weakStudents.length) tips.push(`រៀបចំ​ការ​ជួយ​បន្ថែម​ដល់​សិស្ស​និទ្ទេស​ខ្សោយ ${toKh(s.weakStudents.length)} នាក់ និងជូនដំណឹងអាណាព្យាបាល។`);
-  if (a.hasData && a.absent > 0) tips.push(`តាមដាន​អវត្តមាន​អត់​ច្បាប់ (${toKh(a.absent)} លើក)${a.topStudents[0] ? ` ពិសេស​សិស្ស «${a.topStudents[0].name}»` : ''} និង​ទាក់ទង​អាណាព្យាបាល​ឱ្យ​ទាន់​ពេល។`);
-  if (a.hasData && a.reasons[0]) tips.push(`ដោះស្រាយ​មូលហេតុ​អវត្តមាន​ចម្បង «${a.reasons[0].reason}» (${toKh(a.reasons[0].count)} លើក)។`);
-  tips.push('លើកទឹកចិត្ត​ថ្នាក់​ឆ្នើម និងចែករំលែក​បទពិសោធន៍​បង្រៀន​ល្អ​ៗ ដល់​គ្រូ​ដទៃ។');
+  // 5. Challenges (synthesised)
+  const challenges: string[] = [];
+  if (s.passRate < 85) challenges.push(`អត្រាជាប់នៅ ${toKh(s.passRate)}% — សិស្ស ${toKh(s.weakStudents.length)} នាក់ មាននិទ្ទេសក្រោម D។`);
+  const lowSubjects = s.subjects.filter(x => x.avg < 6.5);
+  if (lowSubjects.length) challenges.push(`មុខវិជ្ជាដែលលទ្ធផលនៅទាប៖ ${lowSubjects.map(x => x.km).join(', ')}។`);
+  const strugglingClasses = s.weakClasses.filter(c => (c.avg ?? 10) < 6);
+  if (strugglingClasses.length) challenges.push(`ថ្នាក់ដែលមធ្យមភាគទាប៖ ${strugglingClasses.map(c => c.grade).join(', ')}។`);
+  if (a.hasData && a.attendanceRate < 90) challenges.push(`អត្រាវត្តមានទាប (${toKh(a.attendanceRate)}%) — អវត្តមានអត់ច្បាប់ ${toKh(a.absent)} លើក។`);
+  if (a.hasData && a.reasons[0]) challenges.push(`មូលហេតុអវត្តមានចម្បង៖ ${a.reasons[0].reason}។`);
+  if (challenges.length) {
+    L.push('');
+    L.push('⑤ បញ្ហាប្រឈម៖');
+    challenges.forEach((c, i) => L.push(`   ${toKh(i + 1)}. ${c}`));
+  }
+
+  // 6. Next actions — teachers & school
+  const teacherActions: string[] = [];
+  if (s.weakSubjects[0]) teacherActions.push(`ពង្រឹងការបង្រៀន «${s.weakSubjects[0].km}» បន្ថែមលំហាត់ និងតេស្តតាមដានវឌ្ឍនភាព។`);
+  if (s.weakStudents.length) teacherActions.push(`រៀបចំការបង្រៀនបំប៉ន (remedial) ដល់សិស្សខ្សោយ ${toKh(s.weakStudents.length)} នាក់។`);
+  if (needContact.length) teacherActions.push(`ទាក់ទងមាតាបិតាសិស្សអវត្តមានញឹកញាប់ និងកត់ត្រាការតាមដាន។`);
+  teacherActions.push('ចែករំលែកវិធីសាស្ត្របង្រៀនល្អៗ ក្នុងក្រុមមុខវិជ្ជា។');
+
+  const schoolActions: string[] = [];
+  if (strugglingClasses.length) schoolActions.push(`រៀបចំកម្មវិធីបំប៉នសម្រាប់ថ្នាក់ខ្សោយ (${strugglingClasses.map(c => c.grade).join(', ')})។`);
+  if (lowSubjects.length) schoolActions.push(`ផ្ដល់ធនធាន/សិក្ខាសាលាខ្លី សម្រាប់មុខវិជ្ជាដែលលទ្ធផលនៅទាប។`);
+  if (a.hasData && a.absent > 0) schoolActions.push(`ពង្រឹងការតាមដានវត្តមាន និងកិច្ចសហការជាមួយមាតាបិតា (កិច្ចប្រជុំ/សារ)។`);
+  schoolActions.push('លើកទឹកចិត្ត និងផ្ដល់រង្វាន់ដល់ថ្នាក់ និងសិស្សឆ្នើម។');
+
   L.push('');
-  L.push('🎯 ចំណុចគួរកែលម្អសម្រាប់ដំណាក់កាលបន្ទាប់៖');
-  tips.forEach((t, i) => L.push(`   ${toKh(i + 1)}. ${t}`));
+  L.push('⑥ ចំណុចគ្រូ និងសាលាត្រូវធ្វើបន្ទាប់៖');
+  L.push('   ▸ សម្រាប់គ្រូបង្រៀន៖');
+  teacherActions.forEach((t, i) => L.push(`     ${toKh(i + 1)}. ${t}`));
+  L.push('   ▸ សម្រាប់សាលា / គណៈគ្រប់គ្រង៖');
+  schoolActions.forEach((t, i) => L.push(`     ${toKh(i + 1)}. ${t}`));
   return L.join('\n');
 }
 
@@ -331,6 +360,7 @@ export function summaryForPrompt(s: SchoolSummary): string {
     gradeDistribution: s.dist,
     topClasses: s.topClasses.map(c => ({ class: c.grade, avg: c.avg, students: c.count })),
     weakClasses: s.weakClasses.map(c => ({ class: c.grade, avg: c.avg, passRate: c.passRate })),
+    subjectAverages: s.subjects,
     weakestSubjects: s.weakSubjects,
     studentsNeedingHelp: s.weakStudents.map(w => ({ name: w.name, class: w.grade, avg: w.avg, niddes: w.letter })),
     absences: s.absences.hasData ? {
