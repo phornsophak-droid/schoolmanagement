@@ -103,10 +103,10 @@ export default function StudentReportCard({ student, students, onClose }: Studen
     () => {
       // English class: show the bilingual subject name, e.g. "ស្តាប់ (Listening)".
       if (isEnglishClass(student.grade)) {
-        return ENGLISH_SUBJECTS.map(s => ({ km: `${s.km} (${s.en})`, get: (st: StudentScore) => st.englishScores?.[s.key] }));
+        return ENGLISH_SUBJECTS.map(s => ({ km: s.km, en: s.en, get: (st: StudentScore) => st.englishScores?.[s.key] }));
       }
-      if (custom) return custom.map(s => ({ km: s.km, get: (st: StudentScore) => st.englishScores?.[s.key] }));
-      return SUBJECTS;
+      if (custom) return custom.map(s => ({ km: s.km, en: undefined as string | undefined, get: (st: StudentScore) => st.englishScores?.[s.key] }));
+      return SUBJECTS.map(s => ({ km: s.km, en: undefined as string | undefined, get: s.get }));
     },
     [custom, student.grade]
   );
@@ -266,7 +266,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
                 return (
                   <tr key={i} className="text-center">
                     <td className="border border-slate-300 px-1 py-0.5">{KH_NUM[i]}</td>
-                    <td className="border border-slate-300 px-2 py-0.5 text-left">{sub.km}</td>
+                    <td className="border border-slate-300 px-2 py-0.5 text-left" style={{ whiteSpace: 'nowrap' }}>{sub.km}{sub.en && <span className="text-slate-500" style={{ fontSize: '0.82em' }}> ({sub.en})</span>}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{num(val)}</td>
                     <td className="border border-slate-300 px-1 py-0.5">{rankIn(sub.get)}</td>
                     <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(g.en) }}>{g.km}</td>
