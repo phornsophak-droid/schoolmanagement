@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { StudentScore, SchoolUser } from '../types';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
-import { distinctStudentKey } from '../utils/studentKey';
+import { distinctStudentKey, findPhantomGrades } from '../utils/studentKey';
 import { syncUpsertSetting } from '../lib/supabase';
 import { useT } from '../i18n';
 import * as XLSX from 'xlsx';
@@ -166,17 +166,24 @@ export default function ClassStudentMgmt({
   const [studentFormStatus, setStudentFormStatus] = useState<'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់'>('ធម្មតា');
   const [studentFormGroup, setStudentFormGroup] = useState<string>(''); // ក្រុម (after-hours classes)
 
+  // Stray sectionless grades (e.g. "ថ្នាក់ទី៣" when ៣ក/៣ខ exist) are hidden from
+  // the counts & rosters so the head-count matches reality (459, not 481). This is
+  // DISPLAY-ONLY — mutation handlers below still use the full `students` prop, so
+  // those records are never deleted, just not shown.
+  const phantomGrades = useMemo(() => findPhantomGrades(students.map(s => s.grade)), [students]);
+  const visibleStudents = useMemo(() => students.filter(s => !phantomGrades.has(s.grade)), [students, phantomGrades]);
+
   // Stats calculation — count UNIQUE students (by name+grade, not monthly records),
   // scoped to the selected class category. Matches the Dashboard totals.
   const categoryProfiles = useMemo(() => {
     const map = new Map<string, StudentScore>();
-    students.forEach(s => {
+    visibleStudents.forEach(s => {
       if (!inCat(s.grade)) return;
       const key = distinctStudentKey(s.name, s.grade);
       if (!map.has(key)) map.set(key, s);
     });
     return Array.from(map.values());
-  }, [students, classCategory]);
+  }, [visibleStudents, classCategory]);
   const totalStudents = categoryProfiles.length;
   const femaleStudents = categoryProfiles.filter(s => s.gender === 'ស្រី').length;
   const maleStudents = categoryProfiles.filter(s => s.gender === 'ប្រុស').length;
@@ -188,7 +195,7 @@ export default function ClassStudentMgmt({
       stats[g] = { total: 0, female: 0, male: 0 };
     });
     const seen = new Set<string>();
-    students.forEach(s => {
+    visibleStudents.forEach(s => {
       const key = distinctStudentKey(s.name, s.grade);
       if (seen.has(key)) return; // count each student once, not per-month
       seen.add(key);
@@ -199,19 +206,19 @@ export default function ClassStudentMgmt({
       }
     });
     return stats;
-  }, [grades, students]);
+  }, [grades, visibleStudents]);
 
   // Unique list of unique student profiles (since they may have records across multiple months, unique by Name & Grade)
   const uniqueStudentProfiles = useMemo(() => {
     const map = new Map<string, StudentScore>();
-    students.forEach(s => {
+    visibleStudents.forEach(s => {
       const key = distinctStudentKey(s.name, s.grade);
       if (!map.has(key)) {
         map.set(key, s);
       }
     });
     return Array.from(map.values());
-  }, [students]);
+  }, [visibleStudents]);
 
   // Filter students profile list
   const filteredProfiles = useMemo(() => {

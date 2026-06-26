@@ -22,3 +22,21 @@ export const distinctStudentKey = (name?: string, grade?: string): string => {
   const gradeKey = (grade || '').toString().replace(INVISIBLE, '').replace(/\s+/g, '').toLowerCase();
   return `${nameKey}|${gradeKey}`;
 };
+
+// Class section letters (ក ខ គ …). A grade typed WITHOUT a section (e.g.
+// "ថ្នាក់ទី៣") is a stray/legacy mis-entry when sectioned variants of it
+// ("ថ្នាក់ទី៣ក", "ថ្នាក់ទី៣ខ") also exist — those records belong to the real
+// sectioned classes. Such a bare grade otherwise shows as a phantom class row and
+// inflates the head-count (e.g. 481 vs the real 459). Detect them so callers can
+// drop them. A genuinely single-section class like "ថ្នាក់ទី៦" has no variant → kept.
+const CLASS_SECTIONS = ['ក', 'ខ', 'គ', 'ឃ', 'ង'];
+export const findPhantomGrades = (allGrades: string[]): Set<string> => {
+  const norm = (s: string) => (s || '').replace(/\s+/g, '');
+  const normSet = new Set(allGrades.map(norm));
+  const phantom = new Set<string>();
+  allGrades.forEach(g => {
+    const n = norm(g);
+    if (n && CLASS_SECTIONS.some(sec => normSet.has(n + sec))) phantom.add(g);
+  });
+  return phantom;
+};
