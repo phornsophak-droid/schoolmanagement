@@ -180,6 +180,9 @@ interface GradebookProps {
   selectedGrade: string;
   setSelectedGrade: (grade: string) => void;
   onSaveStudents: (updatedList: StudentScore[]) => void;
+  // Wipe all scores for a class+month locally AND in the cloud by scope (so the
+  // old rows can't resurrect on refresh). Falls back to onSaveStudents if absent.
+  onClearScoresScope?: (grade: string, month: string) => void;
   currentUser?: SchoolUser | null;
   grades?: string[];
   onAddGrade?: (newGrade: string) => void;
@@ -227,6 +230,7 @@ export default function Gradebook({
   selectedGrade: selectedGradeProp,
   setSelectedGrade,
   onSaveStudents,
+  onClearScoresScope,
   currentUser,
   grades,
   onAddGrade,
@@ -578,8 +582,8 @@ export default function Gradebook({
       return;
     }
     if (!window.confirm(`លុបពិន្ទុ ${toRemove.length} នាក់ សម្រាប់ «${selectedGrade}» ខែ «${selectedMonth}»?\n\nប្រើពេលនាំចូលខុស — បន្ទាប់មកនាំចូលឡើងវិញ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
-    const remaining = students.filter(s => !(s.grade === selectedGrade && s.month === selectedMonth));
-    onSaveStudents(remaining);
+    if (onClearScoresScope) onClearScoresScope(selectedGrade, selectedMonth);
+    else onSaveStudents(students.filter(s => !(s.grade === selectedGrade && s.month === selectedMonth)));
     alert(`បានកំណត់ឡើងវិញ ✓ លុបពិន្ទុ ${toRemove.length} នាក់ហើយ។ ឥឡូវអ្នកអាចនាំចូលឡើងវិញ។`);
   };
 
@@ -596,8 +600,8 @@ export default function Gradebook({
       return;
     }
     if (!window.confirm(`លុបពិន្ទុប្រឡងឆមាស ${toRemove.length} នាក់ សម្រាប់ «${selectedGrade}» (ឆមាសទី ${toKh(selectedSemester)})?\n\nប្រើពេលនាំចូលខុស — បន្ទាប់មកនាំចូលឡើងវិញ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
-    const remaining = students.filter(s => !(s.grade === selectedGrade && s.month === examMonth));
-    onSaveStudents(remaining);
+    if (onClearScoresScope) onClearScoresScope(selectedGrade, examMonth);
+    else onSaveStudents(students.filter(s => !(s.grade === selectedGrade && s.month === examMonth)));
     alert(`បានកំណត់ឡើងវិញ ✓ លុបពិន្ទុប្រឡង ${toRemove.length} នាក់ហើយ។`);
   };
 

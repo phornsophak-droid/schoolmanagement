@@ -39,8 +39,9 @@ import {
   getSupabaseClient, 
   syncFetchAll, 
   syncUpsertStudent, 
-  syncUpsertStudentsBulk, 
-  syncDeleteStudent, 
+  syncUpsertStudentsBulk,
+  syncDeleteStudent,
+  syncDeleteStudentsByScope,
   syncUpsertReport, 
   syncUpsertReportsBulk, 
   syncDeleteReport, 
@@ -949,6 +950,29 @@ export default function App() {
       }
     } else {
       showCloudToast('បានរក្សាទុកក្នុងម៉ាស៊ីន (មិនបានភ្ជាប់ Cloud)', false);
+    }
+  };
+
+  // Wipe every score record for a class + month, locally AND in the cloud by scope
+  // (grade/month), so a bad import can be cleared and re-imported without the old
+  // rows resurrecting on refresh (the per-id cloud delete can miss stale-id rows).
+  const handleClearScoresScope = async (grade: string, month: string) => {
+    const remaining = students.filter(s => !(s.grade === grade && s.month === month));
+    setStudents(remaining);
+    persistScores(remaining);
+    markLocalWrite();
+
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        await syncDeleteStudentsByScope(grade, month);
+        showCloudToast('បានលុបពិន្ទុ និងធ្វើបច្ចុប្បន្នភាព Cloud ✓', true);
+      } catch (err) {
+        console.warn('Supabase scope delete failed', err);
+        showCloudToast('បានលុបក្នុងម៉ាស៊ីន — ភ្ជាប់ Cloud បរាជ័យ', false);
+      }
+    } else {
+      showCloudToast('បានលុបក្នុងម៉ាស៊ីន (មិនបានភ្ជាប់ Cloud)', false);
     }
   };
 
@@ -1889,6 +1913,7 @@ export default function App() {
                       selectedGrade={selectedGrade}
                       setSelectedGrade={setSelectedGrade}
                       onSaveStudents={handleSaveStudents}
+                      onClearScoresScope={handleClearScoresScope}
                       currentUser={currentUser}
                       grades={grades}
                       onAddGrade={handleAddGrade}

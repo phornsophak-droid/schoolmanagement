@@ -651,6 +651,27 @@ export async function syncDeleteStudent(id: string) {
   }
 }
 
+// Delete EVERY score row for a class + month, matched by CONTENT (grade/month),
+// not by id. The per-id delete can miss cloud rows whose stored primary key
+// differs from the deterministic id the client recomputes (legacy rows, or group
+// normalisation drift) — which let "deleted" scores resurrect from the cloud on
+// the next refresh. Scope-delete purges them all so a re-import starts clean.
+export async function syncDeleteStudentsByScope(grade: string, month: string) {
+  noteCloudWrite();
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from('student_scores')
+    .delete()
+    .eq('grade', grade)
+    .eq('month', month);
+  if (error) {
+    console.error(`Failed to scope-delete scores for ${grade} / ${month} from Supabase`, error);
+    throw error;
+  }
+}
+
 // 7. Push single school report directly (re-insert all sub-items for consistency)
 export async function syncUpsertReport(report: SchoolReport) {
   noteCloudWrite();
