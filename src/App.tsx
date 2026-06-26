@@ -41,6 +41,7 @@ import {
   syncUpsertStudent, 
   syncUpsertStudentsBulk,
   syncDeleteStudent,
+  syncDeleteStudentByContent,
   syncDeleteStudentsByScope,
   syncUpsertReport, 
   syncUpsertReportsBulk, 
@@ -914,9 +915,7 @@ export default function App() {
     }));
 
     const prevById = new Map(students.map(prevS => [prevS.id, prevS]));
-    const deletedStudentIds = students
-      .filter(prevS => !updatedList.some(currS => currS.id === prevS.id))
-      .map(prevS => prevS.id);
+    const deletedStudents = students.filter(prevS => !updatedList.some(currS => currS.id === prevS.id));
 
     // Push ONLY the rows that actually changed (new or different vs the previous
     // list). A typical save edits a handful of cells, not the whole ~2000-row
@@ -937,8 +936,12 @@ export default function App() {
     const client = getSupabaseClient();
     if (client) {
       try {
-        for (const id of deletedStudentIds) {
-          await syncDeleteStudent(id);
+        // Delete removed students from the cloud BOTH by id and by content, so the
+        // row is gone even if its stored id differs from the deterministic one
+        // (legacy / group drift) — otherwise it resurrects on the next refresh.
+        for (const del of deletedStudents) {
+          await syncDeleteStudent(del.id);
+          await syncDeleteStudentByContent(del);
         }
         if (changedStudents.length > 0) {
           await syncUpsertStudentsBulk(changedStudents);

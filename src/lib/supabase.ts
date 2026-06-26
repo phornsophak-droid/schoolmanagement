@@ -651,6 +651,35 @@ export async function syncDeleteStudent(id: string) {
   }
 }
 
+// Delete a student's score row(s) by CONTENT (name + gender + grade + month, plus
+// group when present), not by id. The per-id delete misses cloud rows whose stored
+// primary key differs from the deterministic id the client recomputes (legacy rows
+// / group-normalisation drift), letting "deleted" students resurrect on refresh.
+// Pairing this with the per-id delete makes EVERY deletion stick across the cloud.
+export async function syncDeleteStudentByContent(student: { name: string; gender?: string; grade: string; month: string; group?: string | null }) {
+  noteCloudWrite();
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  let q = supabase
+    .from('student_scores')
+    .delete()
+    .eq('name', student.name)
+    .eq('grade', student.grade)
+    .eq('month', student.month);
+  if (student.gender) q = q.eq('gender', student.gender);
+  // Group lives inside extra_data JSON; only narrow by it when the record has one
+  // (otherwise a same-name student's other groups would be spared, which is fine).
+  const group = (student.group ?? '').toString().trim();
+  if (group) q = q.eq('extra_data->>group', group);
+
+  const { error } = await q;
+  if (error) {
+    console.error(`Failed to content-delete score ${student.name} / ${student.grade} / ${student.month} from Supabase`, error);
+    throw error;
+  }
+}
+
 // Delete EVERY score row for a class + month, matched by CONTENT (grade/month),
 // not by id. The per-id delete can miss cloud rows whose stored primary key
 // differs from the deterministic id the client recomputes (legacy rows, or group
