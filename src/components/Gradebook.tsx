@@ -663,6 +663,10 @@ export default function Gradebook({
         const khToAscii = (s: string) => s.replace(/[០-៩]/g, d => String('០១២៣៤៥៦៧៨៩'.indexOf(d)));
         // Normalise a name for matching: drop a "(...)" tag, collapse spaces.
         const nameKey = (n: string) => clean(n).replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+        // Word-order-independent key: sort the name tokens so "វិន កញ្ញា" and
+        // "កញ្ញា វិន" map to the same key (family/given order differs between the
+        // roster and the score table).
+        const sortKey = (k: string) => k.split(/\s+/).filter(Boolean).sort().join(' ');
         wb.SheetNames.forEach(sn => {
           // raw:false so the text DOB cells (e.g. "14-11-2013") stay strings.
           const rows = XLSX.utils.sheet_to_json<any[]>(wb.Sheets[sn], { header: 1, blankrows: false, raw: false });
@@ -686,11 +690,14 @@ export default function Gradebook({
             if (nameCol >= 0) {
               // Index by BOTH the single name cell and the family+given concat, each
               // normalised the same way as the lookup key, so single-column name lists
-              // (e.g. kindergarten) match just as well as split-name rosters.
-              const n1 = nameKey(clean(r[nameCol]));
-              const n2 = nameKey(`${clean(r[nameCol])} ${clean(r[nameCol + 1])}`);
-              if (n1 && !/^\d/.test(n1)) byName.set(n1, dob);
-              if (n2 && !/^\d/.test(n2)) byName.set(n2, dob);
+              // (e.g. kindergarten) match just as well as split-name rosters. Also index
+              // a word-order-independent key (sorted tokens) so "វិន កញ្ញា" matches
+              // "កញ្ញា វិន" — a common difference between the roster and the score table.
+              const put = (k: string) => {
+                if (k && !/^\d/.test(k)) { byName.set(k, dob); byName.set(sortKey(k), dob); }
+              };
+              put(nameKey(clean(r[nameCol])));
+              put(nameKey(`${clean(r[nameCol])} ${clean(r[nameCol + 1])}`));
             }
           }
         });
