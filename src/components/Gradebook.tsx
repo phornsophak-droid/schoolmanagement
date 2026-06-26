@@ -658,6 +658,11 @@ export default function Gradebook({
         const wb = XLSX.read(new Uint8Array(ev.target!.result as ArrayBuffer), { type: 'array' });
         const byId = new Map<string, string>();
         const byName = new Map<string, string>();
+        // Accept Khmer-numeral dates (០៥/០៦/២០២០) — some rosters (e.g. kindergarten)
+        // type the DOB in Khmer digits, which the ASCII \d test would otherwise skip.
+        const khToAscii = (s: string) => s.replace(/[០-៩]/g, d => String('០១២៣៤៥៦៧៨៩'.indexOf(d)));
+        // Normalise a name for matching: drop a "(...)" tag, collapse spaces.
+        const nameKey = (n: string) => clean(n).replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
         wb.SheetNames.forEach(sn => {
           // raw:false so the text DOB cells (e.g. "14-11-2013") stay strings.
           const rows = XLSX.utils.sheet_to_json<any[]>(wb.Sheets[sn], { header: 1, blankrows: false, raw: false });
@@ -673,14 +678,19 @@ export default function Gradebook({
           const nameCol = header.findIndex(h => h.includes('គោត្តនាម') || h.includes('ឈ្មោះ') || h.includes('នាម'));
           for (let i = hIdx + 1; i < rows.length; i++) {
             const r = rows[i] || [];
-            const dobRaw = clean(r[dobCol]);
+            const dobRaw = khToAscii(clean(r[dobCol]));
             if (!isDobLike(dobRaw)) continue;              // skips sub-header rows too
             const dob = dobRaw.replace(/[-.]/g, '/');      // normalise to DD/MM/YYYY
             const id = clean(r[idCol]).replace(/\s+/g, '');
             if (id) byId.set(id, dob);
             if (nameCol >= 0) {
-              const full = `${clean(r[nameCol])} ${clean(r[nameCol + 1])}`.replace(/\s+/g, ' ').trim();
-              if (full && !/^\d/.test(full)) byName.set(full, dob);   // skip numeric (misaligned) names
+              // Index by BOTH the single name cell and the family+given concat, each
+              // normalised the same way as the lookup key, so single-column name lists
+              // (e.g. kindergarten) match just as well as split-name rosters.
+              const n1 = nameKey(clean(r[nameCol]));
+              const n2 = nameKey(`${clean(r[nameCol])} ${clean(r[nameCol + 1])}`);
+              if (n1 && !/^\d/.test(n1)) byName.set(n1, dob);
+              if (n2 && !/^\d/.test(n2)) byName.set(n2, dob);
             }
           }
         });
@@ -689,7 +699,6 @@ export default function Gradebook({
           e.target.value = '';
           return;
         }
-        const nameKey = (n: string) => clean(n).replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
         let filled = 0;
         const updated = students.map(s => {
           if ((s.dob || '').trim()) return s;            // keep an existing DOB
