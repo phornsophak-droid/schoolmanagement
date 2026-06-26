@@ -97,6 +97,8 @@ export default function StudentReportCard({ student, students, onClose }: Studen
   // general subjects so their report card shows the right lines. General classes
   // keep the fixed SUBJECTS list.
   const custom = getCustomSubjects(student.grade);
+  // English class shows bilingual subject names + table headers, e.g. "ស្តាប់ (Listening)".
+  const bilingual = isEnglishClass(student.grade);
   const subjects = useMemo(
     () => {
       // English class: show the bilingual subject name, e.g. "ស្តាប់ (Listening)".
@@ -248,13 +250,13 @@ export default function StudentReportCard({ student, students, onClose }: Studen
                 browsers, so the merged "និទ្ទេស" header came out blank in the PDF. */}
             <thead>
               <tr className="bg-slate-100">
-                <th className="border border-slate-300 px-1 py-1 w-10">ល.រ</th>
-                <th className="border border-slate-300 px-2 py-1 text-left">ឈ្មោះមុខវិជ្ជា</th>
-                <th className="border border-slate-300 px-1 py-1 w-16">ពិន្ទុ</th>
-                <th className="border border-slate-300 px-1 py-1 w-20">ចំណាត់ថ្នាក់</th>
-                <th className="border border-slate-300 px-1 py-1 w-24">និទ្ទេស</th>
-                <th className="border border-slate-300 px-1 py-1 w-16">អក្សរ</th>
-                <th className="border border-slate-300 px-1 py-1 w-28">មូលវិចារគ្រូបន្ទុកថ្នាក់</th>
+                <th className="border border-slate-300 px-1 py-1 w-10">ល.រ{bilingual && <span className="block text-[8px] font-normal text-slate-500">No.</span>}</th>
+                <th className="border border-slate-300 px-2 py-1 text-left">ឈ្មោះមុខវិជ្ជា{bilingual && <span className="block text-[8px] font-normal text-slate-500">Subject</span>}</th>
+                <th className="border border-slate-300 px-1 py-1 w-16">ពិន្ទុ{bilingual && <span className="block text-[8px] font-normal text-slate-500">Score</span>}</th>
+                <th className="border border-slate-300 px-1 py-1 w-20">ចំណាត់ថ្នាក់{bilingual && <span className="block text-[8px] font-normal text-slate-500">Rank</span>}</th>
+                <th className="border border-slate-300 px-1 py-1 w-24">និទ្ទេស{bilingual && <span className="block text-[8px] font-normal text-slate-500">Grade</span>}</th>
+                <th className="border border-slate-300 px-1 py-1 w-16">អក្សរ{bilingual && <span className="block text-[8px] font-normal text-slate-500">Letter</span>}</th>
+                <th className="border border-slate-300 px-1 py-1 w-28">មូលវិចារគ្រូបន្ទុកថ្នាក់{bilingual && <span className="block text-[8px] font-normal text-slate-500">Teacher's Remark</span>}</th>
               </tr>
             </thead>
             <tbody>
