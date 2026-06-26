@@ -19,11 +19,26 @@ const sameExtraSubject = (a: string, b: string) =>
   (isComputerClass(a) && isComputerClass(b)) ||
   (isSportsClass(a) && isSportsClass(b));
 
+// After-hours subjects span several class groups (e.g. PE groups, English 3/4/5),
+// and each student's grade may carry the group — so a per-grade signature key
+// fragments into many and "doesn't stick" across the subject. Collapse every
+// after-hours grade of a subject to ONE canonical key so the teacher uploads the
+// signature once and it shows on every group's report. General classes are keyed
+// by their exact grade (unchanged).
+const canonicalSigGrade = (grade: string): string => {
+  if (isEnglishClass(grade)) return 'ភាសាអង់គ្លេស';
+  if (isHealthClass(grade)) return 'អប់រំសុខភាព';
+  if (isDrawingClass(grade)) return 'គំនូរ';
+  if (isComputerClass(grade)) return 'កុំព្យូទ័រ';
+  if (isSportsClass(grade)) return 'កីឡា និងអប់រំកាយ';
+  return grade;
+};
+
 // Per-class homeroom-teacher signature, uploaded once per class and reused on
 // every report/table for that class. Stored locally and mirrored to the cloud
 // (school_settings, one key per class) so it appears on all devices and parents'
 // cards. The teacher's name is taken from their account. See App.tsx restore.
-export const teacherSigKey = (grade: string) => `school_teacher_signature::${grade}`;
+export const teacherSigKey = (grade: string) => `school_teacher_signature::${canonicalSigGrade(grade)}`;
 export const TEACHER_SIG_PREFIX = 'school_teacher_signature::';
 // Drop the honorific prefix so only the teacher's name shows (e.g. ស៊ុំ សំណាង).
 const stripTitle = (n: string) => n.replace(/^(លោកគ្រូ|អ្នកគ្រូ|លោកស្រី|អ្នកស្រី|លោក|អ្នក)\s+/, '').trim();
