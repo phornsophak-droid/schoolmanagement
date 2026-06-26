@@ -180,9 +180,10 @@ interface GradebookProps {
   selectedGrade: string;
   setSelectedGrade: (grade: string) => void;
   onSaveStudents: (updatedList: StudentScore[]) => void;
-  // Wipe all scores for a class+month locally AND in the cloud by scope (so the
-  // old rows can't resurrect on refresh). Falls back to onSaveStudents if absent.
-  onClearScoresScope?: (grade: string, month: string) => void;
+  // Wipe all scores for a class+month (optionally a single group) locally AND in
+  // the cloud by scope, so the old rows can't resurrect on refresh. Falls back to
+  // onSaveStudents if absent.
+  onClearScoresScope?: (grade: string, month: string, group?: string) => void;
   currentUser?: SchoolUser | null;
   grades?: string[];
   onAddGrade?: (newGrade: string) => void;
@@ -576,14 +577,19 @@ export default function Gradebook({
       alert('សូមជ្រើសរើស ថ្នាក់ និង ខែ ជាក់លាក់ជាមុនសិន ដើម្បីកំណត់ឡើងវិញ!');
       return;
     }
-    const toRemove = students.filter(s => s.grade === selectedGrade && s.month === selectedMonth);
+    // When a specific group is filtered (after-hours classes), reset only THAT
+    // group; "ទាំងអស់" resets every group of the class for that month.
+    const groupFilter = (viewingEnglish && selectedGradeGroup !== 'ទាំងអស់') ? selectedGradeGroup : '';
+    const inScope = (s: StudentScore) => s.grade === selectedGrade && s.month === selectedMonth && (!groupFilter || (s.group || '') === groupFilter);
+    const scopeLabel = `«${selectedGrade}»${groupFilter ? ` ក្រុម «${groupFilter}»` : ''} ខែ «${selectedMonth}»`;
+    const toRemove = students.filter(inScope);
     if (toRemove.length === 0) {
-      alert(`គ្មានពិន្ទុសម្រាប់ «${selectedGrade}» ខែ «${selectedMonth}» ទេ។`);
+      alert(`គ្មានពិន្ទុសម្រាប់ ${scopeLabel} ទេ។`);
       return;
     }
-    if (!window.confirm(`លុបពិន្ទុ ${toRemove.length} នាក់ សម្រាប់ «${selectedGrade}» ខែ «${selectedMonth}»?\n\nប្រើពេលនាំចូលខុស — បន្ទាប់មកនាំចូលឡើងវិញ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
-    if (onClearScoresScope) onClearScoresScope(selectedGrade, selectedMonth);
-    else onSaveStudents(students.filter(s => !(s.grade === selectedGrade && s.month === selectedMonth)));
+    if (!window.confirm(`លុបពិន្ទុ ${toRemove.length} នាក់ សម្រាប់ ${scopeLabel}?\n\nប្រើពេលនាំចូលខុស — បន្ទាប់មកនាំចូលឡើងវិញ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
+    if (onClearScoresScope) onClearScoresScope(selectedGrade, selectedMonth, groupFilter || undefined);
+    else onSaveStudents(students.filter(s => !inScope(s)));
     alert(`បានកំណត់ឡើងវិញ ✓ លុបពិន្ទុ ${toRemove.length} នាក់ហើយ។ ឥឡូវអ្នកអាចនាំចូលឡើងវិញ។`);
   };
 
@@ -594,14 +600,17 @@ export default function Gradebook({
       return;
     }
     const examMonth = selectedSemester === '2' ? 'ប្រឡងឆមាសទី២' : 'ប្រឡងឆមាសទី១';
-    const toRemove = students.filter(s => s.grade === selectedGrade && s.month === examMonth);
+    const groupFilter = (viewingEnglish && selectedGradeGroup !== 'ទាំងអស់') ? selectedGradeGroup : '';
+    const inScope = (s: StudentScore) => s.grade === selectedGrade && s.month === examMonth && (!groupFilter || (s.group || '') === groupFilter);
+    const scopeLabel = `«${selectedGrade}»${groupFilter ? ` ក្រុម «${groupFilter}»` : ''} (ឆមាសទី ${toKh(selectedSemester)})`;
+    const toRemove = students.filter(inScope);
     if (toRemove.length === 0) {
-      alert(`គ្មានពិន្ទុប្រឡងឆមាសសម្រាប់ «${selectedGrade}» (ឆមាសទី ${toKh(selectedSemester)}) ទេ។`);
+      alert(`គ្មានពិន្ទុប្រឡងឆមាសសម្រាប់ ${scopeLabel} ទេ។`);
       return;
     }
-    if (!window.confirm(`លុបពិន្ទុប្រឡងឆមាស ${toRemove.length} នាក់ សម្រាប់ «${selectedGrade}» (ឆមាសទី ${toKh(selectedSemester)})?\n\nប្រើពេលនាំចូលខុស — បន្ទាប់មកនាំចូលឡើងវិញ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
-    if (onClearScoresScope) onClearScoresScope(selectedGrade, examMonth);
-    else onSaveStudents(students.filter(s => !(s.grade === selectedGrade && s.month === examMonth)));
+    if (!window.confirm(`លុបពិន្ទុប្រឡងឆមាស ${toRemove.length} នាក់ សម្រាប់ ${scopeLabel}?\n\nប្រើពេលនាំចូលខុស — បន្ទាប់មកនាំចូលឡើងវិញ។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
+    if (onClearScoresScope) onClearScoresScope(selectedGrade, examMonth, groupFilter || undefined);
+    else onSaveStudents(students.filter(s => !inScope(s)));
     alert(`បានកំណត់ឡើងវិញ ✓ លុបពិន្ទុប្រឡង ${toRemove.length} នាក់ហើយ។`);
   };
 

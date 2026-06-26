@@ -959,8 +959,10 @@ export default function App() {
   // Wipe every score record for a class + month, locally AND in the cloud by scope
   // (grade/month), so a bad import can be cleared and re-imported without the old
   // rows resurrecting on refresh (the per-id cloud delete can miss stale-id rows).
-  const handleClearScoresScope = async (grade: string, month: string) => {
-    const remaining = students.filter(s => !(s.grade === grade && s.month === month));
+  const handleClearScoresScope = async (grade: string, month: string, group?: string) => {
+    const g = (group ?? '').trim();
+    const inScope = (s: StudentScore) => s.grade === grade && s.month === month && (!g || (s.group || '') === g);
+    const remaining = students.filter(s => !inScope(s));
     setStudents(remaining);
     persistScores(remaining);
     markLocalWrite();
@@ -968,7 +970,7 @@ export default function App() {
     const client = getSupabaseClient();
     if (client) {
       try {
-        await syncDeleteStudentsByScope(grade, month);
+        await syncDeleteStudentsByScope(grade, month, g || undefined);
         showCloudToast('បានលុបពិន្ទុ និងធ្វើបច្ចុប្បន្នភាព Cloud ✓', true);
       } catch (err) {
         console.warn('Supabase scope delete failed', err);

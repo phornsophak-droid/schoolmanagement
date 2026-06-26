@@ -685,18 +685,24 @@ export async function syncDeleteStudentByContent(student: { name: string; gender
 // differs from the deterministic id the client recomputes (legacy rows, or group
 // normalisation drift) — which let "deleted" scores resurrect from the cloud on
 // the next refresh. Scope-delete purges them all so a re-import starts clean.
-export async function syncDeleteStudentsByScope(grade: string, month: string) {
+export async function syncDeleteStudentsByScope(grade: string, month: string, group?: string | null) {
   noteCloudWrite();
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
-  const { error } = await supabase
+  let q = supabase
     .from('student_scores')
     .delete()
     .eq('grade', grade)
     .eq('month', month);
+  // Narrow to one group (stored inside extra_data) when given; otherwise every
+  // group of the class for that month is cleared.
+  const g = (group ?? '').toString().trim();
+  if (g) q = q.eq('extra_data->>group', g);
+
+  const { error } = await q;
   if (error) {
-    console.error(`Failed to scope-delete scores for ${grade} / ${month} from Supabase`, error);
+    console.error(`Failed to scope-delete scores for ${grade} / ${month}${g ? ` / ${g}` : ''} from Supabase`, error);
     throw error;
   }
 }
