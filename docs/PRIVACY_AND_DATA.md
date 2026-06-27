@@ -89,6 +89,36 @@ app uses only SELECT/INSERT/UPDATE/DELETE, so this removes the data-destruction
 capability with no impact on the app. Read-confidentiality still requires the
 server-proxy below (the browser must stop using the anon key directly).
 
+## 5c. Server-proxy remediation (spec for the engineer)
+
+The real fix for read-confidentiality. Goal: the browser stops using the Supabase
+anon key directly; a trusted server tier holds the secret `service_role` key and
+becomes the only thing that touches the DB; then `anon` is locked to zero.
+
+**Surface to migrate** — `src/lib/supabase.ts` (~30 functions):
+- Reads: `syncFetchAll` (paginated, incremental via `since`), `fetchClassStudents`,
+  `fetchSetting`.
+- Writes/deletes: `syncUpsertStudent(sBulk)`, `syncDeleteStudent` / `…ByContent` /
+  `…ByScope`, `syncUpsert/DeleteStudentAttendance(+Bulk)`, the teacher-attendance
+  equivalents, `syncUpsertReport(sBulk)` / `syncDeleteReport`, `syncGradesBulk` /
+  `syncDeleteGrade`, `syncUpsert/DeleteSetting`, `syncClearAllData`.
+
+**Watch-outs (why "zero effect" is non-trivial):**
+1. **Realtime** — the app subscribes to live changes (`noteCloudWrite` /
+   `msSinceCloudWrite` echo-suppression). A serverless proxy can't hold the
+   websocket; realtime must be reworked (e.g. a scoped read-only channel) or
+   replaced with polling.
+2. **No real auth** — PIN login is client-side only. The proxy needs its own
+   gate (per-user accounts or at least a server-checked token) or it just becomes
+   an open endpoint with the powerful key behind it.
+3. **Custom-credentials feature** (`CUSTOM_URL_KEY` / `CUSTOM_ANON_KEY` in
+   localStorage) — becomes moot under a proxy; decide whether to keep it.
+4. **Incremental sync / pagination / content-deletes** already prevent data-loss
+   regressions — preserve their semantics exactly.
+
+**Then:** `revoke all on all tables in schema public from anon` (and drop the
+permissive policies), leaving only the `service_role` (server) with access.
+
 ## 6. Privacy measures already in place
 
 - Transport is HTTPS (Vercel + Supabase).
