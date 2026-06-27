@@ -71,6 +71,24 @@ class list, teacher accounts, and work reports.
 6. **🟡 Backups** — the JSON export (Factory Reset / backup) contains the full
    dataset; handle and store those files securely.
 
+## 5b. RLS audit results (June 2026)
+
+Audited via `pg_tables` / `pg_policies` / `role_table_grants`:
+
+- **RLS is enabled** on all `public` tables (`rowsecurity = true`) — good baseline.
+- **But each table has permissive policies** (2 per table) that let the `anon` role
+  do everything; the app works using only the public anon key, so the policies are
+  effectively `USING (true)`. Net effect: **the public key can read every student
+  record.** RLS is on but not protecting confidentiality.
+- **`anon` (and `authenticated`) were granted `TRUNCATE` + `REFERENCES`** on all
+  tables. `TRUNCATE` **bypasses RLS**, so the public key could wipe tables
+  regardless of policies.
+
+**Action taken:** `REVOKE TRUNCATE, REFERENCES ... FROM anon, authenticated;` — the
+app uses only SELECT/INSERT/UPDATE/DELETE, so this removes the data-destruction
+capability with no impact on the app. Read-confidentiality still requires the
+server-proxy below (the browser must stop using the anon key directly).
+
 ## 6. Privacy measures already in place
 
 - Transport is HTTPS (Vercel + Supabase).
