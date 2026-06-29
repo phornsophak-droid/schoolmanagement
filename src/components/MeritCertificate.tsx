@@ -183,7 +183,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
                   ភេទ <span className="font-bold">{student.gender}</span>{' '}
                   {dobText
-                    ? <>កើតនៅ<span className="font-semibold" style={{ whiteSpace: 'nowrap' }}>{dobText}</span> </>
+                    ? <>កើតនៅ<span style={{ whiteSpace: 'nowrap' }}>{dobText}</span> </>
                     : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
                   រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
                   ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
