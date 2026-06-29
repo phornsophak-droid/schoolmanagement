@@ -237,7 +237,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
           <div className="grid grid-cols-2 gap-x-8 gap-y-1 mb-3 text-[12px]">
             <div><span className="font-bold">គោត្តនាម និងនាម៖</span> {student.name}</div>
             <div><span className="font-bold">ភេទ៖</span> {student.gender}</div>
-            <div><span className="font-bold">ថ្ងៃខែឆ្នាំកំណើត៖</span> {resolvedDob || '...........'}</div>
+            <div><span className="font-bold">ថ្ងៃខែឆ្នាំកំណើត៖</span> {resolvedDob ? toKh(resolvedDob) : '...........'}</div>
             <div><span className="font-bold">អត្តលេខ៖</span> {student.studentId || '...........'}</div>
             <div><span className="font-bold">លទ្ធផលសិក្សា៖</span> {student.grade}</div>
             {student.group && <div><span className="font-bold">ក្រុម៖</span> {student.group}</div>}
