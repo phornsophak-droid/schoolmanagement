@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useState, useRef } from 'react';
-import { Printer, X, PenLine, Download, Loader2 } from 'lucide-react';
+import { Printer, X, PenLine, Download, Loader2, Image as ImageIcon } from 'lucide-react';
 import { StudentScore } from '../types';
 import { baseStudentName } from '../utils/studentKey';
 import SchoolLogo from './SchoolLogo';
@@ -12,7 +12,7 @@ import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { tallyAbsences } from '../utils/attendance';
-import { exportElementToPdf } from '../utils/exportPdf';
+import { exportElementToPdf, exportElementToImage } from '../utils/exportPdf';
 import { SEM1_MONTHS, SEM2_MONTHS, SEM_SUBJECTS, semesterAvgOf, readAnnualExtra, niddesColor } from '../utils/scoring';
 import { RemarkChecklist } from './StudentReportCard';
 import FitToWidth from './FitToWidth';
@@ -168,6 +168,16 @@ export default function SemesterReportCard({ student, students, period, onClose 
     finally { setPdfBusy(false); }
   };
 
+  const [imgBusy, setImgBusy] = useState(false);
+  const handleDownloadImage = async () => {
+    const el = document.getElementById('semester-report-card');
+    if (!el) return;
+    setImgBusy(true);
+    try { await exportElementToImage(el, `ព្រឹត្តបត្រ${periodTitle}_${student.name.replace(/\s+/g, '_')}`); }
+    catch (e) { console.error('Image export failed', e); alert('មិនអាចបង្កើតរូបភាពបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setImgBusy(false); }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 overflow-auto p-4 flex justify-center items-start">
       <style>{printCss}</style>
@@ -178,6 +188,9 @@ export default function SemesterReportCard({ student, students, period, onClose 
           <div className="flex items-center gap-2">
             <button onClick={handleDownloadPdf} disabled={pdfBusy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
               {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} ទាញយក PDF
+            </button>
+            <button onClick={handleDownloadImage} disabled={imgBusy} className="px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
+              {imgBusy ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />} ទាញយករូបភាព
             </button>
             <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
               <Printer size={13} /> បោះពុម្ព
