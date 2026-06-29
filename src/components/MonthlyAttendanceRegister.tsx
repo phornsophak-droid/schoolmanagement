@@ -52,7 +52,7 @@ const genderShort = (g: string) => (g === 'ស្រី' ? 'ស' : 'ប');
 // Click-cycle order for marking a cell: blank → late → excused → unexcused → blank.
 const STATE_CYCLE: ('' | State)[] = ['', 'late', 'permission', 'absent'];
 // After-hours classes store a single session record (no morning/afternoon split).
-const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const EXTRA_CLASS_KEYWORDS = ['GRADE','គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 
 // Academic-year months in order, each with its calendar year (Nov 2025 – Oct 2026).
 const ACADEMIC_MONTHS: { m: number; y: number }[] = [

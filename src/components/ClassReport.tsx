@@ -131,7 +131,7 @@ const EXTRA_KEYWORDS = ['អង់គ្លេស', 'អប់រំសុខភ
 // Return the report template that fits a class, or null if it uses the default report.
 export function getReportTemplate(grade: string): ReportTemplate | null {
   const g = grade || '';
-  if (g.includes('អង់គ្លេស')) return ENGLISH_TEMPLATE;
+  if (g.includes('អង់គ្លេស') || g.includes('GRADE')) return ENGLISH_TEMPLATE;
   if (g.includes('អប់រំសុខភាព')) return HEALTH_TEMPLATE;
   if (g.includes('កីឡា') || g.includes('អប់រំកាយ')) return SPORTS_TEMPLATE;
   if (g.includes('គំនូរ')) return ART_TEMPLATE;
@@ -219,7 +219,8 @@ export default function ClassReport({ template, students, grade, period, teacher
   const stats = useMemo(() => {
     let recs = students.filter(s => s.grade === grade);
     if (recs.length === 0 && template.aggregateKeyword) {
-      recs = students.filter(s => (s.grade || '').includes(template.aggregateKeyword!));
+      recs = students.filter(s => (s.grade || '').includes(template.aggregateKeyword!)
+        || (template.aggregateKeyword === 'អង់គ្លេស' && (s.grade || '').includes('GRADE')));
     }
     const byStudent = new Map<string, number[]>();
     recs.forEach(s => {

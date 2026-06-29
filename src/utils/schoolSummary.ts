@@ -30,7 +30,7 @@ export function periodLabel(p: SummaryPeriod): string {
 // scores already in memory (no network, no data leaves the app). The optional
 // AI step (see lib/gemini) only polishes the wording from these same numbers.
 
-const EXTRA_KEYWORDS = ['គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const EXTRA_KEYWORDS = ['GRADE','គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 export const isExtraClass = (grade: string) => EXTRA_KEYWORDS.some(k => (grade || '').includes(k));
 
 // School-year month order, for picking the latest month with data.

@@ -21,7 +21,7 @@ import {
   Download
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { StudentScore, SchoolUser } from '../types';
+import { StudentScore, SchoolUser, afterHoursSubject } from '../types';
 import { useT } from '../i18n';
 import { AVAILABLE_USERS } from './LoginPortal';
 import MonthlyAttendanceRegister from './MonthlyAttendanceRegister';
@@ -35,7 +35,7 @@ import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
 // 'គ្លេស' (the English-language root) catches spelling variants like អង់គ្លេស / អ់គ្លេស.
-const EXTRA_CLASS_KEYWORDS = ['គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const EXTRA_CLASS_KEYWORDS = ['GRADE','គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
 // The subject keyword inside an after-hours class name, used to group its sections (3A, 3B...).
 const getSubjectKey = (grade: string) => EXTRA_CLASS_KEYWORDS.find(k => (grade || '').includes(k)) || '';
@@ -168,7 +168,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   //  - extra teacher   → only their own subject's groups
   //  - admin           → every class in the selected category
   const gradeOptions = isExtraTeacher
-    ? grades.filter(g => g.includes(getSubjectKey(currentUser!.grade)))
+    ? grades.filter(g => afterHoursSubject(g) === afterHoursSubject(currentUser!.grade))
     : isGeneralTeacher
       ? [currentUser!.grade]
       : grades.filter(g => inCat(g));

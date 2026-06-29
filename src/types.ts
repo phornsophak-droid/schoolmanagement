@@ -16,7 +16,10 @@ export const ENGLISH_SUBJECTS: { key: string; en: string; km: string }[] = [
 ];
 
 // True when a class name belongs to the English after-hours subject.
-export const isEnglishClass = (grade: string) => (grade || '').includes('អង់គ្លេស');
+// English after-hours classes may be named with the Khmer subject ("អង់គ្លេស")
+// OR with the Latin word "GRADE" (e.g. "GRADE 3", "GRADE LEAVERS"). Use uppercase
+// "GRADE" — general classes are named in Khmer ("ថ្នាក់ទី…") so it never collides.
+export const isEnglishClass = (grade: string) => (grade || '').includes('អង់គ្លេស') || (grade || '').includes('GRADE');
 
 // The 5 scoring criteria for the after-hours Health-education class (each 0-10).
 export const HEALTH_SUBJECTS: { key: string; km: string }[] = [
@@ -71,6 +74,17 @@ export const getCustomSubjects = (grade: string): { key: string; km: string }[] 
   if (isSportsClass(grade)) return SPORTS_SUBJECTS;
   return null;
 };
+
+// Canonical after-hours subject id for a class name, so differently-named sections
+// of the same subject group together for the teacher view — e.g. a teacher whose
+// class is "ថ្នាក់ភាសាអង់គ្លេស" and the renamed sections "GRADE 3" / "GRADE LEAVERS"
+// are all 'english'. Returns '' for general (non after-hours) classes.
+export const afterHoursSubject = (grade: string): string =>
+  isEnglishClass(grade) ? 'english'
+    : isHealthClass(grade) ? 'health'
+    : isDrawingClass(grade) ? 'drawing'
+    : isComputerClass(grade) ? 'computer'
+    : isSportsClass(grade) ? 'sports' : '';
 
 // Sub-subjects of វិទ្យាសាស្ត្រ (Science), each 0-10.
 export const SCIENCE_SUBJECTS: { key: string; km: string }[] = [

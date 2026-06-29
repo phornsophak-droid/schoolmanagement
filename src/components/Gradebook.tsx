@@ -25,7 +25,7 @@ import {
   BarChart2,
   CalendarDays
 } from 'lucide-react';
-import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects } from '../types';
+import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects, afterHoursSubject } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
 import { SEM_SUBJECTS, niddesColor } from '../utils/scoring';
 import StudentReportCard from './StudentReportCard';
@@ -219,7 +219,7 @@ const DEFAULT_GRADES_LIST = [
 ];
 
 // Class-category split: "extra" (after-hours skill classes) vs "general" (មត្តេយ្យ–ទី៦).
-const EXTRA_CLASS_KEYWORDS = ['ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const EXTRA_CLASS_KEYWORDS = ['GRADE','ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
 // The subject keyword inside an after-hours class name, used to group its sections (3A, 3B...).
 const getSubjectKey = (grade: string) => EXTRA_CLASS_KEYWORDS.find(k => (grade || '').includes(k)) || '';
@@ -254,7 +254,7 @@ export default function Gradebook({
   const inCat = (grade: string) => (classCategory === 'extra' ? isExtraClass(grade) : !isExtraClass(grade));
   const gradesList = (grades || DEFAULT_GRADES_LIST).filter(g => inCat(g));
   const teacherSubjectGrades = isExtraTeacher
-    ? (grades || DEFAULT_GRADES_LIST).filter(g => g.includes(getSubjectKey(currentUser!.grade)))
+    ? (grades || DEFAULT_GRADES_LIST).filter(g => afterHoursSubject(g) === afterHoursSubject(currentUser!.grade))
     : [];
   // Custom-criteria classes (English, Health…) show their own columns instead of
   // the general subjects. `customSubjects` is null for general classes.
