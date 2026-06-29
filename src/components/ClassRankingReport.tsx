@@ -3,13 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { Printer, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Printer, X, Download, Loader2, Image as ImageIcon } from 'lucide-react';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
+import FitToWidth from './FitToWidth';
 import { khmerLunarFull, khmerMonthEnd } from '../utils/khmerDate';
 import { niddesColor } from '../utils/scoring';
+import { exportElementToPdf, exportElementToImage } from '../utils/exportPdf';
 
 export interface RankingRow {
   name: string;
@@ -91,10 +93,31 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
   const totalFemale = fem(roster);
   const scoredFemale = fem(scored);
 
+  const RANK_EXPORT_WIDTH = 896;
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const handleDownloadPdf = async () => {
+    const el = document.getElementById('class-ranking');
+    if (!el) return;
+    setPdfBusy(true);
+    try { await exportElementToPdf(el, `តារាងចំណាត់ថ្នាក់_${grade}_${period}`, RANK_EXPORT_WIDTH); }
+    catch (e) { console.error('PDF export failed', e); alert('មិនអាចបង្កើត PDF បានទេ — សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setPdfBusy(false); }
+  };
+  const [imgBusy, setImgBusy] = useState(false);
+  const handleDownloadImage = async () => {
+    const el = document.getElementById('class-ranking');
+    if (!el) return;
+    setImgBusy(true);
+    try { await exportElementToImage(el, `តារាងចំណាត់ថ្នាក់_${grade}_${period}`, RANK_EXPORT_WIDTH); }
+    catch (e) { console.error('Image export failed', e); alert('មិនអាចបង្កើតរូបភាពបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setImgBusy(false); }
+  };
+
   const printCss = `@media print {
     body * { visibility: hidden !important; }
     #class-ranking, #class-ranking * { visibility: visible !important; }
     #class-ranking { position: absolute; left: 0; top: 0; width: 100%; }
+    .rc-fit-outer, .rc-fit-frame, .rc-fit-inner { width: auto !important; height: auto !important; overflow: visible !important; margin: 0 !important; transform: none !important; }
     .rc-no-print { display: none !important; }
     @page { size: A4 portrait; margin: 10mm; }
   }`;
@@ -128,8 +151,14 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
         <div className="rc-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-t-2xl border-b border-slate-100">
           <h3 className="text-sm font-bold text-slate-800">តារាងចំណាត់ថ្នាក់ — {grade} • {periodLabel}</h3>
           <div className="flex items-center gap-2">
+            <button onClick={handleDownloadPdf} disabled={pdfBusy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
+              {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} ទាញយក PDF
+            </button>
+            <button onClick={handleDownloadImage} disabled={imgBusy} className="px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
+              {imgBusy ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />} ទាញយករូបភាព
+            </button>
             <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
-              <Printer size={13} /> បោះពុម្ព / PDF
+              <Printer size={13} /> បោះពុម្ព
             </button>
             <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-colors">
               <X size={13} /> បិទ
@@ -137,6 +166,7 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
           </div>
         </div>
 
+        <FitToWidth designWidth={896}>
         <div id="class-ranking" className="bg-white rounded-b-2xl shadow-xl p-6 text-slate-800 text-[11px]">
           {/* Header */}
           <div className="flex justify-between items-start mb-1">
@@ -214,6 +244,7 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
             </div>
           </div>
         </div>
+        </FitToWidth>
       </div>
     </div>
   );
