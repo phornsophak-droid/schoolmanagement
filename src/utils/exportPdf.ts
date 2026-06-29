@@ -14,6 +14,41 @@ const isIOS = (): boolean =>
   /iP(hone|ad|od)/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+const isMobile = (): boolean =>
+  isIOS() || /Android|Mobile/i.test(navigator.userAgent) ||
+  (typeof window !== 'undefined' && 'ontouchstart' in window && navigator.maxTouchPoints > 0);
+
+// Show a rendered image full-screen IN the app so the user can long-press →
+// "Save Image" (mobile) or use the download button. This sidesteps the phone
+// problems that broke "ទាញយករូបភាព": after the async html2canvas render the tap
+// gesture has expired, so window.open()/navigator.share()/<a download> are
+// blocked by mobile browsers. Showing it in-place needs no gesture and no
+// download permission — it always works.
+const showImageOverlay = (dataUrl: string, filename: string): void => {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:14px;overflow:auto;font-family:system-ui,sans-serif;';
+  const hint = document.createElement('div');
+  hint.style.cssText = 'color:#fff;font-size:15px;font-weight:700;text-align:center;max-width:92%;line-height:1.5;';
+  hint.textContent = '📲 ចុចលើរូបឱ្យយូរ រួចជ្រើស «Save Image / រក្សាទុករូបភាព»';
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.alt = filename;
+  img.style.cssText = 'max-width:100%;max-height:74vh;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.5);background:#fff;';
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;justify-content:center;';
+  const dl = document.createElement('a');
+  dl.href = dataUrl; dl.download = filename; dl.textContent = '⬇ ទាញយក';
+  dl.style.cssText = 'background:#0ea5e9;color:#fff;padding:9px 18px;border-radius:10px;font-weight:700;text-decoration:none;';
+  const close = document.createElement('button');
+  close.textContent = '✕ បិទ';
+  close.style.cssText = 'background:#e2e8f0;color:#334155;padding:9px 18px;border-radius:10px;font-weight:700;border:0;cursor:pointer;';
+  close.onclick = () => overlay.remove();
+  row.appendChild(dl); row.appendChild(close);
+  overlay.append(hint, img, row);
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+};
+
 // Deliver a finished blob to the user.
 //
 // IMPORTANT: we render FIRST and deliver afterwards (see exports below). We must
@@ -130,6 +165,12 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
 export async function exportElementToImage(el: HTMLElement, filename: string): Promise<void> {
   const canvas = await renderElementToCanvas(el);
   const name = filename.endsWith('.png') ? filename : `${filename}.png`;
+  // Phones: show the image in-app (long-press → Save Image). After the async
+  // render the tap gesture is gone, so window.open()/<a download> are blocked.
+  if (isMobile()) {
+    showImageOverlay(canvas.toDataURL('image/png'), name);
+    return;
+  }
   const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
   if (!blob) throw new Error('toBlob returned null');
   deliverBlob(blob, name);
