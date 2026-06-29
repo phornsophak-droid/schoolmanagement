@@ -58,6 +58,17 @@ const monthEndDate = (month: string) => {
   return { day: toKh(MONTH_LAST_DAY[idx]), year: toKh(yearNum), lunar: khmerLunarFull(date) };
 };
 
+// Render the period with the MONTH and the academic YEAR in bold, while
+// "ប្រចាំខែ" / "ឆ្នាំសិក្សា" stay normal weight. Falls back to bolding just the
+// year range for non-monthly phrases (semester / annual).
+const YEAR_RANGE = /[០-៩]{4}\s*[-–]\s*[០-៩]{4}/;
+const renderPeriod = (period: string): React.ReactNode => {
+  const m = period.match(/^(ប្រចាំខែ)(.+?)\s*(ឆ្នាំសិក្សា)\s*([០-៩]{4}\s*[-–]\s*[០-៩]{4})\s*$/);
+  if (m) return <>{m[1]}<span className="font-bold">{m[2]}</span> {m[3]} <span className="font-bold">{m[4]}</span></>;
+  return period.split(new RegExp(`(${YEAR_RANGE.source})`)).map((p, i) =>
+    YEAR_RANGE.test(p) ? <span key={i} className="font-bold">{p}</span> : <React.Fragment key={i}>{p}</React.Fragment>);
+};
+
 export default function MeritCertificate({ student, students, scoreOverride, periodPhrase, onClose }: MeritCertificateProps) {
   const niddes = gradeBand(scoreOverride ?? student.overallAvg);
   const period = periodPhrase || `ប្រចាំខែ${student.month} ឆ្នាំសិក្សា ២០២៥-២០២៦`;
@@ -188,7 +199,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
                   ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
                   <span className="font-bold text-red-700" style={{ whiteSpace: 'nowrap' }}>{niddes.km} ({niddes.en})</span>
-                  {' '}{period} ។
+                  {' '}{renderPeriod(period)} ។
                 </p>
                 <p className="mt-3">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
               </div>
