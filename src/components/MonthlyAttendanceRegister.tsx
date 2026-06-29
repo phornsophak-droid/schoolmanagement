@@ -208,60 +208,79 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
     reader.onload = ev => {
       try {
         const wb = XLSX.read(new Uint8Array(ev.target!.result as ArrayBuffer), { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-        // Locate the header row (has 'អត្តលេខ' and a name column).
-        const hdrIdx = rows.findIndex(r => r.some(c => String(c).includes('អត្តលេខ')) && r.some(c => String(c).includes('នាម')));
-        if (hdrIdx < 0) { setToast('រកមិនឃើញក្បាលតារាង (អត្តលេខ / គោត្តនាម)'); return; }
-        const hdr = rows[hdrIdx].map((c: any) => String(c).trim());
-        const idCol = hdr.findIndex(c => c.includes('អត្តលេខ'));
-        const nameCol = hdr.findIndex(c => c.includes('នាម'));
-        const genderCol = hdr.findIndex(c => c === 'ភេទ');
-        // Day columns: the numeric headers right after gender.
-        const dayCols: { col: number; day: number }[] = [];
-        hdr.forEach((c, idx) => {
-          if (idx <= genderCol) return;
-          const n = parseInt(String(c).replace(/[០-៩]/g, d => String('០១២៣៤៥៦៧៨៩'.indexOf(d))), 10);
-          if (!isNaN(n) && n >= 1 && n <= 31) dayCols.push({ col: idx, day: n });
-        });
-        if (dayCols.length === 0) { setToast('រកមិនឃើញជួរថ្ងៃ (១–៣១)'); return; }
-
+        // Accept either the "ឈ្មោះ" or "គោត្តនាម និងនាម" name-column header.
+        const isName = (c: string) => c.includes('ឈ្មោះ') || c.includes('នាម');
         const byName = new Map(roster.map(s => [s.name.replace(/\s+/g, ' ').trim(), s]));
         const touched = new Map<string, AttRecord>();
-        const getRec = (day: number): AttRecord => {
-          const date = `${year}-${mm}-${pad2(day)}`;
-          const id = `att-morning-${date}-${grade}`;
-          if (touched.has(id)) return touched.get(id)!;
-          const existing = records.find(r => r.id === id);
-          const rec: AttRecord = existing
-            ? { ...existing, studentStates: { ...existing.studentStates } }
-            : { id, date, grade, session: 'morning', presentCount: 0, lateCount: 0, permissionCount: 0, absentCount: 0, studentStates: {} };
-          touched.set(id, rec);
-          return rec;
+        let marks = 0, unmatched = 0, sheetsUsed = 0;
+
+        // Parse ONE month sheet into `touched`, using the given month/year for the
+        // record dates. Returns false when the sheet isn't a day-grid (e.g. the
+        // "សរុបរួម" summary sheet, which has no day columns) so it can be skipped.
+        const parseSheet = (ws: any, useYear: number, useMonth: number): boolean => {
+          const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          const hdrIdx = rows.findIndex(r => r.some(c => String(c).includes('អត្តលេខ')) && r.some(c => isName(String(c))));
+          if (hdrIdx < 0) return false;
+          const hdr = rows[hdrIdx].map((c: any) => String(c).trim());
+          const idCol = hdr.findIndex(c => c.includes('អត្តលេខ'));
+          const nameCol = hdr.findIndex(c => isName(c));
+          const genderCol = hdr.findIndex(c => c === 'ភេទ');
+          const dayCols: { col: number; day: number }[] = [];
+          hdr.forEach((c, idx) => {
+            if (idx <= genderCol) return;
+            const n = parseInt(String(c).replace(/[០-៩]/g, d => String('០១២៣៤៥៦៧៨៩'.indexOf(d))), 10);
+            if (!isNaN(n) && n >= 1 && n <= 31) dayCols.push({ col: idx, day: n });
+          });
+          if (dayCols.length === 0) return false;
+          const mmUse = pad2(useMonth);
+          const getRec = (day: number): AttRecord => {
+            const date = `${useYear}-${mmUse}-${pad2(day)}`;
+            const id = `att-morning-${date}-${grade}`;
+            if (touched.has(id)) return touched.get(id)!;
+            const existing = records.find(r => r.id === id);
+            const rec: AttRecord = existing
+              ? { ...existing, studentStates: { ...existing.studentStates } }
+              : { id, date, grade, session: 'morning', presentCount: 0, lateCount: 0, permissionCount: 0, absentCount: 0, studentStates: {} };
+            touched.set(id, rec);
+            return rec;
+          };
+          for (let i = hdrIdx + 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row) continue;
+            const nm = String(row[nameCol] ?? '').replace(/\s+/g, ' ').trim();
+            if (!nm || nm === 'សរុប' || nm.includes('សរុបស្រី')) continue;
+            let stu = byName.get(nm);
+            if (!stu && idCol >= 0) {
+              const sid = String(row[idCol] ?? '').trim();
+              stu = roster.find(s => ((s as any).studentId || '').trim() === sid && sid);
+            }
+            if (!stu) { unmatched++; continue; }
+            const sid = (stu as any).id;
+            for (const { col, day } of dayCols) {
+              const v = String(row[col] ?? '').replace(/\s+/g, '').trim();
+              if (!v) continue;
+              const rec = getRec(day);
+              if (v.includes('អ')) { rec.studentStates[sid] = 'absent'; marks++; }
+              else if (v.includes('ច្ប') || v.includes('ច')) { rec.studentStates[sid] = 'permission'; marks++; }
+              else if (v.includes('យ')) { rec.studentStates[sid] = 'late'; marks++; }
+            }
+          }
+          return true;
         };
 
-        let marks = 0, unmatched = 0;
-        for (let i = hdrIdx + 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row) continue;
-          const nm = String(row[nameCol] ?? '').replace(/\s+/g, ' ').trim();
-          if (!nm || nm === 'សរុប' || nm.includes('សរុបស្រី')) continue;
-          let stu = byName.get(nm);
-          if (!stu && idCol >= 0) {
-            const sid = String(row[idCol] ?? '').trim();
-            stu = roster.find(s => ((s as any).studentId || '').trim() === sid && sid);
-          }
-          if (!stu) { unmatched++; continue; }
-          const sid = (stu as any).id;
-          for (const { col, day } of dayCols) {
-            const v = String(row[col] ?? '').replace(/\s+/g, '').trim();
-            if (!v) continue;
-            const rec = getRec(day);
-            if (v.includes('អ')) { rec.studentStates[sid] = 'absent'; marks++; }
-            else if (v.includes('ច្ប') || v.includes('ច')) { rec.studentStates[sid] = 'permission'; marks++; }
-            else if (v.includes('យ')) { rec.studentStates[sid] = 'late'; marks++; }
-          }
-        }
+        // A sheet NAMED after a Khmer month is imported for that month (calendar year
+        // per the 2025–2026 school year: Sep–Dec → 2025, Jan–Aug → 2026). Any other
+        // single sheet uses the month currently open in the register. This handles the
+        // multi-month export workbook (one sheet per month + a "សរុបរួម" summary).
+        wb.SheetNames.forEach(sn => {
+          const mIdx = KH_MONTHS.indexOf(sn.trim());
+          const useMonth = mIdx >= 0 ? mIdx + 1 : month;
+          const useYear = mIdx >= 0 ? (useMonth >= 9 ? 2025 : 2026) : year;
+          if (parseSheet(wb.Sheets[sn], useYear, useMonth)) sheetsUsed++;
+        });
+
+        if (sheetsUsed === 0) { setToast('រកមិនឃើញក្បាលតារាង (អត្តលេខ / ឈ្មោះ) ឬជួរថ្ងៃ (១–៣១)'); return; }
+
         // Recount each touched record's aggregate counts.
         const updated = Array.from(touched.values()).map(rec => {
           let p = 0, l = 0, pe = 0, a = 0;
@@ -272,7 +291,7 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
           return { ...rec, presentCount: p, lateCount: l, permissionCount: pe, absentCount: a };
         });
         onImport(updated);
-        setToast(`បាននាំចូល ${toKh(marks)} សញ្ញាអវត្តមាន${unmatched ? ` (រកមិនឃើញ ${toKh(unmatched)} ឈ្មោះ)` : ''} ✓`);
+        setToast(`បាននាំចូល ${toKh(marks)} សញ្ញាអវត្តមាន ពី ${toKh(sheetsUsed)} ខែ${unmatched ? ` (រកមិនឃើញ ${toKh(unmatched)} ឈ្មោះ)` : ''} ✓`);
       } catch (err) {
         console.error('Monthly attendance import failed', err);
         setToast('មានបញ្ហាក្នុងការអានឯកសារ! សូមប្រើគំរូដែលបាននាំចេញ។');
