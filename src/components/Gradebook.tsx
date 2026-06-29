@@ -35,6 +35,7 @@ import HonorRoll, { HonorEntry } from './HonorRoll';
 import ClassRankingReport, { RankingRow } from './ClassRankingReport';
 import GradebookReportFooter from './GradebookReportFooter';
 import SchoolLogo from './SchoolLogo';
+import ReportsHub from './ReportsHub';
 import * as XLSX from 'xlsx';
 
 // Inline score cell — local text state, commits on blur/Enter so parent
@@ -762,6 +763,8 @@ export default function Gradebook({
 
   // Monthly vs Semester Mode declarations
   const [activeMode, setActiveMode] = useState<'monthly' | 'semester' | 'annual'>('monthly');
+  // Sub-tab: the score table vs the academic-results report (moved here from Reports).
+  const [gbView, setGbView] = useState<'scores' | 'academic'>('scores');
   const [selectedSemester, setSelectedSemester] = useState<'1' | '2'>('1');
 
   // Semester Exam Score Input states
@@ -1790,6 +1793,25 @@ export default function Gradebook({
 
   return (
     <div className="space-y-3 print:block print:space-y-0 print:p-0 print:m-0 print:bg-white">
+      {/* Scores ⇄ Academic-results sub-tabs (the results report was moved here from the Reports section). */}
+      <div className="flex border-b border-slate-200/80 bg-slate-100 p-1 rounded-xl max-w-xl mx-auto print:hidden">
+        <button onClick={() => setGbView('scores')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${gbView === 'scores' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📊 តារាងពិន្ទុ</button>
+        <button onClick={() => setGbView('academic')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${gbView === 'academic' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📈 របាយការណ៍លទ្ធផលសិក្សា</button>
+      </div>
+      {gbView === 'academic' && (
+        <ReportsHub
+          embeddedAcademic
+          students={students}
+          grades={grades || []}
+          currentUser={currentUser}
+          reports={[]}
+          onSaveReport={() => {}}
+          onDeleteReport={() => {}}
+          onViewReport={() => {}}
+          onCancel={() => setGbView('scores')}
+        />
+      )}
+      <div style={{ display: gbView === 'academic' ? 'none' : undefined }} className="space-y-3 print:space-y-0">
       {/* Class category tabs (principal): General vs Extra */}
       {currentUser?.role !== 'teacher' && (
         <div className="flex items-center gap-1.5 p-1.5 bg-white rounded-2xl shadow-sm border border-slate-100 w-full print:hidden">
@@ -3319,6 +3341,7 @@ export default function Gradebook({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

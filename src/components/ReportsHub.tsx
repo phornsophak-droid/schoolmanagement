@@ -41,6 +41,9 @@ interface ReportsHubProps {
   grades: string[];
   currentUser?: SchoolUser | null;
   onCancel: () => void;
+  // When true, render ONLY the academic-results report (no work-report tab) — used
+  // to embed this report as a tab inside the Gradebook / scores section.
+  embeddedAcademic?: boolean;
 }
 
 const SEMESTER_1_MONTHS = ['ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា'];
@@ -79,7 +82,8 @@ export default function ReportsHub({
   students,
   grades,
   currentUser,
-  onCancel
+  onCancel,
+  embeddedAcademic = false
 }: ReportsHubProps) {
   const gradesList = grades || [
     'មត្តេយ្យ ១',
@@ -102,7 +106,9 @@ export default function ReportsHub({
   ];
   
   // Tab states: 'monthly_progress' (សរសេររបាយការណ៍) or 'academic' (របាយការណ៍លទ្ធផលសិក្សាសិស្ស)
-  const [activeTab, setActiveTab] = useState<'monthly_progress' | 'academic'>('monthly_progress');
+  // The academic-results report moved to the Gradebook, so this view is single-mode:
+  // 'academic' when embedded there, otherwise 'monthly_progress' (the work report).
+  const [activeTab] = useState<'monthly_progress' | 'academic'>(embeddedAcademic ? 'academic' : 'monthly_progress');
   const [showSchoolSummary, setShowSchoolSummary] = useState(false);
   
   // Report wizard activation state within the tab
@@ -526,32 +532,8 @@ export default function ReportsHub({
         <SchoolSummary students={students} scopeGrade={teacherLocked ? teacherGrade : undefined} onClose={() => setShowSchoolSummary(false)} />
       )}
 
-      {/* 2. Top-Level Tab Selector Switcher (Hidden in print) */}
-      <div className="flex border-b border-slate-200/80 bg-slate-100 p-1 rounded-xl max-w-xl mx-auto print:hidden">
-        <button
-          onClick={() => {
-            setActiveTab('monthly_progress');
-            setIsWritingReport(false);
-          }}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === 'monthly_progress'
-              ? 'bg-white text-slate-800 shadow-xs'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          ✍️ សរសេររបាយការណ៍ការងារប្រចាំខែ
-        </button>
-        <button
-          onClick={() => setActiveTab('academic')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-            activeTab === 'academic'
-              ? 'bg-white text-slate-800 shadow-xs'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          📊 របាយការណ៍លទ្ធផលសិក្សាសិស្ស
-        </button>
-      </div>
+      {/* Tab toggle removed — the academic-results report now lives in the Gradebook
+          (embeddedAcademic). The Reports page shows only the monthly work report. */}
 
       {/* Class-category selector (general / extra) — scopes all report data (Hidden in print).
           Locked for teacher accounts, who only ever see their own class category. */}
