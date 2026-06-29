@@ -89,6 +89,7 @@ const deliverBlob = (blob: Blob, filename: string): void => {
 // collapses to the narrow phone viewport, so the whole cert renders cramped into
 // a strip. Pinning the element to a fixed wide px size makes cqw resolve to the
 // full design size on every device, so the snapshot matches the on-screen cert.
+let _h2cWarmed = false;
 async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Promise<HTMLCanvasElement> {
   // Wait for the Khmer web fonts (incl. the BOLD weight used in the table headers)
   // to finish loading. If we capture before bold Khmer is ready html2canvas can't
@@ -104,7 +105,7 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
   // the output to ~1500px keeps it fast on every device.
   const renderWidth = fixedWidth ?? Math.max(el.scrollWidth, el.offsetWidth, 800);
   const scale = Math.min(2.5, Math.max(1.5, 1500 / renderWidth));
-  return html2canvas(el, {
+  const options = {
     scale,
     useCORS: true,
     backgroundColor: '#ffffff',
@@ -151,7 +152,19 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
       // an actually-uploaded photo is not .rc-no-print, so it still appears.
       doc.querySelectorAll<HTMLElement>('.rc-no-print').forEach(n => { n.style.display = 'none'; });
     },
-  });
+  };
+
+  // The FIRST capture after the page loads can come out mis-rendered: the Khmer
+  // web fonts aren't yet present in html2canvas's sandboxed clone (and layout may
+  // not have fully settled), so a freshly-opened card/cert exports wrong while a
+  // SECOND attempt is correct. Prime it ONCE with a throwaway low-res render so the
+  // first real export is already effectively a warmed "second" render.
+  if (!_h2cWarmed) {
+    _h2cWarmed = true;
+    try { await html2canvas(el, { ...options, scale: 0.5 }); } catch { /* warm-up only */ }
+    await new Promise(resolve => setTimeout(resolve, 60));
+  }
+  return html2canvas(el, options);
 }
 
 // Render an element to a single-image PDF page (landscape if the snapshot is
