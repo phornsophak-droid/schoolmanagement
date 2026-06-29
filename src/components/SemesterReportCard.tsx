@@ -163,7 +163,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
     const el = document.getElementById('semester-report-card');
     if (!el) return;
     setPdfBusy(true);
-    try { await exportElementToPdf(el, `ព្រឹត្តបត្រ${periodTitle}_${student.name.replace(/\s+/g, '_')}`); }
+    try { await exportElementToPdf(el, `ព្រឹត្តបត្រ${periodTitle}_${student.name.replace(/\s+/g, '_')}`, 768); }
     catch (e) { console.error('PDF export failed', e); alert('មិនអាចបង្កើត PDF បានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setPdfBusy(false); }
   };
@@ -173,7 +173,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
     const el = document.getElementById('semester-report-card');
     if (!el) return;
     setImgBusy(true);
-    try { await exportElementToImage(el, `ព្រឹត្តបត្រ${periodTitle}_${student.name.replace(/\s+/g, '_')}`); }
+    try { await exportElementToImage(el, `ព្រឹត្តបត្រ${periodTitle}_${student.name.replace(/\s+/g, '_')}`, 768); }
     catch (e) { console.error('Image export failed', e); alert('មិនអាចបង្កើតរូបភាពបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setImgBusy(false); }
   };

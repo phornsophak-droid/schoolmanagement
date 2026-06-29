@@ -186,7 +186,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
     const el = document.getElementById('student-report-card');
     if (!el) return;
     setPdfBusy(true);
-    try { await exportElementToPdf(el, `ព្រឹត្តបត្រ_${student.name.replace(/\s+/g, '_')}_${student.month}`); }
+    try { await exportElementToPdf(el, `ព្រឹត្តបត្រ_${student.name.replace(/\s+/g, '_')}_${student.month}`, 768); }
     catch (e) { console.error('PDF export failed', e); alert('មិនអាចបង្កើត PDF បានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setPdfBusy(false); }
   };
@@ -196,7 +196,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
     const el = document.getElementById('student-report-card');
     if (!el) return;
     setImgBusy(true);
-    try { await exportElementToImage(el, `ព្រឹត្តបត្រ_${student.name.replace(/\s+/g, '_')}_${student.month}`); }
+    try { await exportElementToImage(el, `ព្រឹត្តបត្រ_${student.name.replace(/\s+/g, '_')}_${student.month}`, 768); }
     catch (e) { console.error('Image export failed', e); alert('មិនអាចបង្កើតរូបភាពបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setImgBusy(false); }
   };
