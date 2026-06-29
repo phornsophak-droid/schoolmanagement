@@ -69,6 +69,15 @@ const renderPeriod = (period: string): React.ReactNode => {
     YEAR_RANGE.test(p) ? <span key={i} className="font-bold">{p}</span> : <React.Fragment key={i}>{p}</React.Fragment>);
 };
 
+// Render a "ថ្ងៃទី <d> ខែ <m> ឆ្នាំ <y>" date with the day / month / year values in
+// bold and the labels normal. Falls back to bolding the whole string if the date
+// isn't in that long form (e.g. a raw "DD/MM/YYYY").
+const renderDob = (text: string): React.ReactNode => {
+  const m = text.match(/^(ថ្ងៃទី)\s*(.+?)\s*(ខែ)\s*(.+?)\s*(ឆ្នាំ)\s*(.+?)\s*$/);
+  if (m) return <>{m[1]} <span className="font-bold">{m[2]}</span> {m[3]} <span className="font-bold">{m[4]}</span> {m[5]} <span className="font-bold">{m[6]}</span></>;
+  return <span className="font-bold">{text}</span>;
+};
+
 export default function MeritCertificate({ student, students, scoreOverride, periodPhrase, onClose }: MeritCertificateProps) {
   const niddes = gradeBand(scoreOverride ?? student.overallAvg);
   const period = periodPhrase || `ប្រចាំខែ${student.month} ឆ្នាំសិក្សា ២០២៥-២០២៦`;
@@ -194,7 +203,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
                   ភេទ <span className="font-bold">{student.gender}</span>{' '}
                   {dobText
-                    ? <>កើតនៅ<span className="font-semibold" style={{ whiteSpace: 'nowrap' }}>{dobText}</span> </>
+                    ? <>កើតនៅ<span style={{ whiteSpace: 'nowrap' }}>{renderDob(dobText)}</span> </>
                     : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
                   រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
                   ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
