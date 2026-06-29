@@ -83,7 +83,13 @@ const deliverBlob = (blob: Blob, filename: string): void => {
 // pixel-identical on every device (no reflow) and embeds whatever is on screen
 // — including the principal/teacher signatures. Normalized to ~1500px wide so
 // quality is the same on phone or PC.
-async function renderElementToCanvas(el: HTMLElement): Promise<HTMLCanvasElement> {
+// `fixedWidth` forces the captured element to that pixel width in the clone. The
+// merit certificate is laid out entirely in container-query units (cqw), which
+// html2canvas-pro 2.2 does NOT support: in its sandboxed clone the cqw container
+// collapses to the narrow phone viewport, so the whole cert renders cramped into
+// a strip. Pinning the element to a fixed wide px size makes cqw resolve to the
+// full design size on every device, so the snapshot matches the on-screen cert.
+async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Promise<HTMLCanvasElement> {
   // Wait for the Khmer web fonts (incl. the BOLD weight used in the table headers)
   // to finish loading. If we capture before bold Khmer is ready html2canvas can't
   // measure the glyphs and the <th> header text comes out blank on some browsers
@@ -96,7 +102,7 @@ async function renderElementToCanvas(el: HTMLElement): Promise<HTMLCanvasElement
   // old `1500/offsetWidth` scale jump to 4 while the render width was forced to 800
   // → a ~3200px canvas that froze weak mobile CPUs ("Page Unresponsive"). Capping
   // the output to ~1500px keeps it fast on every device.
-  const renderWidth = Math.max(el.scrollWidth, el.offsetWidth, 800);
+  const renderWidth = fixedWidth ?? Math.max(el.scrollWidth, el.offsetWidth, 800);
   const scale = Math.min(2.5, Math.max(1.5, 1500 / renderWidth));
   return html2canvas(el, {
     scale,
@@ -105,11 +111,23 @@ async function renderElementToCanvas(el: HTMLElement): Promise<HTMLCanvasElement
     logging: false,
     imageTimeout: 15000,
     windowWidth: renderWidth,
+    ...(fixedWidth ? { width: fixedWidth, windowWidth: fixedWidth } : {}),
     // On phones the report cards sit inside a FitToWidth transform:scale()
     // wrapper. html2canvas renders text at natural size but positions it with
     // the scaled coordinates → garbled overlap. Neutralise the wrapper in the
     // (sandboxed) clone so the card is captured at its full, un-scaled size.
     onclone: (doc: Document) => {
+      // Pin the export root (and clear any maxWidth clamp above it) to the fixed
+      // width so the cqw container resolves to full size — see note above.
+      if (fixedWidth && el.id) {
+        const root = doc.getElementById(el.id);
+        if (root) {
+          root.style.width = `${fixedWidth}px`;
+          root.style.maxWidth = 'none';
+          let p = root.parentElement;
+          for (let i = 0; p && i < 5; i++, p = p.parentElement) { p.style.maxWidth = 'none'; }
+        }
+      }
       doc.querySelectorAll<HTMLElement>('.rc-fit-outer, .rc-fit-frame').forEach(n => {
         n.style.transform = 'none';
         n.style.width = 'auto';
@@ -139,8 +157,8 @@ async function renderElementToCanvas(el: HTMLElement): Promise<HTMLCanvasElement
 // Render an element to a single-image PDF page (landscape if the snapshot is
 // wider than tall). Rendering runs while this page is in the foreground; only
 // after the file is ready do we hand it off (so iOS never pauses the render).
-export async function exportElementToPdf(el: HTMLElement, filename: string): Promise<void> {
-  const canvas = await renderElementToCanvas(el);
+export async function exportElementToPdf(el: HTMLElement, filename: string, fixedWidth?: number): Promise<void> {
+  const canvas = await renderElementToCanvas(el, fixedWidth);
   const imgW = canvas.width;
   const imgH = canvas.height;
   const orientation = imgW >= imgH ? 'landscape' : 'portrait';
@@ -162,8 +180,8 @@ export async function exportElementToPdf(el: HTMLElement, filename: string): Pro
 
 // Render an element to a downloadable PNG image (lossless — keeps Khmer text and
 // the certificate frame crisp).
-export async function exportElementToImage(el: HTMLElement, filename: string): Promise<void> {
-  const canvas = await renderElementToCanvas(el);
+export async function exportElementToImage(el: HTMLElement, filename: string, fixedWidth?: number): Promise<void> {
+  const canvas = await renderElementToCanvas(el, fixedWidth);
   const name = filename.endsWith('.png') ? filename : `${filename}.png`;
   // Phones: show the image in-app (long-press → Save Image). After the async
   // render the tap gesture is gone, so window.open()/<a download> are blocked.

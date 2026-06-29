@@ -90,16 +90,17 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     try { return localStorage.getItem(photoKey) || ''; } catch { return ''; }
   });
   const fileRef = useRef<HTMLInputElement>(null);
-  // Download a true landscape PDF. Android's print dialog ignores @page
-  // orientation, so window.print() can't guarantee landscape there — generate
-  // the PDF programmatically instead (the wide cert canvas → landscape page).
-  // The "បោះពុម្ព" button still uses native print for actual printers.
+  // The certificate is laid out in container-query units (cqw). Both prior export
+  // paths broke on phones: window.print() (mobile Chrome mis-paginates the
+  // landscape sheet) and plain html2canvas (no cqw support → cramped). We render
+  // via html2canvas at a FIXED width so cqw resolves to full size on every device.
+  const CERT_EXPORT_WIDTH = 1240;
   const [pdfBusy, setPdfBusy] = useState(false);
   const handleDownloadPdf = async () => {
     const el = document.getElementById('merit-cert');
     if (!el) return;
     setPdfBusy(true);
-    try { await exportElementToPdf(el, `ប័ណ្ណសរសើរ_${student.name.replace(/\s+/g, '_')}`); }
+    try { await exportElementToPdf(el, `ប័ណ្ណសរសើរ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
     catch (e) { console.error('PDF export failed', e); alert('មិនអាចបង្កើត PDF បានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setPdfBusy(false); }
   };
@@ -109,7 +110,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     const el = document.getElementById('merit-cert');
     if (!el) return;
     setImgBusy(true);
-    try { await exportElementToImage(el, `ប័ណ្ណសរសើរ_${student.name.replace(/\s+/g, '_')}`); }
+    try { await exportElementToImage(el, `ប័ណ្ណសរសើរ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
     catch (e) { console.error('Image export failed', e); alert('មិនអាចបង្កើតរូបភាពបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setImgBusy(false); }
   };
@@ -126,17 +127,8 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     e.target.value = '';
   };
 
-  const printCss = `@media print {
-    @page { size: A4 landscape; margin: 8mm; }
-    body * { visibility: hidden !important; }
-    #merit-cert, #merit-cert * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    #merit-cert { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; }
-    .rc-no-print { display: none !important; }
-  }`;
-
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4 flex justify-center items-start">
-      <style>{printCss}</style>
       <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
 
       {/* max-w-5xl normally; in landscape (short viewport) the width is also
@@ -147,13 +139,10 @@ export default function MeritCertificate({ student, students, scoreOverride, per
           <h3 className="text-sm font-bold text-slate-800">ប័ណ្ណសរសើរ — {student.name} ({niddes.en})</h3>
           <div className="flex items-center justify-end flex-wrap gap-2">
             <button onClick={handleDownloadPdf} disabled={pdfBusy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
-              {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} ទាញយក PDF
+              {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Printer size={13} />} ទាញយក PDF
             </button>
             <button onClick={handleDownloadImage} disabled={imgBusy} className="px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
               {imgBusy ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />} ទាញយករូបភាព
-            </button>
-            <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
-              <Printer size={13} /> បោះពុម្ព
             </button>
             <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-colors">
               <X size={13} /> បិទ
