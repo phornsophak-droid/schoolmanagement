@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { StudentScore } from '../types';
+import { StudentScore, afterHoursSubject } from '../types';
 import { loadAttendance } from './attendanceStore';
 import { SEM1_MONTHS, SEM2_MONTHS, semesterAvgOf, annualFinalOf } from './scoring';
 import { distinctStudentKey } from './studentKey';
@@ -32,6 +32,17 @@ export function periodLabel(p: SummaryPeriod): string {
 
 const EXTRA_KEYWORDS = ['GRADE','គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 export const isExtraClass = (grade: string) => EXTRA_KEYWORDS.some(k => (grade || '').includes(k));
+
+// A grade belongs to a scoped class when it matches exactly, OR — when the scope is
+// an after-hours subject (an extra teacher's generic "ថ្នាក់ភាសាអង់គ្លេស") — when it
+// is the same subject, so section/group variants like "ថ្នាក់ភាសាអង់គ្លេស 3" /
+// "GRADE 3" are all counted. (Extra teachers' accounts hold the subject name while
+// their students' grades carry the group.)
+const inScope = (grade: string, scopeGrade: string): boolean => {
+  if ((grade || '') === scopeGrade) return true;
+  const sub = afterHoursSubject(scopeGrade);
+  return sub !== '' && afterHoursSubject(grade || '') === sub;
+};
 
 // School-year month order, for picking the latest month with data.
 export const MONTH_ORDER = ['កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
@@ -117,7 +128,7 @@ export function computePeriodAbsences(students: StudentScore[], months: string[]
   for (const r of records) {
     if (!keys.has((r.date || '').slice(0, 7))) continue;
     const grade = r.grade || '';
-    if (scopeGrade ? grade !== scopeGrade : isExtraClass(grade)) continue;
+    if (scopeGrade ? !inScope(grade, scopeGrade) : isExtraClass(grade)) continue;
     const states = r.studentStates || {};
     const ids = Object.keys(states);
     if (ids.length === 0) continue;
@@ -173,10 +184,11 @@ const subjectAverages = (s: StudentScore): { km: string; v: number | null }[] =>
 };
 
 // Months (school-year order) that have at least one scored general-class record.
-export function monthsWithData(students: StudentScore[]): string[] {
+export function monthsWithData(students: StudentScore[], scopeGrade?: string): string[] {
   const set = new Set<string>();
   students.forEach(s => {
-    if (!isExtraClass(s.grade) && !s.month?.startsWith('ប្រឡង') && s.overallAvg != null) set.add(s.month);
+    const include = scopeGrade ? inScope(s.grade, scopeGrade) : !isExtraClass(s.grade);
+    if (include && !s.month?.startsWith('ប្រឡង') && s.overallAvg != null) set.add(s.month);
   });
   return Array.from(set).sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
 }
@@ -190,7 +202,7 @@ interface StudentGroup { name: string; grade: string; gender: 'ប្រុស' 
 function groupGeneralStudents(students: StudentScore[], scopeGrade?: string): StudentGroup[] {
   const map = new Map<string, StudentGroup>();
   students.forEach(s => {
-    if (scopeGrade ? s.grade !== scopeGrade : isExtraClass(s.grade)) return;
+    if (scopeGrade ? !inScope(s.grade, scopeGrade) : isExtraClass(s.grade)) return;
     const key = distinctStudentKey(s.name, s.grade);
     let g = map.get(key);
     if (!g) { g = { name: s.name.trim(), grade: s.grade, gender: s.gender, records: [] }; map.set(key, g); }

@@ -75,7 +75,7 @@ function ReasonBars({ reasons }: { reasons: { reason: string; count: number }[] 
 }
 
 export default function SchoolSummary({ students, scopeGrade, onClose }: SchoolSummaryProps) {
-  const months = useMemo(() => monthsWithData(students), [students]);
+  const months = useMemo(() => monthsWithData(students, scopeGrade), [students, scopeGrade]);
   const [periodKind, setPeriodKind] = useState<'month' | 'sem1' | 'sem2' | 'year'>('month');
   const [month, setMonth] = useState<string>(() => months[months.length - 1] || 'មិថុនា');
   const period = useMemo<SummaryPeriod>(() =>
