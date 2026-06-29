@@ -56,13 +56,20 @@ async function renderElementToCanvas(el: HTMLElement): Promise<HTMLCanvasElement
   try { await (document as any).fonts?.ready; } catch { /* fonts API absent — proceed */ }
   await new Promise(resolve => setTimeout(resolve, 50));
 
-  const scale = Math.min(4, Math.max(2, 1500 / (el.offsetWidth || 1000)));
+  // Render at a fixed virtual width, and derive the scale FROM THAT width (not the
+  // on-screen offsetWidth). On a narrow phone offsetWidth is ~350px, which made the
+  // old `1500/offsetWidth` scale jump to 4 while the render width was forced to 800
+  // → a ~3200px canvas that froze weak mobile CPUs ("Page Unresponsive"). Capping
+  // the output to ~1500px keeps it fast on every device.
+  const renderWidth = Math.max(el.scrollWidth, el.offsetWidth, 800);
+  const scale = Math.min(2.5, Math.max(1.5, 1500 / renderWidth));
   return html2canvas(el, {
     scale,
     useCORS: true,
     backgroundColor: '#ffffff',
     logging: false,
-    windowWidth: Math.max(el.scrollWidth, el.offsetWidth, 800),
+    imageTimeout: 15000,
+    windowWidth: renderWidth,
     // On phones the report cards sit inside a FitToWidth transform:scale()
     // wrapper. html2canvas renders text at natural size but positions it with
     // the scaled coordinates → garbled overlap. Neutralise the wrapper in the
