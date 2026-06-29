@@ -28,6 +28,7 @@ import MonthlyAttendanceRegister from './MonthlyAttendanceRegister';
 import {
   getSupabaseClient,
   syncUpsertStudentAttendance,
+  syncUpsertStudentAttendanceBulk,
   syncUpsertTeacherAttendance,
   syncDeleteStudentAttendance
 } from '../lib/supabase';
@@ -178,14 +179,24 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   const [monthlyRegisterOpen, setMonthlyRegisterOpen] = useState(false);
 
   // Merge imported monthly-register day-marks into the daily attendance records.
-  const handleMonthlyImport = (updated: AttendanceRecord[]) => {
+  // The cloud sync MUST be reliable: a large import (many months × classes) used to
+  // fire hundreds of parallel single-row upserts fire-and-forget, so many silently
+  // failed → the records were saved only locally, then the next full reconcile
+  // replaced the local copy with the cloud's incomplete one and they "disappeared".
+  // Push them in awaited bulk chunks and tell the user if the cloud write failed.
+  const handleMonthlyImport = async (updated: AttendanceRecord[]) => {
     const ids = new Set(updated.map(r => r.id));
     const merged = [...updated, ...records.filter(r => !ids.has(r.id))];
     setRecords(merged);
     persistAttendance(merged);
     const client = getSupabaseClient();
-    if (client) {
-      updated.forEach(r => syncUpsertStudentAttendance(r).catch(err => console.warn('Supabase monthly import sync failed', err)));
+    if (!client) { triggerToast('បានរក្សាក្នុងម៉ាស៊ីន (មិនបានភ្ជាប់ Cloud)', 'info'); return; }
+    try {
+      await syncUpsertStudentAttendanceBulk(updated);
+      triggerToast(`បានរក្សាទុក និងភ្ជាប់ Cloud ✓ (${updated.length} កំណត់ត្រា)`, 'success');
+    } catch (err) {
+      console.warn('Supabase monthly import sync failed', err);
+      triggerToast('⚠️ បានរក្សាក្នុងម៉ាស៊ីន តែការភ្ជាប់ Cloud បរាជ័យ — សូមនាំចូលឡើងវិញ ឬពិនិត្យ Cloud (ទិន្នន័យអាចបាត់ពេល Sync)', 'error');
     }
   };
 
