@@ -442,12 +442,14 @@ export default function App() {
             // Heavy tables: replace on a full reconcile, merge on an incremental delta.
             if (needFull) {
               if (data.students && data.students.length > 0) applyCloudStudents(data.students);
-              if (data.studentAttendance && data.studentAttendance.length > 0) {
-                persistAttendance(data.studentAttendance);
-              }
-              if (data.teacherAttendance && data.teacherAttendance.length > 0) {
-                localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(data.teacherAttendance));
-              }
+              // Attendance: MERGE the cloud copy into local instead of replacing it.
+              // A full reconcile used to overwrite local with the cloud's set, so if
+              // the cloud copy was incomplete (e.g. a big import whose cloud sync
+              // hadn't fully landed) the fuller local records were wiped. Union-by-id
+              // keeps local-only records; cloud deletions still arrive via the
+              // realtime DELETE listener.
+              mergeRowsById('school_daily_attendance', data.studentAttendance);
+              mergeRowsById('school_teachers_daily_attendance', data.teacherAttendance);
             } else {
               mergeStudentsDelta(data.students || []);
               mergeRowsById('school_daily_attendance', data.studentAttendance);
