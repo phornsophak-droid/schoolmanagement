@@ -14,7 +14,7 @@ const apiKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) || ''
 export const hasGemini = (): boolean => !!apiKey;
 
 let client: GoogleGenAI | null = null;
-const getClient = (): GoogleGenAI | null => {
+export const getClient = (): GoogleGenAI | null => {
   if (!apiKey) return null;
   if (!client) client = new GoogleGenAI({ apiKey });
   return client;

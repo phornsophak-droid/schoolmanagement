@@ -33,6 +33,7 @@ import MeritCertificate from './MeritCertificate';
 import SemesterReportCard from './SemesterReportCard';
 import HonorRoll, { HonorEntry } from './HonorRoll';
 import ClassRankingReport, { RankingRow } from './ClassRankingReport';
+import WorksheetGenerator from './WorksheetGenerator';
 import GradebookReportFooter from './GradebookReportFooter';
 import SchoolLogo from './SchoolLogo';
 import ReportsHub from './ReportsHub';
@@ -278,6 +279,7 @@ export default function Gradebook({
   const [honorOpen, setHonorOpen] = useState(false);
   const [meritPickerOpen, setMeritPickerOpen] = useState(false);
   const [rankingOpen, setRankingOpen] = useState(false);
+  const [worksheetOpen, setWorksheetOpen] = useState(false);
 
   // Robust printing using hidden iframe (bypasses all React/Chrome flex-layout bugs)
   const handlePrint = () => {
@@ -2547,6 +2549,13 @@ export default function Gradebook({
               📊 តារាងចំណាត់ថ្នាក់
             </button>
             <button
+              onClick={() => setWorksheetOpen(true)}
+              className="px-3 py-1.5 bg-violet-50 border border-violet-200 hover:bg-violet-100 text-violet-700 hover:text-violet-800 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              title="ម៉ាស៊ីនបង្កើតសន្លឹកលំហាត់ (AI Worksheet Generator)"
+            >
+              📝 សន្លឹកលំហាត់ (AI)
+            </button>
+            <button
               onClick={handlePrint}
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
               title="ទាញយកតារាងពិន្ទុជា PDF (បោះពុម្ព)"
@@ -3304,6 +3313,10 @@ export default function Gradebook({
       {rankingOpen && (() => { const r = rankingData(); return (
         <ClassRankingReport roster={r.roster} grade={selectedGrade} period={r.period} onClose={() => setRankingOpen(false)} />
       ); })()}
+
+      {worksheetOpen && (
+        <WorksheetGenerator grades={grades || []} currentUser={currentUser} onClose={() => setWorksheetOpen(false)} />
+      )}
 
       {/* Annual skills / conduct entry form */}
       {extraForm.open && (
