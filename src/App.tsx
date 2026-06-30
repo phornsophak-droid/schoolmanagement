@@ -131,6 +131,7 @@ import ClassStudentMgmt from './components/ClassStudentMgmt';
 import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
 import WorksheetGenerator from './components/WorksheetGenerator';
+import DocBank from './components/DocBank';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
 import { persistAttendance, loadAttendance, initAttendanceStore, clearAttendanceStore } from './utils/attendanceStore';
@@ -147,7 +148,7 @@ const IS_PHONE = typeof navigator !== 'undefined' &&
 export default function App() {
   const { t } = useT();
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets'>(() => {
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'docbank'>(() => {
     const isMobile = typeof window !== 'undefined' && (
       window.innerWidth < 768 || 
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -1504,6 +1505,21 @@ export default function App() {
           </button>
 
           <button
+            id="nav_docbank_tab"
+            onClick={() => setActiveView('docbank')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'docbank'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Database size={16} className={activeView === 'docbank' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>បណ្ណាល័យឯកសារ</span>
+            </div>
+          </button>
+
+          <button
             id="nav_mobile_portal_tab"
             onClick={() => setActiveView('mobile-portal')}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -1990,6 +2006,21 @@ export default function App() {
                     <WorksheetGenerator
                       embedded
                       grades={grades}
+                      currentUser={currentUser}
+                      onClose={() => setActiveView('dashboard')}
+                    />
+                  </motion.div>
+                )}
+
+                {activeView === 'docbank' && (
+                  <motion.div
+                    key="docbank"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <DocBank
                       currentUser={currentUser}
                       onClose={() => setActiveView('dashboard')}
                     />
