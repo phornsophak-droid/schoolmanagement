@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText } from 'lucide-react';
+import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Trash2, BookMarked } from 'lucide-react';
 import { SchoolUser } from '../types';
 import SchoolLogo from './SchoolLogo';
 import FitToWidth from './FitToWidth';
@@ -16,6 +16,7 @@ import {
 } from '../lib/worksheets';
 import { hasGemini } from '../lib/gemini';
 import { getOllamaModel, ollamaReachable } from '../lib/ollama';
+import { LessonSource, loadLessons, refreshLessonsFromCloud, saveLesson, deleteLesson } from '../lib/lessons';
 
 interface Props {
   grades: string[];
@@ -73,6 +74,48 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'ok' | 'off'>('checking');
   useEffect(() => { ollamaReachable().then(ok => setOllamaStatus(ok ? 'ok' : 'off')); }, []);
   const activeEngine = ollamaStatus === 'ok' ? 'ollama' : hasGemini() ? 'gemini' : 'local';
+
+  // ---- Lesson Library (saved source texts, cloud-synced, tiny) ----
+  const [lessons, setLessons] = useState<LessonSource[]>(() => loadLessons());
+  const [selectedLessonId, setSelectedLessonId] = useState('');
+  useEffect(() => { refreshLessonsFromCloud().then(setLessons); }, []);
+
+  const pickLesson = (id: string) => {
+    setSelectedLessonId(id);
+    const ls = lessons.find(l => l.id === id);
+    if (ls) {
+      set('source', ls.content);
+      if (ls.subject) set('subject', ls.subject);
+      if (ls.grade && generalGrades.includes(ls.grade)) set('grade', ls.grade);
+    }
+  };
+
+  const saveCurrentLesson = async () => {
+    const content = (params.source || '').trim();
+    if (!content) { flash('ប្រអប់ «មាតិកាមេរៀន» ទទេ — សូមបិទភ្ជាប់អត្ថបទជាមុនសិន', false); return; }
+    const def = params.lesson || params.topic || `${params.subject} — ${params.grade}`;
+    const titleIn = window.prompt('ដាក់ឈ្មោះមេរៀននេះ៖', def);
+    if (titleIn === null) return;
+    const ls: LessonSource = {
+      id: (crypto as any).randomUUID ? crypto.randomUUID() : `ls-${Date.now()}`,
+      title: titleIn.trim() || def,
+      subject: params.subject, grade: params.grade, content,
+      createdBy: teacherName, createdAt: new Date().toISOString(),
+    };
+    const next = await saveLesson(ls);
+    setLessons(next);
+    setSelectedLessonId(ls.id);
+    flash('បានរក្សាទុកមេរៀនក្នុងបណ្ណាល័យ ✓');
+  };
+
+  const removeSelectedLesson = async () => {
+    if (!selectedLessonId) return;
+    if (!window.confirm('លុបមេរៀននេះចេញពីបណ្ណាល័យ?')) return;
+    const next = await deleteLesson(selectedLessonId);
+    setLessons(next);
+    setSelectedLessonId('');
+    flash('បានលុបមេរៀន ✓');
+  };
 
   const heading = title || `សន្លឹកលំហាត់ ${params.subject} — ${params.grade}`;
 
@@ -168,15 +211,28 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
             <Field label="ចំណងជើង (ស្រេចចិត្ត)"><input value={title} onChange={e => setTitle(e.target.value)} placeholder={heading} className={fieldCls} /></Field>
             <Field label="សេចក្ដីណែនាំ (ស្រេចចិត្ត)"><input value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="ឧ. ចូរឆ្លើយសំណួរខាងក្រោម…" className={fieldCls} /></Field>
           </div>
-          <Field label="មាតិកាមេរៀន / វិញ្ញាសារ (ស្រេចចិត្ត — បិទភ្ជាប់អត្ថបទពីបណ្ណាល័យឯកសារ)">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">មាតិកាមេរៀន / វិញ្ញាសារ (ស្រេចចិត្ត)</span>
+              <div className="flex items-center gap-1.5">
+                <select value={selectedLessonId} onChange={e => pickLesson(e.target.value)} className="px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-600 font-semibold outline-none max-w-[180px]">
+                  <option value="">📚 បណ្ណាល័យមេរៀន…</option>
+                  {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                </select>
+                {selectedLessonId && (
+                  <button onClick={removeSelectedLesson} title="លុបមេរៀននេះ" className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"><Trash2 size={12} /></button>
+                )}
+                <button onClick={saveCurrentLesson} title="រក្សាទុកអត្ថបទនេះក្នុងបណ្ណាល័យមេរៀន" className="px-2 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 flex items-center gap-1"><BookMarked size={12} /> រក្សាទុក</button>
+              </div>
+            </div>
             <textarea
               value={params.source || ''}
-              onChange={e => set('source', e.target.value)}
+              onChange={e => { set('source', e.target.value); setSelectedLessonId(''); }}
               rows={4}
-              placeholder="បើកឯកសារក្នុង «បណ្ណាល័យឯកសារ» → ចម្លងអត្ថបទមេរៀន/វិញ្ញាសារ → បិទភ្ជាប់ទីនេះ។ AI នឹងបង្កើតសំណួរផ្អែកលើអត្ថបទនេះផ្ទាល់។"
+              placeholder="ជ្រើស «បណ្ណាល័យមេរៀន» ខាងលើ ឬ ចម្លងអត្ថបទមេរៀន/វិញ្ញាសារ (ពីបណ្ណាល័យឯកសារ) បិទភ្ជាប់ទីនេះ។ AI នឹងបង្កើតសំណួរផ្អែកលើអត្ថបទនេះ; ចុច «រក្សាទុក» ដើម្បីប្រើឡើងវិញ។"
               className={`${fieldCls} resize-y leading-relaxed`}
             />
-          </Field>
+          </div>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-[11px] text-slate-400">
               {activeEngine === 'ollama' ? `⚡ កំពុងប្រើ Ollama ក្នុងស្រុក (${getOllamaModel()}) — ឥតគិតថ្លៃ និងឯកជន។`
