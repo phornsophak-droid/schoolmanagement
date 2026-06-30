@@ -38,7 +38,6 @@ import {
 import { StudentScore, SchoolUser, SchoolReport } from '../types';
 import ClassStudentMgmt from './ClassStudentMgmt';
 import ReportsHub from './ReportsHub';
-import Gradebook from './Gradebook';
 import DailyAttendance from './DailyAttendance';
 import Dashboard from './Dashboard';
 import { SchoolLogo } from './SchoolLogo';
@@ -567,7 +566,7 @@ export default function MobilePortal({
                       </svg>
                     </div>
                     <span className="text-[13px] font-extrabold text-left text-blue-950 leading-tight">
-                      តារាងពិន្ទុ
+                      លទ្ធផលសិក្សា
                     </span>
                   </button>
 
@@ -669,36 +668,6 @@ export default function MobilePortal({
                     </div>
                     <span className="text-[13px] font-extrabold text-left text-indigo-950 leading-tight">
                       គ្រប់គ្រងសិស្ស
-                    </span>
-                  </button>
-
-                  {/* Button 6: លទ្ធផលសិក្សា */}
-                  <button
-                    onClick={() => setInnerView('pdf-reports')}
-                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
-                  >
-                    <div className="flex justify-between items-start w-full">
-                      <div className="w-9 h-9 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                        <BookOpen className="w-4.5 h-4.5 text-amber-600 stroke-[2.5]" />
-                      </div>
-                      {/* SVG Illustration - Certificate diploma */}
-                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
-                        <rect x="25" y="32" width="70" height="53" rx="4" fill="#FFFBEB" stroke="#D97706" strokeWidth="2.5" />
-                        <rect x="29" y="36" width="62" height="45" fill="none" stroke="#F59E0B" strokeWidth="1" />
-                        <line x1="45" y1="44" x2="75" y2="44" stroke="#B45309" strokeWidth="2.5" />
-                        <line x1="38" y1="52" x2="82" y2="52" stroke="#D97706" strokeWidth="1" />
-                        <line x1="38" y1="59" x2="82" y2="59" stroke="#CBD5E1" strokeWidth="1" />
-                        <line x1="48" y1="66" x2="72" y2="66" stroke="#CBD5E1" strokeWidth="1" />
-                        <g transform="translate(72, 62)">
-                          <path d="M5,10 L0,25 L5,22 L10,25 Z" fill="#EF4444" />
-                          <path d="M12,10 L7,25 L12,22 L17,25 Z" fill="#EF4444" />
-                          <circle cx="8" cy="8" r="8" fill="#F59E0B" stroke="#D97706" strokeWidth="1" />
-                          <polygon points="8,4 10,7 13,8 10,10 11,13 8,11 5,13 6,10 3,8 6,7" fill="#FEF3C7" />
-                        </g>
-                      </svg>
-                    </div>
-                    <span className="text-[13px] font-extrabold text-left text-amber-950 leading-tight">
-                      លទ្ធផលសិក្សា
                     </span>
                   </button>
 
@@ -1510,22 +1479,21 @@ export default function MobilePortal({
                     <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
                       <ArrowLeft size={16} />
                     </button>
-                    <h3 className="text-xs font-bold text-emerald-950">📝 តារាងពិន្ទុ និងការវាយតម្លៃ (Gradebook)</h3>
+                    <h3 className="text-xs font-bold text-emerald-950">📈 លទ្ធផលសិក្សា</h3>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-2 border border-emerald-100 text-slate-800 max-h-[620px] overflow-y-auto w-full">
-                  <Gradebook
+                <div className="bg-white rounded-2xl p-2 border border-emerald-100 text-slate-800 max-h-[620px] overflow-auto w-full">
+                  <ReportsHub
+                    embeddedAcademic
+                    reports={reports}
+                    onSaveReport={onSaveReport}
+                    onDeleteReport={() => {}}
+                    onViewReport={() => {}}
                     students={students}
-                    selectedMonth={gbMonth}
-                    setSelectedMonth={setGbMonth}
-                    selectedGrade={gbGrade}
-                    setSelectedGrade={setGbGrade}
-                    onSaveStudents={onSaveStudents}
-                    currentUser={currentUser}
                     grades={grades}
-                    onAddGrade={onAddGrade}
-                    onDeleteGrade={onDeleteGrade}
+                    currentUser={currentUser}
+                    onCancel={() => setInnerView('home')}
                   />
                 </div>
               </motion.div>
