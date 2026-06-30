@@ -8,6 +8,7 @@
 // UI lives in components/WorksheetGenerator.tsx.
 
 import { getClient, hasGemini } from './gemini';
+import { ollamaReachable, ollamaGenerateJSON } from './ollama';
 import { getSupabaseClient } from './supabase';
 
 export type WorksheetType =
@@ -114,10 +115,8 @@ function langInstruction(l: WSLanguage): string {
     : 'សរសេរទាំងអស់ជាភាសាខ្មែរត្រឹមត្រូវ (Khmer Unicode)។';
 }
 
-export async function generateWorksheetAI(params: WorksheetParams): Promise<WSQuestion[]> {
-  const ai = getClient();
-  if (!ai) throw new Error('Gemini API key not configured');
-
+// Shared prompt — same instructions whether it runs on Gemini or local Ollama.
+function buildWorksheetPrompt(params: WorksheetParams): string {
   const shape = params.type === 'multiple_choice'
     ? `Each item: { "prompt": string, "options": [4 strings], "answer": string (must equal exactly one option) }.`
     : params.type === 'matching'
@@ -126,7 +125,7 @@ export async function generateWorksheetAI(params: WorksheetParams): Promise<WSQu
         ? `Each item: { "prompt": string (a statement), "answer": "ត្រូវ" or "ខុស" (or "True"/"False" for English) }.`
         : `Each item: { "prompt": string, "answer": string (the model/expected answer) }.`;
 
-  const prompt = `You generate printable school worksheet questions for a teacher.
+  return `You generate printable school worksheet questions for a teacher.
 Return ONLY a JSON object: { "questions": [ ... ] } with EXACTLY ${params.type === 'matching' ? 1 : params.count} item(s).
 ${shape}
 
@@ -136,17 +135,15 @@ Constraints:
 - ${langInstruction(params.language)}
 - Age-appropriate. Clear and unambiguous. NO duplicate questions. Vary the wording and numbers.
 - Do not add commentary, markdown, or anything outside the JSON.`;
+}
 
-  const res = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: prompt,
-    config: { responseMimeType: 'application/json' },
-  });
-  const text = (res.text || '').trim();
+// Parse the model's JSON text into questions (tolerant of code-fences).
+function parseWorksheetJSON(text: string): WSQuestion[] {
+  const t = (text || '').trim();
   let parsed: any;
-  try { parsed = JSON.parse(text); }
-  catch { parsed = JSON.parse(text.replace(/^```json?/i, '').replace(/```$/, '').trim()); }
-  const questions: WSQuestion[] = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+  try { parsed = JSON.parse(t); }
+  catch { parsed = JSON.parse(t.replace(/^```json?/i, '').replace(/```$/, '').trim()); }
+  const questions: any[] = Array.isArray(parsed) ? parsed : (parsed.questions || []);
   if (!questions.length) throw new Error('Empty AI response');
   return questions.map(q => ({
     prompt: String(q.prompt ?? ''),
@@ -156,20 +153,43 @@ Constraints:
   })).filter(q => q.prompt || q.pairs);
 }
 
-// Main entry: AI when available & not pure math, else the free local math generator.
+export async function generateWorksheetAI(params: WorksheetParams): Promise<WSQuestion[]> {
+  const ai = getClient();
+  if (!ai) throw new Error('Gemini API key not configured');
+  const res = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: buildWorksheetPrompt(params),
+    config: { responseMimeType: 'application/json' },
+  });
+  return parseWorksheetJSON(res.text || '');
+}
+
+// Local, free, private generation via Ollama (e.g. Gemma) running on the machine.
+export async function generateWorksheetOllama(params: WorksheetParams): Promise<WSQuestion[]> {
+  const text = await ollamaGenerateJSON(buildWorksheetPrompt(params));
+  return parseWorksheetJSON(text);
+}
+
+// Main entry. Order of preference (all free): local Ollama → Gemini free key →
+// offline math generator. Each step falls through if it's unavailable or fails.
 export async function generateQuestions(params: WorksheetParams): Promise<WSQuestion[]> {
   const isMath = params.subject.includes('គណិត');
-  const arithmetic = isMath && /បូក|ដក|គុណ|ចែក|word_problems/.test(params.topic + ' ' + params.type);
-  if (arithmetic && (!hasGemini() || params.type === 'word_problems' || params.type === 'fill_blank')) {
-    // Free, unlimited, offline for arithmetic.
-    if (!hasGemini()) return generateMathLocal(params);
+
+  // 1. Local Ollama (free + private) when reachable.
+  if (await ollamaReachable()) {
+    try { return await generateWorksheetOllama(params); }
+    catch (e) { console.warn('Ollama generation failed, falling back', e); }
   }
+
+  // 2. Gemini free key (works on every device).
   if (hasGemini()) {
     try { return await generateWorksheetAI(params); }
     catch (e) { if (isMath) return generateMathLocal(params); throw e; }
   }
+
+  // 3. Offline math generator (no AI needed).
   if (isMath) return generateMathLocal(params);
-  throw new Error('ត្រូវការ Gemini API key សម្រាប់មុខវិជ្ជានេះ (គណិតវិទ្យាដំណើរការដោយឥតគិតថ្លៃ)។');
+  throw new Error('ត្រូវការ Ollama (ក្នុងស្រុក) ឬ Gemini API key សម្រាប់មុខវិជ្ជានេះ (គណិតវិទ្យាដំណើរការដោយឥតគិតថ្លៃ)។');
 }
 
 // ---------------------------------------------------------------------------
