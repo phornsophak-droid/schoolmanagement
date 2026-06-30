@@ -216,18 +216,29 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     }
   };
 
-  // Wipe ALL attendance for a class (every month) locally + in the cloud by scope,
-  // so re-importing starts clean and old rows can't resync back (the per-id delete
-  // can miss cloud rows whose id/grade-spelling drifted).
+  // Wipe ALL attendance for a class (every month) locally + in the cloud, so a
+  // re-import starts clean. A record is removed if its grade matches OR any of its
+  // studentStates entries belongs to one of this class's students — this catches
+  // records saved under a drifted grade spelling that the cumulative still counts.
   const handleClearGradeAll = async (gradeToClear: string) => {
-    const remaining = records.filter(r => r.grade !== gradeToClear);
+    const classPersons = new Set(students.filter(s => s.grade === gradeToClear).map(s => personKeyOf(s)));
+    const idToPerson = new Map<string, string>();
+    students.forEach(s => idToPerson.set((s as any).id, personKeyOf(s)));
+    const belongs = (r: AttendanceRecord) =>
+      r.grade === gradeToClear ||
+      Object.keys(r.studentStates || {}).some(k => !k.endsWith('_reason') && classPersons.has(idToPerson.get(k) || ''));
+
+    const toRemove = records.filter(belongs);
+    const remaining = records.filter(r => !belongs(r));
     setRecords(remaining);
     persistAttendance(remaining);
+
     const client = getSupabaseClient();
     if (client) {
       try {
         await syncDeleteStudentAttendanceByGrade(gradeToClear);
-        triggerToast(`បានសម្អាតវត្តមានទាំងអស់របស់ «${gradeToClear}» (Cloud ផង) ✓`, 'success');
+        for (const r of toRemove) { try { await syncDeleteStudentAttendance(r.id); } catch { /* keep going */ } }
+        triggerToast(`បានសម្អាតវត្តមានទាំងអស់របស់ «${gradeToClear}» (${toRemove.length} ថ្ងៃ, Cloud ផង) ✓`, 'success');
       } catch (err) {
         console.warn('Supabase clear-all sync failed', err);
         triggerToast('បានសម្អាតក្នុងម៉ាស៊ីន — ភ្ជាប់ Cloud បរាជ័យ', 'error');
