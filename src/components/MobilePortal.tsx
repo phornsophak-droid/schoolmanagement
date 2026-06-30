@@ -33,7 +33,8 @@ import {
   Power,
   ChevronRight,
   Shield,
-  Upload
+  Upload,
+  RefreshCw
 } from 'lucide-react';
 import { StudentScore, SchoolUser, SchoolReport } from '../types';
 import ClassStudentMgmt from './ClassStudentMgmt';
@@ -460,6 +461,16 @@ export default function MobilePortal({
             <div className="w-14 h-14 flex items-center justify-center rounded-full bg-white shadow-xs border border-[#34D399]/40 overflow-hidden">
               <SchoolLogo className="w-full h-full p-0.5" />
             </div>
+
+            {/* Refresh — reload to pull the latest deployed version */}
+            <button
+              onClick={() => window.location.reload()}
+              title="ផ្ទុកឡើងវិញ ដើម្បីមើលកំណែថ្មី"
+              aria-label="ផ្ទុកឡើងវិញ"
+              className="p-2 rounded-full bg-emerald-50 border border-emerald-200/50 hover:bg-emerald-100 active:rotate-180 transition-all duration-300 cursor-pointer"
+            >
+              <RefreshCw size={16} className="text-emerald-800" />
+            </button>
 
             {/* Bell/Notification Icon */}
             <div className="relative p-1.5 rounded-full bg-emerald-50 border border-emerald-200/50 hover:bg-emerald-100 transition-all cursor-pointer">
