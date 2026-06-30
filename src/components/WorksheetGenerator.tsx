@@ -51,6 +51,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     difficulty: 'easy',
     count: 10,
     type: 'multiple_choice',
+    source: '',
   });
   const set = <K extends keyof WorksheetParams>(k: K, v: WorksheetParams[K]) => setParams(p => ({ ...p, [k]: v }));
 
@@ -167,6 +168,15 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
             <Field label="ចំណងជើង (ស្រេចចិត្ត)"><input value={title} onChange={e => setTitle(e.target.value)} placeholder={heading} className={fieldCls} /></Field>
             <Field label="សេចក្ដីណែនាំ (ស្រេចចិត្ត)"><input value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="ឧ. ចូរឆ្លើយសំណួរខាងក្រោម…" className={fieldCls} /></Field>
           </div>
+          <Field label="មាតិកាមេរៀន / វិញ្ញាសារ (ស្រេចចិត្ត — បិទភ្ជាប់អត្ថបទពីបណ្ណាល័យឯកសារ)">
+            <textarea
+              value={params.source || ''}
+              onChange={e => set('source', e.target.value)}
+              rows={4}
+              placeholder="បើកឯកសារក្នុង «បណ្ណាល័យឯកសារ» → ចម្លងអត្ថបទមេរៀន/វិញ្ញាសារ → បិទភ្ជាប់ទីនេះ។ AI នឹងបង្កើតសំណួរផ្អែកលើអត្ថបទនេះផ្ទាល់។"
+              className={`${fieldCls} resize-y leading-relaxed`}
+            />
+          </Field>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-[11px] text-slate-400">
               {activeEngine === 'ollama' ? `⚡ កំពុងប្រើ Ollama ក្នុងស្រុក (${getOllamaModel()}) — ឥតគិតថ្លៃ និងឯកជន។`

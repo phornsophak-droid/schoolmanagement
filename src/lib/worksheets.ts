@@ -27,6 +27,10 @@ export interface WorksheetParams {
   difficulty: Difficulty;
   count: number;
   type: WorksheetType;
+  // Optional source material (lesson/workbook text pasted by the teacher, e.g.
+  // copied from a doc in the Document Bank). When present the AI grounds the
+  // questions ON this text instead of inventing generic content.
+  source?: string;
 }
 
 // One question. Fields used depend on the worksheet type:
@@ -125,6 +129,16 @@ function buildWorksheetPrompt(params: WorksheetParams): string {
         ? `Each item: { "prompt": string (a statement), "answer": "ត្រូវ" or "ខុស" (or "True"/"False" for English) }.`
         : `Each item: { "prompt": string, "answer": string (the model/expected answer) }.`;
 
+  const source = (params.source || '').trim();
+  const sourceBlock = source
+    ? `
+
+Base the questions STRICTLY on this lesson/source material (do NOT invent facts outside it; quote/adapt it faithfully):
+"""
+${source.slice(0, 12000)}
+"""`
+    : '';
+
   return `You generate printable school worksheet questions for a teacher.
 Return ONLY a JSON object: { "questions": [ ... ] } with EXACTLY ${params.type === 'matching' ? 1 : params.count} item(s).
 ${shape}
@@ -134,7 +148,7 @@ Constraints:
 - Difficulty: ${params.difficulty}. Worksheet type: ${params.type}.
 - ${langInstruction(params.language)}
 - Age-appropriate. Clear and unambiguous. NO duplicate questions. Vary the wording and numbers.
-- Do not add commentary, markdown, or anything outside the JSON.`;
+- Do not add commentary, markdown, or anything outside the JSON.${sourceBlock}`;
 }
 
 // Parse the model's JSON text into questions (tolerant of code-fences).
