@@ -435,9 +435,12 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       if (prev === undefined || rank[status] > rank[prev]) perDay.set(key, status);
     };
 
-    // Saved records, excluding the current draft's date & grade (merged live below).
+    // Count ONLY the attendance of the class being viewed — otherwise a student
+    // linked across classes (general + English + PE) pulls other classes' absences
+    // into this list (e.g. ថ្នាក់ទី៦ showed 43 even though it has no attendance rows).
     records.forEach(r => {
-      if (r.date === selectedDate && r.grade === selectedGrade) return;
+      if (r.grade !== selectedGrade) return;
+      if (r.date === selectedDate) return; // current day merged live below
       if (r.studentStates) {
         Object.entries(r.studentStates).forEach(([studentId, status]) => {
           if (studentId.endsWith('_reason')) return;
