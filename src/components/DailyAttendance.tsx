@@ -1694,6 +1694,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       {monthlyRegisterOpen && (
         <MonthlyAttendanceRegister
           students={uniqueStudentsList}
+          allStudents={students}
           grade={selectedGrade}
           year={parseInt(selectedDate.slice(0, 4), 10)}
           month={parseInt(selectedDate.slice(5, 7), 10)}

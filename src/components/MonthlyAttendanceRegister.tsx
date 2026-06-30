@@ -27,7 +27,8 @@ export interface AttRecord {
 }
 
 interface Props {
-  students: StudentScore[];   // deduped roster (one row per student)
+  students: StudentScore[];   // deduped roster (one row per student) — drives the table rows
+  allStudents?: StudentScore[]; // FULL list (every month-record) — used only to map ids to persons
   grade: string;
   year: number;
   month: number;              // 1-12
@@ -62,7 +63,7 @@ const ACADEMIC_MONTHS: { m: number; y: number }[] = [
   { m: 9, y: 2026 }, { m: 10, y: 2026 },
 ];
 
-export default function MonthlyAttendanceRegister({ students, grade, year: initYear, month: initMonth, records, onClose, onImport, onClear }: Props) {
+export default function MonthlyAttendanceRegister({ students, allStudents, grade, year: initYear, month: initMonth, records, onClose, onImport, onClear }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState('');
   // Month/year are selectable so a parent can view/import any month, not just the
@@ -97,9 +98,13 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
   // even though the cumulative total had the absences. Matching by person fixes it.
   const idToPerson = useMemo(() => {
     const m = new Map<string, string>();
-    students.forEach(s => m.set((s as any).id, `${s.name.trim().toLowerCase()}_${s.grade}`));
+    // Build from the FULL list so EVERY month-record id maps to its person (the
+    // deduped `students` only has one representative id per person, which left the
+    // grid blank for absences stored under another month's id).
+    (allStudents && allStudents.length ? allStudents : students).forEach(s =>
+      m.set((s as any).id, `${s.name.trim().toLowerCase()}_${s.grade}`));
     return m;
-  }, [students]);
+  }, [allStudents, students]);
 
   // A student's raw state for one day (absent > permission > late > none). Matches
   // any attendance key that resolves to the SAME person, not just the exact id.
