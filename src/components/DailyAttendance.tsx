@@ -347,12 +347,34 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     return list.sort((a, b) => a.name.localeCompare(b.name, 'km'));
   }, [students]);
 
-  // A stable per-PERSON key (name+grade). Attendance is stored keyed by a student
-  // record's id, but a student has one record per month (each a different id) and
-  // different devices may pick a different record as the roster representative — so
-  // matching by exact id made the same cloud data show different totals per device.
-  // Aggregating by person key fixes that: the count is identical everywhere.
-  const personKeyOf = (s: { name: string; grade: string }) => `${s.name.trim().toLowerCase()}_${s.grade}`;
+  // The school-issued ID (អត្តលេខ) for each person, resolved once and inherited
+  // across all of a student's month-records (some rows may lack it). This is the
+  // stable, school-provided identity used for both the displayed ID and attendance
+  // matching, so totals are identical on every device.
+  const schoolIdByName = useMemo(() => {
+    const m = new Map<string, string>();
+    students.forEach(s => {
+      const nk = `${s.name.trim().toLowerCase()}_${s.grade}`;
+      const sid = ((s as any).studentId || '').trim();
+      if (sid && !m.has(nk)) m.set(nk, sid);
+    });
+    return m;
+  }, [students]);
+
+  // A stable per-PERSON key. Attendance is stored keyed by a student record's id,
+  // but a student has one record per month (each a different id) and different
+  // devices may pick a different record as the roster representative — so matching
+  // by exact id made the same cloud data show different totals per device.
+  // Key by the school ID (អត្តលេខ) when known, else name+grade, so the count is
+  // identical everywhere.
+  const personKeyOf = (s: { name: string; grade: string; studentId?: string }) => {
+    const nk = `${s.name.trim().toLowerCase()}_${s.grade}`;
+    const sid = schoolIdByName.get(nk) || (s.studentId || '').trim();
+    return sid ? `id:${sid}` : `nm:${nk}`;
+  };
+  // The school ID to display for a student ("—" if none has been assigned yet).
+  const schoolIdOf = (s: { name: string; grade: string; studentId?: string }) =>
+    schoolIdByName.get(`${s.name.trim().toLowerCase()}_${s.grade}`) || (s.studentId || '').trim() || '—';
 
   // Compute cumulative student attendance statistics based on historical records + current active mappings
   const studentStatsMap = useMemo(() => {
@@ -1236,7 +1258,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                                     {std.name}
                                     {std.group && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">ក្រុម {std.group}</span>}
                                   </p>
-                                  <p className="text-[9.5px] text-slate-400 font-medium">ភេទ៖ {std.gender} | ID: {std.id.substring(0, 5)}</p>
+                                  <p className="text-[9.5px] text-slate-400 font-medium">ភេទ៖ {std.gender} | អត្តលេខ៖ {schoolIdOf(std)}</p>
                                 </div>
                               </div>
                             </td>
