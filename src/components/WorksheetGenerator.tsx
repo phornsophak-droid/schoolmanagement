@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Cpu } from 'lucide-react';
+import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText } from 'lucide-react';
 import { SchoolUser } from '../types';
 import SchoolLogo from './SchoolLogo';
 import FitToWidth from './FitToWidth';
@@ -15,7 +15,7 @@ import {
   generateQuestions, saveWorksheet,
 } from '../lib/worksheets';
 import { hasGemini } from '../lib/gemini';
-import { getOllamaUrl, getOllamaModel, ollamaReachable, resetOllamaReachable } from '../lib/ollama';
+import { getOllamaModel, ollamaReachable } from '../lib/ollama';
 
 interface Props {
   grades: string[];
@@ -66,26 +66,11 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const flash = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3500); };
 
-  // ---- Local AI (Ollama) settings + live status ----
-  const [showAiCfg, setShowAiCfg] = useState(false);
-  const [ollamaUrl, setOllamaUrl] = useState(getOllamaUrl());
-  const [ollamaModel, setOllamaModel] = useState(getOllamaModel());
+  // Which engine a generation will use right now (for the status hint). Local
+  // Ollama is still tried automatically when reachable (config via localStorage);
+  // the in-app Ollama settings UI was removed to keep the page simple.
   const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'ok' | 'off'>('checking');
   useEffect(() => { ollamaReachable().then(ok => setOllamaStatus(ok ? 'ok' : 'off')); }, []);
-
-  const saveAiCfg = async () => {
-    try {
-      localStorage.setItem('ollama_url', ollamaUrl.trim());
-      localStorage.setItem('ollama_model', ollamaModel.trim());
-    } catch { /* ignore */ }
-    resetOllamaReachable();
-    setOllamaStatus('checking');
-    const ok = await ollamaReachable();
-    setOllamaStatus(ok ? 'ok' : 'off');
-    flash(ok ? `ភ្ជាប់ Ollama បានជោគជ័យ (${ollamaModel.trim()}) ✓` : 'ភ្ជាប់ Ollama មិនបាន — នឹងប្រើ Gemini/គណិតក្នុងស្រុកជំនួស', ok);
-  };
-
-  // Which engine a generation will use right now (for the status hint).
   const activeEngine = ollamaStatus === 'ok' ? 'ollama' : hasGemini() ? 'gemini' : 'local';
 
   const heading = title || `សន្លឹកលំហាត់ ${params.subject} — ${params.grade}`;
@@ -188,36 +173,10 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
                 : activeEngine === 'gemini' ? '⚡ ប្រើ AI (Gemini free)។ គណិតវិទ្យាដំណើរការដោយឥតគិតថ្លៃផងដែរ។'
                 : 'ℹ️ គ្មាន AI — គណិតវិទ្យាដំណើរការដោយឥតគិតថ្លៃ; មុខវិជ្ជាផ្សេងត្រូវការ Ollama ឬ Gemini key។'}
             </p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setShowAiCfg(s => !s)} title="កំណត់ AI ក្នុងស្រុក (Ollama)" className="px-3 py-2 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center gap-1.5">
-                <Cpu size={14} className={ollamaStatus === 'ok' ? 'text-emerald-600' : 'text-slate-400'} />
-                Ollama
-                <span className={`w-2 h-2 rounded-full ${ollamaStatus === 'ok' ? 'bg-emerald-500' : ollamaStatus === 'checking' ? 'bg-amber-400' : 'bg-slate-300'}`} />
-              </button>
-              <button onClick={handleGenerate} disabled={loading} className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 disabled:opacity-60 text-white flex items-center gap-2 shadow-md">
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} បង្កើតលំហាត់
-              </button>
-            </div>
+            <button onClick={handleGenerate} disabled={loading} className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 disabled:opacity-60 text-white flex items-center gap-2 shadow-md">
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} បង្កើតលំហាត់
+            </button>
           </div>
-
-          {showAiCfg && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-600">កំណត់ AI ក្នុងស្រុក (Ollama)</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ollamaStatus === 'ok' ? 'bg-emerald-100 text-emerald-700' : ollamaStatus === 'checking' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-500'}`}>
-                  {ollamaStatus === 'ok' ? 'ភ្ជាប់បាន ✓' : ollamaStatus === 'checking' ? 'កំពុងពិនិត្យ…' : 'មិនបានភ្ជាប់'}
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Field label="Ollama URL"><input value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)} placeholder="http://localhost:11434" className={fieldCls} /></Field>
-                <Field label="Model"><input value={ollamaModel} onChange={e => setOllamaModel(e.target.value)} placeholder="gemma3" className={fieldCls} /></Field>
-              </div>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <p className="text-[10px] text-slate-400 leading-snug">ឈ្មោះ model = អ្វីដែលបង្ហាញពី <code className="bg-slate-200 px-1 rounded">ollama list</code>។ ត្រូវបើក Ollama ជាមួយ <code className="bg-slate-200 px-1 rounded">OLLAMA_ORIGINS=*</code>។</p>
-                <button onClick={saveAiCfg} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shrink-0">រក្សាទុក និងសាកល្បង</button>
-              </div>
-            </div>
-          )}
         </div>
 
         {toast && <div className={`ws-no-print text-center text-xs font-bold px-3 py-2 rounded-xl ${toast.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>{toast.msg}</div>}
