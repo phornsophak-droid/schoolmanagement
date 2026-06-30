@@ -52,6 +52,7 @@ import {
   syncUpsertTeacherAttendance,
   syncUpsertStudentAttendanceBulk,
   syncUpsertTeacherAttendanceBulk,
+  syncDeleteStudentAttendanceByGrade,
   syncClearAllData,
   msSinceCloudWrite,
   CUSTOM_URL_KEY,
@@ -180,6 +181,8 @@ export default function App() {
   const [reports, setReports] = useState<SchoolReport[]>([]);
   // Guards the one-time phantom-grade cleanup so it can't run twice in a session.
   const phantomCleanupRan = useRef(false);
+  // Guards the one-time junk-grade ("ALL GRADES") cleanup.
+  const junkCleanupRan = useRef(false);
   const [grades, setGrades] = useState<string[]>([
     'មត្តេយ្យ ១',
     'មត្តេយ្យ ២',
@@ -1152,6 +1155,65 @@ export default function App() {
       } catch (err) {
         console.warn('Phantom-grade cleanup failed', err);
         phantomCleanupRan.current = false; // allow a retry next load
+      }
+    })();
+  }, [currentUser, students, grades]);
+
+  // One-time data hygiene (PRINCIPAL ONLY): permanently remove junk "ALL GRADES"
+  // records — an invalid grade created by a bad import (a student can't be in every
+  // grade). Deletes the student rows + their attendance + the grade entry, locally
+  // and in the cloud, so they stop polluting counts. Runs once, flag-guarded.
+  useEffect(() => {
+    if (currentUser?.role !== 'principal') return;
+    if (junkCleanupRan.current) return;
+    if (students.length === 0) return; // wait until data has loaded
+    if (localStorage.getItem('junk_grade_cleanup_v1')) return;
+
+    const JUNK = new Set(['ALL GRADES']);
+    const hasJunkStudents = students.some(s => JUNK.has(s.grade));
+    const hasJunkGrades = grades.some(g => JUNK.has(g));
+    let junkAtt: any[] = [];
+    try { junkAtt = loadAttendance().filter((r: any) => JUNK.has(r.grade)); } catch { /* ignore */ }
+    if (!hasJunkStudents && !hasJunkGrades && junkAtt.length === 0) {
+      localStorage.setItem('junk_grade_cleanup_v1', '1');
+      return;
+    }
+    junkCleanupRan.current = true; // synchronous re-entry guard
+
+    (async () => {
+      try {
+        // Students (handleSaveStudents syncs each deletion to the cloud).
+        const cleanStudents = students.filter(s => !JUNK.has(s.grade));
+        const removed = students.length - cleanStudents.length;
+        if (removed > 0) await handleSaveStudents(cleanStudents);
+
+        // Attendance rows under the junk grade (local cache/IndexedDB + cloud).
+        if (junkAtt.length > 0) {
+          try {
+            const cleanAtt = loadAttendance().filter((r: any) => !JUNK.has(r.grade));
+            persistAttendance(cleanAtt);
+          } catch { /* ignore */ }
+        }
+
+        // The grade entry itself, and the cloud-side attendance scope-delete.
+        const cleanGrades = grades.filter(g => !JUNK.has(g));
+        if (cleanGrades.length !== grades.length) {
+          setGrades(cleanGrades);
+          localStorage.setItem('school_grades_v2', JSON.stringify(cleanGrades));
+        }
+        const client = getSupabaseClient();
+        if (client) {
+          for (const g of JUNK) {
+            try { await syncDeleteStudentAttendanceByGrade(g); } catch { /* offline */ }
+            if (grades.includes(g)) { try { await syncDeleteGrade(g); } catch { /* offline */ } }
+          }
+        }
+
+        localStorage.setItem('junk_grade_cleanup_v1', '1');
+        showCloudToast(`បានលុបកំណត់ត្រាសំរាម «ALL GRADES» (សិស្ស ${removed} នាក់ + អវត្តមាន ${junkAtt.length}) ✓`, true);
+      } catch (err) {
+        console.warn('Junk-grade cleanup failed', err);
+        junkCleanupRan.current = false; // allow a retry next load
       }
     })();
   }, [currentUser, students, grades]);
