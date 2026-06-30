@@ -19,7 +19,8 @@ import {
   ArrowRight,
   UserCheck,
   CheckCircle,
-  Clock
+  Clock,
+  X
 } from 'lucide-react';
 import { SchoolReport, StudentScore, SchoolUser } from '../types';
 import { loadAttendance } from '../utils/attendanceStore';
@@ -449,12 +450,18 @@ export default function Dashboard({
 
     // Cumulative stats, keyed by PERSON, one entry per person-day.
     const cumulativeStats: Record<string, { late: number, permission: number, absent: number }> = {};
-    perDay.forEach(({ pk, status }) => {
+    // Also keep the actual DATES per person+status, so a row can be audited (which
+    // exact days are marked absent — to spot wrong/duplicated entries).
+    const datesByPerson: Record<string, { late: string[], permission: string[], absent: string[] }> = {};
+    perDay.forEach(({ pk, status }, key) => {
+      const date = key.split('@@')[1] || '';
       if (!cumulativeStats[pk]) cumulativeStats[pk] = { late: 0, permission: 0, absent: 0 };
-      if (status === 'late') cumulativeStats[pk].late += 1;
-      else if (status === 'permission') cumulativeStats[pk].permission += 1;
-      else if (status === 'absent') cumulativeStats[pk].absent += 1;
+      if (!datesByPerson[pk]) datesByPerson[pk] = { late: [], permission: [], absent: [] };
+      if (status === 'late') { cumulativeStats[pk].late += 1; datesByPerson[pk].late.push(date); }
+      else if (status === 'permission') { cumulativeStats[pk].permission += 1; datesByPerson[pk].permission.push(date); }
+      else if (status === 'absent') { cumulativeStats[pk].absent += 1; datesByPerson[pk].absent.push(date); }
     });
+    Object.values(datesByPerson).forEach(d => { d.late.sort(); d.permission.sort(); d.absent.sort(); });
 
     const uniqueStudentsMap = new Map<string, StudentScore>();
     students.forEach(s => {
@@ -504,6 +511,8 @@ export default function Dashboard({
           cumulativeLate: stats.late,
           cumulativePermission: stats.permission,
           cumulativeAbsent: stats.absent,
+          absentDates: (datesByPerson[personOf(sId)] || { absent: [] }).absent,
+          permissionDates: (datesByPerson[personOf(sId)] || { permission: [] }).permission,
           todayStatus: status,
           reason
         });
@@ -524,6 +533,8 @@ export default function Dashboard({
       ex.cumulativeLate = Math.max(ex.cumulativeLate, item.cumulativeLate);
       ex.cumulativePermission = Math.max(ex.cumulativePermission, item.cumulativePermission);
       ex.cumulativeAbsent = Math.max(ex.cumulativeAbsent, item.cumulativeAbsent);
+      if ((item.absentDates?.length || 0) > (ex.absentDates?.length || 0)) ex.absentDates = item.absentDates;
+      if ((item.permissionDates?.length || 0) > (ex.permissionDates?.length || 0)) ex.permissionDates = item.permissionDates;
       if ((statusW[item.todayStatus] || 0) > (statusW[ex.todayStatus] || 0)) ex.todayStatus = item.todayStatus;
       if (!ex.reason && item.reason) ex.reason = item.reason;
     });
@@ -550,6 +561,10 @@ export default function Dashboard({
       list: mergedList
     };
   }, [attendanceRecords, students, effectiveDailyDate, selectedGrade, classCategory, selectedDashSession]);
+
+  // Audit popup: which exact dates a student is marked absent/permission, so wrong
+  // or duplicated entries (e.g. an import that scattered marks across months) show up.
+  const [auditStudent, setAuditStudent] = useState<{ name: string; grade: string; absentDates: string[]; permissionDates: string[] } | null>(null);
 
   // Aggregate absence/lateness reasons for the chart, scoped to the latest
   // recorded day / month / year depending on the chosen mode.
@@ -1268,7 +1283,15 @@ export default function Dashboard({
                         <td className="px-5 py-5 text-[#475569]">{student.gender}</td>
                         <td className="px-4 py-5 text-center text-amber-500 font-black font-mono">{student.cumulativeLate}</td>
                         <td className="px-4 py-5 text-center text-blue-600 font-black font-mono">{student.cumulativePermission}</td>
-                        <td className="px-4 py-5 text-center text-rose-600 font-black font-mono">{student.cumulativeAbsent}</td>
+                        <td className="px-4 py-5 text-center">
+                          <button
+                            onClick={() => setAuditStudent({ name: student.name, grade: student.grade, absentDates: student.absentDates || [], permissionDates: student.permissionDates || [] })}
+                            className="text-rose-600 font-black font-mono underline decoration-dotted underline-offset-2 hover:text-rose-700 cursor-pointer"
+                            title="ចុចដើម្បីមើលថ្ងៃដែលអវត្តមាន"
+                          >
+                            {student.cumulativeAbsent}
+                          </button>
+                        </td>
                         <td className="px-4 py-5 text-center font-black text-[#0f172a] font-mono">{totalAbsent}</td>
                         <td className="px-5 py-5 text-center">
                           {student.todayStatus === 'late' && (
@@ -1369,6 +1392,39 @@ export default function Dashboard({
           )}
         </div>
       </div>
+
+      {auditStudent && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4" onClick={() => setAuditStudent(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">ថ្ងៃអវត្តមាន — {auditStudent.name}</h3>
+                <p className="text-[11px] text-slate-500">{auditStudent.grade}</p>
+              </div>
+              <button onClick={() => setAuditStudent(null)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"><X size={16} /></button>
+            </div>
+            <div className="overflow-auto p-4 space-y-3 text-xs">
+              <div>
+                <p className="font-bold text-rose-600 mb-1">អត់ច្បាប់ ({auditStudent.absentDates.length} ថ្ងៃ)</p>
+                {auditStudent.absentDates.length ? (
+                  <div className="flex flex-wrap gap-1">
+                    {auditStudent.absentDates.map(d => <span key={d} className="px-2 py-0.5 bg-rose-50 text-rose-700 rounded border border-rose-100 font-mono">{d}</span>)}
+                  </div>
+                ) : <p className="text-slate-400">គ្មាន</p>}
+              </div>
+              <div>
+                <p className="font-bold text-blue-600 mb-1">ច្បាប់ ({auditStudent.permissionDates.length} ថ្ងៃ)</p>
+                {auditStudent.permissionDates.length ? (
+                  <div className="flex flex-wrap gap-1">
+                    {auditStudent.permissionDates.map(d => <span key={d} className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100 font-mono">{d}</span>)}
+                  </div>
+                ) : <p className="text-slate-400">គ្មាន</p>}
+              </div>
+              <p className="text-[10px] text-slate-400 pt-1">ប្រសិនមានថ្ងៃខុស (ឧ. ខែដែលមិនមានសិក្សា) សូមបើកតារាងតាមដានអវត្តមាន → «សម្អាតខែនេះ» → នាំចូលឡើងវិញ។</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
