@@ -430,22 +430,30 @@ export default function Dashboard({
     students.forEach(s => idToPerson.set((s as any).id, `${s.name.replace(/\s+/g, ' ').trim().toLowerCase()}|${s.grade}`));
     const personOf = (sId: string) => idToPerson.get(sId) || sId;
 
-    // Cumulative stats, keyed by PERSON (not the month-specific record id).
-    const cumulativeStats: Record<string, { late: number, permission: number, absent: number }> = {};
+    // Collapse to ONE status per person per DAY first (worst status wins) so a
+    // student absent in both the morning and afternoon session counts as one
+    // absence, not two — otherwise full-day absences double the cumulative total.
+    const rank: Record<string, number> = { present: 0, late: 1, permission: 2, absent: 3 };
+    const perDay = new Map<string, { pk: string; status: string }>(); // key: pk@@date
     attendanceRecords.forEach(rec => {
       if (!inCat(rec.grade) || !inSession(rec) || !inGradeScope(rec.grade)) return; // category + session + class scope
-      if (rec.studentStates) {
-        Object.entries(rec.studentStates).forEach(([sId, status]) => {
-          if (sId.endsWith('_reason')) return;
-          const pk = personOf(sId);
-          if (!cumulativeStats[pk]) {
-            cumulativeStats[pk] = { late: 0, permission: 0, absent: 0 };
-          }
-          if (status === 'late') cumulativeStats[pk].late += 1;
-          else if (status === 'permission') cumulativeStats[pk].permission += 1;
-          else if (status === 'absent') cumulativeStats[pk].absent += 1;
-        });
-      }
+      if (!rec.studentStates) return;
+      Object.entries(rec.studentStates).forEach(([sId, status]) => {
+        if (sId.endsWith('_reason') || rank[status as string] === undefined) return;
+        const pk = personOf(sId);
+        const key = `${pk}@@${rec.date}`;
+        const prev = perDay.get(key);
+        if (prev === undefined || rank[status as string] > rank[prev.status]) perDay.set(key, { pk, status: status as string });
+      });
+    });
+
+    // Cumulative stats, keyed by PERSON, one entry per person-day.
+    const cumulativeStats: Record<string, { late: number, permission: number, absent: number }> = {};
+    perDay.forEach(({ pk, status }) => {
+      if (!cumulativeStats[pk]) cumulativeStats[pk] = { late: 0, permission: 0, absent: 0 };
+      if (status === 'late') cumulativeStats[pk].late += 1;
+      else if (status === 'permission') cumulativeStats[pk].permission += 1;
+      else if (status === 'absent') cumulativeStats[pk].absent += 1;
     });
 
     const uniqueStudentsMap = new Map<string, StudentScore>();

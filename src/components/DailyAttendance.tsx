@@ -390,30 +390,40 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       stats[personKeyOf(s)] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
     });
 
-    const bump = (pk: string | undefined, status: string) => {
-      if (!pk) return;
+    // Count at most ONE status per person per DAY — a student absent in both the
+    // morning and afternoon session is one absence, not two (matches the monthly
+    // register). Collapse to the worst status of the day first, then tally.
+    const rank: Record<string, number> = { present: 0, late: 1, permission: 2, absent: 3 };
+    const perDay = new Map<string, string>(); // `${personKey}|${date}` -> worst status
+    const consider = (pk: string | undefined, date: string, status: string) => {
+      if (!pk || rank[status] === undefined) return;
+      const key = `${pk}|${date}`;
+      const prev = perDay.get(key);
+      if (prev === undefined || rank[status] > rank[prev]) perDay.set(key, status);
+    };
+
+    // Saved records, excluding the current draft's date & grade (merged live below).
+    records.forEach(r => {
+      if (r.date === selectedDate && r.grade === selectedGrade) return;
+      if (r.studentStates) {
+        Object.entries(r.studentStates).forEach(([studentId, status]) => {
+          if (studentId.endsWith('_reason')) return;
+          consider(idToPerson.get(studentId), r.date, status as string);
+        });
+      }
+    });
+    // Live draft for the current day.
+    Object.entries(activeAttendanceMap).forEach(([studentId, status]) => {
+      consider(idToPerson.get(studentId), selectedDate, status as string);
+    });
+
+    // Tally one entry per person-day.
+    perDay.forEach((status, key) => {
+      const pk = key.slice(0, key.indexOf('|'));
       if (!stats[pk]) stats[pk] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
       if (status === 'late') stats[pk].late += 1;
       else if (status === 'permission') { stats[pk].permission += 1; stats[pk].totalAbsence += 1; }
       else if (status === 'absent') { stats[pk].absent += 1; stats[pk].totalAbsence += 1; }
-    };
-
-    // Populate using saved records, excluding the current draft's date & grade so we don't double count it
-    records.forEach(r => {
-      if (r.date === selectedDate && r.grade === selectedGrade) {
-        return; // Exclude current date because we will merge activeAttendanceMap live!
-      }
-      if (r.studentStates) {
-        Object.entries(r.studentStates).forEach(([studentId, status]) => {
-          if (studentId.endsWith('_reason')) return;
-          bump(idToPerson.get(studentId), status as string);
-        });
-      }
-    });
-
-    // Merge the live draft state so changes reflect instantly in real-time
-    Object.entries(activeAttendanceMap).forEach(([studentId, status]) => {
-      bump(idToPerson.get(studentId), status as string);
     });
 
     return stats;
@@ -434,18 +444,27 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     // match the on-screen list and are identical on every device. See studentStatsMap.
     const idToPerson = new Map<string, string>();
     students.forEach(s => idToPerson.set((s as any).id, personKeyOf(s)));
-    const acc: Record<string, { present: number; late: number; perm: number; abs: number }> = {};
+    // Collapse to one status per person per DAY (worst wins) so morning+afternoon
+    // sessions of a full-day absence count once, matching the on-screen totals.
+    const rank: Record<string, number> = { present: 0, late: 1, permission: 2, absent: 3 };
+    const perDay = new Map<string, { pk: string; status: string }>(); // key: pk@@date
     relevant.forEach(r => {
       Object.entries(r.studentStates || {}).forEach(([sid, st]) => {
-        if (sid.endsWith('_reason')) return;
+        if (sid.endsWith('_reason') || rank[st as string] === undefined) return;
         const pk = idToPerson.get(sid);
         if (!pk) return;
-        if (!acc[pk]) acc[pk] = { present: 0, late: 0, perm: 0, abs: 0 };
-        if (st === 'present') acc[pk].present++;
-        else if (st === 'late') acc[pk].late++;
-        else if (st === 'permission') acc[pk].perm++;
-        else if (st === 'absent') acc[pk].abs++;
+        const key = `${pk}@@${r.date}`;
+        const prev = perDay.get(key);
+        if (prev === undefined || rank[st as string] > rank[prev.status]) perDay.set(key, { pk, status: st as string });
       });
+    });
+    const acc: Record<string, { present: number; late: number; perm: number; abs: number }> = {};
+    perDay.forEach(({ pk, status }) => {
+      if (!acc[pk]) acc[pk] = { present: 0, late: 0, perm: 0, abs: 0 };
+      if (status === 'present') acc[pk].present++;
+      else if (status === 'late') acc[pk].late++;
+      else if (status === 'permission') acc[pk].perm++;
+      else if (status === 'absent') acc[pk].abs++;
     });
     const body = gradeStudents.map((s, i) => {
       const a = acc[personKeyOf(s)] || { present: 0, late: 0, perm: 0, abs: 0 };
