@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
-import { BookMarked, Plus, Pencil, Trash2, Save, X, FileText } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { BookMarked, Plus, Pencil, Trash2, Save, X, FileText, Upload, Loader2 } from 'lucide-react';
 import { SchoolUser } from '../types';
 import { SUBJECTS } from '../lib/worksheets';
 import { LessonSource, loadLessons, refreshLessonsFromCloud, saveLesson, deleteLesson } from '../lib/lessons';
+import { extractTextFromFile } from '../lib/extractText';
 
 // Dedicated Lesson Library — manage small lesson/worksheet TEXTS that the AI
 // worksheet generator uses as source material. Cloud-synced (school_settings KV),
@@ -28,10 +29,31 @@ export default function LessonLibrary({ grades, currentUser, onClose }: Props) {
 
   const [lessons, setLessons] = useState<LessonSource[]>(() => loadLessons());
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const flash = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); };
 
   useEffect(() => { refreshLessonsFromCloud().then(setLessons); }, []);
+
+  const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f || !draft) return;
+    setExtracting(true);
+    try {
+      const text = await extractTextFromFile(f);
+      if (!text) { flash('មិនរកឃើញអត្ថបទក្នុងឯកសារ (ឯកសារស្កេន/រូបភាពគ្មានអក្សរ)។ សូមប្រើ Word/PDF ដែលមានអក្សរ។', false); return; }
+      // Append to any existing content; default the title to the file name.
+      const base = f.name.replace(/\.[^.]+$/, '');
+      setDraft(d => d ? { ...d, title: d.title || base, content: (d.content ? d.content + '\n\n' : '') + text } : d);
+      flash(`បានស្រង់អត្ថបទពី «${f.name}» ✓`);
+    } catch (err: any) {
+      flash(err?.message || 'អានឯកសារមិនបាន — សូមព្យាយាមម្ដងទៀត។', false);
+    } finally {
+      setExtracting(false);
+    }
+  };
 
   const startNew = () => setDraft(emptyDraft(SUBJECTS[0], gradeList[0]));
   const startEdit = (l: LessonSource) => setDraft({ id: l.id, title: l.title, subject: l.subject || SUBJECTS[0], grade: l.grade || gradeList[0], content: l.content });
@@ -87,9 +109,16 @@ export default function LessonLibrary({ grades, currentUser, onClose }: Props) {
             <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">មុខវិជ្ជា</span><select value={draft.subject} onChange={e => setDraft({ ...draft, subject: e.target.value })} className={fieldCls}>{SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
             <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">ថ្នាក់</span><select value={draft.grade} onChange={e => setDraft({ ...draft, grade: e.target.value })} className={fieldCls}>{gradeList.map(g => <option key={g} value={g}>{g}</option>)}</select></label>
           </div>
-          <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">អត្ថបទមេរៀន / វិញ្ញាសារ</span>
-            <textarea value={draft.content} onChange={e => setDraft({ ...draft, content: e.target.value })} rows={8} placeholder="ចម្លងអត្ថបទមេរៀន/វិញ្ញាសារ (ពីបណ្ណាល័យឯកសារ Drive) បិទភ្ជាប់ទីនេះ។ AI នឹងបង្កើតសំណួរផ្អែកលើអត្ថបទនេះ។" className={`${fieldCls} resize-y leading-relaxed`} />
-          </label>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">អត្ថបទមេរៀន / វិញ្ញាសារ</span>
+              <input ref={fileRef} type="file" accept=".txt,.csv,.pdf,.docx" onChange={onUpload} className="hidden" />
+              <button onClick={() => fileRef.current?.click()} disabled={extracting} title="ស្រង់អត្ថបទពីឯកសារ (.pdf, .docx, .txt)" className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 disabled:opacity-60 flex items-center gap-1.5">
+                {extracting ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />} {extracting ? 'កំពុងស្រង់…' : 'Upload ឯកសារ'}
+              </button>
+            </div>
+            <textarea value={draft.content} onChange={e => setDraft({ ...draft, content: e.target.value })} rows={8} placeholder="Upload ឯកសារ (.pdf/.docx/.txt) ខាងលើ — ឬ ចម្លងអត្ថបទមេរៀន/វិញ្ញាសារ បិទភ្ជាប់ទីនេះ។ AI នឹងបង្កើតសំណួរផ្អែកលើអត្ថបទនេះ។" className={`${fieldCls} resize-y leading-relaxed`} />
+          </div>
           <div className="flex items-center justify-end gap-2">
             <button onClick={() => setDraft(null)} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200">បោះបង់</button>
             <button onClick={save} className="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-sm"><Save size={13} /> រក្សាទុក</button>
