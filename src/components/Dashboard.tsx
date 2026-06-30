@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { SchoolReport, StudentScore, SchoolUser } from '../types';
 import { loadAttendance } from '../utils/attendanceStore';
+import { getSupabaseClient, syncUpsertStudentAttendance } from '../lib/supabase';
 import { distinctStudentKey, findPhantomGrades } from '../utils/studentKey';
 import schoolLogo from '../assets/logo.png';
 import { useT } from '../i18n';
@@ -509,6 +510,7 @@ export default function Dashboard({
         const stats = cumulativeStats[personOf(sId)] || { late: 0, permission: 0, absent: 0 };
         list.push({
           id: sId,
+          studentId: (stu as any).studentId || '',
           name: stu ? stu.name : 'មិនស្គាល់ឈ្មោះ',
           grade,
           gender: stu ? stu.gender : 'Unknown',
@@ -568,7 +570,49 @@ export default function Dashboard({
 
   // Audit popup: which exact dates a student is marked absent/permission, so wrong
   // or duplicated entries (e.g. an import that scattered marks across months) show up.
-  const [auditStudent, setAuditStudent] = useState<{ name: string; grade: string; absentDates: string[]; permissionDates: string[] } | null>(null);
+  const [auditStudent, setAuditStudent] = useState<{ name: string; grade: string; studentId: string; absentDates: string[]; permissionDates: string[] } | null>(null);
+
+  // Wipe EVERY attendance mark for one student across all records (any grade/session
+  // /id), local + cloud — for when a count won't clear because marks sit under a
+  // grade-string variant or stale id the per-class clear can't reach. The student can
+  // then re-import cleanly. Matches by អត្តលេខ first, then normalised name+grade.
+  const wipeStudentAttendance = (target: { name: string; grade: string; studentId: string }) => {
+    const norm = (x: any) => (x ?? '').toString().replace(/\s+/g, ' ').trim().toLowerCase();
+    const sid = (target.studentId || '').trim();
+    const nameKey = norm(target.name);
+    const targetIds = new Set(
+      students
+        .filter(s => (sid && ((s as any).studentId || '').trim() === sid) || (norm(s.name) === nameKey))
+        .map(s => (s as any).id)
+    );
+    if (targetIds.size === 0) { alert('រកមិនឃើញ id សិស្សនេះទេ។'); return; }
+    if (!window.confirm(`លុបកំណត់ត្រាវត្តមាន​ទាំងអស់​របស់ «${target.name}» (គ្រប់ខែ គ្រប់ថ្នាក់)?\n\nប្រើពេលលេខអវត្តមានមិនព្រមបាត់ — បន្ទាប់មកនាំចូលឡើងវិញ។ មិនអាចត្រឡប់វិញបានទេ។`)) return;
+    let raw: AttendanceRecord[] = [];
+    try { raw = JSON.parse(localStorage.getItem('school_daily_attendance') || '[]'); } catch { raw = []; }
+    const client = getSupabaseClient();
+    let changed = 0;
+    const updated = raw.map(rec => {
+      const ss = rec.studentStates as Record<string, string> | undefined;
+      if (!ss) return rec;
+      let touched = false;
+      const next = { ...ss };
+      Object.keys(ss).forEach(k => {
+        const baseId = k.endsWith('_reason') ? k.slice(0, -'_reason'.length) : k;
+        if (targetIds.has(baseId)) { delete next[k]; touched = true; }
+      });
+      if (!touched) return rec;
+      changed++;
+      let p = 0, l = 0, pe = 0, a = 0;
+      Object.entries(next).forEach(([k, st]) => { if (k.endsWith('_reason')) return; if (st === 'late') l++; else if (st === 'permission') pe++; else if (st === 'absent') a++; else p++; });
+      const fixed = { ...rec, studentStates: next, presentCount: p, lateCount: l, permissionCount: pe, absentCount: a };
+      if (client) syncUpsertStudentAttendance(fixed).catch(() => { /* offline — saved locally */ });
+      return fixed;
+    });
+    localStorage.setItem('school_daily_attendance', JSON.stringify(updated));
+    setAttendanceRecords(updated);
+    setAuditStudent(null);
+    alert(`បានលុបវត្តមានរបស់ «${target.name}» ពី ${changed} កំណត់ត្រា ✓ — ឥឡូវអ្នកអាចនាំចូលឡើងវិញ។`);
+  };
 
   // Aggregate absence/lateness reasons for the chart, scoped to the latest
   // recorded day / month / year depending on the chosen mode.
@@ -1289,7 +1333,7 @@ export default function Dashboard({
                         <td className="px-4 py-5 text-center text-blue-600 font-black font-mono">{student.cumulativePermission}</td>
                         <td className="px-4 py-5 text-center">
                           <button
-                            onClick={() => setAuditStudent({ name: student.name, grade: student.grade, absentDates: student.absentDates || [], permissionDates: student.permissionDates || [] })}
+                            onClick={() => setAuditStudent({ name: student.name, grade: student.grade, studentId: student.studentId || '', absentDates: student.absentDates || [], permissionDates: student.permissionDates || [] })}
                             className="text-rose-600 font-black font-mono underline decoration-dotted underline-offset-2 hover:text-rose-700 cursor-pointer"
                             title="ចុចដើម្បីមើលថ្ងៃដែលអវត្តមាន"
                           >
@@ -1425,6 +1469,15 @@ export default function Dashboard({
                 ) : <p className="text-slate-400">គ្មាន</p>}
               </div>
               <p className="text-[10px] text-slate-400 pt-1">ប្រសិនមានថ្ងៃខុស (ឧ. ខែដែលមិនមានសិក្សា) សូមបើកតារាងតាមដានអវត្តមាន → «សម្អាតខែនេះ» → នាំចូលឡើងវិញ។</p>
+            </div>
+            <div className="p-4 border-t border-slate-100">
+              <button
+                onClick={() => wipeStudentAttendance(auditStudent)}
+                className="w-full px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"
+              >
+                <Trash2 size={13} /> លុបវត្តមានទាំងអស់របស់សិស្សនេះ
+              </button>
+              <p className="text-[10px] text-slate-400 mt-1.5 text-center">បើលេខមិនព្រមបាត់ (កំណត់ត្រាខុសនៅសល់) — លុបទាំងអស់ រួចនាំចូលឡើងវិញ។</p>
             </div>
           </div>
         </div>
