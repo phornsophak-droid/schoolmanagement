@@ -347,14 +347,34 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     return list.sort((a, b) => a.name.localeCompare(b.name, 'km'));
   }, [students]);
 
+  // A stable per-PERSON key (name+grade). Attendance is stored keyed by a student
+  // record's id, but a student has one record per month (each a different id) and
+  // different devices may pick a different record as the roster representative — so
+  // matching by exact id made the same cloud data show different totals per device.
+  // Aggregating by person key fixes that: the count is identical everywhere.
+  const personKeyOf = (s: { name: string; grade: string }) => `${s.name.trim().toLowerCase()}_${s.grade}`;
+
   // Compute cumulative student attendance statistics based on historical records + current active mappings
   const studentStatsMap = useMemo(() => {
-    const stats: { [studentId: string]: { late: number; permission: number; absent: number; totalAbsence: number } } = {};
-    
+    const stats: { [personKey: string]: { late: number; permission: number; absent: number; totalAbsence: number } } = {};
+
+    // Map EVERY student record id (any month) -> its person key, so an attendance
+    // entry keyed by any of a student's month-record ids resolves to that person.
+    const idToPerson = new Map<string, string>();
+    students.forEach(s => idToPerson.set((s as any).id, personKeyOf(s)));
+
     // Initialize stats for each student to prevent undefined references
     uniqueStudentsList.forEach(s => {
-      stats[s.id] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
+      stats[personKeyOf(s)] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
     });
+
+    const bump = (pk: string | undefined, status: string) => {
+      if (!pk) return;
+      if (!stats[pk]) stats[pk] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
+      if (status === 'late') stats[pk].late += 1;
+      else if (status === 'permission') { stats[pk].permission += 1; stats[pk].totalAbsence += 1; }
+      else if (status === 'absent') { stats[pk].absent += 1; stats[pk].totalAbsence += 1; }
+    };
 
     // Populate using saved records, excluding the current draft's date & grade so we don't double count it
     records.forEach(r => {
@@ -364,42 +384,18 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
       if (r.studentStates) {
         Object.entries(r.studentStates).forEach(([studentId, status]) => {
           if (studentId.endsWith('_reason')) return;
-          
-          if (!stats[studentId]) {
-            stats[studentId] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
-          }
-          
-          if (status === 'late') {
-            stats[studentId].late += 1;
-          } else if (status === 'permission') {
-            stats[studentId].permission += 1;
-            stats[studentId].totalAbsence += 1;
-          } else if (status === 'absent') {
-            stats[studentId].absent += 1;
-            stats[studentId].totalAbsence += 1;
-          }
+          bump(idToPerson.get(studentId), status as string);
         });
       }
     });
 
     // Merge the live draft state so changes reflect instantly in real-time
     Object.entries(activeAttendanceMap).forEach(([studentId, status]) => {
-      if (!stats[studentId]) {
-        stats[studentId] = { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
-      }
-      if (status === 'late') {
-        stats[studentId].late += 1;
-      } else if (status === 'permission') {
-        stats[studentId].permission += 1;
-        stats[studentId].totalAbsence += 1;
-      } else if (status === 'absent') {
-        stats[studentId].absent += 1;
-        stats[studentId].totalAbsence += 1;
-      }
+      bump(idToPerson.get(studentId), status as string);
     });
 
     return stats;
-  }, [records, uniqueStudentsList, selectedDate, selectedGrade, activeAttendanceMap]);
+  }, [records, students, uniqueStudentsList, selectedDate, selectedGrade, activeAttendanceMap]);
 
   // Export an attendance report (day / month / year) for the selected class to Excel.
   const exportAttendanceReport = (period: 'day' | 'month' | 'year') => {
@@ -412,16 +408,26 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     const relevant = records.filter(r => r.grade === grade && match(r.date));
     const periodLabel = period === 'day' ? `ប្រចាំថ្ងៃ ${selectedDate}` : period === 'month' ? `ប្រចាំខែ ${ym}` : `ប្រចាំឆ្នាំ ${yr}`;
     const header = ['ល.រ', 'អត្តលេខ', 'គោត្តនាម និងនាម', 'ភេទ', 'វត្តមាន', 'យឺត', 'ច្បាប់', 'អត់ច្បាប់', 'សរុបអវត្តមាន'];
-    const body = gradeStudents.map((s, i) => {
-      let present = 0, late = 0, perm = 0, abs = 0;
-      relevant.forEach(r => {
-        const st = r.studentStates?.[s.id];
-        if (st === 'present') present++;
-        else if (st === 'late') late++;
-        else if (st === 'permission') perm++;
-        else if (st === 'absent') abs++;
+    // Aggregate by person key (not the month-specific record id) so the totals
+    // match the on-screen list and are identical on every device. See studentStatsMap.
+    const idToPerson = new Map<string, string>();
+    students.forEach(s => idToPerson.set((s as any).id, personKeyOf(s)));
+    const acc: Record<string, { present: number; late: number; perm: number; abs: number }> = {};
+    relevant.forEach(r => {
+      Object.entries(r.studentStates || {}).forEach(([sid, st]) => {
+        if (sid.endsWith('_reason')) return;
+        const pk = idToPerson.get(sid);
+        if (!pk) return;
+        if (!acc[pk]) acc[pk] = { present: 0, late: 0, perm: 0, abs: 0 };
+        if (st === 'present') acc[pk].present++;
+        else if (st === 'late') acc[pk].late++;
+        else if (st === 'permission') acc[pk].perm++;
+        else if (st === 'absent') acc[pk].abs++;
       });
-      return [i + 1, s.studentId || '', s.name, s.gender, present, late, perm, abs, perm + abs];
+    });
+    const body = gradeStudents.map((s, i) => {
+      const a = acc[personKeyOf(s)] || { present: 0, late: 0, perm: 0, abs: 0 };
+      return [i + 1, s.studentId || '', s.name, s.gender, a.present, a.late, a.perm, a.abs, a.perm + a.abs];
     });
     const sheet = [
       [`របាយការណ៍ចុះវត្តមានសិស្ស — ${grade}`],
@@ -1216,7 +1222,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                     {displayStudents.length > 0 ? (
                       displayStudents.map((std, idx) => {
                         const currentStatus = activeAttendanceMap[std.id] || 'present';
-                        const stats = studentStatsMap[std.id] || { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
+                        const stats = studentStatsMap[personKeyOf(std)] || { late: 0, permission: 0, absent: 0, totalAbsence: 0 };
                         return (
                           <tr key={std.id} className="hover:bg-slate-50/70 transition-all group">
                             {/* Number Index */}
