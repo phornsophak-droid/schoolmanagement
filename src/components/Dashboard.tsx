@@ -438,7 +438,10 @@ export default function Dashboard({
     const rank: Record<string, number> = { present: 0, late: 1, permission: 2, absent: 3 };
     const perDay = new Map<string, { pk: string; status: string }>(); // key: pk@@date
     attendanceRecords.forEach(rec => {
-      if (!inCat(rec.grade) || !inSession(rec) || !inGradeScope(rec.grade)) return; // category + session + class scope
+      // NOTE: no session filter — the cumulative is a per-DAY total across both
+      // shifts (perDay dedups morning+afternoon), so it must not shrink to the
+      // currently-toggled shift. Category + class scope still apply.
+      if (!inCat(rec.grade) || !inGradeScope(rec.grade)) return;
       if (!rec.studentStates) return;
       Object.entries(rec.studentStates).forEach(([sId, status]) => {
         if (sId.endsWith('_reason') || rank[status as string] === undefined) return;
