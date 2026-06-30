@@ -422,19 +422,28 @@ export default function Dashboard({
 
   // Generate Daily Absent Report Data
   const dailyAbsentReport = useMemo(() => {
-    // Cumulative stats
+    // Map every student record id (any month) -> a stable person key (name+grade),
+    // so absences stored under ANY of a student's month-record ids accumulate to
+    // that one person — otherwise the cumulative total only caught the records that
+    // happened to use the same id (often just today → showing "1").
+    const idToPerson = new Map<string, string>();
+    students.forEach(s => idToPerson.set((s as any).id, `${s.name.replace(/\s+/g, ' ').trim().toLowerCase()}|${s.grade}`));
+    const personOf = (sId: string) => idToPerson.get(sId) || sId;
+
+    // Cumulative stats, keyed by PERSON (not the month-specific record id).
     const cumulativeStats: Record<string, { late: number, permission: number, absent: number }> = {};
     attendanceRecords.forEach(rec => {
       if (!inCat(rec.grade) || !inSession(rec) || !inGradeScope(rec.grade)) return; // category + session + class scope
       if (rec.studentStates) {
         Object.entries(rec.studentStates).forEach(([sId, status]) => {
           if (sId.endsWith('_reason')) return;
-          if (!cumulativeStats[sId]) {
-            cumulativeStats[sId] = { late: 0, permission: 0, absent: 0 };
+          const pk = personOf(sId);
+          if (!cumulativeStats[pk]) {
+            cumulativeStats[pk] = { late: 0, permission: 0, absent: 0 };
           }
-          if (status === 'late') cumulativeStats[sId].late += 1;
-          else if (status === 'permission') cumulativeStats[sId].permission += 1;
-          else if (status === 'absent') cumulativeStats[sId].absent += 1;
+          if (status === 'late') cumulativeStats[pk].late += 1;
+          else if (status === 'permission') cumulativeStats[pk].permission += 1;
+          else if (status === 'absent') cumulativeStats[pk].absent += 1;
         });
       }
     });
@@ -478,7 +487,7 @@ export default function Dashboard({
     byStudent.forEach(({ status, grade, reason }, sId) => {
       if (status === 'late' || status === 'permission' || status === 'absent') {
         const stu = uniqueStudentsMap.get(sId);
-        const stats = cumulativeStats[sId] || { late: 0, permission: 0, absent: 0 };
+        const stats = cumulativeStats[personOf(sId)] || { late: 0, permission: 0, absent: 0 };
         list.push({
           id: sId,
           name: stu ? stu.name : 'មិនស្គាល់ឈ្មោះ',
@@ -502,9 +511,11 @@ export default function Dashboard({
       const key = `${item.name.replace(/\s+/g, ' ').trim().toLowerCase()}|${item.grade}`;
       const ex = mergedMap.get(key);
       if (!ex) { mergedMap.set(key, { ...item }); return; }
-      ex.cumulativeLate += item.cumulativeLate;
-      ex.cumulativePermission += item.cumulativePermission;
-      ex.cumulativeAbsent += item.cumulativeAbsent;
+      // Cumulative totals are already per-person, so don't re-sum across merged
+      // rows (that would double-count) — keep the larger, in case of any gap.
+      ex.cumulativeLate = Math.max(ex.cumulativeLate, item.cumulativeLate);
+      ex.cumulativePermission = Math.max(ex.cumulativePermission, item.cumulativePermission);
+      ex.cumulativeAbsent = Math.max(ex.cumulativeAbsent, item.cumulativeAbsent);
       if ((statusW[item.todayStatus] || 0) > (statusW[ex.todayStatus] || 0)) ex.todayStatus = item.todayStatus;
       if (!ex.reason && item.reason) ex.reason = item.reason;
     });
