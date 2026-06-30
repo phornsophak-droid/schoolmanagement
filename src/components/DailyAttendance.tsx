@@ -30,7 +30,8 @@ import {
   syncUpsertStudentAttendance,
   syncUpsertStudentAttendanceBulk,
   syncUpsertTeacherAttendance,
-  syncDeleteStudentAttendance
+  syncDeleteStudentAttendance,
+  syncDeleteStudentAttendanceByGrade
 } from '../lib/supabase';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 
@@ -212,6 +213,27 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     const client = getSupabaseClient();
     if (client) {
       idsToRemove.forEach(id => syncDeleteStudentAttendance(id).catch(err => console.warn('Supabase clear sync failed', err)));
+    }
+  };
+
+  // Wipe ALL attendance for a class (every month) locally + in the cloud by scope,
+  // so re-importing starts clean and old rows can't resync back (the per-id delete
+  // can miss cloud rows whose id/grade-spelling drifted).
+  const handleClearGradeAll = async (gradeToClear: string) => {
+    const remaining = records.filter(r => r.grade !== gradeToClear);
+    setRecords(remaining);
+    persistAttendance(remaining);
+    const client = getSupabaseClient();
+    if (client) {
+      try {
+        await syncDeleteStudentAttendanceByGrade(gradeToClear);
+        triggerToast(`បានសម្អាតវត្តមានទាំងអស់របស់ «${gradeToClear}» (Cloud ផង) ✓`, 'success');
+      } catch (err) {
+        console.warn('Supabase clear-all sync failed', err);
+        triggerToast('បានសម្អាតក្នុងម៉ាស៊ីន — ភ្ជាប់ Cloud បរាជ័យ', 'error');
+      }
+    } else {
+      triggerToast('បានសម្អាតក្នុងម៉ាស៊ីន (មិនបានភ្ជាប់ Cloud)', 'info');
     }
   };
 
@@ -1721,6 +1743,7 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
           onClose={() => setMonthlyRegisterOpen(false)}
           onImport={handleMonthlyImport}
           onClear={handleMonthlyClear}
+          onClearAll={handleClearGradeAll}
         />
       )}
     </div>

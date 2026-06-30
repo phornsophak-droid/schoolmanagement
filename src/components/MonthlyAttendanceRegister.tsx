@@ -36,6 +36,7 @@ interface Props {
   onClose: () => void;
   onImport: (updated: AttRecord[]) => void;  // persist imported day-marks
   onClear?: (ids: string[]) => void;         // wipe this class+month before re-import
+  onClearAll?: (grade: string) => void;      // wipe EVERY month for this class (local + cloud)
 }
 
 const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
@@ -63,7 +64,7 @@ const ACADEMIC_MONTHS: { m: number; y: number }[] = [
   { m: 9, y: 2026 }, { m: 10, y: 2026 },
 ];
 
-export default function MonthlyAttendanceRegister({ students, allStudents, grade, year: initYear, month: initMonth, records, onClose, onImport, onClear }: Props) {
+export default function MonthlyAttendanceRegister({ students, allStudents, grade, year: initYear, month: initMonth, records, onClose, onImport, onClear, onClearAll }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState('');
   // Month/year are selectable so a parent can view/import any month, not just the
@@ -140,6 +141,16 @@ export default function MonthlyAttendanceRegister({ students, allStudents, grade
     if (!window.confirm(`លុបវត្តមាន «${grade}» ខែ${KH_MONTHS[month - 1]} ${toKh(year)} ទាំងអស់ (${toKh(ids.length)} ថ្ងៃ)?\n\nប្រើមុននាំចូលឡើងវិញ ដើម្បីកុំឱ្យសញ្ញាចាស់ជាន់គ្នា។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
     onClear?.(ids);
     setToast(`បានសម្អាតវត្តមានខែ${KH_MONTHS[month - 1]} ${toKh(year)} ✓`);
+  };
+
+  // Wipe EVERY month of attendance for this class (local + cloud) — use when the
+  // old data is wrong/duplicated and you want to re-import all months from scratch.
+  const handleClearAll = () => {
+    const count = records.filter(r => r.grade === grade).length;
+    if (count === 0) { setToast('គ្មានកំណត់ត្រាវត្តមានសម្រាប់ថ្នាក់នេះទេ'); return; }
+    if (!window.confirm(`លុបវត្តមាន «${grade}» គ្រប់ខែទាំងអស់ (${toKh(count)} ថ្ងៃ) ចេញពីម៉ាស៊ីន និង Cloud?\n\nប្រើពេលទិន្នន័យចាស់ខុស ដើម្បីនាំចូលឡើងវិញពីដើម។ សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`)) return;
+    onClearAll?.(grade);
+    setToast(`បានសម្អាតវត្តមានគ្រប់ខែរបស់ «${grade}» ✓`);
   };
 
   // Click a cell to cycle its mark and save it straight into daily attendance.
@@ -358,6 +369,11 @@ export default function MonthlyAttendanceRegister({ students, allStudents, grade
             {onClear && (
               <button onClick={handleClear} title="លុបវត្តមានខែនេះទាំងអស់ មុននាំចូលឡើងវិញ" className="px-3 py-2 bg-white text-rose-600 hover:bg-rose-50 border border-rose-200 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">
                 <Eraser size={13} /> សម្អាតខែនេះ
+              </button>
+            )}
+            {onClearAll && (
+              <button onClick={handleClearAll} title="លុបវត្តមានគ្រប់ខែរបស់ថ្នាក់នេះ ចេញពីម៉ាស៊ីន និង Cloud" className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">
+                <Eraser size={13} /> សម្អាតគ្រប់ខែ
               </button>
             )}
             <button onClick={handleExport} className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors">

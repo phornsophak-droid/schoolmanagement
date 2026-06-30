@@ -570,6 +570,25 @@ export async function syncDeleteStudentAttendance(id: string) {
   }
 }
 
+// Delete EVERY student-attendance row for a class, matched by CONTENT (grade),
+// across all dates/months. The per-id delete can miss cloud rows whose id differs
+// (grade-spelling drift in the att-<session>-<date>-<grade> id), which then resync
+// back. Scope-delete clears them all so a re-import starts truly clean.
+export async function syncDeleteStudentAttendanceByGrade(grade: string) {
+  noteCloudWrite();
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from('student_attendance')
+    .delete()
+    .eq('grade', grade);
+  if (error) {
+    console.error(`Failed to scope-delete attendance for ${grade} from Supabase`, error);
+    throw error;
+  }
+}
+
 export async function syncDeleteTeacherAttendance(id: string) {
   noteCloudWrite();
   const supabase = getSupabaseClient();
