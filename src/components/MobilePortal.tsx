@@ -39,6 +39,7 @@ import {
 import { StudentScore, SchoolUser, SchoolReport } from '../types';
 import ClassStudentMgmt from './ClassStudentMgmt';
 import ReportsHub from './ReportsHub';
+import Gradebook from './Gradebook';
 import DailyAttendance from './DailyAttendance';
 import Dashboard from './Dashboard';
 import { SchoolLogo } from './SchoolLogo';
@@ -1515,16 +1516,17 @@ export default function MobilePortal({
                 </div>
 
                 <div className="bg-white rounded-2xl p-2 border border-emerald-100 text-slate-800 max-h-[620px] overflow-auto w-full">
-                  <ReportsHub
-                    embeddedAcademic
-                    reports={reports}
-                    onSaveReport={onSaveReport}
-                    onDeleteReport={() => {}}
-                    onViewReport={() => {}}
+                  <Gradebook
                     students={students}
-                    grades={grades}
+                    selectedMonth={gbMonth}
+                    setSelectedMonth={setGbMonth}
+                    selectedGrade={gbGrade}
+                    setSelectedGrade={setGbGrade}
+                    onSaveStudents={onSaveStudents}
                     currentUser={currentUser}
-                    onCancel={() => setInnerView('home')}
+                    grades={grades}
+                    onAddGrade={onAddGrade}
+                    onDeleteGrade={onDeleteGrade}
                   />
                 </div>
               </motion.div>
