@@ -91,16 +91,32 @@ export default function MonthlyAttendanceRegister({ students, grade, year: initY
     return map;
   }, [records, grade, year, mm]);
 
-  // A student's raw state for one day (absent > permission > late > none).
+  // Map every student record id (any month) -> a stable person key (name+grade).
+  // Attendance is stored keyed by whatever record id was current when it was taken
+  // — which differs per month/device — so an exact-id lookup left the grid blank
+  // even though the cumulative total had the absences. Matching by person fixes it.
+  const idToPerson = useMemo(() => {
+    const m = new Map<string, string>();
+    students.forEach(s => m.set((s as any).id, `${s.name.trim().toLowerCase()}_${s.grade}`));
+    return m;
+  }, [students]);
+
+  // A student's raw state for one day (absent > permission > late > none). Matches
+  // any attendance key that resolves to the SAME person, not just the exact id.
   const stateOf = (studentId: string, day: number): '' | State => {
     const recs = recordsByDay[day];
     if (!recs) return '';
+    const person = idToPerson.get(studentId);
     let perm = false, late = false;
     for (const r of recs) {
-      const st = r.studentStates?.[studentId];
-      if (st === 'absent') return 'absent';
-      if (st === 'permission') perm = true;
-      if (st === 'late') late = true;
+      if (!r.studentStates) continue;
+      for (const [k, st] of Object.entries(r.studentStates)) {
+        if (k.endsWith('_reason')) continue;
+        if (k !== studentId && idToPerson.get(k) !== person) continue; // a different person
+        if (st === 'absent') return 'absent';
+        if (st === 'permission') perm = true;
+        if (st === 'late') late = true;
+      }
     }
     return perm ? 'permission' : late ? 'late' : '';
   };
