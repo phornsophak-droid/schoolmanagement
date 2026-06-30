@@ -44,6 +44,26 @@ import Dashboard from './Dashboard';
 import { SchoolLogo } from './SchoolLogo';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 
+// Force-load the newest deployed build. A plain reload can return a cached page
+// (HTTP cache or a service worker), so first drop any service workers + Cache
+// Storage, then reload with a cache-busting query param so index.html — and the
+// new hashed JS bundles it points to — are fetched fresh.
+async function hardRefresh() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if (typeof caches !== 'undefined') {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch { /* best-effort — reload anyway */ }
+  const url = new URL(window.location.href);
+  url.searchParams.set('v', Date.now().toString());
+  window.location.replace(url.toString());
+}
+
 // Morning / afternoon session split — general (non-extra) classes only.
 const EXTRA_CLASS_KEYWORDS = ['GRADE','គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
@@ -464,7 +484,7 @@ export default function MobilePortal({
 
             {/* Refresh — reload to pull the latest deployed version */}
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => hardRefresh()}
               title="ផ្ទុកឡើងវិញ ដើម្បីមើលកំណែថ្មី"
               aria-label="ផ្ទុកឡើងវិញ"
               className="p-2 rounded-full bg-emerald-50 border border-emerald-200/50 hover:bg-emerald-100 active:rotate-180 transition-all duration-300 cursor-pointer"
