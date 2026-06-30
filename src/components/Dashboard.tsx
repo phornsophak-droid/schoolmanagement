@@ -502,6 +502,10 @@ export default function Dashboard({
     byStudent.forEach(({ status, grade, reason }, sId) => {
       if (status === 'late' || status === 'permission' || status === 'absent') {
         const stu = uniqueStudentsMap.get(sId);
+        // Skip marks under an id that no longer matches a student record — these are
+        // orphaned/stale entries (e.g. from a duplicate profile that was merged) and
+        // would otherwise show as a "មិនស្គាល់ឈ្មោះ" row and inflate counts.
+        if (!stu) return;
         const stats = cumulativeStats[personOf(sId)] || { late: 0, permission: 0, absent: 0 };
         list.push({
           id: sId,

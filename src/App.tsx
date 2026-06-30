@@ -335,7 +335,16 @@ export default function App() {
         // groups, so same-name students in different groups don't collapse into one
         // row. Group-less (general) records keep the original key. Must match studentRecordId.
         const g = norm(s.group);
-        const key = `${norm(s.name)}_${norm(s.gender)}_${norm(s.grade)}_${norm(s.month)}${g ? `_${g}` : ''}`;
+        // Every student uses the school's official អត្តលេខ, so prefer it as the
+        // identity: it collapses duplicate profiles of one student even when the
+        // NAME has a spelling/spacing variant (the cause of a student's attendance
+        // splitting across ids and inflating their absence total). Keep grade + month
+        // + group so a student's after-hours record (which reuses the same អត្តលេខ)
+        // and each month stay separate. Fall back to name when there's no អត្តលេខ.
+        const sid = norm(s.studentId);
+        const key = sid
+          ? `id:${sid}_${norm(s.grade)}_${norm(s.month)}${g ? `_${g}` : ''}`
+          : `${norm(s.name)}_${norm(s.gender)}_${norm(s.grade)}_${norm(s.month)}${g ? `_${g}` : ''}`;
         const existing = best.get(key);
         if (!existing) { best.set(key, s); order.push(key); }
         else if (recordRichness(s) > recordRichness(existing)) { best.set(key, s); }
