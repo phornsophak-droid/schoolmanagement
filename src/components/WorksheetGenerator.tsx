@@ -20,6 +20,9 @@ interface Props {
   grades: string[];
   currentUser?: SchoolUser | null;
   onClose: () => void;
+  // When true, render inline as a page (for the sidebar menu) instead of a
+  // full-screen modal overlay.
+  embedded?: boolean;
 }
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
@@ -33,7 +36,7 @@ const Lines: React.FC<{ n: number }> = ({ n }) => (
   </div>
 );
 
-export default function WorksheetGenerator({ grades, currentUser, onClose }: Props) {
+export default function WorksheetGenerator({ grades, currentUser, onClose, embedded }: Props) {
   const teacherName = currentUser?.name || '';
   const generalGrades = useMemo(() => (grades.length ? grades : ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣']), [grades]);
 
@@ -119,9 +122,9 @@ export default function WorksheetGenerator({ grades, currentUser, onClose }: Pro
   }`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4 flex justify-center items-start">
+    <div className={embedded ? 'w-full' : 'fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4 flex justify-center items-start'}>
       <style>{printCss}</style>
-      <div className="w-full max-w-3xl space-y-3">
+      <div className="w-full max-w-3xl mx-auto space-y-3">
         {/* Toolbar */}
         <div className="ws-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5"><Sparkles size={15} className="text-indigo-500" /> ម៉ាស៊ីនបង្កើតសន្លឹកលំហាត់ (AI Worksheet)</h3>

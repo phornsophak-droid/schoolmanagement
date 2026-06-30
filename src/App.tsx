@@ -130,6 +130,7 @@ import ParentPortal from './components/ParentPortal';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
 import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
+import WorksheetGenerator from './components/WorksheetGenerator';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
 import { persistAttendance, loadAttendance, initAttendanceStore, clearAttendanceStore } from './utils/attendanceStore';
@@ -146,7 +147,7 @@ const IS_PHONE = typeof navigator !== 'undefined' &&
 export default function App() {
   const { t } = useT();
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance'>(() => {
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets'>(() => {
     const isMobile = typeof window !== 'undefined' && (
       window.innerWidth < 768 || 
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -1159,65 +1160,6 @@ export default function App() {
     })();
   }, [currentUser, students, grades]);
 
-  // One-time data hygiene (PRINCIPAL ONLY): permanently remove junk "ALL GRADES"
-  // records — an invalid grade created by a bad import (a student can't be in every
-  // grade). Deletes the student rows + their attendance + the grade entry, locally
-  // and in the cloud, so they stop polluting counts. Runs once, flag-guarded.
-  useEffect(() => {
-    if (currentUser?.role !== 'principal') return;
-    if (junkCleanupRan.current) return;
-    if (students.length === 0) return; // wait until data has loaded
-    if (localStorage.getItem('junk_grade_cleanup_v1')) return;
-
-    const JUNK = new Set(['ALL GRADES']);
-    const hasJunkStudents = students.some(s => JUNK.has(s.grade));
-    const hasJunkGrades = grades.some(g => JUNK.has(g));
-    let junkAtt: any[] = [];
-    try { junkAtt = loadAttendance().filter((r: any) => JUNK.has(r.grade)); } catch { /* ignore */ }
-    if (!hasJunkStudents && !hasJunkGrades && junkAtt.length === 0) {
-      localStorage.setItem('junk_grade_cleanup_v1', '1');
-      return;
-    }
-    junkCleanupRan.current = true; // synchronous re-entry guard
-
-    (async () => {
-      try {
-        // Students (handleSaveStudents syncs each deletion to the cloud).
-        const cleanStudents = students.filter(s => !JUNK.has(s.grade));
-        const removed = students.length - cleanStudents.length;
-        if (removed > 0) await handleSaveStudents(cleanStudents);
-
-        // Attendance rows under the junk grade (local cache/IndexedDB + cloud).
-        if (junkAtt.length > 0) {
-          try {
-            const cleanAtt = loadAttendance().filter((r: any) => !JUNK.has(r.grade));
-            persistAttendance(cleanAtt);
-          } catch { /* ignore */ }
-        }
-
-        // The grade entry itself, and the cloud-side attendance scope-delete.
-        const cleanGrades = grades.filter(g => !JUNK.has(g));
-        if (cleanGrades.length !== grades.length) {
-          setGrades(cleanGrades);
-          localStorage.setItem('school_grades_v2', JSON.stringify(cleanGrades));
-        }
-        const client = getSupabaseClient();
-        if (client) {
-          for (const g of JUNK) {
-            try { await syncDeleteStudentAttendanceByGrade(g); } catch { /* offline */ }
-            if (grades.includes(g)) { try { await syncDeleteGrade(g); } catch { /* offline */ } }
-          }
-        }
-
-        localStorage.setItem('junk_grade_cleanup_v1', '1');
-        showCloudToast(`បានលុបកំណត់ត្រាសំរាម «ALL GRADES» (សិស្ស ${removed} នាក់ + អវត្តមាន ${junkAtt.length}) ✓`, true);
-      } catch (err) {
-        console.warn('Junk-grade cleanup failed', err);
-        junkCleanupRan.current = false; // allow a retry next load
-      }
-    })();
-  }, [currentUser, students, grades]);
-
   const handleSaveReport = async (report: SchoolReport) => {
     let updatedReportsList: SchoolReport[];
     const isEditing = reports.some(r => r.id === report.id);
@@ -1547,6 +1489,21 @@ export default function App() {
           </button>
 
           <button
+            id="nav_worksheets_tab"
+            onClick={() => setActiveView('worksheets')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'worksheets'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <BookOpen size={16} className={activeView === 'worksheets' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>គ្រប់គ្រងវិញ្ញាសារ</span>
+            </div>
+          </button>
+
+          <button
             id="nav_mobile_portal_tab"
             onClick={() => setActiveView('mobile-portal')}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -1801,6 +1758,23 @@ export default function App() {
 
                 <button
                   onClick={() => {
+                    setActiveView('worksheets');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
+                    activeView === 'worksheets'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
+                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <BookOpen size={16} />
+                    <span>គ្រប់គ្រងវិញ្ញាសារ</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
                     setActiveView('mobile-portal');
                     setIsMobileMenuOpen(false);
                   }}
@@ -2001,6 +1975,23 @@ export default function App() {
                       grades={grades}
                       onAddGrade={handleAddGrade}
                       onDeleteGrade={handleDeleteGrade}
+                    />
+                  </motion.div>
+                )}
+
+                {activeView === 'worksheets' && (
+                  <motion.div
+                    key="worksheets"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <WorksheetGenerator
+                      embedded
+                      grades={grades}
+                      currentUser={currentUser}
+                      onClose={() => setActiveView('dashboard')}
                     />
                   </motion.div>
                 )}
