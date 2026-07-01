@@ -194,18 +194,21 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
             <span className="pointer-events-none absolute bottom-2 right-2 w-8 h-8 border-b-4 border-r-4 border-amber-400 rounded-br-lg" />
 
             <div className="relative">
-              {/* Kingdom header */}
+            {/* Top Header: Logo/School on left, Kingdom motto on right */}
+            <div className="flex justify-between items-start relative z-10 w-full px-2">
+              {/* Left side: Logo centered above the school name. */}
+              <div className="flex flex-col items-center text-emerald-700 font-semibold">
+                <SchoolLogo size={64} />
+                <div className="text-sm font-bold mt-1">សាលាសហគមន៍ច្បារច្រុះ</div>
+              </div>
+
+              {/* Right side: Kingdom header */}
               <div className="text-center text-[12px]">
                 <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
                 <div className="font-semibold">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
                 <div className="text-slate-400">~ ~ ~ ~ ~ ~</div>
               </div>
-
-              {/* Logo centered above the school name. */}
-              <div className="flex flex-col items-center text-emerald-700 font-semibold mt-1 mb-1">
-                <SchoolLogo size={64} />
-                <div className="text-sm font-bold">សាលាសហគមន៍ច្បារច្រុះ</div>
-              </div>
+            </div>
 
               {/* Title */}
               <div className="text-center my-2">
