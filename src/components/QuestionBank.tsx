@@ -3,15 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { HelpCircle, Plus, Pencil, Trash2, Save, X, FileText, CheckCircle2, Clock, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { HelpCircle, Plus, Pencil, Trash2, Save, X, FileText, CheckCircle2, Clock, ShieldCheck, Upload, Loader2, Sparkles, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { SchoolUser } from '../types';
-import { WorksheetType, Difficulty, TYPE_LABELS, DIFFICULTY_LABELS } from '../lib/worksheets';
+import { WorksheetType, Difficulty, TYPE_LABELS, DIFFICULTY_LABELS, generateQuestions } from '../lib/worksheets';
 import {
   BankQuestion, loadQuestions, refreshQuestionsFromCloud, saveQuestion, deleteQuestion,
-  approveQuestion, unapproveQuestion,
+  approveQuestion, unapproveQuestion, bulkAddQuestions,
 } from '../lib/questionBank';
 import { curriculumSubjects, lessonsFor } from '../lib/curriculum';
+import { extractTextFromFile } from '../lib/extractText';
+
+type NewQ = Omit<BankQuestion, 'id' | 'createdAt' | 'updatedAt'>;
+
+// Resolve a free-text type/difficulty cell to a canonical key (accepts the key
+// itself or its Khmer label).
+const resolveType = (v: string): WorksheetType => {
+  const s = (v || '').trim().toLowerCase();
+  const keys = Object.keys(TYPE_LABELS) as WorksheetType[];
+  return keys.find(k => k === s) || keys.find(k => TYPE_LABELS[k].toLowerCase().includes(s) && s.length > 1) || 'multiple_choice';
+};
+const resolveDiff = (v: string): Difficulty => {
+  const s = (v || '').trim().toLowerCase();
+  const keys = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
+  return keys.find(k => k === s) || keys.find(k => DIFFICULTY_LABELS[k] === (v || '').trim()) || 'medium';
+};
+
+// Header aliases → find the column index for each logical field.
+const colIndex = (header: string[], aliases: string[]): number =>
+  header.findIndex(h => aliases.some(a => (h || '').toString().trim().toLowerCase().includes(a)));
 
 // Question Bank — store, edit, and (principal-only) approve reusable questions.
 // Approved questions are pulled by the worksheet generator before it calls the AI.
@@ -40,7 +61,105 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
   const [items, setItems] = useState<BankQuestion[]>(() => loadQuestions());
   const [draft, setDraft] = useState<Draft | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
-  const flash = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); };
+  const flash = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 4000); };
+
+  // ---- Import (A: document→AI, B: Excel/CSV) ----
+  const [aiPanel, setAiPanel] = useState(false);
+  const [aiCfg, setAiCfg] = useState({ grade: gradeList[0], subject: subjects[0], type: 'multiple_choice' as WorksheetType, difficulty: 'medium' as Difficulty, count: 10 });
+  const [busy, setBusy] = useState(false);
+  const aiFileRef = useRef<HTMLInputElement>(null);
+  const xlsxFileRef = useRef<HTMLInputElement>(null);
+
+  // A) Upload a lesson/exam document → AI extracts questions → saved as drafts.
+  const onAiFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    setBusy(true);
+    try {
+      const text = await extractTextFromFile(f);
+      if (!text) { flash('មិនរកឃើញអត្ថបទក្នុងឯកសារ (ស្កេន/រូបភាព)។ ប្រើ Word/PDF ដែលមានអក្សរ។', false); return; }
+      const qs = await generateQuestions({
+        grade: aiCfg.grade, subject: aiCfg.subject, type: aiCfg.type, difficulty: aiCfg.difficulty,
+        count: aiCfg.count, language: 'km', lesson: '', topic: '', source: text,
+      });
+      const added = await bulkAddQuestions(qs.map(q => ({
+        prompt: q.prompt, options: q.options, pairs: q.pairs, answer: q.answer,
+        grade: aiCfg.grade, subject: aiCfg.subject, type: aiCfg.type, difficulty: aiCfg.difficulty,
+        status: 'draft' as const, source: 'ai' as const, createdBy: teacherName,
+      })));
+      setItems(loadQuestions());
+      setAiPanel(false);
+      flash(`បានស្រង់ ${qs.length} សំណួរពី «${f.name}» → បន្ថែម ${added} ចូលធនាគារ (ព្រាង) ✓`);
+    } catch (err: any) {
+      flash(err?.message || 'ស្រង់សំណួរមិនបាន — ត្រូវការ AI (Gemini/Ollama) សម្រាប់មុខវិជ្ជានេះ។', false);
+    } finally { setBusy(false); }
+  };
+
+  // B) Import questions directly from an Excel/CSV file (no AI).
+  const onXlsxFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    setBusy(true);
+    try {
+      // CSV must be read as UTF-8 TEXT — reading a UTF-8 CSV as a byte array makes
+      // XLSX decode Khmer as Latin-1 (mojibake). Binary .xlsx reads fine as array.
+      const isCsv = /\.csv$/i.test(f.name) || (f.type || '').includes('csv') || (f.type || '').startsWith('text/');
+      const wb = isCsv
+        ? XLSX.read(await f.text(), { type: 'string' })
+        : XLSX.read(await f.arrayBuffer(), { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, blankrows: false, raw: false });
+      if (rows.length < 2) { flash('ឯកសារទទេ ឬគ្មានទិន្នន័យ។', false); return; }
+      const header = (rows[0] as any[]).map(x => (x ?? '').toString());
+      const ci = {
+        grade: colIndex(header, ['ថ្នាក់', 'grade']),
+        subject: colIndex(header, ['មុខវិជ្ជា', 'subject']),
+        type: colIndex(header, ['ប្រភេទ', 'type']),
+        difficulty: colIndex(header, ['កម្រិត', 'difficult']),
+        lesson: colIndex(header, ['មេរៀន', 'lesson']),
+        prompt: colIndex(header, ['សំណួរ', 'prompt', 'question']),
+        answer: colIndex(header, ['ចម្លើយ', 'answer']),
+      };
+      const optCols = header.map((h, i) => ({ h: h.toString().toLowerCase(), i })).filter(x => /ជម្រើស|option/.test(x.h)).map(x => x.i);
+      if (ci.prompt < 0) { flash('រកមិនឃើញជួរ «សំណួរ» — សូមប្រើ Template។', false); return; }
+      const news: NewQ[] = [];
+      for (let r = 1; r < rows.length; r++) {
+        const row = rows[r] as any[];
+        const g = (row[ci.prompt] ?? '').toString().trim();
+        if (!g) continue;
+        const type = ci.type >= 0 ? resolveType((row[ci.type] ?? '').toString()) : 'multiple_choice';
+        const options = type === 'multiple_choice' ? optCols.map(i => (row[i] ?? '').toString().trim()).filter(Boolean) : undefined;
+        news.push({
+          prompt: g,
+          options,
+          answer: ci.answer >= 0 ? (row[ci.answer] ?? '').toString().trim() : '',
+          grade: ci.grade >= 0 && (row[ci.grade] ?? '').toString().trim() ? (row[ci.grade]).toString().trim() : gradeList[0],
+          subject: ci.subject >= 0 && (row[ci.subject] ?? '').toString().trim() ? (row[ci.subject]).toString().trim() : subjects[0],
+          lesson: ci.lesson >= 0 ? (row[ci.lesson] ?? '').toString().trim() || undefined : undefined,
+          type,
+          difficulty: ci.difficulty >= 0 ? resolveDiff((row[ci.difficulty] ?? '').toString()) : 'medium',
+          status: 'draft', source: 'manual', createdBy: teacherName,
+        });
+      }
+      const added = await bulkAddQuestions(news);
+      setItems(loadQuestions());
+      flash(added ? `បាននាំចូល ${added} សំណួរ (ព្រាង) ✓` : 'សំណួរទាំងនេះមានក្នុងធនាគាររួចហើយ ឬឯកសារគ្មានទិន្នន័យ។');
+    } catch (err: any) {
+      flash(err?.message || 'អានឯកសារ Excel/CSV មិនបាន។', false);
+    } finally { setBusy(false); }
+  };
+
+  // Download a filled-in Excel template so teachers know the column format.
+  const downloadTemplate = () => {
+    const header = ['ថ្នាក់', 'មុខវិជ្ជា', 'ប្រភេទ', 'កម្រិត', 'មេរៀន', 'សំណួរ', 'ជម្រើសក', 'ជម្រើសខ', 'ជម្រើសគ', 'ជម្រើសឃ', 'ចម្លើយ'];
+    const example = [gradeList[0], subjects[0], 'multiple_choice', 'easy', 'មេរៀនទី ១', '២ + ២ = ?', '៤', '៣', '៥', '៦', '៤'];
+    const ws = XLSX.utils.aoa_to_sheet([header, example]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'សំណួរ');
+    XLSX.writeFile(wb, 'template_ធនាគារសំណួរ.xlsx');
+  };
 
   // Filters
   const [fGrade, setFGrade] = useState('');
@@ -119,11 +238,36 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
           <HelpCircle size={16} className="text-rose-500" /> ធនាគារសំណួរ (Question Bank)
           <span className="text-[11px] font-semibold text-slate-400">· អនុម័ត {approvedCount}/{items.length}</span>
         </h3>
-        <div className="flex items-center gap-2">
-          {!draft && <button onClick={startNew} className="px-3 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-sm"><Plus size={13} /> សំណួរថ្មី</button>}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <input ref={aiFileRef} type="file" accept=".txt,.csv,.pdf,.docx" onChange={onAiFile} className="hidden" />
+          <input ref={xlsxFileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onXlsxFile} className="hidden" />
+          {!draft && <>
+            <button onClick={startNew} className="px-3 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-sm"><Plus size={13} /> សំណួរថ្មី</button>
+            <button onClick={() => setAiPanel(p => !p)} disabled={busy} title="Upload ឯកសារ → AI ស្រង់សំណួរ" className="px-3 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white flex items-center gap-1.5 shadow-sm">{busy ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} AI ពីឯកសារ</button>
+            <button onClick={() => xlsxFileRef.current?.click()} disabled={busy} title="នាំចូលពី Excel/CSV" className="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white flex items-center gap-1.5 shadow-sm"><Upload size={13} /> Excel/CSV</button>
+          </>}
           <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5"><X size={13} /> បិទ</button>
         </div>
       </div>
+
+      {/* AI-from-document panel */}
+      {aiPanel && !draft && (
+        <div className="bg-white rounded-2xl border border-indigo-100 shadow-sm p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-indigo-700 flex items-center gap-1.5"><Sparkles size={14} /> ស្រង់សំណួរពីឯកសារ (Word / PDF / TXT) ដោយ AI</span>
+            <button onClick={() => setAiPanel(false)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <select value={aiCfg.grade} onChange={e => setAiCfg({ ...aiCfg, grade: e.target.value })} className={smallCls}>{gradeList.map(g => <option key={g} value={g}>{g}</option>)}</select>
+            <select value={aiCfg.subject} onChange={e => setAiCfg({ ...aiCfg, subject: e.target.value })} className={smallCls}>{subjects.map(s => <option key={s} value={s}>{s}</option>)}</select>
+            <select value={aiCfg.type} onChange={e => setAiCfg({ ...aiCfg, type: e.target.value as WorksheetType })} className={smallCls}>{(Object.keys(TYPE_LABELS) as WorksheetType[]).map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}</select>
+            <select value={aiCfg.difficulty} onChange={e => setAiCfg({ ...aiCfg, difficulty: e.target.value as Difficulty })} className={smallCls}>{(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map(d => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}</select>
+            <input type="number" min={1} max={50} value={aiCfg.count} onChange={e => setAiCfg({ ...aiCfg, count: Math.max(1, Math.min(50, Number(e.target.value) || 1)) })} className={smallCls} />
+          </div>
+          <button onClick={() => aiFileRef.current?.click()} disabled={busy} className="w-full px-4 py-2.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-sm">{busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} {busy ? 'កំពុងស្រង់…' : 'ជ្រើសឯកសារ រួចស្រង់សំណួរ'}</button>
+          <p className="text-[10px] text-slate-400 text-center">សំណួរនឹងចូលធនាគារជា «ព្រាង» — នាយកសាលាអនុម័តមុននឹងប្រើ។</p>
+        </div>
+      )}
 
       {toast && <div className={`text-center text-xs font-bold px-3 py-2 rounded-xl ${toast.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>{toast.msg}</div>}
 
@@ -232,6 +376,7 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
       <p className="text-[11px] text-slate-400 text-center">
         {isPrincipal ? 'ចុច 🛡 ដើម្បីអនុម័តសំណួរ។ ' : 'តែនាយកសាលាទេ ដែលអាចអនុម័តសំណួរ។ '}
         សំណួរដែលបានអនុម័ត ត្រូវបានយកមកប្រើក្នុង «បង្កើតសន្លឹកលំហាត់» មុននឹងហៅ AI។
+        {' '}<button onClick={downloadTemplate} className="text-indigo-500 hover:underline font-semibold inline-flex items-center gap-1"><Download size={11} /> ទាញយក Template Excel</button>
       </p>
     </div>
   );

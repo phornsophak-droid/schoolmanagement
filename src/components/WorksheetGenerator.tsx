@@ -16,7 +16,7 @@ import {
   ExamPeriod, ExamSection, EXAM_PERIOD_LABELS, generateExam,
 } from '../lib/worksheets';
 import { bulkAddQuestions } from '../lib/questionBank';
-import { curriculumSubjects, lessonsFor } from '../lib/curriculum';
+import { curriculumSubjects, lessonsFor, lessonMaterial } from '../lib/curriculum';
 import { hasGemini } from '../lib/gemini';
 import { getOllamaModel, ollamaReachable } from '../lib/ollama';
 import { LessonSource, loadLessons, refreshLessonsFromCloud, saveLesson, deleteLesson } from '../lib/lessons';
@@ -250,12 +250,22 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
 
   const heading = title || `សន្លឹកលំហាត់ ${params.subject} — ${params.grade}`;
 
+  // Fall back to the picked curriculum lesson's material as the AI source when the
+  // teacher hasn't pasted their own source text.
+  const effectiveParams = (): WorksheetParams => {
+    if (!(params.source || '').trim() && params.lesson) {
+      const mat = lessonMaterial(params.grade, params.subject, params.lesson);
+      if (mat) return { ...params, source: mat };
+    }
+    return params;
+  };
+
   const handleGenerate = async () => {
     setLoading(true);
     setShowAnswers(false);
     setExamSections(null); setExamPeriod(null);
     try {
-      const { questions: qs, fromBank, fromAI } = await generateFromBank(params);
+      const { questions: qs, fromBank, fromAI } = await generateFromBank(effectiveParams());
       setQuestions(qs);
       if (!title) setTitle(`សន្លឹកលំហាត់ ${params.subject}${params.topic ? ` — ${params.topic}` : ''}`);
       flash(`បានបង្កើតលំហាត់ ${toKh(qs.length)} ✓ (ធនាគារ ${toKh(fromBank)} + AI ${toKh(fromAI)})`);
@@ -273,7 +283,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     setShowAnswers(false);
     setQuestions([]);
     try {
-      const sections = await generateExam(params, period);
+      const sections = await generateExam(effectiveParams(), period);
       setExamSections(sections);
       setExamPeriod(period);
       setTitle(`វិញ្ញាសាប្រឡង${EXAM_PERIOD_LABELS[period]} មុខវិជ្ជា${params.subject}`);

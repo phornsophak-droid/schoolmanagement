@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { GraduationCap, Plus, Pencil, Trash2, Save, X, BookOpen } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { GraduationCap, Plus, Pencil, Trash2, Save, X, BookOpen, Upload, Loader2, FileText } from 'lucide-react';
 import { SchoolUser } from '../types';
 import { SUBJECTS } from '../lib/worksheets';
 import {
   Curriculum, CurriculumLesson, loadCurriculum, refreshCurriculumFromCloud,
   saveSubject, removeSubject, saveLesson, removeLesson, curriculumSubjects, lessonsFor,
 } from '../lib/curriculum';
+import { extractTextFromFile } from '../lib/extractText';
 
 // Curriculum Manager — editable subjects + per grade/subject lessons with learning
 // objectives. Feeds the worksheet generator and question-bank dropdowns.
@@ -21,7 +22,7 @@ interface Props {
   onClose: () => void;
 }
 
-type LessonDraft = { id: string | null; grade: string; subject: string; title: string; objectives: string[] };
+type LessonDraft = { id: string | null; grade: string; subject: string; title: string; objectives: string[]; material: string };
 
 export default function CurriculumManager({ grades, onClose }: Props) {
   const gradeList = grades.length ? grades : ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣'];
@@ -33,8 +34,25 @@ export default function CurriculumManager({ grades, onClose }: Props) {
   const [subjectSel, setSubjectSel] = useState(subjects[0] || SUBJECTS[0]);
   const [draft, setDraft] = useState<LessonDraft | null>(null);
   const [tick, setTick] = useState(0); // re-render after lesson list changes
+  const [extracting, setExtracting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const flash = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3000); };
+
+  const onUploadMaterial = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f || !draft) return;
+    setExtracting(true);
+    try {
+      const text = await extractTextFromFile(f);
+      if (!text) { flash('មិនរកឃើញអត្ថបទក្នុងឯកសារ (ស្កេន/រូបភាព)។ ប្រើ Word/PDF ដែលមានអក្សរ។', false); return; }
+      setDraft(d => d ? { ...d, title: d.title || f.name.replace(/\.[^.]+$/, ''), material: (d.material ? d.material + '\n\n' : '') + text } : d);
+      flash(`បានស្រង់អត្ថបទពី «${f.name}» ✓`);
+    } catch (err: any) {
+      flash(err?.message || 'អានឯកសារមិនបាន', false);
+    } finally { setExtracting(false); }
+  };
 
   useEffect(() => { refreshCurriculumFromCloud().then(c => { setCur(c); setSubjects(curriculumSubjects()); setTick(t => t + 1); }); }, []);
 
@@ -54,13 +72,13 @@ export default function CurriculumManager({ grades, onClose }: Props) {
     if (subjectSel === s) setSubjectSel(curriculumSubjects()[0] || SUBJECTS[0]);
   };
 
-  const startNewLesson = () => setDraft({ id: null, grade: gradeSel, subject: subjectSel, title: '', objectives: [''] });
-  const startEditLesson = (l: CurriculumLesson) => setDraft({ id: l.id, grade: l.grade, subject: l.subject, title: l.title, objectives: l.objectives.length ? [...l.objectives] : [''] });
+  const startNewLesson = () => setDraft({ id: null, grade: gradeSel, subject: subjectSel, title: '', objectives: [''], material: '' });
+  const startEditLesson = (l: CurriculumLesson) => setDraft({ id: l.id, grade: l.grade, subject: l.subject, title: l.title, objectives: l.objectives.length ? [...l.objectives] : [''], material: l.material || '' });
 
   const saveLessonDraft = async () => {
     if (!draft) return;
     if (!draft.title.trim()) { flash('សូមដាក់ចំណងជើងមេរៀន', false); return; }
-    const c = await saveLesson({ id: draft.id || '', grade: draft.grade, subject: draft.subject, title: draft.title, objectives: draft.objectives });
+    const c = await saveLesson({ id: draft.id || '', grade: draft.grade, subject: draft.subject, title: draft.title, objectives: draft.objectives, material: draft.material });
     setCur(c); setTick(t => t + 1); setDraft(null);
     flash('បានរក្សាទុកមេរៀន ✓');
   };
@@ -124,6 +142,16 @@ export default function CurriculumManager({ grades, onClose }: Props) {
               ))}
               <button onClick={() => setDraft({ ...draft, objectives: [...draft.objectives, ''] })} className="text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-1"><Plus size={11} /> បន្ថែមគោលបំណង</button>
             </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">អត្ថបទមេរៀន (ស្រេចចិត្ត — AI ប្រើបង្កើតសំណួរ)</span>
+                <input ref={fileRef} type="file" accept=".txt,.csv,.pdf,.docx" onChange={onUploadMaterial} className="hidden" />
+                <button onClick={() => fileRef.current?.click()} disabled={extracting} title="ស្រង់អត្ថបទពីឯកសារ (.pdf/.docx/.txt)" className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 disabled:opacity-60 flex items-center gap-1.5">
+                  {extracting ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />} {extracting ? 'កំពុងស្រង់…' : 'Upload ឯកសារ'}
+                </button>
+              </div>
+              <textarea value={draft.material} onChange={e => setDraft({ ...draft, material: e.target.value })} rows={4} placeholder="Upload ឯកសារ (.pdf/.docx/.txt) ខាងលើ — ឬ ចម្លងអត្ថបទមេរៀនបិទភ្ជាប់ទីនេះ។ ពេលបង្កើតលំហាត់ដោយជ្រើសមេរៀននេះ AI នឹងប្រើអត្ថបទនេះ។" className={`${fieldCls} resize-y leading-relaxed`} />
+            </div>
             <div className="flex items-center justify-end gap-2">
               <button onClick={() => setDraft(null)} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-xl border border-slate-200">បោះបង់</button>
               <button onClick={saveLessonDraft} className="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-sm"><Save size={13} /> រក្សាទុក</button>
@@ -138,7 +166,7 @@ export default function CurriculumManager({ grades, onClose }: Props) {
             {lessons.map(l => (
               <div key={l.id} className="rounded-xl border border-slate-100 p-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-bold text-slate-800 text-sm">{l.title}</div>
+                  <div className="font-bold text-slate-800 text-sm flex items-center gap-1.5">{l.title}{l.material && <span title="មានអត្ថបទមេរៀន" className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1"><FileText size={10} /> អត្ថបទ</span>}</div>
                   {l.objectives.length > 0 && (
                     <ul className="mt-1 space-y-0.5">
                       {l.objectives.map((o, i) => <li key={i} className="text-[12px] text-slate-500">• {o}</li>)}

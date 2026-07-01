@@ -21,6 +21,7 @@ export interface CurriculumLesson {
   subject: string;
   title: string;
   objectives: string[];
+  material?: string;   // lesson text (typed or extracted from an uploaded file)
   order?: number;
 }
 
@@ -74,6 +75,13 @@ export function lessonsFor(grade: string, subject: string): CurriculumLesson[] {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.title.localeCompare(b.title));
 }
 
+// The lesson text for a specific lesson title (used to ground AI generation on
+// the curriculum material when the teacher picks that lesson).
+export function lessonMaterial(grade: string, subject: string, title: string): string {
+  const l = loadCurriculum().lessons.find(x => x.grade === grade && x.subject === subject && x.title === title);
+  return l?.material || '';
+}
+
 export async function saveSubject(name: string): Promise<Curriculum> {
   const n = name.trim();
   if (!n) return loadCurriculum();
@@ -98,6 +106,7 @@ export async function saveLesson(lesson: CurriculumLesson): Promise<Curriculum> 
     id: lesson.id || uuid(),
     title: lesson.title.trim(),
     objectives: lesson.objectives.map(o => o.trim()).filter(Boolean),
+    material: (lesson.material || '').trim() || undefined,
   };
   const idx = c.lessons.findIndex(l => l.id === clean.id);
   if (idx >= 0) c.lessons[idx] = clean; else c.lessons.push(clean);
