@@ -123,9 +123,24 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
     if (!file || !name) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const url = String(reader.result);
-      setPhotos(p => ({ ...p, [name]: url }));
-      try { localStorage.setItem(photoKey(name), url); } catch { /* ignore — photos are local only */ }
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        const MAX = 400;
+        if (width > height && width > MAX) { height *= MAX / width; width = MAX; }
+        else if (height > MAX) { width *= MAX / height; height = MAX; }
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const url = canvas.toDataURL('image/jpeg', 0.8);
+          setPhotos(p => ({ ...p, [name]: url }));
+          try { localStorage.setItem(photoKey(name), url); } catch (e) { console.error('Storage full', e); }
+        }
+      };
+      img.src = String(reader.result);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
