@@ -64,9 +64,9 @@ function HonorFrame({ rank, name, photo, letter, onPick, big = false }: { rank: 
 
       {/* Decorative photo frame */}
       <div className={`relative p-[3px] rounded-2xl bg-gradient-to-b ${frameStyle(rank)} shadow-xl mt-2`}>
-        <div className={`${photoW} ${photoH} rounded-xl overflow-hidden bg-slate-50 border-[4px] border-white`}>
+        <div className={`${photoW} ${photoH} rounded-xl overflow-hidden bg-slate-50 border-[4px] border-white flex items-center justify-center`}>
           {photo ? (
-            <img src={photo} alt={name} className="w-full h-full object-cover" />
+            <img src={photo} alt={name} className="w-full h-full object-contain" />
           ) : (
             <button onClick={onPick} className="rc-no-print w-full h-full flex flex-col items-center justify-center gap-1 text-slate-400 hover:bg-slate-100 transition-colors">
               <Camera size={big ? 26 : 20} />
