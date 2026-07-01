@@ -216,13 +216,13 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
               </div>
 
               {/* Ranks 2 & 3 */}
-              <div className="flex justify-between px-4 mb-7">
+              <div className="flex justify-between px-8 mb-7">
                 <HonorFrame rank={2} name={ranks[1].name} photo={photos[ranks[1].name] || ''} letter={gradeLetter(ranks[1].score)} onPick={() => pickFor(ranks[1].name)} />
                 <HonorFrame rank={3} name={ranks[2].name} photo={photos[ranks[2].name] || ''} letter={gradeLetter(ranks[2].score)} onPick={() => pickFor(ranks[2].name)} />
               </div>
 
               {/* Ranks 4 & 5 */}
-              <div className="flex justify-between px-4 mb-4">
+              <div className="flex justify-between px-8 mb-4">
                 <HonorFrame rank={4} name={ranks[3].name} photo={photos[ranks[3].name] || ''} letter={gradeLetter(ranks[3].score)} onPick={() => pickFor(ranks[3].name)} />
                 <HonorFrame rank={5} name={ranks[4].name} photo={photos[ranks[4].name] || ''} letter={gradeLetter(ranks[4].score)} onPick={() => pickFor(ranks[4].name)} />
               </div>
