@@ -193,30 +193,30 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
               </div>
 
               {/* Title */}
-              <div className="text-center my-3">
+              <div className="text-center my-2">
                 <h1 className="text-4xl font-extrabold text-blue-600 tracking-wide drop-shadow-sm" style={{ WebkitTextStroke: '1.2px #1e3a8a' }}>តារាងកិត្តិយស</h1>
                 <p className="text-lg font-bold text-rose-600 mt-1">{subtitle}</p>
               </div>
 
               {/* Rank 1 */}
-              <div className="flex justify-center mt-7 mb-7">
+              <div className="flex justify-center mt-3 mb-3">
                 <HonorFrame rank={1} name={ranks[0].name} photo={photos[ranks[0].name] || ''} letter={gradeLetter(ranks[0].score)} onPick={() => pickFor(ranks[0].name)} big />
               </div>
 
               {/* Ranks 2 & 3 */}
-              <div className="flex justify-between px-10 mb-7">
+              <div className="flex justify-between px-10 mb-3">
                 <HonorFrame rank={2} name={ranks[1].name} photo={photos[ranks[1].name] || ''} letter={gradeLetter(ranks[1].score)} onPick={() => pickFor(ranks[1].name)} />
                 <HonorFrame rank={3} name={ranks[2].name} photo={photos[ranks[2].name] || ''} letter={gradeLetter(ranks[2].score)} onPick={() => pickFor(ranks[2].name)} />
               </div>
 
               {/* Ranks 4 & 5 */}
-              <div className="flex justify-between px-10 mb-4">
+              <div className="flex justify-between px-10">
                 <HonorFrame rank={4} name={ranks[3].name} photo={photos[ranks[3].name] || ''} letter={gradeLetter(ranks[3].score)} onPick={() => pickFor(ranks[3].name)} />
                 <HonorFrame rank={5} name={ranks[4].name} photo={photos[ranks[4].name] || ''} letter={gradeLetter(ranks[4].score)} onPick={() => pickFor(ranks[4].name)} />
               </div>
 
               {/* Signatures */}
-              <div className="grid grid-cols-2 gap-8 mt-8 text-[11px] text-center">
+              <div className="grid grid-cols-2 gap-8 mt-4 text-[11px] text-center">
                 <div>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
