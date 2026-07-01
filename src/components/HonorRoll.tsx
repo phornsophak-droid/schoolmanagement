@@ -141,7 +141,7 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
     @page { size: A4 portrait; margin: 0; }
     body * { visibility: hidden !important; }
     #honor-roll, #honor-roll * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    #honor-roll { position: absolute; left: 50%; top: 0; transform: translateX(-50%); transform-origin: top center; width: 672px; }
+    #honor-roll { position: absolute; top: 0; left: 0; right: 0; margin: 0 auto; width: 672px; }
     .rc-no-print { display: none !important; }
   }`;
 
