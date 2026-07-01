@@ -133,33 +133,19 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
   };
 
   // Keep the decorative colours (gradients, medals, ribbons) when printing, and
-  // force a single fit-to-page A4 PORTRAIT sheet. `zoom` (set by handlePrint) scales
-  // the actual layout box — unlike transform:scale — so the tall board shrinks onto
-  // one page instead of overflowing/cutting.
+  // force a single A4 PORTRAIT sheet that the board FILLS completely. The board is
+  // pinned to exact A4 pixels (794×1123 @ ~96dpi, @page margin 0) and its content is
+  // a flex column that spreads to fill the height — so the coloured board reaches
+  // every edge of the paper instead of leaving margins.
   const printCss = `@media print {
     @page { size: A4 portrait; margin: 0; }
     body * { visibility: hidden !important; }
     #honor-roll, #honor-roll * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    #honor-roll { position: absolute; left: 50%; top: 0; transform: translateX(-50%); transform-origin: top center; }
+    #honor-roll { position: absolute; left: 0; top: 0; width: 794px; height: 1123px; border-radius: 0 !important; }
     .rc-no-print { display: none !important; }
   }`;
 
-  // Print: scale the board with `zoom` so it fills one A4 portrait page (centered).
-  const handlePrint = () => {
-    const el = document.getElementById('honor-roll');
-    if (!el) { window.print(); return; }
-    const prevZoom = el.style.zoom;
-    // Full A4 portrait area at ~96dpi (@page margin is 0). Tiny 6px safety inset so
-    // the decorative border isn't clipped; otherwise fill the whole sheet.
-    const availW = 794 - 12, availH = 1123 - 12;
-    const r = el.getBoundingClientRect();
-    const z = Math.min(availW / r.width, availH / r.height);
-    (el.style as any).zoom = String(z);
-    const done = () => { (el.style as any).zoom = prevZoom; window.removeEventListener('afterprint', done); };
-    window.addEventListener('afterprint', done);
-    setTimeout(() => window.print(), 60);
-    setTimeout(done, 2000); // fallback reset if afterprint doesn't fire
-  };
+  const handlePrint = () => window.print();
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4 flex justify-center items-start">
@@ -181,8 +167,8 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
         </div>
 
         {/* Ornate outer frame */}
-        <div id="honor-roll" className="rounded-b-2xl p-2 bg-gradient-to-br from-blue-700 via-indigo-600 to-blue-700 shadow-2xl">
-          <div className="relative rounded-xl border-2 border-blue-200 bg-white px-8 py-6 overflow-hidden">
+        <div id="honor-roll" className="rounded-b-2xl p-2 bg-gradient-to-br from-blue-700 via-indigo-600 to-blue-700 shadow-2xl flex flex-col">
+          <div className="relative rounded-xl border-2 border-blue-200 bg-white px-8 py-6 overflow-hidden flex-1 flex flex-col">
             {/* Soft decorative background */}
             <div className="pointer-events-none absolute inset-0 opacity-60" style={{ background: 'radial-gradient(circle at 50% 38%, rgba(99,102,241,0.10), transparent 55%)' }} />
             {/* Corner flourishes */}
@@ -191,7 +177,7 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
             <span className="pointer-events-none absolute bottom-2 left-2 w-8 h-8 border-b-4 border-l-4 border-amber-400 rounded-bl-lg" />
             <span className="pointer-events-none absolute bottom-2 right-2 w-8 h-8 border-b-4 border-r-4 border-amber-400 rounded-br-lg" />
 
-            <div className="relative">
+            <div className="relative flex-1 flex flex-col justify-between">
               {/* Kingdom header */}
               <div className="text-center text-[12px]">
                 <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
