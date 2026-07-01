@@ -64,7 +64,7 @@ function HonorFrame({ rank, name, photo, letter, onPick, big = false }: { rank: 
 
       {/* Decorative photo frame */}
       <div className={`relative p-[3px] rounded-2xl bg-gradient-to-b ${frameStyle(rank)} shadow-xl mt-2`}>
-        <div className={`${photoW} ${photoH} rounded-xl overflow-hidden bg-slate-50 border border-white`}>
+        <div className={`${photoW} ${photoH} rounded-xl overflow-hidden bg-slate-50 border-[4px] border-white`}>
           {photo ? (
             <img src={photo} alt={name} className="w-full h-full object-cover" />
           ) : (
@@ -195,15 +195,15 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
 
             <div className="relative">
             {/* Top Header: Logo/School on left, Kingdom motto on right */}
-            <div className="flex justify-between items-start relative z-10 w-full px-2">
+            <div className="flex justify-between items-start relative z-10 w-full px-6 mt-4">
               {/* Left side: Logo centered above the school name. */}
               <div className="flex flex-col items-center text-emerald-700 font-semibold">
-                <SchoolLogo size={64} />
-                <div className="text-sm font-bold mt-1">សាលាសហគមន៍ច្បារច្រុះ</div>
+                <SchoolLogo size={60} />
+                <div className="text-[13px] font-bold mt-1">សាលាសហគមន៍ច្បារច្រុះ</div>
               </div>
 
               {/* Right side: Kingdom header */}
-              <div className="text-center text-[12px]">
+              <div className="text-center text-[12px] pt-1">
                 <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
                 <div className="font-semibold">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
                 <div className="text-slate-400">~ ~ ~ ~ ~ ~</div>
