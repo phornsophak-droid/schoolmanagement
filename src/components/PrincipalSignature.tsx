@@ -17,6 +17,7 @@ export default function PrincipalSignature({ height = 88 }: { height?: number | 
   const [sig, setSig] = useState<string>(() => {
     try { return localStorage.getItem(PRINCIPAL_SIG_KEY) || ''; } catch { return ''; }
   });
+  const [saving, setSaving] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,7 +30,15 @@ export default function PrincipalSignature({ height = 88 }: { height?: number | 
       const url = await downscaleImageFile(f);
       setSig(url);
       try { localStorage.setItem(PRINCIPAL_SIG_KEY, url); } catch { /* ignore */ }
-      syncUpsertSetting(PRINCIPAL_SIG_KEY, url).catch(() => { /* offline — saved locally */ });
+      // Await the cloud save and surface a failure — a silently-dropped write
+      // leaves the signature local-only and it never reaches parents' devices.
+      setSaving(true);
+      try {
+        await syncUpsertSetting(PRINCIPAL_SIG_KEY, url);
+      } catch (err: any) {
+        const reason = err?.message || err?.error_description || err?.details || String(err);
+        alert('ហត្ថលេខាត្រូវបានរក្សាទុកក្នុងឧបករណ៍នេះ ប៉ុន្តែមិនអាចរក្សាទុកក្នុង Cloud បានទេ។\n\nមូលហេតុ៖ ' + reason + '\n\nសូមពិនិត្យការតភ្ជាប់អ៊ីនធឺណិត រួចផ្ទុករូបហត្ថលេខាឡើងវិញ។');
+      } finally { setSaving(false); }
     } catch { alert('មិនអាចអានរូបភាពហត្ថលេខាបានទេ។'); }
   };
   const removeSig = () => {
@@ -67,6 +76,7 @@ export default function PrincipalSignature({ height = 88 }: { height?: number | 
           បញ្ចូលហត្ថលេខានាយក
         </button>
       )}
+      {saving && <p className="rc-no-print text-[9px] text-emerald-600">កំពុងរក្សាទុកក្នុង Cloud...</p>}
       <p className="font-bold">{PRINCIPAL_NAME}</p>
     </div>
   );

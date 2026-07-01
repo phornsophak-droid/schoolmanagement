@@ -889,7 +889,7 @@ export async function syncDeleteGrade(gradeName: string) {
 export async function syncUpsertSetting(key: string, value: any) {
   noteCloudWrite();
   const supabase = getSupabaseClient();
-  if (!supabase) return;
+  if (!supabase) throw new Error('Supabase client is not configured');
 
   // NOTE: a plain .upsert() resolves conflicts on the table's primary key. If
   // setting_key isn't that key, every save INSERTS a new row, so changing a
@@ -897,6 +897,10 @@ export async function syncUpsertSetting(key: string, value: any) {
   // win on read → "the change doesn't stick". Instead update every row for this
   // key (also healing any duplicates already in the table) and insert only when
   // none exist. Works with or without a unique constraint on setting_key.
+  //
+  // Errors are RE-THROWN (not swallowed) so callers can tell the user the save
+  // didn't reach the cloud — otherwise a blocked write (e.g. RLS) passes silently
+  // and the value lives only in localStorage ("doesn't stick" on other devices).
   const { data: updated, error: updErr } = await supabase
     .from('school_settings')
     .update({ setting_value: value })
@@ -904,13 +908,16 @@ export async function syncUpsertSetting(key: string, value: any) {
     .select('setting_key');
   if (updErr) {
     console.error(`Failed to update setting ${key} in Supabase`, updErr);
-    return;
+    throw updErr;
   }
   if (!updated || updated.length === 0) {
     const { error: insErr } = await supabase
       .from('school_settings')
       .insert({ setting_key: key, setting_value: value });
-    if (insErr) console.error(`Failed to insert setting ${key} into Supabase`, insErr);
+    if (insErr) {
+      console.error(`Failed to insert setting ${key} into Supabase`, insErr);
+      throw insErr;
+    }
   }
 }
 
