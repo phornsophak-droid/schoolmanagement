@@ -147,14 +147,16 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
 
   // Scale the exact preview layout to fill one A4 portrait page, leaving ~1cm margins
   // 794px is A4 width at 96dpi. 1cm is ~38px. target width = 794 - 76 = 718px.
-  // 1123px is A4 height. target height = 1123 - 76 = 1047px.
+  // We force width to 672px in print CSS, so we must calculate zoom relative to 672px.
+  // This prevents bugs when printing from smaller screens where getBoundingClientRect() is narrow.
   const handlePrint = () => {
     const el = document.getElementById('honor-roll');
     if (!el) { window.print(); return; }
     const prevZoom = el.style.zoom;
-    const r = el.getBoundingClientRect();
-    const z = Math.min(718 / r.width, 1047 / r.height);
+    
+    const z = 718 / 672; // Always zoom to leave ~1cm side margins
     (el.style as any).zoom = String(z);
+    
     const done = () => { (el.style as any).zoom = prevZoom; window.removeEventListener('afterprint', done); };
     window.addEventListener('afterprint', done);
     setTimeout(() => window.print(), 60);
