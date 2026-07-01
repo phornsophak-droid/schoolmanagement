@@ -6,7 +6,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award } from 'lucide-react';
 import { StudentScore } from '../types';
-import { fetchClassStudents, fetchSetting } from '../lib/supabase';
+import { fetchClassStudents, fetchSetting, fetchStudentDobByName } from '../lib/supabase';
 import { semesterAvgOf, readAnnualExtra } from '../utils/scoring';
 import SchoolLogo from './SchoolLogo';
 import { PRINCIPAL_SIG_KEY } from './PrincipalSignature';
@@ -110,6 +110,27 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
     [classStudents, childName]
   );
   const anyRec = childRecords[0];
+
+  // After-hours classes load only their own rows, but the date of birth lives on
+  // the child's general-class row. Fetch it by name so the merit certificate and
+  // report cards still show it (general classes already carry the dob locally).
+  const [childDob, setChildDob] = useState('');
+  useEffect(() => {
+    setChildDob('');
+    if (!childName || childRecords.some(r => r.dob)) return;
+    let cancelled = false;
+    fetchStudentDobByName(childName)
+      .then(dob => { if (!cancelled && dob) setChildDob(dob); })
+      .catch(() => { /* offline — dob just stays blank */ });
+    return () => { cancelled = true; };
+  }, [childName, childRecords]);
+
+  // The dob resolves via a matching name in the students list passed to the cards,
+  // so inject a lightweight row carrying the fetched dob when it isn't already present.
+  const studentsForCards = useMemo(
+    () => (childDob && anyRec ? [...classStudents, { ...anyRec, dob: childDob }] : classStudents),
+    [classStudents, childDob, anyRec]
+  );
 
   // Months this child has a (non-exam) report card for, in school-year order.
   const monthsAvailable = useMemo(() => {
@@ -324,14 +345,14 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
       {monthlyRec && (
         <StudentReportCard
           student={monthlyRec}
-          students={classStudents}
+          students={studentsForCards}
           onClose={() => setMonthlyRec(null)}
         />
       )}
       {semCard && (
         <SemesterReportCard
           student={semCard.student}
-          students={classStudents}
+          students={studentsForCards}
           period={semCard.period}
           onClose={() => setSemCard(null)}
         />
@@ -339,7 +360,7 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
       {meritCard && (
         <MeritCertificate
           student={meritCard.student}
-          students={classStudents}
+          students={studentsForCards}
           scoreOverride={meritCard.score}
           periodPhrase={meritCard.phrase}
           onClose={() => setMeritCard(null)}

@@ -390,6 +390,29 @@ export async function fetchClassStudents(grade: string): Promise<StudentScore[]>
   return (data || []).map(mapDBToScore);
 }
 
+// Resolve a student's date of birth from ANY of their rows across all classes.
+// The dob is entered once on the general-class roster, but after-hours merit
+// certificates / report cards (which load only their own class) still need it.
+// Matches on the untagged base name — after-hours names carry a "(subject)" tag.
+export async function fetchStudentDobByName(name: string): Promise<string | undefined> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return undefined;
+  const base = (name || '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+/g, ' ').trim();
+  if (!base) return undefined;
+  const { data, error } = await supabase
+    .from('student_scores')
+    .select('name, extra_data')
+    .ilike('name', `${base}%`)
+    .limit(60);
+  if (error || !data) return undefined;
+  for (const row of data) {
+    const dob = (row as any).extra_data?.dob;
+    const rowBase = String((row as any).name || '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+/g, ' ').trim();
+    if (dob && rowBase === base) return String(dob);
+  }
+  return undefined;
+}
+
 // When `since` (ISO timestamp) is passed, the heavy tables (student_scores,
 // student_attendance, teacher_attendance) return ONLY rows changed after that
 // time — a small delta the caller MERGES instead of replacing. This is what

@@ -53,6 +53,7 @@ import {
   syncUpsertStudentAttendanceBulk,
   syncUpsertTeacherAttendanceBulk,
   syncDeleteStudentAttendanceByGrade,
+  syncUpsertSetting,
   syncClearAllData,
   msSinceCloudWrite,
   CUSTOM_URL_KEY,
@@ -488,6 +489,21 @@ export default function App() {
               if (data.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(data.settings['school_custom_teachers_v2']));
               if (data.settings['school_principal_signature_v1']) localStorage.setItem('school_principal_signature_v1', data.settings['school_principal_signature_v1']);
               Object.keys(data.settings).forEach(k => { if (k.startsWith('school_teacher_signature::')) localStorage.setItem(k, data.settings[k]); });
+              // Push up any teacher signature that lives only in THIS device's
+              // localStorage (uploaded before cloud-sync, or a sync that silently
+              // failed). Without this, after-hours teacher signatures never reach
+              // parents' devices — the merit certificate / report cards show a
+              // blank signature there. Only missing keys are sent, so it's a
+              // no-op once every signature is in the cloud.
+              try {
+                for (let i = 0; i < localStorage.length; i++) {
+                  const k = localStorage.key(i);
+                  if (!k || !k.startsWith('school_teacher_signature::')) continue;
+                  if (data.settings[k]) continue; // already in the cloud
+                  const v = localStorage.getItem(k);
+                  if (v) syncUpsertSetting(k, v).catch(() => { /* offline — retries next load */ });
+                }
+              } catch { /* localStorage unavailable — skip */ }
               restoreReportSubmissions(data.settings['report_submissions']);
             }
             stampSync(startedAt, needFull);
