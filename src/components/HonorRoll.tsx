@@ -49,10 +49,9 @@ const frameStyle = (rank: number) => {
   return 'from-sky-300 via-blue-400 to-indigo-500';
 };
 
-// One honor photo frame: medal badge, decorative photo frame, name ribbon.
 function HonorFrame({ rank, name, photo, letter, onPick, big = false }: any) {
-  const photoW = big ? 'w-[136px]' : 'w-[104px]';
-  const photoH = big ? 'h-40' : 'h-32';
+  const photoW = big ? 'w-36' : 'w-[120px]';
+  const photoH = big ? 'h-44' : 'h-36';
   return (
     <div className="relative flex flex-col items-center mt-5">
       {/* Medal (moved up to prevent overlapping the head) */}
