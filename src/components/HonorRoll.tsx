@@ -141,18 +141,19 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
     @page { size: A4 portrait; margin: 0; }
     body * { visibility: hidden !important; }
     #honor-roll, #honor-roll * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    #honor-roll { position: absolute; top: 0; left: 0; right: 0; margin: 0 auto; width: 672px; }
+    #honor-roll { position: absolute; top: 1cm; left: 0; right: 0; margin: 0 auto; width: 672px; }
     .rc-no-print { display: none !important; }
   }`;
 
-  // Scale the exact preview layout to fill one A4 portrait page (contain — keeps the
-  // preview proportions, no stretching).
+  // Scale the exact preview layout to fill one A4 portrait page, leaving ~1cm margins
+  // 794px is A4 width at 96dpi. 1cm is ~38px. target width = 794 - 76 = 718px.
+  // 1123px is A4 height. target height = 1123 - 76 = 1047px.
   const handlePrint = () => {
     const el = document.getElementById('honor-roll');
     if (!el) { window.print(); return; }
     const prevZoom = el.style.zoom;
     const r = el.getBoundingClientRect();
-    const z = Math.min(794 / r.width, 1123 / r.height);
+    const z = Math.min(718 / r.width, 1047 / r.height);
     (el.style as any).zoom = String(z);
     const done = () => { (el.style as any).zoom = prevZoom; window.removeEventListener('afterprint', done); };
     window.addEventListener('afterprint', done);
