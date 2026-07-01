@@ -57,6 +57,7 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
   const ref = useRef<HTMLInputElement>(null);
   const name = teacherNameForGrade(grade);
 
+  const [saving, setSaving] = useState(false);
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = '';
@@ -67,7 +68,16 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
       const url = await downscaleImageFile(f);
       setSig(url);
       try { localStorage.setItem(key, url); } catch { /* ignore */ }
-      syncUpsertSetting(key, url).catch(() => { /* offline — saved locally */ });
+      // The signature MUST reach the cloud — otherwise parents and other devices
+      // never see it (it stays local-only). Await the save and tell the user if
+      // it couldn't be stored, so they can retry when back online instead of the
+      // failure passing silently.
+      setSaving(true);
+      try {
+        await syncUpsertSetting(key, url);
+      } catch {
+        alert('ហត្ថលេខាត្រូវបានរក្សាទុកក្នុងឧបករណ៍នេះ ប៉ុន្តែមិនអាចរក្សាទុកក្នុង Cloud បានទេ។ សូមពិនិត្យការតភ្ជាប់អ៊ីនធឺណិត រួចផ្ទុករូបហត្ថលេខាឡើងវិញ ដើម្បីឱ្យមាតាបិតាមើលឃើញ។');
+      } finally { setSaving(false); }
     } catch { alert('មិនអាចអានរូបភាពហត្ថលេខាបានទេ។'); }
   };
   const removeSig = () => {
@@ -105,6 +115,7 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
           បញ្ចូលហត្ថលេខាគ្រូ
         </button>
       )}
+      {saving && <p className="rc-no-print text-[9px] text-emerald-600">កំពុងរក្សាទុកក្នុង Cloud...</p>}
       {name
         ? <p className="font-bold">{name}</p>
         : <p className="text-slate-300">..............................</p>}
