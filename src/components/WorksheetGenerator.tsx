@@ -32,6 +32,99 @@ const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២
 const A4_WIDTH = 794; // px @96dpi — pinned width for a crisp, consistent PDF/print
 const OPT_LETTERS = ['ក', 'ខ', 'គ', 'ឃ', 'ង'];
 
+// ---------------------------------------------------------------------------
+// Word (.doc) export — build clean, EDITABLE Word HTML from the worksheet data
+// (not by scraping the Tailwind DOM, whose utility classes carry no styling into
+// Word). The teacher opens it in Microsoft Word, edits freely, then prints.
+// ---------------------------------------------------------------------------
+const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const wordBlankLines = (n: number) =>
+  Array.from({ length: n }, () => `<div style="border-bottom:1px solid #000;height:15pt">&nbsp;</div>`).join('');
+
+// One question rendered as a two-column table row: number | body.
+const qToWord = (q: WSQuestion, type: WorksheetType, num: number, showAns: boolean): string => {
+  const n = toKh(num);
+  if (q.pairs) {
+    const lefts = q.pairs.map((p, j) => `<div>${n}.${toKh(j + 1)} ${esc(p.left)} ........</div>`).join('');
+    const rights = [...q.pairs].map(p => p.right).sort(() => Math.random() - 0.5).map((r, j) => `<div>${OPT_LETTERS[j] || '•'}. ${esc(r)}</div>`).join('');
+    return `<tr><td valign="top" style="width:24pt"><b>${n}.</b></td><td><table width="100%" cellspacing="0" cellpadding="0"><tr><td valign="top" width="50%">${lefts}</td><td valign="top" width="50%">${rights}</td></tr></table></td></tr>`;
+  }
+  let inner = `<div style="font-weight:600">${esc(q.prompt)}</div>`;
+  if (q.options) {
+    const cells = q.options.map((o, j) => `${OPT_LETTERS[j]}. ${esc(o)}`);
+    let rows = '';
+    for (let i = 0; i < cells.length; i += 2) rows += `<tr><td width="50%">${cells[i] || ''}</td><td width="50%">${cells[i + 1] || ''}</td></tr>`;
+    inner += `<table width="100%" cellspacing="0" cellpadding="2" style="margin-top:3pt">${rows}</table>`;
+  } else if (type === 'true_false') {
+    inner += `<div style="margin-top:3pt">◯ ត្រូវ &nbsp;&nbsp;&nbsp;&nbsp; ◯ ខុស</div>`;
+  } else {
+    const lines = type === 'essay' || type === 'writing' || type === 'reading' ? 5 : type === 'short_answer' ? 2 : 1;
+    inner += `<div style="margin-top:4pt">${wordBlankLines(lines)}</div>`;
+  }
+  if (showAns && q.answer) inner += `<div style="margin-top:3pt;color:#047857;font-weight:bold">✔ ចម្លើយ៖ ${esc(q.answer)}</div>`;
+  return `<tr><td valign="top" style="width:24pt"><b>${n}.</b></td><td>${inner}</td></tr>`;
+};
+
+const qListTable = (rows: string) => `<table width="100%" cellspacing="0" cellpadding="4" style="margin-top:6pt">${rows}</table>`;
+
+interface WordDocInput {
+  heading: string; instructions: string; params: WorksheetParams; teacherName: string;
+  questions: WSQuestion[]; examSections: ExamSection[] | null; examPeriod: ExamPeriod | null; showAnswers: boolean;
+}
+
+const buildWordHtml = (d: WordDocInput): string => {
+  const { heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers } = d;
+  const totalPoints = examSections ? examSections.reduce((n, s) => n + s.points, 0) : questions.length;
+  const header = `
+    <table width="100%" cellspacing="0" cellpadding="0" style="border-bottom:2px solid #000;padding-bottom:4pt">
+      <tr>
+        <td valign="top"><b style="font-size:15pt">សាលាសហគមន៍ច្បារច្រុះ</b><br/><span style="font-size:10pt;color:#555">Chbar Chros Community School</span></td>
+        <td valign="top" align="right" style="font-size:11pt">
+          <div><b>មុខវិជ្ជា៖</b> ${esc(params.subject)}</div>
+          <div><b>ថ្នាក់៖</b> ${esc(params.grade)}</div>
+          ${params.lesson ? `<div><b>មេរៀន៖</b> ${esc(params.lesson)}</div>` : ''}
+        </td>
+      </tr>
+    </table>`;
+  const titleBlock = `
+    <h1 style="text-align:center;font-size:17pt;margin:8pt 0 2pt">${esc(heading)}</h1>
+    ${examPeriod ? `<p style="text-align:center;font-size:11pt;color:#555;margin:0 0 6pt">វិញ្ញាសាប្រឡង${esc(EXAM_PERIOD_LABELS[examPeriod])} • ឆ្នាំសិក្សា ២០២៥-២០២៦</p>` : ''}`;
+  const infoLine = `
+    <table width="100%" cellspacing="0" cellpadding="0" style="border-bottom:1px solid #999;padding-bottom:4pt;font-size:11pt">
+      <tr>
+        <td>ឈ្មោះសិស្ស៖ ..............................</td>
+        <td align="center">ថ្ងៃទី៖ ......../......../........</td>
+        <td align="right">ពិន្ទុ៖ ......... / ${toKh(totalPoints)}${teacherName && !examSections ? ` &nbsp; គ្រូ៖ ${esc(teacherName)}` : ''}</td>
+      </tr>
+    </table>`;
+  const instr = instructions ? `<p style="font-style:italic;font-size:11.5pt;margin:6pt 0">សេចក្ដីណែនាំ៖ ${esc(instructions)}</p>` : '';
+
+  let body = '';
+  if (examSections) {
+    body = examSections.map((sec, si) => {
+      const rows = sec.questions.map((q, i) => qToWord(q, sec.type, i + 1, showAnswers)).join('');
+      return `
+        <h2 style="font-size:13pt;background:#eef2f7;padding:3pt 6pt;margin:12pt 0 0">ផ្នែកទី ${toKh(si + 1)}៖ ${esc(sec.label)} <span style="font-weight:normal;font-size:10pt;color:#666">(${toKh(sec.points)} ពិន្ទុ)</span></h2>
+        ${qListTable(rows)}`;
+    }).join('');
+  } else {
+    body = qListTable(questions.map((q, i) => qToWord(q, params.type, i + 1, showAnswers)).join(''));
+  }
+
+  let answerKey = '';
+  if (showAnswers) {
+    const keyList = (qs: WSQuestion[]) => `<table width="100%" cellspacing="0" cellpadding="2" style="font-size:11.5pt"><tr><td valign="top" width="50%">${qs.filter((_, i) => i % 2 === 0).map((q, i) => `<div><b>${toKh(i * 2 + 1)}.</b> ${q.pairs ? esc(q.pairs.map(p => `${p.left}→${p.right}`).join('; ')) : esc(q.answer || '—')}</div>`).join('')}</td><td valign="top" width="50%">${qs.filter((_, i) => i % 2 === 1).map((q, i) => `<div><b>${toKh(i * 2 + 2)}.</b> ${q.pairs ? esc(q.pairs.map(p => `${p.left}→${p.right}`).join('; ')) : esc(q.answer || '—')}</div>`).join('')}</td></tr></table>`;
+    const inner = examSections
+      ? examSections.map((sec, si) => `<div style="font-weight:bold;font-size:11.5pt;margin-top:6pt">ផ្នែកទី ${toKh(si + 1)}៖ ${esc(sec.label)}</div>${keyList(sec.questions)}`).join('')
+      : keyList(questions);
+    answerKey = `<div style="margin-top:16pt;border-top:2px dashed #888;padding-top:8pt"><h2 style="font-size:14pt;margin:0 0 4pt">🔑 កូនសោចម្លើយ (Answer Key)</h2>${inner}</div>`;
+  }
+
+  const style = `@page{size:A4;margin:1.6cm} body{font-family:'Khmer OS Battambang','Battambang',serif;font-size:13pt;color:#000;line-height:1.5} h1,h2{font-family:'Khmer OS Battambang','Battambang',serif} table{border-collapse:collapse}`;
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(heading)}</title><style>${style}</style></head><body>${header}${titleBlock}${infoLine}${instr}${body}${answerKey}</body></html>`;
+};
+
 // Blank writing lines for hand-written answers (printer-friendly underlines).
 const Lines: React.FC<{ n: number }> = ({ n }) => (
   <div className="space-y-3 mt-2">
@@ -199,6 +292,23 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     finally { setPdfBusy(false); }
   };
 
+  // Export to an editable Word document (.doc). Teacher edits in Word, then prints.
+  const handleWord = () => {
+    if (!examSections && !questions.length) { flash('សូមបង្កើតជាមុនសិន', false); return; }
+    const html = buildWordHtml({ heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers });
+    const blob = new Blob(['﻿', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${heading}.doc`;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    flash('បាននាំចេញ Word ✓ (កែក្នុង Word រួចព្រីន)');
+  };
+
   const handleSave = async () => {
     const flat = examSections ? examSections.flatMap(s => s.questions) : questions;
     if (!flat.length) { flash('សូមបង្កើតជាមុនសិន', false); return; }
@@ -244,6 +354,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
               <button onClick={handlePdf} disabled={pdfBusy} className="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white flex items-center gap-1.5 shadow-sm">
                 {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} PDF
               </button>
+              <button onClick={handleWord} title="នាំចេញជា Word ដែលកែបានមុនព្រីន" className="px-3 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 shadow-sm"><FileText size={13} /> Word</button>
               <button onClick={() => window.print()} className="px-3 py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-900 text-white flex items-center gap-1.5 shadow-sm"><Printer size={13} /> បោះពុម្ព</button>
               <button onClick={handleSave} className="px-3 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-sm"><Save size={13} /> រក្សាទុក</button>
             </>}
