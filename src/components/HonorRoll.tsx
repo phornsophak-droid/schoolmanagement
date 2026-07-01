@@ -231,14 +231,14 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
               </div>
 
               {/* Signatures */}
-              <div className="grid grid-cols-2 gap-8 mt-4 text-[11px] text-center">
+              <div className="flex justify-between mt-4 text-[11px] text-center px-4">
                 <div>
                   <p className="font-bold">បានឃើញ និងឯកភាព</p>
                   <p className="font-bold">នាយកសាលា</p>
                   <PrincipalSignature />
                 </div>
                 <div>
-                  <p>{honorDate.lunar}</p>
+                  <p className="whitespace-nowrap">{honorDate.lunar}</p>
                   <p>ច្បារច្រុះ ថ្ងៃទី{honorDate.day} {subMonth ? `ខែ${subMonth}` : 'ខែ.........'} ឆ្នាំ{honorDate.year}</p>
                   <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
                   <TeacherSignature grade={grade} />
