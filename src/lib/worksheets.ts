@@ -207,6 +207,56 @@ export async function generateQuestions(params: WorksheetParams): Promise<WSQues
 }
 
 // ---------------------------------------------------------------------------
+// Exam papers (វិញ្ញាសាប្រឡង) — monthly / semester / annual. An exam is a set of
+// mixed-type SECTIONS (parts), each generated with the reusable generateQuestions
+// above, so no new AI logic is needed.
+// ---------------------------------------------------------------------------
+export type ExamPeriod = 'month' | 'semester' | 'year';
+export const EXAM_PERIOD_LABELS: Record<ExamPeriod, string> = {
+  month: 'ប្រចាំខែ', semester: 'ប្រចាំឆមាស', year: 'ប្រចាំឆ្នាំ',
+};
+
+export interface ExamSection { label: string; type: WorksheetType; questions: WSQuestion[]; points: number; }
+
+// Blueprint of parts per period (longer/harder as the period grows).
+const EXAM_BLUEPRINT: Record<ExamPeriod, { type: WorksheetType; count: number; points: number }[]> = {
+  month: [
+    { type: 'multiple_choice', count: 5, points: 5 },
+    { type: 'fill_blank', count: 5, points: 5 },
+    { type: 'short_answer', count: 3, points: 6 },
+  ],
+  semester: [
+    { type: 'multiple_choice', count: 10, points: 10 },
+    { type: 'fill_blank', count: 6, points: 6 },
+    { type: 'short_answer', count: 5, points: 10 },
+    { type: 'essay', count: 1, points: 4 },
+  ],
+  year: [
+    { type: 'multiple_choice', count: 10, points: 10 },
+    { type: 'fill_blank', count: 8, points: 8 },
+    { type: 'short_answer', count: 6, points: 12 },
+    { type: 'word_problems', count: 3, points: 6 },
+    { type: 'essay', count: 2, points: 4 },
+  ],
+};
+
+// Generate a full exam paper. Reuses generateQuestions per section; skips
+// essay/reading sections for maths (they don't fit) and any section that fails.
+export async function generateExam(params: WorksheetParams, period: ExamPeriod): Promise<ExamSection[]> {
+  const isMath = params.subject.includes('គណិត');
+  const sections: ExamSection[] = [];
+  for (const b of EXAM_BLUEPRINT[period]) {
+    if (isMath && (b.type === 'essay' || b.type === 'reading')) continue;
+    try {
+      const questions = await generateQuestions({ ...params, type: b.type, count: b.count });
+      if (questions.length) sections.push({ label: TYPE_LABELS[b.type], type: b.type, questions, points: b.points });
+    } catch (e) { console.warn('Exam section failed', b.type, e); }
+  }
+  if (!sections.length) throw new Error('បង្កើតវិញ្ញាសាមិនបានសម្រេច — សូមព្យាយាមម្ដងទៀត។');
+  return sections;
+}
+
+// ---------------------------------------------------------------------------
 // Supabase persistence (single table `worksheets`, JSON columns — run the SQL
 // in the migration note). Falls back silently when offline; never throws to the UI.
 // ---------------------------------------------------------------------------

@@ -13,6 +13,7 @@ import {
   WorksheetParams, WorksheetType, Difficulty, WSLanguage, WSQuestion, Worksheet,
   TYPE_LABELS, DIFFICULTY_LABELS, LANGUAGE_LABELS, SUBJECTS,
   generateQuestions, saveWorksheet,
+  ExamPeriod, ExamSection, EXAM_PERIOD_LABELS, generateExam,
 } from '../lib/worksheets';
 import { hasGemini } from '../lib/gemini';
 import { getOllamaModel, ollamaReachable } from '../lib/ollama';
@@ -38,6 +39,35 @@ const Lines: React.FC<{ n: number }> = ({ n }) => (
   </div>
 );
 
+// One printable question row — shared by the worksheet body and each exam section.
+const QRow: React.FC<{ q: WSQuestion; type: WorksheetType; num: number; showAns: boolean }> = ({ q, type, num, showAns }) => (
+  <li className="flex gap-2">
+    <span className="font-bold shrink-0">{toKh(num)}.</span>
+    <div className="flex-1 min-w-0">
+      {q.pairs ? (
+        <div className="grid grid-cols-2 gap-x-8">
+          <div className="space-y-2">{q.pairs.map((p, j) => <div key={j}>{toKh(num)}.{toKh(j + 1)} {p.left} ........</div>)}</div>
+          <div className="space-y-2">{[...q.pairs].map(p => p.right).sort(() => Math.random() - 0.5).map((r, j) => <div key={j}>{OPT_LETTERS[j] || '•'}. {r}</div>)}</div>
+        </div>
+      ) : (
+        <>
+          <div className="font-medium">{q.prompt}</div>
+          {q.options ? (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-1 pl-1">
+              {q.options.map((o, j) => <div key={j} className="flex items-center gap-1.5"><span className="inline-block w-4 h-4 border border-slate-500 rounded-full text-[10px] text-center leading-4">{OPT_LETTERS[j]}</span> {o}</div>)}
+            </div>
+          ) : type === 'true_false' ? (
+            <div className="flex gap-6 mt-1 pl-1 text-[12.5px]"><span>◯ ត្រូវ</span><span>◯ ខុស</span></div>
+          ) : (
+            <Lines n={type === 'essay' || type === 'writing' || type === 'reading' ? 5 : type === 'short_answer' ? 2 : 1} />
+          )}
+          {showAns && q.answer && <div className="ws-no-print mt-1 text-[12px] font-bold text-emerald-700">✔ ចម្លើយ៖ {q.answer}</div>}
+        </>
+      )}
+    </div>
+  </li>
+);
+
 export default function WorksheetGenerator({ grades, currentUser, onClose, embedded }: Props) {
   const teacherName = currentUser?.name || '';
   const generalGrades = useMemo(() => (grades.length ? grades : ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣']), [grades]);
@@ -61,6 +91,9 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const [instructions, setInstructions] = useState('');
   const [questions, setQuestions] = useState<WSQuestion[]>([]);
   const [showAnswers, setShowAnswers] = useState(false);
+  // Exam-paper mode (វិញ្ញាសាប្រឡង ប្រចាំខែ/ឆមាស/ឆ្នាំ) — mixed-type sections.
+  const [examSections, setExamSections] = useState<ExamSection[] | null>(null);
+  const [examPeriod, setExamPeriod] = useState<ExamPeriod | null>(null);
 
   // ---- Status ----
   const [loading, setLoading] = useState(false);
@@ -122,6 +155,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const handleGenerate = async () => {
     setLoading(true);
     setShowAnswers(false);
+    setExamSections(null); setExamPeriod(null);
     try {
       const qs = await generateQuestions(params);
       setQuestions(qs);
@@ -130,6 +164,26 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     } catch (e: any) {
       console.error('Worksheet generation failed', e);
       flash(e?.message || 'បង្កើតលំហាត់មិនបានសម្រេច — សូមព្យាយាមម្ដងទៀត។', false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Build a full exam paper (វិញ្ញាសាប្រឡង) for a period — mixed sections.
+  const handleGenerateExam = async (period: ExamPeriod) => {
+    setLoading(true);
+    setShowAnswers(false);
+    setQuestions([]);
+    try {
+      const sections = await generateExam(params, period);
+      setExamSections(sections);
+      setExamPeriod(period);
+      setTitle(`វិញ្ញាសាប្រឡង${EXAM_PERIOD_LABELS[period]} មុខវិជ្ជា${params.subject}`);
+      const total = sections.reduce((n, s) => n + s.questions.length, 0);
+      flash(`បានបង្កើតវិញ្ញាសា (${toKh(sections.length)} ផ្នែក, ${toKh(total)} សំណួរ) ✓`);
+    } catch (e: any) {
+      console.error('Exam generation failed', e);
+      flash(e?.message || 'បង្កើតវិញ្ញាសាមិនបានសម្រេច — សូមព្យាយាមម្ដងទៀត។', false);
     } finally {
       setLoading(false);
     }
@@ -145,10 +199,11 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   };
 
   const handleSave = async () => {
-    if (!questions.length) { flash('សូមបង្កើតលំហាត់ជាមុនសិន', false); return; }
+    const flat = examSections ? examSections.flatMap(s => s.questions) : questions;
+    if (!flat.length) { flash('សូមបង្កើតជាមុនសិន', false); return; }
     const ws: Worksheet = {
       id: (crypto as any).randomUUID ? crypto.randomUUID() : `ws-${Date.now()}`,
-      title: heading, instructions, params, questions,
+      title: heading, instructions, params, questions: flat,
       createdBy: teacherName, createdAt: new Date().toISOString(),
     };
     const ok = await saveWorksheet(ws);
@@ -181,7 +236,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         <div className="ws-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5"><Sparkles size={15} className="text-indigo-500" /> ម៉ាស៊ីនបង្កើតសន្លឹកលំហាត់ (AI Worksheet)</h3>
           <div className="flex items-center gap-2 flex-wrap justify-end">
-            {questions.length > 0 && <>
+            {(questions.length > 0 || examSections) && <>
               <button onClick={() => setShowAnswers(s => !s)} className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 border transition-colors ${showAnswers ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'}`}>
                 <KeyRound size={13} /> {showAnswers ? 'លាក់ចម្លើយ' : 'កូនសោចម្លើយ'}
               </button>
@@ -243,12 +298,66 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
               {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} បង្កើតលំហាត់
             </button>
           </div>
+          {/* Exam-paper quick buttons — generate a full period exam (mixed sections). */}
+          <div className="flex items-center gap-2 flex-wrap border-t border-slate-100 pt-3">
+            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase mr-1">📄 វិញ្ញាសាប្រឡង៖</span>
+            {(['month', 'semester', 'year'] as ExamPeriod[]).map(p => (
+              <button key={p} onClick={() => handleGenerateExam(p)} disabled={loading} className="px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 disabled:opacity-60 flex items-center gap-1.5"><FileText size={13} /> {EXAM_PERIOD_LABELS[p]}</button>
+            ))}
+          </div>
         </div>
 
-        {toast && <div className={`ws-no-print text-center text-xs font-bold px-3 py-2 rounded-xl ${toast.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>{toast.msg}</div>}
+        {toast &&<div className={`ws-no-print text-center text-xs font-bold px-3 py-2 rounded-xl ${toast.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>{toast.msg}</div>}
 
-        {/* Printable worksheet */}
-        {questions.length === 0 ? (
+        {/* Printable exam paper (វិញ្ញាសា) — mixed sections */}
+        {examSections ? (
+          <FitToWidth designWidth={A4_WIDTH}>
+            <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10" style={{ fontFamily: "'Khmer OS Battambang','Battambang',serif" }}>
+              <div className="flex items-center justify-between gap-3 border-b-2 border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <SchoolLogo size={56} />
+                  <div className="leading-tight">
+                    <div className="font-bold text-[15px]">សាលាសហគមន៍ច្បារច្រុះ</div>
+                    <div className="text-[11px] text-slate-500">Chbar Chros Community School</div>
+                  </div>
+                </div>
+                <div className="text-right text-[12px] space-y-0.5">
+                  <div><span className="font-semibold">មុខវិជ្ជា៖</span> {params.subject}</div>
+                  <div><span className="font-semibold">ថ្នាក់៖</span> {params.grade}</div>
+                </div>
+              </div>
+              <h1 className="text-center text-[18px] font-extrabold my-1">{heading}</h1>
+              {examPeriod && <p className="text-center text-[12px] text-slate-600 mb-2">វិញ្ញាសាប្រឡង{EXAM_PERIOD_LABELS[examPeriod]} • ឆ្នាំសិក្សា ២០២៥-២០២៦</p>}
+              <div className="flex flex-wrap justify-between text-[12px] gap-x-6 gap-y-1 border-b border-slate-300 pb-2 mb-1">
+                <span>ឈ្មោះសិស្ស៖ ......................................</span>
+                <span>ថ្ងៃទី៖ ............ /............ /............</span>
+                <span>ពិន្ទុ៖ ............ / {toKh(examSections.reduce((n, s) => n + s.points, 0))}</span>
+              </div>
+              {instructions && <p className="text-[12.5px] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
+              {examSections.map((sec, si) => (
+                <div key={si} className="mt-4">
+                  <h2 className="font-extrabold text-[14px] bg-slate-100 px-2 py-1 rounded">ផ្នែកទី {toKh(si + 1)}៖ {sec.label} <span className="font-normal text-[11px] text-slate-500">({toKh(sec.points)} ពិន្ទុ)</span></h2>
+                  <ol className="mt-2 space-y-3 text-[13.5px]">
+                    {sec.questions.map((q, i) => <QRow key={i} q={q} type={sec.type} num={i + 1} showAns={showAnswers} />)}
+                  </ol>
+                </div>
+              ))}
+              {showAnswers && (
+                <div className="mt-6 pt-3 border-t-2 border-dashed border-slate-400">
+                  <h2 className="font-extrabold text-[15px] mb-2">🔑 កូនសោចម្លើយ (Answer Key)</h2>
+                  {examSections.map((sec, si) => (
+                    <div key={si} className="mb-2">
+                      <div className="font-bold text-[12.5px]">ផ្នែកទី {toKh(si + 1)}៖ {sec.label}</div>
+                      <ol className="grid grid-cols-2 gap-x-8 gap-y-1 text-[12px]">
+                        {sec.questions.map((q, i) => <li key={i}><span className="font-bold">{toKh(i + 1)}.</span> {q.pairs ? q.pairs.map(p => `${p.left}→${p.right}`).join('; ') : q.answer || '—'}</li>)}
+                      </ol>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </FitToWidth>
+        ) : questions.length === 0 ? (
           <div className="ws-no-print bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-400 flex flex-col items-center gap-2">
             <FileText size={28} className="opacity-50" />
             <p className="text-sm font-medium">ជ្រើសរើសលក្ខណៈ រួចចុច «បង្កើតលំហាត់» ដើម្បីបង្ហាញសន្លឹកលំហាត់នៅទីនេះ។</p>
@@ -284,35 +393,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
 
               {/* Body */}
               <ol className="mt-3 space-y-4 text-[13.5px]">
-                {questions.map((q, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span className="font-bold shrink-0">{toKh(i + 1)}.</span>
-                    <div className="flex-1 min-w-0">
-                      {/* Matching renders two columns */}
-                      {q.pairs ? (
-                        <div className="grid grid-cols-2 gap-x-8">
-                          <div className="space-y-2">{q.pairs.map((p, j) => <div key={j}>{toKh(i + 1)}.{toKh(j + 1)} {p.left} ........</div>)}</div>
-                          <div className="space-y-2">{[...q.pairs].map(p => p.right).sort(() => Math.random() - 0.5).map((r, j) => <div key={j}>{OPT_LETTERS[j] || '•'}. {r}</div>)}</div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="font-medium">{q.prompt}</div>
-                          {q.options ? (
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-1 pl-1">
-                              {q.options.map((o, j) => <div key={j} className="flex items-center gap-1.5"><span className="inline-block w-4 h-4 border border-slate-500 rounded-full text-[10px] text-center leading-4">{OPT_LETTERS[j]}</span> {o}</div>)}
-                            </div>
-                          ) : params.type === 'true_false' ? (
-                            <div className="flex gap-6 mt-1 pl-1 text-[12.5px]"><span>◯ ត្រូវ</span><span>◯ ខុស</span></div>
-                          ) : (
-                            <Lines n={params.type === 'essay' || params.type === 'writing' || params.type === 'reading' ? 5 : params.type === 'short_answer' ? 2 : 1} />
-                          )}
-                          {/* Answer key overlay */}
-                          {showAnswers && q.answer && <div className="ws-no-print mt-1 text-[12px] font-bold text-emerald-700">✔ ចម្លើយ៖ {q.answer}</div>}
-                        </>
-                      )}
-                    </div>
-                  </li>
-                ))}
+                {questions.map((q, i) => <QRow key={i} q={q} type={params.type} num={i + 1} showAns={showAnswers} />)}
               </ol>
 
               {/* Answer key page (when toggled) — clean list for the teacher */}
