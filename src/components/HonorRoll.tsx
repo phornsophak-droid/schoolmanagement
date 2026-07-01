@@ -144,13 +144,33 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
     e.target.value = '';
   };
 
-  // Keep the decorative colours (gradients, medals, ribbons) when printing.
+  // Keep the decorative colours (gradients, medals, ribbons) when printing, and
+  // force a single fit-to-page A4 PORTRAIT sheet. `zoom` (set by handlePrint) scales
+  // the actual layout box — unlike transform:scale — so the tall board shrinks onto
+  // one page instead of overflowing/cutting.
   const printCss = `@media print {
+    @page { size: A4 portrait; margin: 8mm; }
     body * { visibility: hidden !important; }
     #honor-roll, #honor-roll * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    #honor-roll { position: absolute; left: 0; top: 0; width: 100%; }
+    #honor-roll { position: absolute; left: 0; top: 0; }
     .rc-no-print { display: none !important; }
   }`;
+
+  // Print: scale the board with `zoom` so the whole thing fits one A4 portrait page.
+  const handlePrint = () => {
+    const el = document.getElementById('honor-roll');
+    if (!el) { window.print(); return; }
+    const prevZoom = el.style.zoom;
+    // A4 portrait usable area at ~96dpi minus the 8mm @page margin.
+    const availW = 794 - 60, availH = 1123 - 60;
+    const r = el.getBoundingClientRect();
+    const z = Math.min(availW / r.width, availH / r.height);
+    (el.style as any).zoom = String(z);
+    const done = () => { (el.style as any).zoom = prevZoom; window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done);
+    setTimeout(() => window.print(), 60);
+    setTimeout(done, 2000); // fallback reset if afterprint doesn't fire
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4 flex justify-center items-start">
@@ -165,7 +185,7 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
             <button onClick={handleDownloadPdf} disabled={pdfBusy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
               {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} ទាញយក PDF
             </button>
-            <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
+            <button onClick={handlePrint} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
               <Printer size={13} /> បោះពុម្ព / PDF
             </button>
             <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-colors">
