@@ -132,12 +132,34 @@ function parseDbNum(val: any): number | null {
 }
 
 export function mapDBToScore(db: any): StudentScore {
+  // Recompute the total score from the loaded sub-scores. totalScore has no DB
+  // column of its own (only overall_avg is persisted), so without this a
+  // cloud-loaded record shows a 0 total on report cards / gradebook even though
+  // the average is correct. Mirrors the sum in calculateStudentFields (mockData.ts):
+  // English/custom classes sum their englishScores map; general classes sum every
+  // entered sub-subject.
+  const englishScores = db.extra_data?.englishScores ?? undefined;
+  const scienceScores = db.extra_data?.scienceScores ?? undefined;
+  const socialScores = db.extra_data?.socialScores ?? undefined;
+  const subjectVals: (number | null)[] = englishScores
+    ? (Object.values(englishScores) as (number | null)[])
+    : [
+        parseDbNum(db.khmer_listening), parseDbNum(db.khmer_writing), parseDbNum(db.khmer_reading), parseDbNum(db.khmer_speaking),
+        parseDbNum(db.math_numbers), parseDbNum(db.math_measurement), parseDbNum(db.math_geometry), parseDbNum(db.math_algebra), parseDbNum(db.math_statistics),
+        ...(scienceScores ? (Object.values(scienceScores) as (number | null)[]) : [parseDbNum(db.science)]),
+        ...(socialScores ? (Object.values(socialScores) as (number | null)[]) : [parseDbNum(db.social_studies)]),
+        parseDbNum(db.physical_education), parseDbNum(db.health), parseDbNum(db.life_skills), parseDbNum(db.foreign_language),
+      ];
+  const enteredVals = subjectVals.filter((v): v is number => v !== null && v !== undefined);
+  const totalScore = enteredVals.length > 0 ? parseFloat(enteredVals.reduce((a, b) => a + b, 0).toFixed(2)) : undefined;
+
   return {
     id: db.id,
     name: db.name,
     gender: db.gender,
     grade: db.grade,
     month: db.month,
+    totalScore,
     khmer: {
       listening: parseDbNum(db.khmer_listening),
       writing: parseDbNum(db.khmer_writing),
