@@ -10,6 +10,7 @@
 import { getClient, hasGemini } from './gemini';
 import { ollamaReachable, ollamaGenerateJSON } from './ollama';
 import { getSupabaseClient } from './supabase';
+import { pickApproved, bulkAddQuestions, toWSQuestion } from './questionBank';
 
 export type WorksheetType =
   | 'multiple_choice' | 'fill_blank' | 'matching' | 'true_false'
@@ -207,6 +208,37 @@ export async function generateQuestions(params: WorksheetParams): Promise<WSQues
 }
 
 // ---------------------------------------------------------------------------
+// Bank-first generation. Reuse APPROVED questions from the Question Bank, and
+// call the AI ONLY for the shortfall. Newly generated AI questions are saved back
+// to the bank as unapproved drafts (fire-and-forget) so the bank grows over time.
+// ---------------------------------------------------------------------------
+export interface BankGenResult { questions: WSQuestion[]; fromBank: number; fromAI: number; }
+
+export async function generateFromBank(params: WorksheetParams): Promise<BankGenResult> {
+  const { used, shortfall } = pickApproved(params, params.count);
+  let ai: WSQuestion[] = [];
+  if (shortfall > 0) {
+    try {
+      ai = await generateQuestions({ ...params, count: shortfall });
+    } catch (e) {
+      if (!used.length) throw e; // nothing from the bank either → surface the error
+      console.warn('AI shortfall generation failed; using bank questions only', e);
+    }
+    if (ai.length) {
+      // Save the AI questions to the bank as drafts (never throws to the UI).
+      bulkAddQuestions(ai.map(q => ({
+        ...q,
+        grade: params.grade, subject: params.subject,
+        lesson: params.lesson || undefined,
+        type: params.type, difficulty: params.difficulty,
+        status: 'draft' as const, source: 'ai' as const,
+      }))).catch(() => { /* offline — drafts saved locally by bulkAddQuestions */ });
+    }
+  }
+  return { questions: [...used.map(toWSQuestion), ...ai], fromBank: used.length, fromAI: ai.length };
+}
+
+// ---------------------------------------------------------------------------
 // Exam papers (វិញ្ញាសាប្រឡង) — monthly / semester / annual. An exam is a set of
 // mixed-type SECTIONS (parts), each generated with the reusable generateQuestions
 // above, so no new AI logic is needed.
@@ -248,7 +280,8 @@ export async function generateExam(params: WorksheetParams, period: ExamPeriod):
   for (const b of EXAM_BLUEPRINT[period]) {
     if (isMath && (b.type === 'essay' || b.type === 'reading')) continue;
     try {
-      const questions = await generateQuestions({ ...params, type: b.type, count: b.count });
+      // Bank-first per section: reuse approved questions, AI fills the rest.
+      const { questions } = await generateFromBank({ ...params, type: b.type, count: b.count });
       if (questions.length) sections.push({ label: TYPE_LABELS[b.type], type: b.type, questions, points: b.points });
     } catch (e) { console.warn('Exam section failed', b.type, e); }
   }

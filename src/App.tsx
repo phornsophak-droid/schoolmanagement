@@ -135,6 +135,8 @@ import DailyAttendance from './components/DailyAttendance';
 import WorksheetGenerator from './components/WorksheetGenerator';
 import DocBank from './components/DocBank';
 import LessonLibrary from './components/LessonLibrary';
+import QuestionBank from './components/QuestionBank';
+import CurriculumManager from './components/CurriculumManager';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
 import { persistAttendance, loadAttendance, initAttendanceStore, clearAttendanceStore } from './utils/attendanceStore';
@@ -160,7 +162,7 @@ export default function App() {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   // Sub-tab inside គ្រប់គ្រងវិញ្ញាសារ: the worksheet generator vs the lesson library.
-  const [worksheetTab, setWorksheetTab] = useState<'generate' | 'lessons'>('generate');
+  const [worksheetTab, setWorksheetTab] = useState<'generate' | 'bank' | 'curriculum' | 'lessons'>('generate');
 
   // Supabase connection panel active states
   // The Supabase panel now opens from the menu (no floating pill); always start closed on load.
@@ -2027,13 +2029,27 @@ export default function App() {
                     exit={{ opacity: 0, y: -15 }}
                     transition={{ duration: 0.15 }}
                   >
-                    {/* Sub-tabs: worksheet generator vs the lesson library (moved here). */}
-                    <div className="flex border-b border-slate-200/80 bg-slate-100 p-1 rounded-xl max-w-md mb-3">
+                    {/* Sub-tabs: generator · question bank · curriculum · lesson library. */}
+                    <div className="flex border-b border-slate-200/80 bg-slate-100 p-1 rounded-xl max-w-2xl mb-3">
                       <button onClick={() => setWorksheetTab('generate')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'generate' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📝 បង្កើតសន្លឹកលំហាត់</button>
-                      <button onClick={() => setWorksheetTab('lessons')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'lessons' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📚 បណ្ណាល័យមេរៀន</button>
+                      <button onClick={() => setWorksheetTab('bank')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'bank' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>❓ ធនាគារសំណួរ</button>
+                      <button onClick={() => setWorksheetTab('curriculum')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'curriculum' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📚 កម្មវិធីសិក្សា</button>
+                      <button onClick={() => setWorksheetTab('lessons')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'lessons' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📖 បណ្ណាល័យមេរៀន</button>
                     </div>
                     {worksheetTab === 'lessons' ? (
                       <LessonLibrary
+                        grades={grades}
+                        currentUser={currentUser}
+                        onClose={() => setActiveView('dashboard')}
+                      />
+                    ) : worksheetTab === 'bank' ? (
+                      <QuestionBank
+                        grades={grades}
+                        currentUser={currentUser}
+                        onClose={() => setActiveView('dashboard')}
+                      />
+                    ) : worksheetTab === 'curriculum' ? (
+                      <CurriculumManager
                         grades={grades}
                         currentUser={currentUser}
                         onClose={() => setActiveView('dashboard')}

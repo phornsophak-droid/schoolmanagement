@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Trash2, BookMarked, ChevronDown } from 'lucide-react';
+import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Trash2, BookMarked, ChevronDown, HelpCircle } from 'lucide-react';
 import { SchoolUser } from '../types';
 import SchoolLogo from './SchoolLogo';
 import FitToWidth from './FitToWidth';
@@ -12,9 +12,11 @@ import { exportElementToPdf } from '../utils/exportPdf';
 import {
   WorksheetParams, WorksheetType, Difficulty, WSLanguage, WSQuestion, Worksheet,
   TYPE_LABELS, DIFFICULTY_LABELS, LANGUAGE_LABELS, SUBJECTS,
-  generateQuestions, saveWorksheet,
+  saveWorksheet, generateFromBank,
   ExamPeriod, ExamSection, EXAM_PERIOD_LABELS, generateExam,
 } from '../lib/worksheets';
+import { bulkAddQuestions } from '../lib/questionBank';
+import { curriculumSubjects, lessonsFor } from '../lib/curriculum';
 import { hasGemini } from '../lib/gemini';
 import { getOllamaModel, ollamaReachable } from '../lib/ollama';
 import { LessonSource, loadLessons, refreshLessonsFromCloud, saveLesson, deleteLesson } from '../lib/lessons';
@@ -164,11 +166,13 @@ const QRow: React.FC<{ q: WSQuestion; type: WorksheetType; num: number; showAns:
 export default function WorksheetGenerator({ grades, currentUser, onClose, embedded }: Props) {
   const teacherName = currentUser?.name || '';
   const generalGrades = useMemo(() => (grades.length ? grades : ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣']), [grades]);
+  // Subjects come from the Curriculum Manager (falls back to the built-in SUBJECTS).
+  const subjectList = useMemo(() => curriculumSubjects(), []);
 
   // ---- Generation parameters ----
   const [params, setParams] = useState<WorksheetParams>({
     grade: generalGrades[0] || 'ថ្នាក់ទី១',
-    subject: SUBJECTS[0],
+    subject: subjectList[0] || SUBJECTS[0],
     lesson: '',
     topic: '',
     language: 'km',
@@ -251,10 +255,10 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     setShowAnswers(false);
     setExamSections(null); setExamPeriod(null);
     try {
-      const qs = await generateQuestions(params);
+      const { questions: qs, fromBank, fromAI } = await generateFromBank(params);
       setQuestions(qs);
       if (!title) setTitle(`សន្លឹកលំហាត់ ${params.subject}${params.topic ? ` — ${params.topic}` : ''}`);
-      flash(`បានបង្កើតលំហាត់ ${toKh(qs.length)} ✓`);
+      flash(`បានបង្កើតលំហាត់ ${toKh(qs.length)} ✓ (ធនាគារ ${toKh(fromBank)} + AI ${toKh(fromAI)})`);
     } catch (e: any) {
       console.error('Worksheet generation failed', e);
       flash(e?.message || 'បង្កើតលំហាត់មិនបានសម្រេច — សូមព្យាយាមម្ដងទៀត។', false);
@@ -309,6 +313,23 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     flash('បាននាំចេញ Word ✓ (កែក្នុង Word រួចព្រីន)');
   };
 
+  // Push the current questions into the Question Bank as manual drafts (for a
+  // principal to approve). De-duped by bulkAddQuestions, so it's idempotent even
+  // though AI questions were already auto-added.
+  const handleSaveToBank = async () => {
+    const payload = examSections
+      ? examSections.flatMap(s => s.questions.map(q => ({ q, type: s.type })))
+      : questions.map(q => ({ q, type: params.type }));
+    if (!payload.length) { flash('សូមបង្កើតជាមុនសិន', false); return; }
+    const added = await bulkAddQuestions(payload.map(({ q, type }) => ({
+      prompt: q.prompt, options: q.options, pairs: q.pairs, answer: q.answer,
+      grade: params.grade, subject: params.subject, lesson: params.lesson || undefined,
+      type, difficulty: params.difficulty,
+      status: 'draft' as const, source: 'manual' as const, createdBy: teacherName,
+    })));
+    flash(added ? `បានរក្សាទុក ${toKh(added)} សំណួរចូលធនាគារ (ព្រាង) ✓` : 'សំណួរទាំងនេះមានក្នុងធនាគាររួចហើយ');
+  };
+
   const handleSave = async () => {
     const flat = examSections ? examSections.flatMap(s => s.questions) : questions;
     if (!flat.length) { flash('សូមបង្កើតជាមុនសិន', false); return; }
@@ -356,6 +377,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
               </button>
               <button onClick={handleWord} title="នាំចេញជា Word ដែលកែបានមុនព្រីន" className="px-3 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 shadow-sm"><FileText size={13} /> Word</button>
               <button onClick={() => window.print()} className="px-3 py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-900 text-white flex items-center gap-1.5 shadow-sm"><Printer size={13} /> បោះពុម្ព</button>
+              <button onClick={handleSaveToBank} title="រក្សាទុកសំណួរទាំងនេះចូលធនាគារសំណួរ (ជាព្រាង)" className="px-3 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-sm"><HelpCircle size={13} /> ចូលធនាគារ</button>
               <button onClick={handleSave} className="px-3 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-sm"><Save size={13} /> រក្សាទុក</button>
             </>}
             <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5"><X size={13} /> បិទ</button>
@@ -366,12 +388,12 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         <div className="ws-no-print bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Field label="ថ្នាក់"><select value={params.grade} onChange={e => set('grade', e.target.value)} className={fieldCls}>{generalGrades.map(g => <option key={g} value={g}>{g}</option>)}</select></Field>
-            <Field label="មុខវិជ្ជា"><select value={params.subject} onChange={e => set('subject', e.target.value)} className={fieldCls}>{SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}</select></Field>
+            <Field label="មុខវិជ្ជា"><select value={params.subject} onChange={e => set('subject', e.target.value)} className={fieldCls}>{subjectList.map(s => <option key={s} value={s}>{s}</option>)}</select></Field>
             <Field label="ប្រភេទលំហាត់"><select value={params.type} onChange={e => set('type', e.target.value as WorksheetType)} className={fieldCls}>{(Object.keys(TYPE_LABELS) as WorksheetType[]).map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}</select></Field>
             <Field label="កម្រិត"><select value={params.difficulty} onChange={e => set('difficulty', e.target.value as Difficulty)} className={fieldCls}>{(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map(d => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}</select></Field>
             <Field label="ភាសា"><select value={params.language} onChange={e => set('language', e.target.value as WSLanguage)} className={fieldCls}>{(Object.keys(LANGUAGE_LABELS) as WSLanguage[]).map(l => <option key={l} value={l}>{LANGUAGE_LABELS[l]}</option>)}</select></Field>
             <Field label="ចំនួនសំណួរ"><input type="number" min={1} max={50} value={params.count} onChange={e => set('count', Math.max(1, Math.min(50, Number(e.target.value) || 1)))} className={fieldCls} /></Field>
-            <Field label="មេរៀន"><input value={params.lesson} onChange={e => set('lesson', e.target.value)} placeholder="ឧ. មេរៀនទី ៣" className={fieldCls} /></Field>
+            <Field label="មេរៀន"><input list="wsg-lessons" value={params.lesson} onChange={e => set('lesson', e.target.value)} placeholder="ឧ. មេរៀនទី ៣" className={fieldCls} /><datalist id="wsg-lessons">{lessonsFor(params.grade, params.subject).map(l => <option key={l.id} value={l.title} />)}</datalist></Field>
             <Field label="ប្រធានបទ"><input value={params.topic} onChange={e => set('topic', e.target.value)} placeholder="ឧ. បូក, អំណាន…" className={fieldCls} /></Field>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
