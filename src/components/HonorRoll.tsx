@@ -52,7 +52,7 @@ const frameStyle = (rank: number) => {
 // One honor photo frame: medal badge, decorative photo frame, name ribbon.
 function HonorFrame({ rank, name, photo, letter, onPick, big = false }: { rank: number; name: string; photo: string; letter: string; onPick: () => void; big?: boolean }) {
   const photoW = big ? 'w-40' : 'w-32';
-  const photoH = big ? 'h-48' : 'h-40';
+  const photoH = big ? 'h-40' : 'h-32';
   return (
     <div className="relative flex flex-col items-center">
       {/* Medal */}
