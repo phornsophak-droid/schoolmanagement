@@ -137,20 +137,21 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
   // the actual layout box — unlike transform:scale — so the tall board shrinks onto
   // one page instead of overflowing/cutting.
   const printCss = `@media print {
-    @page { size: A4 portrait; margin: 8mm; }
+    @page { size: A4 portrait; margin: 0; }
     body * { visibility: hidden !important; }
     #honor-roll, #honor-roll * { visibility: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    #honor-roll { position: absolute; left: 0; top: 0; }
+    #honor-roll { position: absolute; left: 50%; top: 0; transform: translateX(-50%); transform-origin: top center; }
     .rc-no-print { display: none !important; }
   }`;
 
-  // Print: scale the board with `zoom` so the whole thing fits one A4 portrait page.
+  // Print: scale the board with `zoom` so it fills one A4 portrait page (centered).
   const handlePrint = () => {
     const el = document.getElementById('honor-roll');
     if (!el) { window.print(); return; }
     const prevZoom = el.style.zoom;
-    // A4 portrait usable area at ~96dpi minus the 8mm @page margin.
-    const availW = 794 - 60, availH = 1123 - 60;
+    // Full A4 portrait area at ~96dpi (@page margin is 0). Tiny 6px safety inset so
+    // the decorative border isn't clipped; otherwise fill the whole sheet.
+    const availW = 794 - 12, availH = 1123 - 12;
     const r = el.getBoundingClientRect();
     const z = Math.min(availW / r.width, availH / r.height);
     (el.style as any).zoom = String(z);
