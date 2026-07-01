@@ -185,8 +185,8 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
                 <div className="text-slate-400">~ ~ ~ ~ ~ ~</div>
               </div>
 
-              {/* Logo above the school name, pulled to the LEFT edge. */}
-              <div className="flex flex-col items-start text-emerald-700 font-semibold mt-1 mb-1">
+              {/* Logo centered above the school name. */}
+              <div className="flex flex-col items-center text-emerald-700 font-semibold mt-1 mb-1">
                 <SchoolLogo size={64} />
                 <div className="text-sm font-bold">សាលាសហគមន៍ច្បារច្រុះ</div>
               </div>
