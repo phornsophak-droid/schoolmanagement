@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Trash2, BookMarked } from 'lucide-react';
+import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Trash2, BookMarked, ChevronDown } from 'lucide-react';
 import { SchoolUser } from '../types';
 import SchoolLogo from './SchoolLogo';
 import FitToWidth from './FitToWidth';
@@ -97,6 +97,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
 
   // ---- Status ----
   const [loading, setLoading] = useState(false);
+  const [examMenuOpen, setExamMenuOpen] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const flash = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3500); };
@@ -294,16 +295,30 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
                 : activeEngine === 'gemini' ? '⚡ ប្រើ AI (Gemini free)។ គណិតវិទ្យាដំណើរការដោយឥតគិតថ្លៃផងដែរ។'
                 : 'ℹ️ គ្មាន AI — គណិតវិទ្យាដំណើរការដោយឥតគិតថ្លៃ; មុខវិជ្ជាផ្សេងត្រូវការ Ollama ឬ Gemini key។'}
             </p>
-            <button onClick={handleGenerate} disabled={loading} className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 disabled:opacity-60 text-white flex items-center gap-2 shadow-md">
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} បង្កើតលំហាត់
-            </button>
-          </div>
-          {/* Exam-paper quick buttons — generate a full period exam (mixed sections). */}
-          <div className="flex items-center gap-2 flex-wrap border-t border-slate-100 pt-3">
-            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase mr-1">📄 វិញ្ញាសាប្រឡង៖</span>
-            {(['month', 'semester', 'year'] as ExamPeriod[]).map(p => (
-              <button key={p} onClick={() => handleGenerateExam(p)} disabled={loading} className="px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 disabled:opacity-60 flex items-center gap-1.5"><FileText size={13} /> {EXAM_PERIOD_LABELS[p]}</button>
-            ))}
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <button onClick={handleGenerate} disabled={loading} className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 disabled:opacity-60 text-white flex items-center gap-2 shadow-md">
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} បង្កើតលំហាត់
+              </button>
+              {/* Exam paper — period (ខែ/ឆមាស/ឆ្នាំ) picked from this button's dropdown. */}
+              <div className="relative">
+                <button onClick={() => setExamMenuOpen(o => !o)} disabled={loading} className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 disabled:opacity-60 text-white flex items-center gap-2 shadow-md">
+                  <FileText size={16} /> បង្កើតវិញ្ញាសាប្រឡង <ChevronDown size={14} className={`transition-transform ${examMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {examMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setExamMenuOpen(false)} />
+                    <div className="absolute right-0 bottom-full mb-2 z-20 min-w-[190px] bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 overflow-hidden">
+                      <div className="px-3 py-1 text-[10px] font-bold text-slate-400 font-mono uppercase">📄 វិញ្ញាសាប្រឡង</div>
+                      {(['month', 'semester', 'year'] as ExamPeriod[]).map(p => (
+                        <button key={p} onClick={() => { setExamMenuOpen(false); handleGenerateExam(p); }} disabled={loading} className="w-full text-left px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-60 flex items-center gap-2">
+                          <FileText size={13} /> {EXAM_PERIOD_LABELS[p]}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
