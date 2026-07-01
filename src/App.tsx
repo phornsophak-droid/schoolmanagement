@@ -157,6 +157,8 @@ export default function App() {
     return isMobile ? 'mobile-portal' : 'dashboard';
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Sub-tab inside គ្រប់គ្រងវិញ្ញាសារ: the worksheet generator vs the lesson library.
+  const [worksheetTab, setWorksheetTab] = useState<'generate' | 'lessons'>('generate');
 
   // Supabase connection panel active states
   // The Supabase panel now opens from the menu (no floating pill); always start closed on load.
@@ -1521,21 +1523,6 @@ export default function App() {
           </button>
 
           <button
-            id="nav_lessons_tab"
-            onClick={() => setActiveView('lessons')}
-            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
-              activeView === 'lessons'
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
-                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <BookOpen size={16} className={activeView === 'lessons' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>បណ្ណាល័យមេរៀន</span>
-            </div>
-          </button>
-
-          <button
             id="nav_mobile_portal_tab"
             onClick={() => setActiveView('mobile-portal')}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -2019,12 +2006,25 @@ export default function App() {
                     exit={{ opacity: 0, y: -15 }}
                     transition={{ duration: 0.15 }}
                   >
-                    <WorksheetGenerator
-                      embedded
-                      grades={grades}
-                      currentUser={currentUser}
-                      onClose={() => setActiveView('dashboard')}
-                    />
+                    {/* Sub-tabs: worksheet generator vs the lesson library (moved here). */}
+                    <div className="flex border-b border-slate-200/80 bg-slate-100 p-1 rounded-xl max-w-md mb-3">
+                      <button onClick={() => setWorksheetTab('generate')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'generate' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📝 បង្កើតសន្លឹកលំហាត់</button>
+                      <button onClick={() => setWorksheetTab('lessons')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'lessons' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📚 បណ្ណាល័យមេរៀន</button>
+                    </div>
+                    {worksheetTab === 'lessons' ? (
+                      <LessonLibrary
+                        grades={grades}
+                        currentUser={currentUser}
+                        onClose={() => setActiveView('dashboard')}
+                      />
+                    ) : (
+                      <WorksheetGenerator
+                        embedded
+                        grades={grades}
+                        currentUser={currentUser}
+                        onClose={() => setActiveView('dashboard')}
+                      />
+                    )}
                   </motion.div>
                 )}
 
