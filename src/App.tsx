@@ -59,6 +59,7 @@ import {
   CUSTOM_URL_KEY,
   CUSTOM_ANON_KEY
 } from './lib/supabase';
+import { mergeCachedSettings } from './lib/settingsCache';
 // @ts-ignore
 import schemaSql from './schema.sql?raw';
 
@@ -484,11 +485,15 @@ export default function App() {
               localStorage.setItem('school_grades_v2', JSON.stringify(data.grades));
             }
             if (data.settings && Object.keys(data.settings).length > 0) {
+              // Mirror settings (signatures) into the quota-free memory cache first,
+              // so they display even when localStorage is full and the writes below
+              // fail. See settingsCache.ts.
+              mergeCachedSettings(data.settings);
               if (data.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(data.settings['school_custom_users']));
               if (data.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(data.settings['school_custom_pins']));
               if (data.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(data.settings['school_custom_teachers_v2']));
-              if (data.settings['school_principal_signature_v1']) localStorage.setItem('school_principal_signature_v1', data.settings['school_principal_signature_v1']);
-              Object.keys(data.settings).forEach(k => { if (k.startsWith('school_teacher_signature::')) localStorage.setItem(k, data.settings[k]); });
+              try { if (data.settings['school_principal_signature_v1']) localStorage.setItem('school_principal_signature_v1', data.settings['school_principal_signature_v1']); } catch { /* quota — served from memory cache */ }
+              Object.keys(data.settings).forEach(k => { if (k.startsWith('school_teacher_signature::')) { try { localStorage.setItem(k, data.settings[k]); } catch { /* quota — served from memory cache */ } } });
               // Push up any teacher signature that lives only in THIS device's
               // localStorage (uploaded before cloud-sync, or a sync that silently
               // failed). Without this, after-hours teacher signatures never reach
@@ -559,11 +564,12 @@ export default function App() {
                     localStorage.setItem('school_grades_v2', JSON.stringify(newData.grades));
                   }
                   if (newData.settings && Object.keys(newData.settings).length > 0) {
+                    mergeCachedSettings(newData.settings);
                     if (newData.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(newData.settings['school_custom_users']));
                     if (newData.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(newData.settings['school_custom_pins']));
                     if (newData.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(newData.settings['school_custom_teachers_v2']));
-                    if (newData.settings['school_principal_signature_v1']) localStorage.setItem('school_principal_signature_v1', newData.settings['school_principal_signature_v1']);
-                    Object.keys(newData.settings).forEach(k => { if (k.startsWith('school_teacher_signature::')) localStorage.setItem(k, newData.settings[k]); });
+                    try { if (newData.settings['school_principal_signature_v1']) localStorage.setItem('school_principal_signature_v1', newData.settings['school_principal_signature_v1']); } catch { /* quota — served from memory cache */ }
+                    Object.keys(newData.settings).forEach(k => { if (k.startsWith('school_teacher_signature::')) { try { localStorage.setItem(k, newData.settings[k]); } catch { /* quota — served from memory cache */ } } });
                     restoreReportSubmissions(newData.settings['report_submissions']);
                   }
                   stampSync(startedAt, false);
@@ -738,6 +744,7 @@ export default function App() {
       }
       
       if (data.settings && Object.keys(data.settings).length > 0) {
+        mergeCachedSettings(data.settings);
         if (data.settings['school_custom_users']) {
           localStorage.setItem('school_custom_users', JSON.stringify(data.settings['school_custom_users']));
           // Refresh the AVAILABLE_USERS array from localStorage (but without page reload it won't impact until reload? 
@@ -755,10 +762,8 @@ export default function App() {
         if (data.settings['school_custom_teachers_v2']) {
           localStorage.setItem('school_custom_teachers_v2', JSON.stringify(data.settings['school_custom_teachers_v2']));
         }
-        if (data.settings['school_principal_signature_v1']) {
-          localStorage.setItem('school_principal_signature_v1', data.settings['school_principal_signature_v1']);
-        }
-        Object.keys(data.settings).forEach(k => { if (k.startsWith('school_teacher_signature::')) localStorage.setItem(k, data.settings[k]); });
+        try { if (data.settings['school_principal_signature_v1']) { localStorage.setItem('school_principal_signature_v1', data.settings['school_principal_signature_v1']); } } catch { /* quota — served from memory cache */ }
+        Object.keys(data.settings).forEach(k => { if (k.startsWith('school_teacher_signature::')) { try { localStorage.setItem(k, data.settings[k]); } catch { /* quota — served from memory cache */ } } });
         restoreReportSubmissions(data.settings['report_submissions']);
       }
 

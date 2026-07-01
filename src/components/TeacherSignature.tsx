@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { syncUpsertSetting, syncDeleteSetting } from '../lib/supabase';
+import { getCachedSetting, setCachedSetting, cachedKeysWithPrefix, subscribeSettings } from '../lib/settingsCache';
 import { downscaleImageFile } from '../utils/image';
 import { AVAILABLE_USERS } from './LoginPortal';
-import { isEnglishClass, isHealthClass, isDrawingClass, isComputerClass, isSportsClass } from '../types';
+import { isEnglishClass, isHealthClass, isDrawingClass, isComputerClass, isSportsClass, afterHoursSubject } from '../types';
 
 // An after-hours teacher's account grade is the generic subject ("ថ្នាក់ភាសាអង់គ្លេស")
 // while their students' grade carries the group ("ថ្នាក់ភាសាអង់គ្លេស 3"). Match by
@@ -49,11 +50,50 @@ export const teacherNameForGrade = (grade: string): string => {
   return u ? stripTitle(u.name) : '';
 };
 
+// Read one setting value, memory cache first (quota-free) then localStorage.
+const readSetting = (k: string): string => {
+  const cached = getCachedSetting(k);
+  if (cached) return cached;
+  try { return localStorage.getItem(k) || ''; } catch { return ''; }
+};
+
+// Resolve a class's stored signature, tolerating historical key drift: signatures
+// were saved under the canonical subject key ("::គំនូរ") AND under raw grade keys
+// ("::ថ្នាក់គំនូរ", "::ថ្នាក់ភាសាអង់គ្លេស 3", "::ថ្នាក់កីឡា និងអប់រកាយ") at different
+// times. Try the canonical key, then the raw grade, then ANY key of the same
+// after-hours subject — so every group/spelling variant still resolves.
+export const resolveTeacherSig = (grade: string): string => {
+  const direct = readSetting(teacherSigKey(grade));
+  if (direct) return direct;
+  const raw = readSetting(TEACHER_SIG_PREFIX + grade);
+  if (raw) return raw;
+  const subj = afterHoursSubject(grade);
+  if (!subj) return '';
+  const keys = new Set<string>(cachedKeysWithPrefix(TEACHER_SIG_PREFIX));
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(TEACHER_SIG_PREFIX)) keys.add(k);
+    }
+  } catch { /* localStorage unavailable */ }
+  for (const k of keys) {
+    if (afterHoursSubject(k.slice(TEACHER_SIG_PREFIX.length)) !== subj) continue;
+    const v = readSetting(k);
+    if (v) return v;
+  }
+  return '';
+};
+
 export default function TeacherSignature({ grade, height = 60 }: { grade: string; height?: number | string }) {
   const key = teacherSigKey(grade);
-  const [sig, setSig] = useState<string>(() => {
-    try { return localStorage.getItem(key) || ''; } catch { return ''; }
-  });
+  const [sig, setSig] = useState<string>(() => resolveTeacherSig(grade));
+  // Re-resolve when the grade changes or the cloud sync populates the cache — the
+  // signature may arrive AFTER this component first mounts.
+  useEffect(() => {
+    const update = () => setSig(resolveTeacherSig(grade));
+    update();
+    return subscribeSettings(update);
+  }, [grade]);
   const ref = useRef<HTMLInputElement>(null);
   const name = teacherNameForGrade(grade);
 
@@ -67,7 +107,8 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
       // photo can exceed the cloud request limit → the save silently fails).
       const url = await downscaleImageFile(f);
       setSig(url);
-      try { localStorage.setItem(key, url); } catch { /* ignore */ }
+      setCachedSetting(key, url); // memory cache — survives reload even if localStorage is full
+      try { localStorage.setItem(key, url); } catch { /* quota — served from memory cache + cloud */ }
       // The signature MUST reach the cloud — otherwise parents and other devices
       // never see it (it stays local-only). Await the save and tell the user if
       // it couldn't be stored, so they can retry when back online instead of the
@@ -83,8 +124,26 @@ export default function TeacherSignature({ grade, height = 60 }: { grade: string
   };
   const removeSig = () => {
     setSig('');
-    try { localStorage.removeItem(key); } catch { /* ignore */ }
-    syncDeleteSetting(key).catch(() => { /* offline — cleared locally */ });
+    // Clear every key resolveTeacherSig() might fall back to (canonical, raw grade,
+    // and any same-subject variant) from cache + localStorage + cloud — otherwise
+    // the signature would reappear from a historical key.
+    const subj = afterHoursSubject(grade);
+    const keys = new Set<string>([key, TEACHER_SIG_PREFIX + grade]);
+    cachedKeysWithPrefix(TEACHER_SIG_PREFIX).forEach(k => keys.add(k));
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(TEACHER_SIG_PREFIX)) keys.add(k);
+      }
+    } catch { /* localStorage unavailable */ }
+    keys.forEach(k => {
+      const g = k.slice(TEACHER_SIG_PREFIX.length);
+      const match = k === key || (subj ? afterHoursSubject(g) === subj : g === grade);
+      if (!match) return;
+      setCachedSetting(k, '');
+      try { localStorage.removeItem(k); } catch { /* ignore */ }
+      syncDeleteSetting(k).catch(() => { /* offline — cleared locally */ });
+    });
   };
 
   return (

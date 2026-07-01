@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { syncUpsertSetting, syncDeleteSetting } from '../lib/supabase';
+import { getCachedSetting, setCachedSetting, subscribeSettings } from '../lib/settingsCache';
 import { downscaleImageFile } from '../utils/image';
 
 // One shared principal signature, uploaded once and reused on every report/table.
@@ -13,10 +14,21 @@ import { downscaleImageFile } from '../utils/image';
 export const PRINCIPAL_SIG_KEY = 'school_principal_signature_v1';
 export const PRINCIPAL_NAME = 'ផន សុភាក់';
 
+// Read the principal signature: memory cache first (quota-free) then localStorage.
+const readPrincipalSig = (): string => {
+  const cached = getCachedSetting(PRINCIPAL_SIG_KEY);
+  if (cached) return cached;
+  try { return localStorage.getItem(PRINCIPAL_SIG_KEY) || ''; } catch { return ''; }
+};
+
 export default function PrincipalSignature({ height = 88 }: { height?: number | string }) {
-  const [sig, setSig] = useState<string>(() => {
-    try { return localStorage.getItem(PRINCIPAL_SIG_KEY) || ''; } catch { return ''; }
-  });
+  const [sig, setSig] = useState<string>(() => readPrincipalSig());
+  // Re-read when the cloud sync populates the cache after this component mounts.
+  useEffect(() => {
+    const update = () => setSig(readPrincipalSig());
+    update();
+    return subscribeSettings(update);
+  }, []);
   const [saving, setSaving] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
 
@@ -29,7 +41,8 @@ export default function PrincipalSignature({ height = 88 }: { height?: number | 
       // photo can exceed the cloud request limit → the save silently fails).
       const url = await downscaleImageFile(f);
       setSig(url);
-      try { localStorage.setItem(PRINCIPAL_SIG_KEY, url); } catch { /* ignore */ }
+      setCachedSetting(PRINCIPAL_SIG_KEY, url); // memory cache — survives reload even if localStorage is full
+      try { localStorage.setItem(PRINCIPAL_SIG_KEY, url); } catch { /* quota — served from memory cache + cloud */ }
       // Await the cloud save and surface a failure — a silently-dropped write
       // leaves the signature local-only and it never reaches parents' devices.
       setSaving(true);
@@ -43,6 +56,7 @@ export default function PrincipalSignature({ height = 88 }: { height?: number | 
   };
   const removeSig = () => {
     setSig('');
+    setCachedSetting(PRINCIPAL_SIG_KEY, '');
     try { localStorage.removeItem(PRINCIPAL_SIG_KEY); } catch { /* ignore */ }
     syncDeleteSetting(PRINCIPAL_SIG_KEY).catch(() => { /* offline — cleared locally */ });
   };
