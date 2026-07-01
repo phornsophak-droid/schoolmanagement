@@ -4,13 +4,12 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { Printer, X, Camera, Download, Loader2 } from 'lucide-react';
+import { X, Camera, Download } from 'lucide-react';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { khmerLunarFull, khmerMonthEnd } from '../utils/khmerDate';
 import { niddesColor } from '../utils/scoring';
-import { exportElementToPdf } from '../utils/exportPdf';
 
 const HONOR_KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហา', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
 
@@ -119,17 +118,6 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
   const pendingName = useRef<string>('');
   const pickFor = (name: string) => { pendingName.current = name; fileRef.current?.click(); };
 
-  // Download the honor roll as a PDF. The board is tall, so exportElementToPdf
-  // renders it portrait and scales it to fit an A4 page.
-  const [pdfBusy, setPdfBusy] = useState(false);
-  const handleDownloadPdf = async () => {
-    const el = document.getElementById('honor-roll');
-    if (!el) return;
-    setPdfBusy(true);
-    try { await exportElementToPdf(el, `តារាងកិត្តិយស_${grade.replace(/\s+/g, '_')}`); }
-    catch (e) { console.error('PDF export failed', e); alert('មិនអាចបង្កើត PDF បានទេ — សូមព្យាយាមម្ដងទៀត។'); }
-    finally { setPdfBusy(false); }
-  };
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     const name = pendingName.current;
@@ -182,11 +170,8 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
         <div className="rc-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-t-2xl border-b border-slate-100">
           <h3 className="text-sm font-bold text-slate-800">តារាងកិត្តិយស — {grade} • {subtitle}</h3>
           <div className="flex items-center gap-2">
-            <button onClick={handleDownloadPdf} disabled={pdfBusy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
-              {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} ទាញយក PDF
-            </button>
-            <button onClick={handlePrint} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
-              <Printer size={13} /> បោះពុម្ព / PDF
+            <button onClick={handlePrint} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
+              <Download size={13} /> ទាញយក PDF (បញ្ឈរ)
             </button>
             <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-colors">
               <X size={13} /> បិទ
