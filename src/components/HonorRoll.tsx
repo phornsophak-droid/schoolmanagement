@@ -185,8 +185,10 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
                 <div className="text-slate-400">~ ~ ~ ~ ~ ~</div>
               </div>
 
-              <div className="flex flex-col items-center text-emerald-700 font-semibold mt-1 mb-1">
-                <SchoolLogo size={88} />
+              {/* Logo + school name pulled to the LEFT edge (compact row) to save
+                  vertical space so the whole board fits one page. */}
+              <div className="flex items-center gap-2 text-emerald-700 font-semibold mt-1 mb-1">
+                <SchoolLogo size={64} />
                 <div className="text-sm font-bold">សាលាសហគមន៍ច្បារច្រុះ</div>
               </div>
 
@@ -202,13 +204,13 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
               </div>
 
               {/* Ranks 2 & 3 */}
-              <div className="flex justify-between px-8 mb-7">
+              <div className="flex justify-between px-10 mb-7">
                 <HonorFrame rank={2} name={ranks[1].name} photo={photos[ranks[1].name] || ''} letter={gradeLetter(ranks[1].score)} onPick={() => pickFor(ranks[1].name)} />
                 <HonorFrame rank={3} name={ranks[2].name} photo={photos[ranks[2].name] || ''} letter={gradeLetter(ranks[2].score)} onPick={() => pickFor(ranks[2].name)} />
               </div>
 
               {/* Ranks 4 & 5 */}
-              <div className="flex justify-between px-8 mb-4">
+              <div className="flex justify-between px-10 mb-4">
                 <HonorFrame rank={4} name={ranks[3].name} photo={photos[ranks[3].name] || ''} letter={gradeLetter(ranks[3].score)} onPick={() => pickFor(ranks[3].name)} />
                 <HonorFrame rank={5} name={ranks[4].name} photo={photos[ranks[4].name] || ''} letter={gradeLetter(ranks[4].score)} onPick={() => pickFor(ranks[4].name)} />
               </div>
