@@ -134,6 +134,10 @@ export interface StudentScore {
   socialScores?: Record<string, number | null>;  // sub-subjects of Social Studies (SOCIAL_SUBJECTS)
   note?: string;  // ផ្សេងៗ (free-text notes)
   remark?: string;  // មូលវិចារគ្រូបន្ទុកថ្នាក់ (class-teacher remark shown on the report card)
+  fatherName?: string;  // ឈ្មោះឪពុក
+  motherName?: string;  // ឈ្មោះម្តាយ
+  address?: string;     // អាសយដ្ឋាន
+  phone?: string;       // លេខទំនាក់ទំនង (parent/guardian contact)
   physicalEducation: number | null; // កាយ-កីឡា (0-10)
   health: number | null;         // សុខភាព (0-10)
   lifeSkills: number | null;     // បំណិនជីវិត (0-10)

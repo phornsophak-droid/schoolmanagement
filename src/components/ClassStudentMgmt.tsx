@@ -165,6 +165,13 @@ export default function ClassStudentMgmt({
   const [studentFormGrade, setStudentFormGrade] = useState<string>(grades[0] || 'ថ្នាក់ទី៦');
   const [studentFormStatus, setStudentFormStatus] = useState<'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់'>('ធម្មតា');
   const [studentFormGroup, setStudentFormGroup] = useState<string>(''); // ក្រុម (after-hours classes)
+  // Student profile fields (stored in extra_data, cloud-synced).
+  const [studentFormId, setStudentFormId] = useState('');       // អត្តលេខ
+  const [studentFormDob, setStudentFormDob] = useState('');     // ថ្ងៃខែឆ្នាំកំណើត
+  const [studentFormFather, setStudentFormFather] = useState(''); // ឈ្មោះឪពុក
+  const [studentFormMother, setStudentFormMother] = useState(''); // ឈ្មោះម្តាយ
+  const [studentFormAddress, setStudentFormAddress] = useState(''); // អាសយដ្ឋាន
+  const [studentFormPhone, setStudentFormPhone] = useState('');   // លេខទំនាក់ទំនង
 
   // Stray sectionless grades (e.g. "ថ្នាក់ទី៣" when ៣ក/៣ខ exist) are hidden from
   // the counts & rosters so the head-count matches reality (459, not 481). This is
@@ -302,6 +309,8 @@ export default function ClassStudentMgmt({
     setStudentFormGrade(selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦'));
     setStudentFormStatus('ធម្មតា');
     setStudentFormGroup('');
+    setStudentFormId(''); setStudentFormDob(''); setStudentFormFather('');
+    setStudentFormMother(''); setStudentFormAddress(''); setStudentFormPhone('');
     setIsStudentFormOpen(true);
   };
 
@@ -312,6 +321,9 @@ export default function ClassStudentMgmt({
     setStudentFormGrade(profile.grade);
     setStudentFormStatus(profile.status || 'ធម្មតា');
     setStudentFormGroup(profile.group || '');
+    setStudentFormId(profile.studentId || ''); setStudentFormDob(profile.dob || '');
+    setStudentFormFather(profile.fatherName || ''); setStudentFormMother(profile.motherName || '');
+    setStudentFormAddress(profile.address || ''); setStudentFormPhone(profile.phone || '');
     setIsStudentFormOpen(true);
   };
 
@@ -343,7 +355,13 @@ export default function ClassStudentMgmt({
               gender: studentFormGender,
               grade: studentFormGrade,
               group: studentFormGroup.trim() || undefined,
-              status: studentFormStatus
+              status: studentFormStatus,
+              studentId: studentFormId.trim() || undefined,
+              dob: studentFormDob.trim() || undefined,
+              fatherName: studentFormFather.trim() || undefined,
+              motherName: studentFormMother.trim() || undefined,
+              address: studentFormAddress.trim() || undefined,
+              phone: studentFormPhone.trim() || undefined,
             };
             return calculateStudentFields(payload);
           }
@@ -374,6 +392,12 @@ export default function ClassStudentMgmt({
         grade: studentFormGrade,
         group: studentFormGroup.trim() || undefined,
         status: studentFormStatus,
+        studentId: studentFormId.trim() || undefined,
+        dob: studentFormDob.trim() || undefined,
+        fatherName: studentFormFather.trim() || undefined,
+        motherName: studentFormMother.trim() || undefined,
+        address: studentFormAddress.trim() || undefined,
+        phone: studentFormPhone.trim() || undefined,
         month: 'មេសា',
         khmer: { listening: null, writing: null, reading: null, speaking: null },
         math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
@@ -1658,6 +1682,31 @@ export default function ClassStudentMgmt({
                             />
                           </div>
                         )}
+
+                        <div>
+                          <label className="block text-slate-500 mb-1">អត្តលេខ</label>
+                          <input type="text" value={studentFormId} onChange={(e) => setStudentFormId(e.target.value)} placeholder="ឧ. 1004" className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-slate-500 mb-1">ថ្ងៃខែឆ្នាំកំណើត</label>
+                          <input type="text" value={studentFormDob} onChange={(e) => setStudentFormDob(e.target.value)} placeholder="ថ្ងៃ/ខែ/ឆ្នាំ" className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-slate-500 mb-1">ឈ្មោះឪពុក</label>
+                          <input type="text" value={studentFormFather} onChange={(e) => setStudentFormFather(e.target.value)} placeholder="ឈ្មោះឪពុក" className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
+                        </div>
+                        <div>
+                          <label className="block text-slate-500 mb-1">ឈ្មោះម្តាយ</label>
+                          <input type="text" value={studentFormMother} onChange={(e) => setStudentFormMother(e.target.value)} placeholder="ឈ្មោះម្តាយ" className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-slate-500 mb-1">អាសយដ្ឋាន</label>
+                          <input type="text" value={studentFormAddress} onChange={(e) => setStudentFormAddress(e.target.value)} placeholder="ភូមិ ឃុំ ស្រុក ខេត្ត" className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-slate-500 mb-1">លេខទំនាក់ទំនង</label>
+                          <input type="text" value={studentFormPhone} onChange={(e) => setStudentFormPhone(e.target.value)} placeholder="ឧ. 012 345 678" className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
+                        </div>
 
                         <div className="sm:col-span-4 pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
                           <button
