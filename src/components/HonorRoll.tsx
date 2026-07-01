@@ -54,9 +54,9 @@ function HonorFrame({ rank, name, photo, letter, onPick, big = false }: { rank: 
   const photoW = big ? 'w-40' : 'w-32';
   const photoH = big ? 'h-40' : 'h-32';
   return (
-    <div className="relative flex flex-col items-center mt-4">
+    <div className="relative flex flex-col items-center mt-6">
       {/* Medal (moved up to prevent overlapping the head) */}
-      <div className={`absolute ${big ? '-top-7' : '-top-5'} left-1/2 -translate-x-1/2 z-20`}>
+      <div className={`absolute ${big ? '-top-8' : '-top-6'} left-1/2 -translate-x-1/2 z-20`}>
         <div className={`rounded-full bg-gradient-to-b ${medalStyle(rank)} text-white font-extrabold flex items-center justify-center shadow-lg border-[3px] border-white ${big ? 'w-12 h-12 text-2xl' : 'w-9 h-9 text-lg'}`}>
           {toKh(rank)}
         </div>
@@ -211,24 +211,24 @@ export default function HonorRoll({ subtitle, grade, entries, onClose }: HonorRo
             </div>
 
               {/* Title */}
-              <div className="text-center my-2">
+              <div className="text-center mt-2 mb-6">
                 <h1 className="text-4xl font-extrabold text-blue-600 tracking-wide drop-shadow-sm" style={{ WebkitTextStroke: '1.2px #1e3a8a' }}>តារាងកិត្តិយស</h1>
                 <p className="text-lg font-bold text-rose-600 mt-1">{subtitle}</p>
               </div>
 
               {/* Rank 1 */}
-              <div className="flex justify-center mt-2 mb-2">
+              <div className="flex justify-center mb-6">
                 <HonorFrame rank={1} name={ranks[0].name} photo={photos[ranks[0].name] || ''} letter={gradeLetter(ranks[0].score)} onPick={() => pickFor(ranks[0].name)} big />
               </div>
 
               {/* Ranks 2 & 3 */}
-              <div className="flex justify-between px-10 mb-2">
+              <div className="flex justify-between px-10 mb-6">
                 <HonorFrame rank={2} name={ranks[1].name} photo={photos[ranks[1].name] || ''} letter={gradeLetter(ranks[1].score)} onPick={() => pickFor(ranks[1].name)} />
                 <HonorFrame rank={3} name={ranks[2].name} photo={photos[ranks[2].name] || ''} letter={gradeLetter(ranks[2].score)} onPick={() => pickFor(ranks[2].name)} />
               </div>
 
               {/* Ranks 4 & 5 */}
-              <div className="flex justify-between px-10">
+              <div className="flex justify-between px-10 mb-2">
                 <HonorFrame rank={4} name={ranks[3].name} photo={photos[ranks[3].name] || ''} letter={gradeLetter(ranks[3].score)} onPick={() => pickFor(ranks[3].name)} />
                 <HonorFrame rank={5} name={ranks[4].name} photo={photos[ranks[4].name] || ''} letter={gradeLetter(ranks[4].score)} onPick={() => pickFor(ranks[4].name)} />
               </div>
