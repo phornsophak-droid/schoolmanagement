@@ -120,6 +120,7 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
         type: colIndex(header, ['ប្រភេទ', 'type']),
         difficulty: colIndex(header, ['កម្រិត', 'difficult']),
         lesson: colIndex(header, ['មេរៀន', 'lesson']),
+        objective: colIndex(header, ['គោលបំណង', 'objective']),
         prompt: colIndex(header, ['សំណួរ', 'prompt', 'question']),
         answer: colIndex(header, ['ចម្លើយ', 'answer']),
       };
@@ -139,6 +140,7 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
           grade: ci.grade >= 0 && (row[ci.grade] ?? '').toString().trim() ? (row[ci.grade]).toString().trim() : gradeList[0],
           subject: ci.subject >= 0 && (row[ci.subject] ?? '').toString().trim() ? (row[ci.subject]).toString().trim() : subjects[0],
           lesson: ci.lesson >= 0 ? (row[ci.lesson] ?? '').toString().trim() || undefined : undefined,
+          objective: ci.objective >= 0 ? (row[ci.objective] ?? '').toString().trim() || undefined : undefined,
           type,
           difficulty: ci.difficulty >= 0 ? resolveDiff((row[ci.difficulty] ?? '').toString()) : 'medium',
           status: 'draft', source: 'manual', createdBy: teacherName,
@@ -154,8 +156,8 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
 
   // Download a filled-in Excel template so teachers know the column format.
   const downloadTemplate = () => {
-    const header = ['ថ្នាក់', 'មុខវិជ្ជា', 'ប្រភេទ', 'កម្រិត', 'មេរៀន', 'សំណួរ', 'ជម្រើសក', 'ជម្រើសខ', 'ជម្រើសគ', 'ជម្រើសឃ', 'ចម្លើយ'];
-    const example = [gradeList[0], subjects[0], 'multiple_choice', 'easy', 'មេរៀនទី ១', '២ + ២ = ?', '៤', '៣', '៥', '៦', '៤'];
+    const header = ['ថ្នាក់', 'មុខវិជ្ជា', 'ប្រភេទ', 'កម្រិត', 'មេរៀន', 'គោលបំណង', 'សំណួរ', 'ជម្រើសក', 'ជម្រើសខ', 'ជម្រើសគ', 'ជម្រើសឃ', 'ចម្លើយ'];
+    const example = [gradeList[0], subjects[0], 'multiple_choice', 'easy', 'មេរៀនទី ១', 'ស្គាល់ការបូក', '២ + ២ = ?', '៤', '៣', '៥', '៦', '៤'];
     const ws = XLSX.utils.aoa_to_sheet([header, example]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'សំណួរ');

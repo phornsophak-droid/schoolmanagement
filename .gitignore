@@ -24,3 +24,6 @@ certificate.docx
 
 # local cert/test scratch files
 public/_*.html
+
+# Local question-bank source documents (large binaries / official test papers) and generated imports
+Question Bank/
