@@ -240,9 +240,11 @@ export async function generateFromBank(params: WorksheetParams): Promise<BankGen
 }
 
 // ---------------------------------------------------------------------------
-// Exam papers (វិញ្ញាសាប្រឡង) — monthly / semester / annual. An exam is a set of
-// mixed-type SECTIONS (parts), each generated with the reusable generateQuestions
-// above, so no new AI logic is needed.
+// Exam papers (វិញ្ញាសាប្រឡង) — monthly / semester / annual. Every exam is built
+// with a FIXED DIFFICULTY MIX so grading is consistent:
+//   ងាយ 30% (3 ពិន្ទុ) · មធ្យម 50% (5 ពិន្ទុ) · ពិបាក 20% (2 ពិន្ទុ)  = 10 ពិន្ទុ
+// Each tier is its own section (bank-first, then AI for the shortfall). The tier
+// question TYPE progresses from recall → application → reasoning for variety.
 // ---------------------------------------------------------------------------
 export type ExamPeriod = 'month' | 'semester' | 'year';
 export const EXAM_PERIOD_LABELS: Record<ExamPeriod, string> = {
@@ -251,40 +253,47 @@ export const EXAM_PERIOD_LABELS: Record<ExamPeriod, string> = {
 
 export interface ExamSection { label: string; type: WorksheetType; questions: WSQuestion[]; points: number; }
 
-// Blueprint of parts per period (longer/harder as the period grows).
-const EXAM_BLUEPRINT: Record<ExamPeriod, { type: WorksheetType; count: number; points: number }[]> = {
-  month: [
-    { type: 'multiple_choice', count: 5, points: 5 },
-    { type: 'fill_blank', count: 5, points: 5 },
-    { type: 'short_answer', count: 3, points: 6 },
-  ],
-  semester: [
-    { type: 'multiple_choice', count: 10, points: 10 },
-    { type: 'fill_blank', count: 6, points: 6 },
-    { type: 'short_answer', count: 5, points: 10 },
-    { type: 'essay', count: 1, points: 4 },
-  ],
-  year: [
-    { type: 'multiple_choice', count: 10, points: 10 },
-    { type: 'fill_blank', count: 8, points: 8 },
-    { type: 'short_answer', count: 6, points: 12 },
-    { type: 'word_problems', count: 3, points: 6 },
-    { type: 'essay', count: 2, points: 4 },
-  ],
-};
+// Difficulty tiers — ratio of questions and the fixed points per tier (total 10).
+const EXAM_TIERS: { difficulty: Difficulty; ratio: number; points: number }[] = [
+  { difficulty: 'easy', ratio: 0.3, points: 3 },
+  { difficulty: 'medium', ratio: 0.5, points: 5 },
+  { difficulty: 'hard', ratio: 0.2, points: 2 },
+];
+// How many questions in total per period (the 30/50/20 split is applied to this).
+const EXAM_TOTAL_Q: Record<ExamPeriod, number> = { month: 10, semester: 20, year: 30 };
+// A sensible question type per tier (recall → application → reasoning). Essay/
+// reading don't suit maths, so maths uses word problems for the hard tier.
+const tierType = (difficulty: Difficulty, isMath: boolean): WorksheetType =>
+  difficulty === 'easy' ? 'multiple_choice'
+    : difficulty === 'medium' ? 'short_answer'
+      : isMath ? 'word_problems' : 'essay';
 
-// Generate a full exam paper. Reuses generateQuestions per section; skips
-// essay/reading sections for maths (they don't fit) and any section that fails.
+// Split a total into the tier ratios, keeping the sum exact.
+function tierCounts(total: number): number[] {
+  const easy = Math.max(1, Math.round(total * 0.3));
+  const medium = Math.max(1, Math.round(total * 0.5));
+  const hard = Math.max(1, total - easy - medium);
+  return [easy, medium, hard];
+}
+
+// Generate a full exam paper as three difficulty sections (easy/medium/hard) with
+// the fixed 3/5/2 points. Bank-first per tier; skips a tier only if it fails.
 export async function generateExam(params: WorksheetParams, period: ExamPeriod): Promise<ExamSection[]> {
   const isMath = params.subject.includes('គណិត');
+  const counts = tierCounts(EXAM_TOTAL_Q[period]);
   const sections: ExamSection[] = [];
-  for (const b of EXAM_BLUEPRINT[period]) {
-    if (isMath && (b.type === 'essay' || b.type === 'reading')) continue;
+  for (let i = 0; i < EXAM_TIERS.length; i++) {
+    const tier = EXAM_TIERS[i];
+    const count = counts[i];
+    const type = tierType(tier.difficulty, isMath);
     try {
-      // Bank-first per section: reuse approved questions, AI fills the rest.
-      const { questions } = await generateFromBank({ ...params, type: b.type, count: b.count });
-      if (questions.length) sections.push({ label: TYPE_LABELS[b.type], type: b.type, questions, points: b.points });
-    } catch (e) { console.warn('Exam section failed', b.type, e); }
+      // Bank-first per tier: reuse approved questions at this difficulty, AI fills rest.
+      const { questions } = await generateFromBank({ ...params, type, difficulty: tier.difficulty, count });
+      if (questions.length) sections.push({
+        label: `${DIFFICULTY_LABELS[tier.difficulty]} — ${TYPE_LABELS[type]}`,
+        type, questions, points: tier.points,
+      });
+    } catch (e) { console.warn('Exam tier failed', tier.difficulty, e); }
   }
   if (!sections.length) throw new Error('បង្កើតវិញ្ញាសាមិនបានសម្រេច — សូមព្យាយាមម្ដងទៀត។');
   return sections;
