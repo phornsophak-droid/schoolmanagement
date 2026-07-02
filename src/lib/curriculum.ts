@@ -13,6 +13,7 @@
 // "Lesson Library" (lessons.ts), which stores pasted lesson TEXT for the AI.
 
 import { syncUpsertSetting, fetchSetting } from './supabase';
+import { kvReadSync, kvWrite, kvHydrate } from './kvStore';
 import { SUBJECTS } from './worksheets';
 
 export interface CurriculumLesson {
@@ -36,28 +37,29 @@ const uuid = (): string => ((crypto as any).randomUUID ? crypto.randomUUID() : `
 
 const empty = (): Curriculum => ({ subjects: [], lessons: [] });
 
+// Lesson material (extracted document text) can be large → the whole blob
+// auto-routes to IndexedDB via kvStore when it grows. Hydrate at startup so the
+// synchronous selectors below see it.
+kvHydrate(KEY);
+export const hydrateCurriculum = (): Promise<void> => kvHydrate(KEY);
+
 export function loadCurriculum(): Curriculum {
-  try {
-    const v = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (v && Array.isArray(v.subjects) && Array.isArray(v.lessons)) return v;
-  } catch { /* ignore */ }
+  const v = kvReadSync<Curriculum | null>(KEY, null);
+  if (v && Array.isArray(v.subjects) && Array.isArray(v.lessons)) return v;
   return empty();
 }
 
-function persistLocal(c: Curriculum) {
-  try { localStorage.setItem(KEY, JSON.stringify(c)); } catch { /* ignore */ }
-}
-
 export async function refreshCurriculumFromCloud(): Promise<Curriculum> {
+  await kvHydrate(KEY);
   try {
     const v = await fetchSetting(KEY);
-    if (v && Array.isArray(v.subjects) && Array.isArray(v.lessons)) { persistLocal(v); return v; }
+    if (v && Array.isArray(v.subjects) && Array.isArray(v.lessons)) { await kvWrite(KEY, v); return v; }
   } catch { /* offline — keep local */ }
   return loadCurriculum();
 }
 
 async function persist(c: Curriculum): Promise<Curriculum> {
-  persistLocal(c);
+  await kvWrite(KEY, c);
   try { await syncUpsertSetting(KEY, c); } catch { /* offline — saved locally */ }
   return c;
 }

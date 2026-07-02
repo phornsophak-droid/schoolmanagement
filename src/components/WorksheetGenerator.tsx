@@ -16,7 +16,7 @@ import {
   ExamPeriod, ExamSection, EXAM_PERIOD_LABELS, generateExam,
 } from '../lib/worksheets';
 import { bulkAddQuestions } from '../lib/questionBank';
-import { curriculumSubjects, lessonsFor, lessonMaterial } from '../lib/curriculum';
+import { curriculumSubjects, lessonsFor, lessonMaterial, refreshCurriculumFromCloud } from '../lib/curriculum';
 import { hasGemini } from '../lib/gemini';
 import { getOllamaModel, ollamaReachable } from '../lib/ollama';
 import { LessonSource, loadLessons, refreshLessonsFromCloud, saveLesson, deleteLesson } from '../lib/lessons';
@@ -167,7 +167,9 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const teacherName = currentUser?.name || '';
   const generalGrades = useMemo(() => (grades.length ? grades : ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣']), [grades]);
   // Subjects come from the Curriculum Manager (falls back to the built-in SUBJECTS).
-  const subjectList = useMemo(() => curriculumSubjects(), []);
+  // Loaded via state so an IndexedDB-backed curriculum shows once hydrated.
+  const [subjectList, setSubjectList] = useState<string[]>(() => curriculumSubjects());
+  useEffect(() => { refreshCurriculumFromCloud().then(() => setSubjectList(curriculumSubjects())); }, []);
 
   // ---- Generation parameters ----
   const [params, setParams] = useState<WorksheetParams>({

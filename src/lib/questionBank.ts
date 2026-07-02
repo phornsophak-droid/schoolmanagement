@@ -14,6 +14,7 @@
 // dedicated table is a one-file change.
 
 import { syncUpsertSetting, fetchSetting } from './supabase';
+import { kvReadSync, kvWrite, kvHydrate } from './kvStore';
 import type { WSQuestion, WorksheetType, Difficulty, WorksheetParams } from './worksheets';
 
 export interface BankQuestion extends WSQuestion {
@@ -35,28 +36,28 @@ const KEY = 'question_bank';
 
 const uuid = (): string => ((crypto as any).randomUUID ? crypto.randomUUID() : `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 
-export function loadQuestions(): BankQuestion[] {
-  try {
-    const a = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return Array.isArray(a) ? a : [];
-  } catch { return []; }
-}
+// A large bank auto-routes to IndexedDB via kvStore. Hydrate at startup so the
+// synchronous readers below (and generateFromBank's pickApproved) see it.
+kvHydrate(KEY);
+export const hydrateQuestions = (): Promise<void> => kvHydrate(KEY);
 
-function persistLocal(list: BankQuestion[]) {
-  try { localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* ignore */ }
+export function loadQuestions(): BankQuestion[] {
+  const a = kvReadSync<BankQuestion[]>(KEY, []);
+  return Array.isArray(a) ? a : [];
 }
 
 // Pull the shared bank from the cloud so every device/teacher sees the same set.
 export async function refreshQuestionsFromCloud(): Promise<BankQuestion[]> {
+  await kvHydrate(KEY);
   try {
     const v = await fetchSetting(KEY);
-    if (Array.isArray(v)) { persistLocal(v); return v; }
+    if (Array.isArray(v)) { await kvWrite(KEY, v); return v; }
   } catch { /* offline — keep local */ }
   return loadQuestions();
 }
 
 async function persistAll(list: BankQuestion[]): Promise<BankQuestion[]> {
-  persistLocal(list);
+  await kvWrite(KEY, list);
   try { await syncUpsertSetting(KEY, list); } catch { /* offline — saved locally */ }
   return list;
 }

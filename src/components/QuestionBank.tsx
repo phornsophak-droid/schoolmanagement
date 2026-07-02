@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { HelpCircle, Plus, Pencil, Trash2, Save, X, FileText, CheckCircle2, Clock, ShieldCheck, Upload, Loader2, Sparkles, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SchoolUser } from '../types';
@@ -12,7 +12,7 @@ import {
   BankQuestion, loadQuestions, refreshQuestionsFromCloud, saveQuestion, deleteQuestion,
   approveQuestion, unapproveQuestion, bulkAddQuestions,
 } from '../lib/questionBank';
-import { curriculumSubjects, lessonsFor } from '../lib/curriculum';
+import { curriculumSubjects, lessonsFor, refreshCurriculumFromCloud } from '../lib/curriculum';
 import { extractTextFromFile } from '../lib/extractText';
 
 type NewQ = Omit<BankQuestion, 'id' | 'createdAt' | 'updatedAt'>;
@@ -56,7 +56,8 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
   const isPrincipal = currentUser?.role === 'principal';
   const teacherName = currentUser?.name || '';
   const gradeList = grades.length ? grades : ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣'];
-  const subjects = useMemo(() => curriculumSubjects(), []);
+  const [subjects, setSubjects] = useState<string[]>(() => curriculumSubjects());
+  useEffect(() => { refreshCurriculumFromCloud().then(() => setSubjects(curriculumSubjects())); }, []);
 
   const [items, setItems] = useState<BankQuestion[]>(() => loadQuestions());
   const [draft, setDraft] = useState<Draft | null>(null);

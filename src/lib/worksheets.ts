@@ -10,7 +10,7 @@
 import { getClient, hasGemini } from './gemini';
 import { ollamaReachable, ollamaGenerateJSON } from './ollama';
 import { getSupabaseClient } from './supabase';
-import { pickApproved, bulkAddQuestions, toWSQuestion } from './questionBank';
+import { pickApproved, bulkAddQuestions, toWSQuestion, hydrateQuestions } from './questionBank';
 
 export type WorksheetType =
   | 'multiple_choice' | 'fill_blank' | 'matching' | 'true_false'
@@ -215,6 +215,7 @@ export async function generateQuestions(params: WorksheetParams): Promise<WSQues
 export interface BankGenResult { questions: WSQuestion[]; fromBank: number; fromAI: number; }
 
 export async function generateFromBank(params: WorksheetParams): Promise<BankGenResult> {
+  await hydrateQuestions(); // ensure the (possibly IndexedDB-backed) bank is loaded
   const { used, shortfall } = pickApproved(params, params.count);
   let ai: WSQuestion[] = [];
   if (shortfall > 0) {
