@@ -110,15 +110,68 @@ export default async function handler(req: Req, res: Res) {
       chatsFor.set(key, arr);
     }
 
-    // 4. Send private messages.
+    // 4. Running-total absences for the students we'll actually notify. A person has
+    // one score-row id per month; absences are tallied across ALL their ids over the
+    // whole school year in their class. Only the notified persons' grades are fetched.
+    const notify = [...person.entries()].filter(([key]) => chatsFor.has(key));
+    const names = [...new Set(notify.map(([, p]) => p.name))];
+    const grades = [...new Set(notify.map(([, p]) => p.grade))];
+
+    const idsByPerson = new Map<string, Set<string>>();
+    if (names.length) {
+      const { data: allScores } = await db.from('student_scores').select('id, name, grade').in('name', names);
+      for (const r of allScores || []) {
+        const key = `${(r as any).name}||${(r as any).grade}`;
+        if (!chatsFor.has(key)) continue;
+        (idsByPerson.get(key) || idsByPerson.set(key, new Set()).get(key)!).add((r as any).id);
+      }
+    }
+
+    // Tally per id across the school year (paginated — PostgREST caps a select at 1000).
+    const tally = new Map<string, { absent: number; permission: number }>();
+    if (grades.length) {
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+        const { data, error } = await db
+          .from('student_attendance')
+          .select('student_states')
+          .in('grade', grades)
+          .range(from, from + pageSize - 1);
+        if (error || !data || data.length === 0) break;
+        for (const row of data) {
+          const states = (row as any).student_states || {};
+          for (const id of Object.keys(states)) {
+            const st = states[id];
+            if (st !== 'absent' && st !== 'permission') continue;
+            const t = tally.get(id) || { absent: 0, permission: 0 };
+            if (st === 'absent') t.absent++; else t.permission++;
+            tally.set(id, t);
+          }
+        }
+        if (data.length < pageSize) break;
+      }
+    }
+    const totalsFor = (key: string) => {
+      let absent = 0, permission = 0;
+      for (const id of idsByPerson.get(key) || []) {
+        const t = tally.get(id);
+        if (t) { absent += t.absent; permission += t.permission; }
+      }
+      return { absent, permission, total: absent + permission };
+    };
+
+    // 5. Send private messages.
     const jobs: Promise<any>[] = [];
-    for (const [key, p] of person) {
-      const chats = chatsFor.get(key);
-      if (!chats || chats.length === 0) continue;
+    for (const [key, p] of notify) {
+      const chats = chatsFor.get(key)!;
+      const tot = totalsFor(key);
       const text =
         `ជម្រាបសួរ! 🌸\nសិស្ស <b>${p.name}</b> ថ្នាក់ ${p.grade}\n` +
         `${STATUS_TEXT[p.status]} នៅថ្ងៃទី <b>${date}</b>។\n\n` +
-        (p.status === 'absent' ? 'សូមមេត្តាទាក់ទងសាលា ប្រសិនបើមានចម្ងល់។ ' : '') +
+        `📊 អវត្តមានសរុប (ឆ្នាំសិក្សានេះ)៖ <b>${tot.total} ដង</b>\n` +
+        `   • គ្មានច្បាប់ ${tot.absent} ដង · មានច្បាប់ ${tot.permission} ដង\n\n` +
+        'សូមមេត្តាមាតាបិតា/អាណាព្យាបាល ជំរុញ និងលើកទឹកចិត្តកូនឱ្យមករៀនឱ្យបានទៀងទាត់ ' +
+        'ដើម្បីកុំឱ្យខកខានមេរៀន និងទទួលបានលទ្ធផលសិក្សាល្អ។ 🙏\n\n' +
         'សូមអរគុណ។\n— សាលាសហគមន៍ច្បារច្រុះ';
       for (const chat of chats) {
         jobs.push(sendMessage(chat, text).catch(err => console.error('send failed', chat, err?.message || err)));
@@ -126,7 +179,7 @@ export default async function handler(req: Req, res: Res) {
     }
     await Promise.allSettled(jobs);
 
-    res.status(200).json({ date, absent: person.size, sent: jobs.length });
+    res.status(200).json({ date, absent: person.size, notified: notify.length, sent: jobs.length });
   } catch (e: any) {
     console.error('telegram-cron error', e?.message || e);
     res.status(500).json({ error: e?.message || 'failed' });
