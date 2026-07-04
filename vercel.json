@@ -1,5 +1,8 @@
 {
   "rewrites": [
     { "source": "/parent", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/telegram-cron", "schedule": "30 1 * * *" }
   ]
 }
