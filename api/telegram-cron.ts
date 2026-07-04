@@ -12,7 +12,7 @@ import { sendMessage } from '../server/telegram';
 
 export const config = { maxDuration: 60 };
 
-type Req = { method?: string; headers: Record<string, string | string[] | undefined> };
+type Req = { method?: string; headers: Record<string, string | string[] | undefined>; query?: Record<string, any> };
 type Res = { status: (n: number) => Res; json: (b: any) => void };
 
 const STATUS_TEXT: Record<string, string> = {
@@ -21,10 +21,13 @@ const STATUS_TEXT: Record<string, string> = {
 };
 
 export default async function handler(req: Req, res: Res) {
-  const auth = req.headers['authorization'];
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    res.status(401).json({ error: 'unauthorized' }); return;
-  }
+  // Vercel Cron sends the secret as a Bearer token; a ?secret= query param is also
+  // accepted so the run can be triggered/tested from a browser.
+  const secret = process.env.CRON_SECRET;
+  const ok = !secret
+    || req.headers['authorization'] === `Bearer ${secret}`
+    || req.query?.secret === secret;
+  if (!ok) { res.status(401).json({ error: 'unauthorized' }); return; }
 
   try {
     const admin = getAdmin();
