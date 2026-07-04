@@ -166,7 +166,7 @@ export default async function handler(req: Req, res: Res) {
       const chats = chatsFor.get(key)!;
       const tot = totalsFor(key);
       const text =
-        `ជម្រាបសួរ! 🌸\nសិស្ស <b>${p.name}</b> ថ្នាក់ ${p.grade}\n` +
+        `ជម្រាបសួរ!\nសិស្ស <b>${p.name}</b> ថ្នាក់ ${p.grade}\n` +
         `${STATUS_TEXT[p.status]} នៅថ្ងៃទី <b>${date}</b>។\n\n` +
         `📊 អវត្តមានសរុប (ឆ្នាំសិក្សានេះ)៖ <b>${tot.total} ដង</b>\n` +
         `   • គ្មានច្បាប់ ${tot.absent} ដង · មានច្បាប់ ${tot.permission} ដង\n\n` +
