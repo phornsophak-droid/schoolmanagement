@@ -44,8 +44,10 @@ Expect `{"ok":true,"result":true,...}`. (Check anytime with `.../getWebhookInfo`
 
 ## 6. Parents link their child
 Each parent opens the bot → **Start** → sends their child's **name** or **អត្តលេខ**.
-The bot confirms the link. If the name matches several classes, it asks them to
-reply `ឈ្មោះ | ថ្នាក់`. Commands: `/list` (see links), `/unlink` (remove all).
+One message links **all** of the child's classes (general + after-hours), so they
+get absences from every class. If the name matches several *general* classes
+(likely different children), the bot asks them to reply `ឈ្មោះ | ថ្នាក់` to pick.
+Commands: `/list` (see links), `/unlink` (remove all).
 
 ## 7. Daily send
 `vercel.json` runs `/api/telegram-cron` at **01:30 UTC = 08:30 Cambodia** daily. It

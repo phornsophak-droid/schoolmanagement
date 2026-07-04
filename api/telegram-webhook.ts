@@ -4,13 +4,14 @@
  */
 
 // Telegram webhook — receives updates when a parent messages the bot and links
-// their chat to a student. Phase 1: /start greeting, link by child name / អត្តលេខ,
-// /list, /unlink. Set the webhook once (see docs/TELEGRAM_SETUP.md) with a
-// secret_token; we verify it on every call so only Telegram can reach this.
+// their chat to a student. /start greeting, link by child name / អត្តលេខ (auto-links
+// ALL of the child's classes — general + after-hours), /list, /unlink. Set the
+// webhook once (see docs/TELEGRAM_SETUP.md) with a secret_token; we verify it on
+// every call so only Telegram can reach this.
 //
 // Self-contained on purpose: Vercel transpiles each /api file individually and
-// does NOT bundle helpers from outside /api, so cross-directory imports fail at
-// runtime (ERR_MODULE_NOT_FOUND). Only real npm modules are imported here.
+// does NOT bundle helpers from outside /api (ERR_MODULE_NOT_FOUND). Only real npm
+// modules are imported here.
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -43,24 +44,35 @@ async function sendMessage(chatId: string | number, text: string): Promise<void>
 
 const HELP =
   'សួស្តី! នេះជា Bot ព័ត៌មានសិស្ស <b>សាលាសហគមន៍ច្បារច្រុះ</b>។\n\n' +
-  'ដើម្បីទទួលព័ត៌មានអវត្តមាន និងលទ្ធផលសិក្សារបស់កូនអ្នក សូមផ្ញើ <b>ឈ្មោះកូន</b> ឬ <b>អត្តលេខ</b>។\n\n' +
+  'ដើម្បីទទួលព័ត៌មានអវត្តមាន និងលទ្ធផលសិក្សារបស់កូនអ្នក សូមផ្ញើ <b>ឈ្មោះកូន</b> ឬ <b>អត្តលេខ</b>។\n' +
+  'ការផ្ញើឈ្មោះម្ដង នឹងភ្ជាប់គ្រប់ថ្នាក់របស់កូន (ទូទៅ និងក្រៅម៉ោង)។\n\n' +
   'ពាក្យបញ្ជា៖\n• /list — មើលកូនដែលបានភ្ជាប់\n• /unlink — លុបការភ្ជាប់ទាំងអស់';
 
-// Distinct (name, grade) students matching a name substring or exact អត្តលេខ.
-async function findStudents(db: SupabaseClient, query: string) {
+// After-hours class detection (mirrors the app's EXTRA_CLASS_KEYWORDS). A child's
+// general class is their identity anchor; after-hours rows carry a subject tag.
+const EXTRA_CLASS_KEYWORDS = ['GRADE', 'គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const isExtra = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+// After-hours names carry a trailing "(subject)" tag, e.g. "ផន វិណា (PE)".
+const stripTag = (n: string) => (n || '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+/g, ' ').trim();
+const baseName = (n: string) => stripTag(n).toLowerCase();
+
+type Row = { name: string; grade: string; studentId?: string };
+
+// Distinct (name, grade) rows matching an exact អត្តលេខ or a name substring.
+async function findRows(db: SupabaseClient, query: string): Promise<Row[]> {
   let { data } = await db
     .from('student_scores')
     .select('name, grade, extra_data')
     .eq('extra_data->>studentId', query)
-    .limit(50);
+    .limit(500);
   if (!data || data.length === 0) {
     ({ data } = await db
       .from('student_scores')
       .select('name, grade, extra_data')
       .ilike('name', `%${query}%`)
-      .limit(50));
+      .limit(500));
   }
-  const seen = new Map<string, { name: string; grade: string; studentId?: string }>();
+  const seen = new Map<string, Row>();
   for (const r of data || []) {
     const key = `${r.name}||${r.grade}`;
     if (!seen.has(key)) seen.set(key, { name: r.name, grade: r.grade, studentId: (r as any).extra_data?.studentId });
@@ -68,11 +80,25 @@ async function findStudents(db: SupabaseClient, query: string) {
   return [...seen.values()];
 }
 
-async function link(db: SupabaseClient, chatId: number, s: { name: string; grade: string; studentId?: string }) {
+async function linkMany(db: SupabaseClient, chatId: number, rows: Row[]) {
+  if (rows.length === 0) return;
   await db.from('telegram_links').upsert(
-    { chat_id: String(chatId), student_name: s.name, grade: s.grade, student_id: s.studentId ?? null },
+    rows.map(r => ({ chat_id: String(chatId), student_name: r.name, grade: r.grade, student_id: r.studentId ?? null })),
     { onConflict: 'chat_id,student_name,grade' },
   );
+}
+
+// Decide what to link for a typed name/ID. Prefer rows whose base name matches
+// exactly. One (or zero) general class → one child → link ALL their classes.
+// Several general classes → likely different people → ask the parent to pick.
+function resolveChild(rows: Row[], query: string): { link?: Row[]; ambiguous?: Row[]; display?: string } {
+  const base = baseName(query);
+  const exact = rows.filter(r => baseName(r.name) === base);
+  const use = exact.length ? exact : rows;
+  if (use.length === 0) return {};
+  const generals = use.filter(r => !isExtra(r.grade));
+  if (generals.length > 1) return { ambiguous: generals };
+  return { link: use, display: stripTag((generals[0] || use[0]).name) };
 }
 
 export default async function handler(req: Req, res: Res) {
@@ -109,29 +135,31 @@ export default async function handler(req: Req, res: Res) {
       res.status(200).json({ ok: true }); return;
     }
 
-    // "Name | Grade" — the exact pick when several classes matched earlier.
+    // "Name | Grade" — the exact pick when the name was ambiguous (different children).
+    // Links just that one class (the after-hours rows can't be safely attributed).
     if (text.includes('|')) {
       const [nm, gr] = text.split('|').map(s => s.trim());
-      const matches = (await findStudents(db, nm)).filter(s => s.grade === gr);
-      if (matches.length === 1) {
-        await link(db, chatId, matches[0]);
-        await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${matches[0].name}</b> (${matches[0].grade})។`);
+      const match = (await findRows(db, nm)).find(r => r.grade === gr && baseName(r.name) === baseName(nm));
+      if (match) {
+        await linkMany(db, chatId, [match]);
+        await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${stripTag(match.name)}</b> (${match.grade})។`);
       } else {
         await sendMessage(chatId, 'រកមិនឃើញ។ សូមផ្ញើឈ្មោះ ឬអត្តលេខរបស់កូនម្ដងទៀត។');
       }
       res.status(200).json({ ok: true }); return;
     }
 
-    // Otherwise treat the text as a child's name or អត្តលេខ.
-    const found = await findStudents(db, text);
-    if (found.length === 0) {
-      await sendMessage(chatId, `រកមិនឃើញសិស្សឈ្មោះ ឬអត្តលេខ "<b>${text}</b>" ទេ។ សូមពិនិត្យ រួចផ្ញើម្ដងទៀត។`);
-    } else if (found.length === 1) {
-      await link(db, chatId, found[0]);
-      await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${found[0].name}</b> (${found[0].grade})។ អ្នកនឹងទទួលព័ត៌មានអវត្តមាន និងលទ្ធផលសិក្សា។`);
+    // Otherwise treat the text as a child's name or អត្តលេខ → link ALL their classes.
+    const { link, ambiguous, display } = resolveChild(await findRows(db, text), text);
+    if (ambiguous) {
+      const opts = ambiguous.map(r => `• ${stripTag(r.name)} | ${r.grade}`).join('\n');
+      await sendMessage(chatId, `មានសិស្សច្រើននាក់ឈ្មោះស្រដៀងគ្នា។ សូមជ្រើសថ្នាក់ចំណេះទូទៅរបស់កូនអ្នក តាមទម្រង់ <b>ឈ្មោះ | ថ្នាក់</b>៖\n${opts}`);
+    } else if (link && link.length) {
+      await linkMany(db, chatId, link);
+      const list = link.map(r => `• ${r.grade}`).join('\n');
+      await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${display}</b> — គ្រប់ថ្នាក់ (${link.length})៖\n${list}\n\nអ្នកនឹងទទួលព័ត៌មានអវត្តមាន និងលទ្ធផលសិក្សាពីគ្រប់ថ្នាក់។`);
     } else {
-      const opts = found.map(s => `• ${s.name} | ${s.grade}`).join('\n');
-      await sendMessage(chatId, `មានសិស្សច្រើននាក់ត្រូវនឹងឈ្មោះនេះ។ សូមផ្ញើឱ្យច្បាស់តាមទម្រង់ <b>ឈ្មោះ | ថ្នាក់</b>៖\n${opts}`);
+      await sendMessage(chatId, `រកមិនឃើញសិស្សឈ្មោះ ឬអត្តលេខ "<b>${text}</b>" ទេ។ សូមពិនិត្យ រួចផ្ញើម្ដងទៀត។`);
     }
     res.status(200).json({ ok: true });
   } catch (e: any) {
