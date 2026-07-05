@@ -60,6 +60,20 @@ curl "https://<YOUR-VERCEL-DOMAIN>/api/telegram-cron" \
 ```
 Returns e.g. `{"date":"2026-07-05","absent":3,"recipients":4,"sent":4}`.
 
+## Send grade reports (on demand)
+Whenever a month's grades are finalised, send every linked parent their child's
+latest-month grade report privately:
+```bash
+curl "https://<YOUR-VERCEL-DOMAIN>/api/telegram-grades" -H "Authorization: Bearer <CRON_SECRET>"
+```
+or just open `https://<YOUR-VERCEL-DOMAIN>/api/telegram-grades?secret=<CRON_SECRET>`
+in a browser. Returns e.g. `{"children":12,"sent":15}`.
+
+## Bot Q&A (Phase 3)
+Once a parent is linked, any message they send is answered by Gemini using ONLY
+their own child's data (attendance + latest grades). Requires the `GEMINI_API_KEY`
+env var (a free Google AI Studio key; can equal `VITE_GEMINI_API_KEY`).
+
 ## Notes / next phases
 - Change the send time: edit the cron `schedule` in `vercel.json` (UTC). Vercel
   Hobby allows one run per day; multiple times/day needs Vercel Pro.
