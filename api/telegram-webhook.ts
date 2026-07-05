@@ -3,17 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Telegram webhook — receives updates when a parent messages the bot and links
-// their chat to a student. /start greeting, link by child name / អត្តលេខ (auto-links
-// ALL of the child's classes — general + after-hours), /list, /unlink. Set the
-// webhook once (see docs/TELEGRAM_SETUP.md) with a secret_token; we verify it on
-// every call so only Telegram can reach this.
+// Telegram webhook. Parents link their child (one name links ALL their classes),
+// then ASK QUESTIONS answered by Gemini grounded in their own child's real data
+// (attendance + grades). Commands: /start, /link <name>, /list, /unlink.
+// Set the webhook once (docs/TELEGRAM_SETUP.md) with a secret_token, verified here.
 //
 // Self-contained on purpose: Vercel transpiles each /api file individually and
 // does NOT bundle helpers from outside /api (ERR_MODULE_NOT_FOUND). Only real npm
 // modules are imported here.
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { GoogleGenAI } from '@google/genai';
+
+export const config = { maxDuration: 30 };
 
 type Req = { method?: string; body?: any; headers: Record<string, string | string[] | undefined> };
 type Res = { status: (n: number) => Res; json: (b: any) => void };
@@ -30,47 +32,41 @@ function getAdmin(): SupabaseClient {
 }
 
 // --- Telegram Bot API ---
-async function sendMessage(chatId: string | number, text: string): Promise<void> {
+async function tg(method: string, body: Record<string, unknown>): Promise<any> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error('TELEGRAM_BOT_TOKEN is not set');
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
+    body: JSON.stringify(body),
   });
-  const data = await res.json();
-  if (!data.ok) throw new Error(`Telegram sendMessage failed: ${data.description || res.status}`);
+  return res.json();
 }
+const sendMessage = (chatId: string | number, text: string) =>
+  tg('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true });
+const sendTyping = (chatId: string | number) => tg('sendChatAction', { chat_id: chatId, action: 'typing' }).catch(() => {});
 
 const HELP =
   'សួស្តី! នេះជា Bot ព័ត៌មានសិស្ស <b>សាលាសហគមន៍ច្បារច្រុះ</b>។\n\n' +
-  'ដើម្បីទទួលព័ត៌មានអវត្តមាន និងលទ្ធផលសិក្សារបស់កូនអ្នក សូមផ្ញើ <b>ឈ្មោះកូន</b> ឬ <b>អត្តលេខ</b>។\n' +
-  'ការផ្ញើឈ្មោះម្ដង នឹងភ្ជាប់គ្រប់ថ្នាក់របស់កូន (ទូទៅ និងក្រៅម៉ោង)។\n\n' +
-  'ពាក្យបញ្ជា៖\n• /list — មើលកូនដែលបានភ្ជាប់\n• /unlink — លុបការភ្ជាប់ទាំងអស់';
+  '• ផ្ញើ <b>ឈ្មោះកូន</b> ឬ <b>អត្តលេខ</b> ដើម្បីភ្ជាប់កូន (លើកដំបូង) — ភ្ជាប់គ្រប់ថ្នាក់ស្វ័យប្រវត្តិ។\n' +
+  '• ក្រោយភ្ជាប់រួច អ្នកអាច <b>សួរសំណួរ</b>អំពីកូន (ឧ. «កូនខ្ញុំអវត្តមានប៉ុន្មានដង?», «ពិន្ទុកូនខ្ញុំយ៉ាងណា?»)។\n\n' +
+  'ពាក្យបញ្ជា៖\n• /link ឈ្មោះ — បន្ថែមកូនថ្មី\n• /list — មើលកូនដែលបានភ្ជាប់\n• /unlink — លុបការភ្ជាប់ទាំងអស់';
 
-// After-hours class detection (mirrors the app's EXTRA_CLASS_KEYWORDS). A child's
-// general class is their identity anchor; after-hours rows carry a subject tag.
+// After-hours class detection (mirrors the app's EXTRA_CLASS_KEYWORDS).
 const EXTRA_CLASS_KEYWORDS = ['GRADE', 'គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtra = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
-// After-hours names carry a trailing "(subject)" tag, e.g. "ផន វិណា (PE)".
 const stripTag = (n: string) => (n || '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+/g, ' ').trim();
 const baseName = (n: string) => stripTag(n).toLowerCase();
+const MONTH_ORDER = ['កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
+const fmt = (v: any) => (v === null || v === undefined || v === '') ? '-' : Number(v).toFixed(2);
 
 type Row = { name: string; grade: string; studentId?: string };
+type Link = { student_name: string; grade: string };
 
-// Distinct (name, grade) rows matching an exact អត្តលេខ or a name substring.
 async function findRows(db: SupabaseClient, query: string): Promise<Row[]> {
-  let { data } = await db
-    .from('student_scores')
-    .select('name, grade, extra_data')
-    .eq('extra_data->>studentId', query)
-    .limit(500);
+  let { data } = await db.from('student_scores').select('name, grade, extra_data').eq('extra_data->>studentId', query).limit(500);
   if (!data || data.length === 0) {
-    ({ data } = await db
-      .from('student_scores')
-      .select('name, grade, extra_data')
-      .ilike('name', `%${query}%`)
-      .limit(500));
+    ({ data } = await db.from('student_scores').select('name, grade, extra_data').ilike('name', `%${query}%`).limit(500));
   }
   const seen = new Map<string, Row>();
   for (const r of data || []) {
@@ -88,9 +84,6 @@ async function linkMany(db: SupabaseClient, chatId: number, rows: Row[]) {
   );
 }
 
-// Decide what to link for a typed name/ID. Prefer rows whose base name matches
-// exactly. One (or zero) general class → one child → link ALL their classes.
-// Several general classes → likely different people → ask the parent to pick.
 function resolveChild(rows: Row[], query: string): { link?: Row[]; ambiguous?: Row[]; display?: string } {
   const base = baseName(query);
   const exact = rows.filter(r => baseName(r.name) === base);
@@ -99,6 +92,96 @@ function resolveChild(rows: Row[], query: string): { link?: Row[]; ambiguous?: R
   const generals = use.filter(r => !isExtra(r.grade));
   if (generals.length > 1) return { ambiguous: generals };
   return { link: use, display: stripTag((generals[0] || use[0]).name) };
+}
+
+// Link a child from a typed name/ID (used by first-time onboarding and /link).
+async function handleLink(db: SupabaseClient, chatId: number, query: string) {
+  const { link, ambiguous, display } = resolveChild(await findRows(db, query), query);
+  if (ambiguous) {
+    const opts = ambiguous.map(r => `• ${stripTag(r.name)} | ${r.grade}`).join('\n');
+    await sendMessage(chatId, `មានសិស្សច្រើននាក់ឈ្មោះស្រដៀងគ្នា។ សូមជ្រើសថ្នាក់ចំណេះទូទៅរបស់កូនអ្នក តាមទម្រង់ <b>ឈ្មោះ | ថ្នាក់</b>៖\n${opts}`);
+  } else if (link && link.length) {
+    await linkMany(db, chatId, link);
+    const list = link.map(r => `• ${r.grade}`).join('\n');
+    await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${display}</b> — គ្រប់ថ្នាក់ (${link.length})៖\n${list}\n\nឥឡូវអ្នកអាចសួរសំណួរអំពីកូន (ឧ. «អវត្តមានប៉ុន្មានដង?»)។`);
+  } else {
+    await sendMessage(chatId, `រកមិនឃើញសិស្សឈ្មោះ ឬអត្តលេខ "<b>${query}</b>" ទេ។ សូមពិនិត្យ រួចផ្ញើម្ដងទៀត។`);
+  }
+}
+
+// Compact Khmer digest of the parent's linked children — attendance tally + latest
+// monthly grades — used to ground Gemini's answer in real data.
+async function buildContext(db: SupabaseClient, links: Link[]): Promise<string> {
+  const names = [...new Set(links.map(l => l.student_name))];
+  const grades = [...new Set(links.map(l => l.grade))];
+  const linked = [...new Set(links.map(l => `${l.student_name}||${l.grade}`))];
+
+  const { data: scoreRows } = await db
+    .from('student_scores')
+    .select('id, name, grade, month, overall_avg, grade_letter, ranking, khmer_avg, math_avg, science, social_studies, physical_education, health, life_skills, foreign_language')
+    .in('name', names);
+  const byChild = new Map<string, any[]>();
+  const idsByChild = new Map<string, string[]>();
+  for (const r of scoreRows || []) {
+    const key = `${(r as any).name}||${(r as any).grade}`;
+    if (!linked.includes(key)) continue;
+    let a = byChild.get(key); if (!a) { a = []; byChild.set(key, a); } a.push(r);
+    let ids = idsByChild.get(key); if (!ids) { ids = []; idsByChild.set(key, ids); } ids.push((r as any).id);
+  }
+
+  const tally = new Map<string, { absent: number; permission: number }>();
+  if (grades.length) {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await db.from('student_attendance').select('student_states').in('grade', grades).range(from, from + 999);
+      if (error || !data || data.length === 0) break;
+      for (const row of data) {
+        const st = (row as any).student_states || {};
+        for (const id of Object.keys(st)) {
+          const s = st[id];
+          if (s !== 'absent' && s !== 'permission') continue;
+          const t = tally.get(id) || { absent: 0, permission: 0 };
+          if (s === 'absent') t.absent++; else t.permission++;
+          tally.set(id, t);
+        }
+      }
+      if (data.length < 1000) break;
+    }
+  }
+
+  const parts: string[] = [];
+  for (const key of linked) {
+    const [nm, gr] = key.split('||');
+    const monthly = (byChild.get(key) || []).filter(r => r.month && !String(r.month).startsWith('ប្រឡង'));
+    monthly.sort((a, b) => MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month));
+    const latest = monthly[monthly.length - 1];
+    let ab = 0, pe = 0;
+    for (const id of idsByChild.get(key) || []) { const t = tally.get(id); if (t) { ab += t.absent; pe += t.permission; } }
+    let s = `- ${stripTag(nm)} — ថ្នាក់ ${gr}\n  អវត្តមានសរុប៖ ${ab + pe} ដង (គ្មានច្បាប់ ${ab}, មានច្បាប់ ${pe})`;
+    if (latest) {
+      s += `\n  លទ្ធផលខែ${latest.month}៖ មធ្យមភាគ ${fmt(latest.overall_avg)} (និទ្ទេស ${latest.grade_letter || '-'})` + (latest.ranking ? `, ចំណាត់ថ្នាក់ទី ${latest.ranking}` : '');
+      if (!isExtra(gr)) {
+        s += `\n  ពិន្ទុមុខវិជ្ជា៖ ភាសាខ្មែរ ${fmt(latest.khmer_avg)}, គណិត ${fmt(latest.math_avg)}, វិទ្យាសាស្ត្រ ${fmt(latest.science)}, សិក្សាសង្គម ${fmt(latest.social_studies)}, កាយ-កីឡា ${fmt(latest.physical_education)}, សុខភាព ${fmt(latest.health)}, បំណិនជីវិត ${fmt(latest.life_skills)}, ភាសាបរទេស ${fmt(latest.foreign_language)}`;
+      }
+    }
+    parts.push(s);
+  }
+  return parts.join('\n');
+}
+
+async function answerQuestion(question: string, context: string): Promise<string> {
+  const key = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  if (!key) return 'សូមអភ័យទោស មុខងារឆ្លើយសំណួរមិនទាន់បើកនៅឡើយទេ។ សូមទាក់ទងសាលាដោយផ្ទាល់។';
+  const ai = new GoogleGenAI({ apiKey: key });
+  const prompt =
+    `អ្នកគឺជា Bot ជំនួយការមាតាបិតា នៃសាលាសហគមន៍ច្បារច្រុះ។ សូមឆ្លើយសំណួរមាតាបិតាជាភាសាខ្មែរ ដោយសុភាព ខ្លី និងច្បាស់។\n` +
+    `ច្បាប់៖\n` +
+    `- ប្រើតែទិន្នន័យកូនខាងក្រោមប៉ុណ្ណោះ។ កុំបង្កើតលេខ ឬព័ត៌មានថ្មី។\n` +
+    `- បើសំណួរជាព័ត៌មានទូទៅ (ម៉ោងរៀន ថ្ងៃឈប់...) ដែលគ្មានក្នុងទិន្នន័យ សូមណែនាំឱ្យទាក់ទងសាលាដោយផ្ទាល់។\n` +
+    `- បើសួរអំពីកូនដែលគ្មានក្នុងទិន្នន័យ សូមប្រាប់ថាអ្នកមិនមានព័ត៌មាននោះទេ។\n\n` +
+    `ទិន្នន័យកូន៖\n${context || '(គ្មានទិន្នន័យ)'}\n\n` +
+    `សំណួរមាតាបិតា៖ ${question}`;
+  const res = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+  return (res.text || '').trim() || 'សូមអភ័យទោស ខ្ញុំមិនអាចឆ្លើយបានទេ។ សូមទាក់ទងសាលា។';
 }
 
 export default async function handler(req: Req, res: Res) {
@@ -117,10 +200,7 @@ export default async function handler(req: Req, res: Res) {
 
     const db = getAdmin();
 
-    if (text === '/start' || text === '/help') {
-      await sendMessage(chatId, HELP);
-      res.status(200).json({ ok: true }); return;
-    }
+    if (text === '/start' || text === '/help') { await sendMessage(chatId, HELP); res.status(200).json({ ok: true }); return; }
 
     if (text === '/list') {
       const { data } = await db.from('telegram_links').select('student_name, grade').eq('chat_id', String(chatId));
@@ -135,31 +215,33 @@ export default async function handler(req: Req, res: Res) {
       res.status(200).json({ ok: true }); return;
     }
 
-    // "Name | Grade" — the exact pick when the name was ambiguous (different children).
-    // Links just that one class (the after-hours rows can't be safely attributed).
+    if (text === '/link') { await sendMessage(chatId, 'សូមផ្ញើ៖ <code>/link ឈ្មោះកូន</code> ឬ <code>/link អត្តលេខ</code>'); res.status(200).json({ ok: true }); return; }
+    if (text.startsWith('/link ')) { await handleLink(db, chatId, text.slice(6).trim()); res.status(200).json({ ok: true }); return; }
+
+    // "Name | Grade" — the exact pick when a name was ambiguous.
     if (text.includes('|')) {
       const [nm, gr] = text.split('|').map(s => s.trim());
       const match = (await findRows(db, nm)).find(r => r.grade === gr && baseName(r.name) === baseName(nm));
-      if (match) {
-        await linkMany(db, chatId, [match]);
-        await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${stripTag(match.name)}</b> (${match.grade})។`);
-      } else {
-        await sendMessage(chatId, 'រកមិនឃើញ។ សូមផ្ញើឈ្មោះ ឬអត្តលេខរបស់កូនម្ដងទៀត។');
-      }
+      if (match) { await linkMany(db, chatId, [match]); await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${stripTag(match.name)}</b> (${match.grade})។`); }
+      else await sendMessage(chatId, 'រកមិនឃើញ។ សូមផ្ញើឈ្មោះ ឬអត្តលេខរបស់កូនម្ដងទៀត។');
       res.status(200).json({ ok: true }); return;
     }
 
-    // Otherwise treat the text as a child's name or អត្តលេខ → link ALL their classes.
-    const { link, ambiguous, display } = resolveChild(await findRows(db, text), text);
-    if (ambiguous) {
-      const opts = ambiguous.map(r => `• ${stripTag(r.name)} | ${r.grade}`).join('\n');
-      await sendMessage(chatId, `មានសិស្សច្រើននាក់ឈ្មោះស្រដៀងគ្នា។ សូមជ្រើសថ្នាក់ចំណេះទូទៅរបស់កូនអ្នក តាមទម្រង់ <b>ឈ្មោះ | ថ្នាក់</b>៖\n${opts}`);
-    } else if (link && link.length) {
-      await linkMany(db, chatId, link);
-      const list = link.map(r => `• ${r.grade}`).join('\n');
-      await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${display}</b> — គ្រប់ថ្នាក់ (${link.length})៖\n${list}\n\nអ្នកនឹងទទួលព័ត៌មានអវត្តមាន និងលទ្ធផលសិក្សាពីគ្រប់ថ្នាក់។`);
+    // Plain text: not linked yet → treat as a name to link (onboarding).
+    // Already linked → treat as a QUESTION answered from their child's data.
+    const { data: links } = await db.from('telegram_links').select('student_name, grade').eq('chat_id', String(chatId));
+    if (!links || links.length === 0) {
+      await handleLink(db, chatId, text);
     } else {
-      await sendMessage(chatId, `រកមិនឃើញសិស្សឈ្មោះ ឬអត្តលេខ "<b>${text}</b>" ទេ។ សូមពិនិត្យ រួចផ្ញើម្ដងទៀត។`);
+      await sendTyping(chatId);
+      try {
+        const ctx = await buildContext(db, links as Link[]);
+        const answer = await answerQuestion(text, ctx);
+        await sendMessage(chatId, answer);
+      } catch (err: any) {
+        console.error('qa error', err?.message || err);
+        await sendMessage(chatId, 'សូមអភ័យទោស មានបញ្ហាបច្ចេកទេសបណ្ដោះអាសន្ន។ សូមព្យាយាមម្ដងទៀត ឬទាក់ទងសាលា។');
+      }
     }
     res.status(200).json({ ok: true });
   } catch (e: any) {
