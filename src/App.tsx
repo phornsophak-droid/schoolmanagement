@@ -123,6 +123,7 @@ function restoreReportSubmissions(subs: any): void {
   } catch { /* ignore */ }
 }
 import Dashboard from './components/Dashboard';
+import TelegramAnnounce from './components/TelegramAnnounce';
 import Gradebook from './components/Gradebook';
 import ReportWizard from './components/ReportWizard';
 import ReportDetail from './components/ReportDetail';
@@ -1994,6 +1995,9 @@ export default function App() {
                       grades={grades}
                       currentUser={currentUser}
                     />
+                    {currentUser?.role === 'principal' && (
+                      <div className="mt-4 max-w-sm"><TelegramAnnounce /></div>
+                    )}
                   </motion.div>
                 )}
 

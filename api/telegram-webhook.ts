@@ -202,8 +202,16 @@ export default async function handler(req: Req, res: Res) {
   try {
     const msg = req.body?.message || req.body?.edited_message;
     const chatId: number | undefined = msg?.chat?.id;
+    const chatType: string | undefined = msg?.chat?.type;
     const text: string = (msg?.text || '').trim();
     if (!chatId || !text) { res.status(200).json({ ok: true }); return; }
+
+    // In a group the bot ONLY reveals the chat id (to set TELEGRAM_GROUP_CHAT_ID);
+    // it never links/answers there — student data stays in private chats.
+    if (chatType && chatType !== 'private') {
+      if (/^\/(chatid|id)\b/.test(text)) await sendMessage(chatId, `Chat ID: <code>${chatId}</code>`);
+      res.status(200).json({ ok: true }); return;
+    }
 
     const db = getAdmin();
 

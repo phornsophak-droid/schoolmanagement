@@ -74,6 +74,15 @@ Once a parent is linked, any message they send is answered by Gemini using ONLY
 their own child's data (attendance + latest grades). Requires the `GEMINI_API_KEY`
 env var (a free Google AI Studio key; can equal `VITE_GEMINI_API_KEY`).
 
+## Group announcements (in-app composer)
+General notices (holidays, events) to the whole parent group — no student data.
+1. Add the bot to the parent group, then send **`/chatid`** in the group; the bot
+   replies with the group's chat id (a negative number).
+2. In Vercel, set `TELEGRAM_GROUP_CHAT_ID` (that id) and `ANNOUNCE_SECRET` (any
+   string you invent). Redeploy.
+3. In the app, log in as principal → Dashboard → **ប្រកាសទៅ Group មាតាបិតា** →
+   type the notice, enter the `ANNOUNCE_SECRET` once, send.
+
 ## Notes / next phases
 - Change the send time: edit the cron `schedule` in `vercel.json` (UTC). Vercel
   Hobby allows one run per day; multiple times/day needs Vercel Pro.
