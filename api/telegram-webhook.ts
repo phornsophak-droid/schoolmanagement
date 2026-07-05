@@ -177,11 +177,18 @@ async function answerQuestion(question: string, context: string): Promise<string
     `ច្បាប់៖\n` +
     `- ប្រើតែទិន្នន័យកូនខាងក្រោមប៉ុណ្ណោះ។ កុំបង្កើតលេខ ឬព័ត៌មានថ្មី។\n` +
     `- បើសំណួរជាព័ត៌មានទូទៅ (ម៉ោងរៀន ថ្ងៃឈប់...) ដែលគ្មានក្នុងទិន្នន័យ សូមណែនាំឱ្យទាក់ទងសាលាដោយផ្ទាល់។\n` +
-    `- បើសួរអំពីកូនដែលគ្មានក្នុងទិន្នន័យ សូមប្រាប់ថាអ្នកមិនមានព័ត៌មាននោះទេ។\n\n` +
+    `- បើសួរអំពីកូនដែលគ្មានក្នុងទិន្នន័យ សូមប្រាប់ថាអ្នកមិនមានព័ត៌មាននោះទេ។\n` +
+    `- សរសេរជាអក្សរធម្មតា។ កុំប្រើ markdown (** ឬ #)។ អាចប្រើ • សម្រាប់បញ្ជី។\n\n` +
     `ទិន្នន័យកូន៖\n${context || '(គ្មានទិន្នន័យ)'}\n\n` +
     `សំណួរមាតាបិតា៖ ${question}`;
   const res = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-  return (res.text || '').trim() || 'សូមអភ័យទោស ខ្ញុំមិនអាចឆ្លើយបានទេ។ សូមទាក់ទងសាលា។';
+  let out = (res.text || '').trim();
+  if (!out) return 'សូមអភ័យទោស ខ្ញុំមិនអាចឆ្លើយបានទេ។ សូមទាក់ទងសាលា។';
+  // Telegram is in HTML mode: escape any literal HTML from the model, then turn
+  // markdown **bold** into <b> and "* " bullets into "• " so it renders cleanly.
+  out = out.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  out = out.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/^\s*[*-]\s+/gm, '• ');
+  return out;
 }
 
 export default async function handler(req: Req, res: Res) {
