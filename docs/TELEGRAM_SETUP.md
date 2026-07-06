@@ -69,6 +69,13 @@ curl "https://<YOUR-VERCEL-DOMAIN>/api/telegram-grades" -H "Authorization: Beare
 or just open `https://<YOUR-VERCEL-DOMAIN>/api/telegram-grades?secret=<CRON_SECRET>`
 in a browser. Returns e.g. `{"children":12,"sent":15}`.
 
+## Weekly timetable
+Principal/teacher edits a class timetable under **កាលវិភាគសិក្សា** (saved to the
+cloud, shown read-only in the Parent Portal). The **Telegram** button there sends
+that class's timetable privately to its linked parents (auth: the same
+`ANNOUNCE_SECRET`). Or by URL: `/api/telegram-timetable?secret=<CRON_SECRET>`
+(add `&grade=<class>` for one class; omit to send every class with a timetable).
+
 ## Bot Q&A (Phase 3)
 Once a parent is linked, any message they send is answered by Gemini using ONLY
 their own child's data (attendance + latest grades). Requires the `GEMINI_API_KEY`

@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { CalendarDays, Save, Printer, Plus, Trash2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { CalendarDays, Save, Printer, Plus, Trash2, Loader2, CheckCircle2, AlertCircle, Send } from 'lucide-react';
 import { SchoolUser } from '../types';
 import { Timetable, emptyTimetable, loadTimetable, saveTimetable } from '../lib/timetable';
 import { exportElementToPdf } from '../utils/exportPdf';
@@ -21,6 +21,7 @@ export default function TimetableManager({ grades, currentUser }: { grades: stri
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [tgBusy, setTgBusy] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
@@ -39,6 +40,30 @@ export default function TimetableManager({ grades, currentUser }: { grades: stri
     try { await saveTimetable(grade, tt); setStatus({ ok: true, text: 'បានរក្សាទុករួចរាល់ ✓' }); }
     catch (e: any) { setStatus({ ok: false, text: 'រក្សាទុកមិនបាន៖ ' + (e?.message || 'សូមព្យាយាមម្ដងទៀត') }); }
     finally { setSaving(false); }
+  };
+
+  // Save first (so parents get the current version), then push to their private chats.
+  const sendTelegram = async () => {
+    let secret = '';
+    try { secret = localStorage.getItem('telegram_announce_secret') || ''; } catch { /* ignore */ }
+    if (!secret) {
+      secret = (window.prompt('សូមបញ្ចូលពាក្យសម្ងាត់ផ្ញើ (ANNOUNCE_SECRET)') || '').trim();
+      if (!secret) return;
+      try { localStorage.setItem('telegram_announce_secret', secret); } catch { /* ignore */ }
+    }
+    setTgBusy(true); setStatus(null);
+    try {
+      await saveTimetable(grade, tt);
+      const res = await fetch('/api/telegram-timetable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret, grade }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && !data.error) setStatus({ ok: true, text: `បានផ្ញើកាលវិភាគទៅមាតាបិតាថ្នាក់នេះ (${data.sent || 0} សារ) ✓` });
+      else setStatus({ ok: false, text: data.error === 'unauthorized' ? 'ពាក្យសម្ងាត់មិនត្រឹមត្រូវ។' : ('ផ្ញើមិនបាន៖ ' + (data.error || res.status)) });
+    } catch { setStatus({ ok: false, text: 'ផ្ញើមិនបាន — សូមពិនិត្យការតភ្ជាប់អ៊ីនធឺណិត។' }); }
+    finally { setTgBusy(false); }
   };
 
   const printPdf = async () => {
@@ -71,6 +96,9 @@ export default function TimetableManager({ grades, currentUser }: { grades: stri
           )}
           <button onClick={printPdf} disabled={pdfBusy || loading} className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 disabled:opacity-60 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1.5">
             {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Printer size={13} />} PDF
+          </button>
+          <button onClick={sendTelegram} disabled={tgBusy || loading} title="ផ្ញើកាលវិភាគទៅមាតាបិតាថ្នាក់នេះតាម Telegram" className="px-3 py-1.5 bg-sky-100 hover:bg-sky-200 disabled:opacity-60 text-sky-700 text-xs font-bold rounded-lg flex items-center gap-1.5">
+            {tgBusy ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Telegram
           </button>
           <button onClick={save} disabled={saving || loading} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm">
             {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} រក្សាទុក

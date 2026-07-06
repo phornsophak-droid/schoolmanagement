@@ -14,6 +14,8 @@ import { teacherSigKey } from './TeacherSignature';
 import StudentReportCard from './StudentReportCard';
 import SemesterReportCard from './SemesterReportCard';
 import MeritCertificate from './MeritCertificate';
+import TimetableView from './TimetableView';
+import { Timetable, emptyTimetable, loadTimetable, isTimetableEmpty } from '../lib/timetable';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 // Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
@@ -37,6 +39,7 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [classStudents, setClassStudents] = useState<StudentScore[]>([]);
+  const [timetable, setTimetable] = useState<Timetable>(emptyTimetable());
   const [nameQuery, setNameQuery] = useState('');
   const [childName, setChildName] = useState('');
   const [nameError, setNameError] = useState('');
@@ -63,7 +66,10 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
     setNameMatches([]);
     setError('');
     setClassStudents([]);
+    setTimetable(emptyTimetable());
     if (!g) return;
+    // Class timetable (shared per class) — shown read-only to parents.
+    loadTimetable(g).then(setTimetable).catch(() => setTimetable(emptyTimetable()));
     // Pull this class's teacher signature so it shows on the report cards.
     fetchSetting(teacherSigKey(g))
       .then(v => { if (v) { try { localStorage.setItem(teacherSigKey(g), v); } catch { /* ignore */ } } })
@@ -335,6 +341,16 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
             </div>
           )}
         </div>
+
+        {/* Weekly timetable for the selected class (read-only) */}
+        {grade && !isTimetableEmpty(timetable) && (
+          <div className="mt-4 bg-white rounded-2xl border border-slate-100 shadow-lg p-4">
+            <h2 className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-3">
+              🗓️ កាលវិភាគសិក្សាប្រចាំសប្តាហ៍ — {grade}
+            </h2>
+            <TimetableView tt={timetable} />
+          </div>
+        )}
 
         <p className="text-[10px] text-slate-400 text-center mt-4 leading-relaxed">
           ផ្ទាំងនេះសម្រាប់មាតាបិតាមើល និងទាញយកព្រឹត្តបត្រពិន្ទុរបស់កូនជា PDF តែប៉ុណ្ណោះ។
