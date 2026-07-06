@@ -72,14 +72,16 @@ export default async function handler(req: Req, res: Res) {
 
   try {
     const db = getAdmin();
-    let q = db.from('telegram_links').select('chat_id, grade');
-    if (onlyGrade) q = q.eq('grade', onlyGrade);
-    const { data: links } = await q;
-    if (!links || links.length === 0) { res.status(200).json({ sent: 0 }); return; }
 
-    // Distinct (chat_id, grade) pairs + the set of grades needed.
-    const pairs = [...new Map(links.map(l => [`${(l as any).chat_id}||${(l as any).grade}`, l])).values()];
-    const grades = [...new Set(pairs.map(p => (p as any).grade))];
+    // Linked parents (filtered to the class when a grade is given).
+    let lq = db.from('telegram_links').select('chat_id, grade');
+    if (onlyGrade) lq = lq.eq('grade', onlyGrade);
+    const { data: links } = await lq;
+    const pairs = [...new Map((links || []).map(l => [`${(l as any).chat_id}||${(l as any).grade}`, l])).values()];
+
+    // Which classes to send: the one requested, else every class with a linked parent.
+    const grades = onlyGrade ? [onlyGrade] : [...new Set((links || []).map(l => (l as any).grade))];
+    if (grades.length === 0) { res.status(200).json({ private: 0, group: 0 }); return; }
 
     const { data: settings } = await db
       .from('school_settings')
@@ -93,13 +95,28 @@ export default async function handler(req: Req, res: Res) {
     }
 
     const jobs: Promise<any>[] = [];
+
+    // 1. Private — to each linked parent of the class.
+    let priv = 0;
     for (const p of pairs) {
       const txt = textByGrade.get((p as any).grade);
       if (!txt) continue;
-      jobs.push(sendMessage(String((p as any).chat_id), txt).catch(err => console.error('send failed', err?.message || err)));
+      priv++;
+      jobs.push(sendMessage(String((p as any).chat_id), txt).catch(err => console.error('private send failed', err?.message || err)));
     }
+
+    // 2. Group — the timetable is general info, so also post it to the parent group.
+    const groupId = process.env.TELEGRAM_GROUP_CHAT_ID;
+    let group = 0;
+    if (groupId) {
+      for (const [, txt] of textByGrade) {
+        group++;
+        jobs.push(sendMessage(groupId, txt).catch(err => console.error('group send failed', err?.message || err)));
+      }
+    }
+
     await Promise.allSettled(jobs);
-    res.status(200).json({ grades: [...textByGrade.keys()], sent: jobs.length });
+    res.status(200).json({ grades: [...textByGrade.keys()], private: priv, group });
   } catch (e: any) {
     console.error('telegram-timetable error', e?.message || e);
     res.status(500).json({ error: e?.message || 'failed' });

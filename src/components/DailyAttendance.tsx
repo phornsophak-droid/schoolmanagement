@@ -714,10 +714,22 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
     // cache must never block the save (that previously threw and lost the record).
     const client = getSupabaseClient();
     if (client) {
-      syncUpsertStudentAttendance(newRecord).catch(err => {
-        console.warn('Supabase student attendance save failed', err);
-        triggerToast('⚠️ ភ្ជាប់ Cloud បរាជ័យ — សូមពិនិត្យអ៊ីនធឺណិត', 'error');
-      });
+      syncUpsertStudentAttendance(newRecord)
+        .then(() => {
+          // Instant Telegram notify to parents of today's absent students. Fires
+          // only for TODAY and when there IS an absence/permission; the endpoint
+          // dedups so each student gets at most one message per day (re-saves and
+          // the daily cron won't repeat it).
+          const todayICT = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          if (selectedDate === todayICT && (a + l) > 0) {
+            fetch(`/api/telegram-notify?date=${selectedDate}`, { method: 'POST' })
+              .catch(err => console.warn('telegram-notify trigger failed', err));
+          }
+        })
+        .catch(err => {
+          console.warn('Supabase student attendance save failed', err);
+          triggerToast('⚠️ ភ្ជាប់ Cloud បរាជ័យ — សូមពិនិត្យអ៊ីនធឺណិត', 'error');
+        });
     }
 
     // Local cache — prunes the oldest records if the browser quota is exceeded
