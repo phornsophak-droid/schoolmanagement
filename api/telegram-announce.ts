@@ -35,13 +35,19 @@ export default async function handler(req: Req, res: Res) {
     : process.env.TELEGRAM_GROUP_CHAT_ID;
   if (!token || !groupId) { res.status(500).json({ error: 'bot token / group id not configured' }); return; }
 
+  // Robustly extract the base64 payload from a data URL. jsPDF's datauristring is
+  // "data:application/pdf;filename=generated.pdf;base64,..." — a strict prefix
+  // replace misses the ";filename=" part and corrupts the file, so slice from
+  // "base64,".
+  const b64 = (dataUrl: string): string => { const i = dataUrl.indexOf('base64,'); return i >= 0 ? dataUrl.slice(i + 7) : dataUrl; };
+
   try {
     // An image (e.g. the shift-schedule table) is sent as a photo so it renders as
     // a proper picture instead of a text grid; otherwise a plain HTML text message.
     let data: any;
     if (doc) {
       // An editable Word (.doc) report → send as a document file.
-      const base64 = doc.replace(/^data:application\/msword;base64,/, '');
+      const base64 = b64(doc);
       const form = new FormData();
       form.append('chat_id', String(groupId));
       const caption = String(body.caption || message || '').replace(/<[^>]+>/g, '').slice(0, 1000);
@@ -52,7 +58,7 @@ export default async function handler(req: Req, res: Res) {
       data = await r.json();
     } else if (pdf) {
       // A rendered PDF (e.g. a long work report) → send as a document file.
-      const base64 = pdf.replace(/^data:application\/pdf;base64,/, '');
+      const base64 = b64(pdf);
       const form = new FormData();
       form.append('chat_id', String(groupId));
       const caption = String(body.caption || message || '').replace(/<[^>]+>/g, '').slice(0, 1000);
@@ -62,7 +68,7 @@ export default async function handler(req: Req, res: Res) {
       const r = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: 'POST', body: form });
       data = await r.json();
     } else if (image) {
-      const base64 = image.replace(/^data:image\/\w+;base64,/, '');
+      const base64 = b64(image);
       const form = new FormData();
       form.append('chat_id', String(groupId));
       const caption = String(body.caption || message || '').slice(0, 1000);
