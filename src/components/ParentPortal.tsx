@@ -99,6 +99,10 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
   // difference can't hide a real match.
   const normalize = (s: string) => (s || '')
     .replace(/[​‌‍‎‏⁠﻿]/g, '')
+    // Colon-like signs parents type interchangeably — the Khmer yuukaleapintu
+    // ៈ (U+17C8), camnuc-pii-kuuh ៖ (U+17D6), ASCII ":" and fullwidth "：" all
+    // look alike, so drop them entirely to compare on the letters alone.
+    .replace(/[ៈ៖:：]/g, '')
     .replace(/\s+/g, ' ').trim().toLowerCase();
   const confirmName = (typed?: string) => {
     const q = normalize(typed ?? nameQuery);

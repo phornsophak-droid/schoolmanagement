@@ -108,13 +108,17 @@ async function findRows(db: SupabaseClient, rawQuery: string): Promise<Row[]> {
     // Fetch by the FIRST word (usually spelled right) then keep names where the
     // whole typed query appears as a subsequence (same order, gaps allowed).
     if (seen.size === 0 && tokens.length) {
-      const nq = cleaned.replace(/\s/g, '');
+      // Drop colon-like signs parents type interchangeably — yuukaleapintu ៈ
+      // (U+17C8), camnuc-pii-kuuh ៖ (U+17D6), ASCII ":" and fullwidth "：" — plus
+      // spaces, so "វិៈបុត្រ" and "វិរៈបុត្រ" compare on the letters alone.
+      const bare = (s: string) => s.replace(/[ៈ៖:：\s]/g, '');
+      const nq = bare(cleaned);
       const isSubseq = (a: string, b: string) => { let i = 0; for (let j = 0; j < b.length && i < a.length; j++) if (b[j] === a[i]) i++; return i === a.length; };
-      // Fetch by the shorter of the first two words' prefix so a mis-typed later
-      // letter still pulls candidates, then keep bidirectional-subsequence matches.
+      // Fetch by the first word's prefix so a mis-typed later letter still pulls
+      // candidates, then keep bidirectional-subsequence matches.
       const probe = tokens[0].slice(0, 3);
       const { data } = await db.from('student_scores').select('name, grade, extra_data').ilike('name', `%${probe}%`).limit(500);
-      add((data || []).filter((r: any) => { const nn = String(r.name || '').replace(/\s/g, ''); return nn.length >= 3 && (isSubseq(nq, nn) || isSubseq(nn, nq)); }));
+      add((data || []).filter((r: any) => { const nn = bare(String(r.name || '')); return nn.length >= 3 && (isSubseq(nq, nn) || isSubseq(nn, nq)); }));
     }
   }
 
