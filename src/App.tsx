@@ -124,6 +124,7 @@ function restoreReportSubmissions(subs: any): void {
 }
 import Dashboard from './components/Dashboard';
 import TelegramAnnounce from './components/TelegramAnnounce';
+import TimetableManager from './components/TimetableManager';
 import Gradebook from './components/Gradebook';
 import ReportWizard from './components/ReportWizard';
 import ReportDetail from './components/ReportDetail';
@@ -154,7 +155,7 @@ const IS_PHONE = typeof navigator !== 'undefined' &&
 export default function App() {
   const { t } = useT();
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'docbank' | 'lessons'>(() => {
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'docbank' | 'lessons' | 'timetable'>(() => {
     const isMobile = typeof window !== 'undefined' && (
       window.innerWidth < 768 || 
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -1532,6 +1533,21 @@ export default function App() {
           </button>
 
           <button
+            id="nav_timetable_tab"
+            onClick={() => setActiveView('timetable')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'timetable'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Clock size={16} className={activeView === 'timetable' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>កាលវិភាគសិក្សា</span>
+            </div>
+          </button>
+
+          <button
             id="nav_docbank_tab"
             onClick={() => setActiveView('docbank')}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -1818,6 +1834,23 @@ export default function App() {
 
                 <button
                   onClick={() => {
+                    setActiveView('timetable');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
+                    activeView === 'timetable'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
+                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Clock size={16} />
+                    <span>កាលវិភាគសិក្សា</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
                     setActiveView('mobile-portal');
                     setIsMobileMenuOpen(false);
                   }}
@@ -2066,6 +2099,18 @@ export default function App() {
                         onClose={() => setActiveView('dashboard')}
                       />
                     )}
+                  </motion.div>
+                )}
+
+                {activeView === 'timetable' && (
+                  <motion.div
+                    key="timetable"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <TimetableManager grades={grades} currentUser={currentUser} />
                   </motion.div>
                 )}
 
