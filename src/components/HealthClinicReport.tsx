@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
 import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
 import TeacherSignature from './TeacherSignature';
@@ -64,13 +64,17 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
     try { const s = localStorage.getItem(storeKey); setF(s ? JSON.parse(s) : {}); } catch { setF({}); }
   }, [storeKey]);
 
-  const set = (key: string, value: string) => {
-    setF(prev => {
-      const next = { ...prev, [key]: value };
-      try { localStorage.setItem(storeKey, JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
-  };
+  // Update state instantly; persist DEBOUNCED. Writing the whole report to
+  // localStorage on every keystroke blocked the main thread (worse when the cache
+  // is near-full) and dropped characters while typing Khmer.
+  const set = (key: string, value: string) => setF(prev => ({ ...prev, [key]: value }));
+  const fRef = useRef(f);
+  fRef.current = f;
+  useEffect(() => {
+    const t = setTimeout(() => { try { localStorage.setItem(storeKey, JSON.stringify(f)); } catch { /* ignore */ } }, 400);
+    return () => clearTimeout(t);
+  }, [f, storeKey]);
+  useEffect(() => () => { try { localStorage.setItem(storeKey, JSON.stringify(fRef.current)); } catch { /* ignore */ } }, [storeKey]);
   const toggle = (key: string) => set(key, f[key] ? '' : '1');
   const v = (k: string) => f[k] || '';
 

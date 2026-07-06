@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
 import { StudentScore } from '../types';
 import HealthClinicReport from './HealthClinicReport';
@@ -193,13 +193,16 @@ export default function ClassReport({ template, students, grade, period, teacher
     } catch { setFields({ ...defaults }); }
   }, [storeKey, defaults]);
 
-  const update = (key: string, value: string) => {
-    setFields(prev => {
-      const next = { ...prev, [key]: value };
-      try { localStorage.setItem(storeKey, JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
-  };
+  // Update state instantly; persist DEBOUNCED (per-keystroke localStorage writes
+  // blocked the main thread and dropped characters while typing).
+  const update = (key: string, value: string) => setFields(prev => ({ ...prev, [key]: value }));
+  const fieldsRef = useRef(fields);
+  fieldsRef.current = fields;
+  useEffect(() => {
+    const t = setTimeout(() => { try { localStorage.setItem(storeKey, JSON.stringify(fields)); } catch { /* ignore */ } }, 400);
+    return () => clearTimeout(t);
+  }, [fields, storeKey]);
+  useEffect(() => () => { try { localStorage.setItem(storeKey, JSON.stringify(fieldsRef.current)); } catch { /* ignore */ } }, [storeKey]);
 
   // Submission — saves to the cloud for the principal; the submit time becomes the date.
   const [submittedAt, setSubmittedAt] = useState<string>('');

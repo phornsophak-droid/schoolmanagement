@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
 import { StudentScore } from '../types';
 import { khmerMonthEnd } from '../utils/khmerDate';
@@ -53,13 +53,16 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
     try { const s = localStorage.getItem(storeKey); setF(s ? JSON.parse(s) : {}); } catch { setF({}); }
   }, [storeKey]);
 
-  const set = (key: string, value: string) => {
-    setF(prev => {
-      const next = { ...prev, [key]: value };
-      try { localStorage.setItem(storeKey, JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
-  };
+  // Update state instantly; persist DEBOUNCED (per-keystroke localStorage writes
+  // blocked the main thread and dropped characters while typing).
+  const set = (key: string, value: string) => setF(prev => ({ ...prev, [key]: value }));
+  const fRef = useRef(f);
+  fRef.current = f;
+  useEffect(() => {
+    const t = setTimeout(() => { try { localStorage.setItem(storeKey, JSON.stringify(f)); } catch { /* ignore */ } }, 400);
+    return () => clearTimeout(t);
+  }, [f, storeKey]);
+  useEffect(() => () => { try { localStorage.setItem(storeKey, JSON.stringify(fRef.current)); } catch { /* ignore */ } }, [storeKey]);
   const v = (k: string) => f[k] || '';
 
   // Submission state — the submit time becomes the report's printed date.
