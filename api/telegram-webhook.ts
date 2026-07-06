@@ -63,16 +63,47 @@ const fmt = (v: any) => (v === null || v === undefined || v === '') ? '-' : Numb
 type Row = { name: string; grade: string; studentId?: string };
 type Link = { student_name: string; grade: string };
 
-async function findRows(db: SupabaseClient, query: string): Promise<Row[]> {
-  let { data } = await db.from('student_scores').select('name, grade, extra_data').eq('extra_data->>studentId', query).limit(500);
-  if (!data || data.length === 0) {
-    ({ data } = await db.from('student_scores').select('name, grade, extra_data').ilike('name', `%${query}%`).limit(500));
-  }
+async function findRows(db: SupabaseClient, rawQuery: string): Promise<Row[]> {
+  const query = (rawQuery || '').trim();
   const seen = new Map<string, Row>();
-  for (const r of data || []) {
-    const key = `${r.name}||${r.grade}`;
-    if (!seen.has(key)) seen.set(key, { name: r.name, grade: r.grade, studentId: (r as any).extra_data?.studentId });
+  const add = (arr: any[] | null | undefined) => {
+    for (const r of arr || []) {
+      const key = `${r.name}||${r.grade}`;
+      if (!seen.has(key)) seen.set(key, { name: r.name, grade: r.grade, studentId: (r as any).extra_data?.studentId });
+    }
+  };
+
+  // 1. Student ID (អត្តលេខ). Real IDs are ≥3 chars/digits (grade numbers like "5"
+  // are shorter and must NOT be treated as an ID). Try exact, then a contains match
+  // (handles a leading zero the parent added/omitted, e.g. 756 vs 0756).
+  const idTok = (query.match(/\b[A-Za-z]?\d{3,}[A-Za-z]?\b/g) || [])[0];
+  if (idTok) {
+    let { data } = await db.from('student_scores').select('name, grade, extra_data').eq('extra_data->>studentId', idTok).limit(500);
+    add(data);
+    if (seen.size === 0) {
+      const digits = idTok.replace(/^0+/, '') || idTok;
+      ({ data } = await db.from('student_scores').select('name, grade, extra_data').ilike('extra_data->>studentId', `%${digits}%`).limit(500));
+      add(data);
+    }
   }
+
+  // 2. Name — strip noise the parent may add (ថ្នាក់/អត្តលេខ/ID + grade & id tokens),
+  // then require EACH remaining word to appear (order- and spacing-independent).
+  if (seen.size === 0) {
+    const cleaned = query
+      .replace(/អត្តលេខ|ថ្នាក់ទី\S*|ថ្នាក់\S*|មត្តេយ្យ\S*|grade|GRADE|ID|id/g, ' ')
+      .replace(/\b[A-Za-z]?\d+[A-Za-zក-៿]?\b/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const tokens = cleaned.split(' ').filter(t => t.length >= 2).slice(0, 5);
+    if (tokens.length) {
+      let q = db.from('student_scores').select('name, grade, extra_data');
+      for (const t of tokens) q = q.ilike('name', `%${t}%`);
+      const { data } = await q.limit(500);
+      add(data);
+    }
+  }
+
   return [...seen.values()];
 }
 
@@ -105,7 +136,12 @@ async function handleLink(db: SupabaseClient, chatId: number, query: string) {
     const list = link.map(r => `• ${r.grade}`).join('\n');
     await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${display}</b> — គ្រប់ថ្នាក់ (${link.length})៖\n${list}\n\nឥឡូវអ្នកអាចសួរសំណួរអំពីកូន (ឧ. «អវត្តមានប៉ុន្មានដង?»)។`);
   } else {
-    await sendMessage(chatId, `រកមិនឃើញសិស្សឈ្មោះ ឬអត្តលេខ "<b>${query}</b>" ទេ។ សូមពិនិត្យ រួចផ្ញើម្ដងទៀត។`);
+    await sendMessage(chatId,
+      `រកមិនឃើញសិស្សឈ្មោះ ឬអត្តលេខ "<b>${query}</b>" ទេ។\n\n` +
+      'សូមសាកម្ដងទៀត៖\n' +
+      '• ផ្ញើ <b>តែឈ្មោះ</b> (កុំដាក់ថ្នាក់/អត្តលេខបន្ថែម) ឧ. <code>ឡាំ វិៈបុត្រ</code>\n' +
+      '• ឬ ផ្ញើ <b>តែអត្តលេខ</b> ឧ. <code>756</code>\n' +
+      'បើនៅតែរកមិនឃើញ សូមទាក់ទងសាលា ដើម្បីផ្ទៀងផ្ទាត់ការសរសេរឈ្មោះ។');
   }
 }
 
