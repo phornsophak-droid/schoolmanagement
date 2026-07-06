@@ -32,6 +32,7 @@ import ClassRankingReport from './ClassRankingReport';
 import SchoolSummary from './SchoolSummary';
 import { semesterAvgOf, annualAcademicRaw, annualFinalOf } from '../utils/scoring';
 import { loadSubmissions, submissionDate, ReportSubmission } from '../utils/reportSubmit';
+import { renderElementToPngDataUrl } from '../utils/exportPdf';
 
 interface ReportsHubProps {
   reports: SchoolReport[];
@@ -133,7 +134,8 @@ export default function ReportsHub({
   const [reviewing, setReviewing] = useState<ReportSubmission | null>(null);
   const [sendingKey, setSendingKey] = useState<string | null>(null);
 
-  // Send a submitted work report to the TEACHERS' Telegram group via the CCC bot.
+  // Send the OPEN (reviewing) work report to the TEACHERS' Telegram group as a
+  // tidy IMAGE (rendered from the on-screen report) via the CCC bot.
   const sendSubmissionToTeachers = async (s: ReportSubmission) => {
     let secret = '';
     try { secret = localStorage.getItem('telegram_announce_secret') || ''; } catch { /* ignore */ }
@@ -141,35 +143,27 @@ export default function ReportsHub({
       secret = (window.prompt('ពាក្យសម្ងាត់ផ្ញើ (ANNOUNCE_SECRET)៖') || '').trim();
       if (!secret) return;
     }
-    // Collect the report's filled text fields (skip short/label-like values).
-    const texts: string[] = [];
-    const walk = (o: any) => {
-      if (Array.isArray(o)) o.forEach(walk);
-      else if (o && typeof o === 'object') Object.values(o).forEach(walk);
-      else if (typeof o === 'string' && o.trim().length > 8) texts.push(o.trim());
-    };
-    walk(s.data);
-    const d = submissionDate(s.submittedAt);
-    const message =
-      `${s.title}\nថ្នាក់៖ ${s.grade} · ខែ៖ ${s.period}\n` +
-      `គ្រូ៖ ${s.teacher || 'គ្រូ'} · បញ្ជូន ${d.day} ${d.month} ${d.year}` +
-      (texts.length ? `\n\n${[...new Set(texts)].slice(0, 40).join('\n')}` : '');
+    const el = document.getElementById('submitted-report-view');
+    if (!el) { alert('សូមបើករបាយការណ៍ (មើល) ជាមុនសិន។'); return; }
     setSendingKey(s.key);
     try {
+      const image = await renderElementToPngDataUrl(el);
+      const d = submissionDate(s.submittedAt);
+      const caption = `${s.title} — ${s.grade} · ${s.period} · គ្រូ ${s.teacher || ''} · បញ្ជូន ${d.day} ${d.month} ${d.year}`;
       const res = await fetch('/api/telegram-announce', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: 'teacher', message, secret }),
+        body: JSON.stringify({ target: 'teacher', image, caption, secret }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
         try { localStorage.setItem('telegram_announce_secret', secret); } catch { /* ignore */ }
-        alert('បានផ្ញើរបាយការណ៍ទៅគ្រុបគ្រូ Telegram ✓');
+        alert('បានផ្ញើរបាយការណ៍ (រូបភាព) ទៅគ្រុបគ្រូ Telegram ✓');
       } else {
         alert(data.error === 'unauthorized' ? 'ពាក្យសម្ងាត់មិនត្រឹមត្រូវ។'
           : data.error === 'bot token / group id not configured' ? 'គ្រុបគ្រូមិនទាន់តំឡើងក្នុង Vercel (TELEGRAM_TEACHER_GROUP_CHAT_ID)។'
           : 'ផ្ញើមិនបាន៖ ' + (data.error || res.status));
       }
-    } catch { alert('ផ្ញើមិនបាន — សូមពិនិត្យអ៊ីនធឺណិត។'); }
+    } catch (e: any) { alert('ផ្ញើមិនបាន — ' + (e?.message || 'សូមពិនិត្យអ៊ីនធឺណិត។')); }
     finally { setSendingKey(null); }
   };
 
@@ -804,22 +798,12 @@ export default function ReportsHub({
                               <p className="text-xs font-bold text-slate-800 truncate">{s.title}</p>
                               <p className="text-[10px] text-slate-400 mt-0.5">{s.grade} • {s.period} • {s.teacher || 'គ្រូ'} • បានបញ្ជូន {d.day} {d.month} {d.year}</p>
                             </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <button
-                                onClick={() => { try { localStorage.setItem(s.key, JSON.stringify(s.data)); } catch { /* ignore */ } setReviewing(s); }}
-                                className="px-3 py-1.5 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 flex items-center gap-1"
-                              >
-                                <Eye size={12} /> មើល
-                              </button>
-                              <button
-                                onClick={() => sendSubmissionToTeachers(s)}
-                                disabled={sendingKey === s.key}
-                                title="ផ្ញើទៅគ្រុបគ្រូ Telegram"
-                                className="px-3 py-1.5 text-[11px] font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 disabled:opacity-60 rounded-lg border border-sky-100 flex items-center gap-1"
-                              >
-                                <Send size={12} /> {sendingKey === s.key ? 'កំពុងផ្ញើ…' : 'ផ្ញើទៅគ្រូ'}
-                              </button>
-                            </div>
+                            <button
+                              onClick={() => { try { localStorage.setItem(s.key, JSON.stringify(s.data)); } catch { /* ignore */ } setReviewing(s); }}
+                              className="px-3 py-1.5 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 shrink-0 flex items-center gap-1"
+                            >
+                              <Eye size={12} /> មើល
+                            </button>
                           </div>
                         );
                       })}
@@ -1347,14 +1331,25 @@ export default function ReportsHub({
       {reviewing && getReportTemplate(reviewing.grade) && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4">
           <div className="max-w-4xl mx-auto">
-            <ClassReport
-              template={getReportTemplate(reviewing.grade)!}
-              students={students}
-              grade={reviewing.grade}
-              period={reviewing.period}
-              teacherName={reviewing.teacher}
-              onClose={() => setReviewing(null)}
-            />
+            <div className="mb-2 flex justify-end">
+              <button
+                onClick={() => sendSubmissionToTeachers(reviewing)}
+                disabled={sendingKey === reviewing.key}
+                className="px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 disabled:opacity-60 rounded-xl shadow-md flex items-center gap-1.5"
+              >
+                <Send size={13} /> {sendingKey === reviewing.key ? 'កំពុងផ្ញើ…' : 'ផ្ញើទៅគ្រុបគ្រូ (រូបភាព)'}
+              </button>
+            </div>
+            <div id="submitted-report-view">
+              <ClassReport
+                template={getReportTemplate(reviewing.grade)!}
+                students={students}
+                grade={reviewing.grade}
+                period={reviewing.period}
+                teacherName={reviewing.teacher}
+                onClose={() => setReviewing(null)}
+              />
+            </div>
           </div>
         </div>
       )}
