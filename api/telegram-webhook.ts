@@ -254,8 +254,9 @@ export default async function handler(req: Req, res: Res) {
         const answer = await answerQuestion(text, ctx);
         await sendMessage(chatId, answer);
       } catch (err: any) {
-        console.error('qa error', err?.message || err);
-        await sendMessage(chatId, 'សូមអភ័យទោស មានបញ្ហាបច្ចេកទេសបណ្ដោះអាសន្ន។ សូមព្យាយាមម្ដងទៀត ឬទាក់ទងសាលា។');
+        const reason = err?.message || err?.error?.message || String(err);
+        console.error('qa error', reason);
+        await sendMessage(chatId, 'សូមអភ័យទោស មានបញ្ហាបច្ចេកទេស។\n\nមូលហេតុ៖ ' + reason + '\n\nសូមព្យាយាមម្ដងទៀត ឬទាក់ទងសាលា។');
       }
     }
     res.status(200).json({ ok: true });
