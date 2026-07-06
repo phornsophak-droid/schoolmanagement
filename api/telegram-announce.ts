@@ -24,11 +24,16 @@ export default async function handler(req: Req, res: Res) {
   const message = String(body.message || '').trim();
   if (!message) { res.status(400).json({ error: 'empty message' }); return; }
 
+  // target=teacher → the TEACHERS' group (work reports); default = parent group.
+  const target = body.target === 'teacher' ? 'teacher' : 'parent';
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const groupId = process.env.TELEGRAM_GROUP_CHAT_ID;
+  const groupId = target === 'teacher'
+    ? process.env.TELEGRAM_TEACHER_GROUP_CHAT_ID
+    : process.env.TELEGRAM_GROUP_CHAT_ID;
   if (!token || !groupId) { res.status(500).json({ error: 'bot token / group id not configured' }); return; }
 
-  const text = `📢 <b>សេចក្តីជូនដំណឹង</b>\n\n${escapeHtml(message)}\n\n— សាលាសហគមន៍ច្បារច្រុះ`;
+  const header = target === 'teacher' ? '📋 <b>របាយការណ៍ការងារគ្រូ</b>' : '📢 <b>សេចក្តីជូនដំណឹង</b>';
+  const text = `${header}\n\n${escapeHtml(message)}\n\n— សាលាសហគមន៍ច្បារច្រុះ`;
   try {
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
