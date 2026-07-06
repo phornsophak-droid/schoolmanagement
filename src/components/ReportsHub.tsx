@@ -150,7 +150,11 @@ export default function ReportsHub({
     try {
       const d = submissionDate(s.submittedAt);
       const caption = `${s.title} — ${s.grade} · ${s.period} · គ្រូ ${s.teacher || ''} · បញ្ជូន ${d.day} ${d.month} ${d.year}`;
-      const filename = `របាយការណ៍_${s.grade}_${s.period}`.replace(/\s+/g, '_');
+      // ASCII filename — Khmer filenames can break the download/open on Windows;
+      // the full Khmer details are in the caption above. e.g. CCC-Report-health-2026-07-06
+      const dt = new Date(s.submittedAt);
+      const stamp = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      const filename = `CCC-Report-${s.type || 'report'}-${stamp}`;
       const payload: any = { target: 'teacher', caption, filename, secret };
       if (format === 'word') payload.doc = imageToWordDataUrl(await renderElementToPngDataUrl(el, 800));
       else payload.pdf = await renderElementToPdfDataUrl(el);
