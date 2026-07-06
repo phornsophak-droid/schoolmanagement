@@ -8,6 +8,7 @@ import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
 import { StudentScore } from '../types';
 import { khmerMonthEnd } from '../utils/khmerDate';
 import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
+import TeacherSignature from './TeacherSignature';
 
 interface GeneralClassReportProps {
   students: StudentScore[];
@@ -305,7 +306,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
             <p>{subDate ? subDate.lunar : khmerMonthEnd(period).lunar}</p>
             <p>ច្បារច្រុះ ថ្ងៃទី{subDate ? subDate.day : '.........'} ខែ{subDate ? subDate.month : '.........'} ឆ្នាំ{subDate ? subDate.year : khmerMonthEnd(period).year}</p>
             <p className="font-bold pt-2">គ្រូបន្ទុកថ្នាក់</p>
-            <p className="text-slate-400 pt-12">..............................</p>
+            <TeacherSignature grade={grade} height={64} />
           </div>
         </div>
       </div>

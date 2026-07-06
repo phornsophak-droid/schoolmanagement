@@ -9,6 +9,7 @@ import { StudentScore } from '../types';
 import HealthClinicReport from './HealthClinicReport';
 import GeneralClassReport from './GeneralClassReport';
 import PrincipalSignature from './PrincipalSignature';
+import TeacherSignature from './TeacherSignature';
 import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
 
 const SCHOOL_NAME = 'សាលាសហគមន៍ច្បារច្រុះ';
@@ -402,15 +403,15 @@ export default function ClassReport({ template, students, grade, period, teacher
             <div className="space-y-1">
               <p>ថ្ងៃ.......... ខែ.......... ឆ្នាំ២០....</p>
               <p className="font-bold">អ្នកធ្វើរបាយការណ៍</p>
-              <p className="font-bold">គ្រូបង្រៀន {teacherName ? `៖ ${teacherName}` : ''}</p>
-              <p className="text-slate-400 pt-8">(ហត្ថលេខា និងឈ្មោះ)</p>
+              <p className="font-bold">គ្រូបង្រៀន</p>
+              <TeacherSignature grade={grade} height={60} />
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-8 mt-10 text-[13px]">
             <div className="space-y-1">
-              <p><span className="font-bold">ឈ្មោះគ្រូ៖</span> {teacherName || '__________________'}</p>
-              <p className="pt-6"><span className="font-bold">ហត្ថលេខា៖</span> __________________</p>
+              <p><span className="font-bold">គ្រូបង្រៀន</span></p>
+              <TeacherSignature grade={grade} height={60} />
             </div>
             <div className="text-right space-y-1">
               <p className="pt-6"><span className="font-bold">កាលបរិច្ឆេទ៖</span> {fields.date}</p>

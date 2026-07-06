@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
 import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
+import TeacherSignature from './TeacherSignature';
 
 interface HealthClinicReportProps {
   grade: string;
@@ -218,7 +219,7 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
           <div className="space-y-1">
             {subDate && <p>{subDate.lunar}</p>}
             <p className="font-bold">ហត្ថលេខាគិលានុបដ្ឋាក/យិកា</p>
-            <p className="text-slate-400 pt-12">..............................</p>
+            <TeacherSignature grade={grade} height={64} />
             <p className="pt-2">{subDate ? `ច្បារច្រុះ ថ្ងៃទី${subDate.day} ខែ${subDate.month} ឆ្នាំ${subDate.year}` : 'កាលបរិច្ឆេទ៖ ...... / ...... / ......'}</p>
           </div>
         </div>
