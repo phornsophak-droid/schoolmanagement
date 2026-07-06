@@ -24,7 +24,8 @@ export default async function handler(req: Req, res: Res) {
   const message = String(body.message || '').trim();
   const image: string = typeof body.image === 'string' && body.image.startsWith('data:image') ? body.image : '';
   const pdf: string = typeof body.pdf === 'string' && body.pdf.startsWith('data:application/pdf') ? body.pdf : '';
-  if (!message && !image && !pdf) { res.status(400).json({ error: 'empty message' }); return; }
+  const doc: string = typeof body.doc === 'string' && body.doc.startsWith('data:application/msword') ? body.doc : '';
+  if (!message && !image && !pdf && !doc) { res.status(400).json({ error: 'empty message' }); return; }
 
   // target=teacher → the TEACHERS' group (work reports); default = parent group.
   const target = body.target === 'teacher' ? 'teacher' : 'parent';
@@ -38,7 +39,18 @@ export default async function handler(req: Req, res: Res) {
     // An image (e.g. the shift-schedule table) is sent as a photo so it renders as
     // a proper picture instead of a text grid; otherwise a plain HTML text message.
     let data: any;
-    if (pdf) {
+    if (doc) {
+      // An editable Word (.doc) report → send as a document file.
+      const base64 = doc.replace(/^data:application\/msword;base64,/, '');
+      const form = new FormData();
+      form.append('chat_id', String(groupId));
+      const caption = String(body.caption || message || '').replace(/<[^>]+>/g, '').slice(0, 1000);
+      if (caption) form.append('caption', caption);
+      const fname = String(body.filename || 'report.doc').replace(/[^\w.\-]/g, '_');
+      form.append('document', new Blob([Buffer.from(base64, 'base64')], { type: 'application/msword' }) as any, fname.endsWith('.doc') ? fname : `${fname}.doc`);
+      const r = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: 'POST', body: form });
+      data = await r.json();
+    } else if (pdf) {
       // A rendered PDF (e.g. a long work report) → send as a document file.
       const base64 = pdf.replace(/^data:application\/pdf;base64,/, '');
       const form = new FormData();

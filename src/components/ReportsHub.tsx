@@ -33,6 +33,7 @@ import SchoolSummary from './SchoolSummary';
 import { semesterAvgOf, annualAcademicRaw, annualFinalOf } from '../utils/scoring';
 import { loadSubmissions, submissionDate, ReportSubmission } from '../utils/reportSubmit';
 import { renderElementToPdfDataUrl } from '../utils/exportPdf';
+import { elementToWordDataUrl } from '../utils/exportWord';
 
 interface ReportsHubProps {
   reports: SchoolReport[];
@@ -136,7 +137,7 @@ export default function ReportsHub({
 
   // Send the OPEN (reviewing) work report to the TEACHERS' Telegram group as a
   // tidy IMAGE (rendered from the on-screen report) via the CCC bot.
-  const sendSubmissionToTeachers = async (s: ReportSubmission) => {
+  const sendSubmissionToTeachers = async (s: ReportSubmission, format: 'pdf' | 'word') => {
     let secret = '';
     try { secret = localStorage.getItem('telegram_announce_secret') || ''; } catch { /* ignore */ }
     if (!secret) {
@@ -145,20 +146,22 @@ export default function ReportsHub({
     }
     const el = document.getElementById('submitted-report-view');
     if (!el) { alert('សូមបើករបាយការណ៍ (មើល) ជាមុនសិន។'); return; }
-    setSendingKey(s.key);
+    setSendingKey(`${s.key}:${format}`);
     try {
-      const pdf = await renderElementToPdfDataUrl(el);
       const d = submissionDate(s.submittedAt);
       const caption = `${s.title} — ${s.grade} · ${s.period} · គ្រូ ${s.teacher || ''} · បញ្ជូន ${d.day} ${d.month} ${d.year}`;
       const filename = `របាយការណ៍_${s.grade}_${s.period}`.replace(/\s+/g, '_');
+      const payload: any = { target: 'teacher', caption, filename, secret };
+      if (format === 'word') payload.doc = elementToWordDataUrl(el);
+      else payload.pdf = await renderElementToPdfDataUrl(el);
       const res = await fetch('/api/telegram-announce', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: 'teacher', pdf, caption, filename, secret }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
         try { localStorage.setItem('telegram_announce_secret', secret); } catch { /* ignore */ }
-        alert('បានផ្ញើរបាយការណ៍ (PDF) ទៅគ្រុបគ្រូ Telegram ✓');
+        alert(`បានផ្ញើរបាយការណ៍ (${format === 'word' ? 'Word' : 'PDF'}) ទៅគ្រុបគ្រូ Telegram ✓`);
       } else {
         alert(data.error === 'unauthorized' ? 'ពាក្យសម្ងាត់មិនត្រឹមត្រូវ។'
           : data.error === 'bot token / group id not configured' ? 'គ្រុបគ្រូមិនទាន់តំឡើងក្នុង Vercel (TELEGRAM_TEACHER_GROUP_CHAT_ID)។'
@@ -1338,13 +1341,20 @@ export default function ReportsHub({
       {reviewing && getReportTemplate(reviewing.grade) && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4">
           <div className="max-w-4xl mx-auto">
-            <div className="mb-2 flex justify-end">
+            <div className="mb-2 flex justify-end gap-2">
               <button
-                onClick={() => sendSubmissionToTeachers(reviewing)}
-                disabled={sendingKey === reviewing.key}
+                onClick={() => sendSubmissionToTeachers(reviewing, 'word')}
+                disabled={!!sendingKey}
+                className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 rounded-xl shadow-md flex items-center gap-1.5"
+              >
+                <Send size={13} /> {sendingKey === `${reviewing.key}:word` ? 'កំពុងផ្ញើ…' : 'ផ្ញើ Word'}
+              </button>
+              <button
+                onClick={() => sendSubmissionToTeachers(reviewing, 'pdf')}
+                disabled={!!sendingKey}
                 className="px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 disabled:opacity-60 rounded-xl shadow-md flex items-center gap-1.5"
               >
-                <Send size={13} /> {sendingKey === reviewing.key ? 'កំពុងផ្ញើ…' : 'ផ្ញើទៅគ្រុបគ្រូ (PDF)'}
+                <Send size={13} /> {sendingKey === `${reviewing.key}:pdf` ? 'កំពុងផ្ញើ…' : 'ផ្ញើ PDF'}
               </button>
             </div>
             <div id="submitted-report-view">
