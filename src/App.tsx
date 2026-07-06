@@ -124,6 +124,7 @@ function restoreReportSubmissions(subs: any): void {
 }
 import Dashboard from './components/Dashboard';
 import TelegramAnnounce from './components/TelegramAnnounce';
+import ShiftSchedule from './components/ShiftSchedule';
 import TimetableManager from './components/TimetableManager';
 import Gradebook from './components/Gradebook';
 import ReportWizard from './components/ReportWizard';
@@ -2031,6 +2032,7 @@ export default function App() {
                     {currentUser?.role === 'principal' && (
                       <div className="mt-4 max-w-sm"><TelegramAnnounce /></div>
                     )}
+                    <div className="mt-4 max-w-2xl"><ShiftSchedule currentUser={currentUser} /></div>
                   </motion.div>
                 )}
 
