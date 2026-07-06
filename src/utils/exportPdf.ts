@@ -198,6 +198,32 @@ export async function renderElementToPngDataUrl(el: HTMLElement, fixedWidth?: nu
   return canvas.toDataURL('image/png');
 }
 
+// Render an element to a MULTI-PAGE A4 PDF (fit to page width, spilling onto more
+// pages when tall) and return it as a base64 data URL WITHOUT downloading — used
+// to post a long report to the server (e.g. Telegram sendDocument).
+export async function renderElementToPdfDataUrl(el: HTMLElement, fixedWidth?: number): Promise<string> {
+  const canvas = await renderElementToCanvas(el, fixedWidth);
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 16;
+  const imgW = pageW - margin * 2;
+  const imgH = (canvas.height * imgW) / canvas.width; // scaled height at full width
+  const img = canvas.toDataURL('image/jpeg', 0.92);
+
+  let heightLeft = imgH;
+  let position = margin;
+  pdf.addImage(img, 'JPEG', margin, position, imgW, imgH, undefined, 'FAST');
+  heightLeft -= (pageH - margin * 2);
+  while (heightLeft > 0) {
+    position = margin - (imgH - heightLeft); // shift the tall image up on each page
+    pdf.addPage();
+    pdf.addImage(img, 'JPEG', margin, position, imgW, imgH, undefined, 'FAST');
+    heightLeft -= (pageH - margin * 2);
+  }
+  return pdf.output('datauristring'); // data:application/pdf;base64,...
+}
+
 // Render an element to a downloadable PNG image (lossless — keeps Khmer text and
 // the certificate frame crisp).
 export async function exportElementToImage(el: HTMLElement, filename: string, fixedWidth?: number): Promise<void> {

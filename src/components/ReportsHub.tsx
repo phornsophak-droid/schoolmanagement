@@ -32,7 +32,7 @@ import ClassRankingReport from './ClassRankingReport';
 import SchoolSummary from './SchoolSummary';
 import { semesterAvgOf, annualAcademicRaw, annualFinalOf } from '../utils/scoring';
 import { loadSubmissions, submissionDate, ReportSubmission } from '../utils/reportSubmit';
-import { renderElementToPngDataUrl } from '../utils/exportPdf';
+import { renderElementToPdfDataUrl } from '../utils/exportPdf';
 
 interface ReportsHubProps {
   reports: SchoolReport[];
@@ -147,17 +147,18 @@ export default function ReportsHub({
     if (!el) { alert('សូមបើករបាយការណ៍ (មើល) ជាមុនសិន។'); return; }
     setSendingKey(s.key);
     try {
-      const image = await renderElementToPngDataUrl(el);
+      const pdf = await renderElementToPdfDataUrl(el);
       const d = submissionDate(s.submittedAt);
       const caption = `${s.title} — ${s.grade} · ${s.period} · គ្រូ ${s.teacher || ''} · បញ្ជូន ${d.day} ${d.month} ${d.year}`;
+      const filename = `របាយការណ៍_${s.grade}_${s.period}`.replace(/\s+/g, '_');
       const res = await fetch('/api/telegram-announce', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: 'teacher', image, caption, secret }),
+        body: JSON.stringify({ target: 'teacher', pdf, caption, filename, secret }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
         try { localStorage.setItem('telegram_announce_secret', secret); } catch { /* ignore */ }
-        alert('បានផ្ញើរបាយការណ៍ (រូបភាព) ទៅគ្រុបគ្រូ Telegram ✓');
+        alert('បានផ្ញើរបាយការណ៍ (PDF) ទៅគ្រុបគ្រូ Telegram ✓');
       } else {
         alert(data.error === 'unauthorized' ? 'ពាក្យសម្ងាត់មិនត្រឹមត្រូវ។'
           : data.error === 'bot token / group id not configured' ? 'គ្រុបគ្រូមិនទាន់តំឡើងក្នុង Vercel (TELEGRAM_TEACHER_GROUP_CHAT_ID)។'
@@ -1337,7 +1338,7 @@ export default function ReportsHub({
                 disabled={sendingKey === reviewing.key}
                 className="px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 disabled:opacity-60 rounded-xl shadow-md flex items-center gap-1.5"
               >
-                <Send size={13} /> {sendingKey === reviewing.key ? 'កំពុងផ្ញើ…' : 'ផ្ញើទៅគ្រុបគ្រូ (រូបភាព)'}
+                <Send size={13} /> {sendingKey === reviewing.key ? 'កំពុងផ្ញើ…' : 'ផ្ញើទៅគ្រុបគ្រូ (PDF)'}
               </button>
             </div>
             <div id="submitted-report-view">
