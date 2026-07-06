@@ -115,6 +115,16 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
       if (toks.length) result = childNames.filter(n => { const nn = normalize(n); return toks.every(t => nn.includes(t)); });
     }
     if (result.length === 0) {
+      // Last resort — drop the Khmer signs parents often type inconsistently
+      // (ៈ U+17C8, ៉/៊ register shifters) so e.g. "វិៈបុត្រ" matches "វិបុត្រ".
+      const strip = (s: string) => normalize(s).replace(/[ៈ៉៊]/g, '');
+      const sq = strip(q);
+      if (sq.length >= 2) {
+        const toks = sq.split(' ').filter(t => t.length >= 2);
+        result = childNames.filter(n => { const nn = strip(n); return nn.includes(sq) || (toks.length > 0 && toks.every(t => nn.includes(t))); });
+      }
+    }
+    if (result.length === 0) {
       setNameError('រកមិនឃើញឈ្មោះនេះក្នុងថ្នាក់ — សូមពិនិត្យអក្ខរាវិរុទ្ធ រួចព្យាយាមម្ដងទៀត។');
       return;
     }
