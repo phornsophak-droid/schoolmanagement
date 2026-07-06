@@ -346,7 +346,7 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
         {grade && !isTimetableEmpty(timetable) && (
           <div className="mt-4 bg-white rounded-2xl border border-slate-100 shadow-lg p-4">
             <h2 className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-3">
-              🗓️ កាលវិភាគសិក្សាប្រចាំសប្តាហ៍ — {grade}
+              🗓️ {(timetable.title && timetable.title.trim()) || 'កាលវិភាគសិក្សាប្រចាំសប្តាហ៍'} — {grade}
             </h2>
             <TimetableView tt={timetable} />
           </div>

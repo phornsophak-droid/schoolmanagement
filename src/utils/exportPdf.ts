@@ -191,6 +191,13 @@ export async function exportElementToPdf(el: HTMLElement, filename: string, fixe
   deliverBlob(pdf.output('blob'), name);
 }
 
+// Render an element to a PNG data URL (base64) WITHOUT downloading it — used to
+// hand a snapshot to the server (e.g. posting a timetable image to Telegram).
+export async function renderElementToPngDataUrl(el: HTMLElement, fixedWidth?: number): Promise<string> {
+  const canvas = await renderElementToCanvas(el, fixedWidth);
+  return canvas.toDataURL('image/png');
+}
+
 // Render an element to a downloadable PNG image (lossless — keeps Khmer text and
 // the certificate frame crisp).
 export async function exportElementToImage(el: HTMLElement, filename: string, fixedWidth?: number): Promise<void> {

@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { CalendarDays, Save, Printer, Plus, Trash2, Loader2, CheckCircle2, AlertCircle, Send } from 'lucide-react';
 import { SchoolUser } from '../types';
 import { Timetable, emptyTimetable, loadTimetable, saveTimetable } from '../lib/timetable';
-import { exportElementToPdf } from '../utils/exportPdf';
+import { exportElementToPdf, renderElementToPngDataUrl } from '../utils/exportPdf';
 import SchoolLogo from './SchoolLogo';
 
 // Weekly-timetable manager. Principal edits any class; a teacher edits their own.
@@ -54,13 +54,19 @@ export default function TimetableManager({ grades, currentUser }: { grades: stri
     setTgBusy(true); setStatus(null);
     try {
       await saveTimetable(grade, tt);
+      // Render the timetable table to an image so the group/parents get a clean
+      // picture (a text table looks broken on Telegram).
+      let image: string | undefined;
+      const el = document.getElementById('timetable-print');
+      if (el) { try { image = await renderElementToPngDataUrl(el, 1000); } catch { /* fall back to text */ } }
+      const caption = `${(tt.title && tt.title.trim()) || 'កាលវិភាគសិក្សាប្រចាំសប្តាហ៍'} — ${grade}`;
       const res = await fetch('/api/telegram-timetable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secret, grade }),
+        body: JSON.stringify({ secret, grade, image, caption }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && !data.error) setStatus({ ok: true, text: `បានផ្ញើកាលវិភាគទៅមាតាបិតាថ្នាក់នេះ (${data.sent || 0} សារ) ✓` });
+      if (res.ok && !data.error) setStatus({ ok: true, text: `បានផ្ញើកាលវិភាគ (ឯកជន ${data.private || 0} · Group ${data.group || 0}) ✓` });
       else setStatus({ ok: false, text: data.error === 'unauthorized' ? 'ពាក្យសម្ងាត់មិនត្រឹមត្រូវ។' : ('ផ្ញើមិនបាន៖ ' + (data.error || res.status)) });
     } catch { setStatus({ ok: false, text: 'ផ្ញើមិនបាន — សូមពិនិត្យការតភ្ជាប់អ៊ីនធឺណិត។' }); }
     finally { setTgBusy(false); }
@@ -116,6 +122,17 @@ export default function TimetableManager({ grades, currentUser }: { grades: stri
         <div className="flex items-center justify-center gap-2 py-10 text-slate-400 text-sm"><Loader2 size={18} className="animate-spin" /> កំពុងទាញ...</div>
       ) : (
         <>
+          {/* Title / week heading (shown on the table, PDF, image, Parent Portal) */}
+          <div className="mb-3">
+            <label className="block text-[11px] font-semibold text-slate-500 mb-1">ចំណងជើង</label>
+            <input
+              value={tt.title || ''}
+              onChange={e => setTt(t => ({ ...t, title: e.target.value }))}
+              placeholder="ឧ. កាលវិភាគប្រចាំសប្តាហ៍ ២ (ថ្ងៃ៦–១១ កក្កដា) ឆ្នាំសិក្សា ២០២៥-២០២៦"
+              className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+            />
+          </div>
+
           {/* Editable grid */}
           <div className="overflow-x-auto">
             <table className="border-collapse text-xs w-full min-w-[640px]">
@@ -155,7 +172,8 @@ export default function TimetableManager({ grades, currentUser }: { grades: stri
                 <div style={{ width: 64 }}><SchoolLogo className="w-full h-auto" /></div>
                 <div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: '#047857' }}>សាលាសហគមន៍ច្បារច្រុះ</div>
-                  <div style={{ fontSize: 14, color: '#334155' }}>កាលវិភាគសិក្សាប្រចាំសប្តាហ៍ — {grade}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#1e293b' }}>{(tt.title && tt.title.trim()) || 'កាលវិភាគសិក្សាប្រចាំសប្តាហ៍'}</div>
+                  <div style={{ fontSize: 13, color: '#475569' }}>ថ្នាក់៖ {grade}</div>
                 </div>
               </div>
               <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 14 }}>

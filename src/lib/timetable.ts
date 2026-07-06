@@ -11,6 +11,7 @@
 import { fetchSetting, syncUpsertSetting } from './supabase';
 
 export interface Timetable {
+  title?: string;      // free heading, e.g. "កាលវិភាគប្រចាំសប្តាហ៍ ២ (ថ្ងៃ៦–១១ កក្កដា) ២០២៥-២០២៦"
   days: string[];      // column headers (ចន្ទ … សៅរ៍)
   periods: string[];   // row labels (time / period name)
   grid: string[][];    // grid[periodIndex][dayIndex] = subject text
@@ -24,7 +25,7 @@ export const timetableKey = (grade: string) => `school_timetable::${grade}`;
 export function emptyTimetable(): Timetable {
   const days = [...DEFAULT_DAYS];
   const periods = [...DEFAULT_PERIODS];
-  return { days, periods, grid: periods.map(() => days.map(() => '')) };
+  return { title: '', days, periods, grid: periods.map(() => days.map(() => '')) };
 }
 
 // Coerce stored/partial data into a valid, rectangular Timetable.
@@ -33,7 +34,7 @@ export function normalizeTimetable(raw: any): Timetable {
   const days = Array.isArray(raw.days) && raw.days.length ? raw.days.map(String) : [...DEFAULT_DAYS];
   const periods = Array.isArray(raw.periods) && raw.periods.length ? raw.periods.map(String) : [...DEFAULT_PERIODS];
   const grid = periods.map((_: string, p: number) => days.map((_: string, d: number) => String(raw.grid?.[p]?.[d] ?? '')));
-  return { days, periods, grid };
+  return { title: typeof raw.title === 'string' ? raw.title : '', days, periods, grid };
 }
 
 export async function loadTimetable(grade: string): Promise<Timetable> {

@@ -38,6 +38,22 @@ async function sendMessage(chatId: string | number, text: string): Promise<void>
   if (!data.ok) throw new Error(`Telegram sendMessage failed: ${data.description || res.status}`);
 }
 
+// Post a PNG data URL as a photo (with a plain-text caption). The timetable looks
+// like a proper table this way instead of a broken text grid.
+async function sendPhoto(chatId: string | number, dataUrl: string, caption: string): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) throw new Error('TELEGRAM_BOT_TOKEN is not set');
+  const base64 = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+  const buf = Buffer.from(base64, 'base64');
+  const form = new FormData();
+  form.append('chat_id', String(chatId));
+  if (caption) form.append('caption', caption.slice(0, 1000));
+  form.append('photo', new Blob([buf], { type: 'image/png' }) as any, 'timetable.png');
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: form });
+  const data = await res.json();
+  if (!data.ok) throw new Error(`Telegram sendPhoto failed: ${data.description || res.status}`);
+}
+
 const esc = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const DEFAULT_DAYS = ['ចន្ទ', 'អង្គារ', 'ពុធ', 'ព្រហស្បតិ៍', 'សុក្រ', 'សៅរ៍'];
 
@@ -83,40 +99,39 @@ export default async function handler(req: Req, res: Res) {
     const grades = onlyGrade ? [onlyGrade] : [...new Set((links || []).map(l => (l as any).grade))];
     if (grades.length === 0) { res.status(200).json({ private: 0, group: 0 }); return; }
 
-    const { data: settings } = await db
-      .from('school_settings')
-      .select('setting_key, setting_value')
-      .in('setting_key', grades.map(g => `school_timetable::${g}`));
-    const textByGrade = new Map<string, string>();
-    for (const s of settings || []) {
-      const grade = String((s as any).setting_key).replace('school_timetable::', '');
-      const txt = timetableText(grade, (s as any).setting_value);
-      if (txt) textByGrade.set(grade, txt);
-    }
-
-    const jobs: Promise<any>[] = [];
-
-    // 1. Private — to each linked parent of the class.
-    let priv = 0;
-    for (const p of pairs) {
-      const txt = textByGrade.get((p as any).grade);
-      if (!txt) continue;
-      priv++;
-      jobs.push(sendMessage(String((p as any).chat_id), txt).catch(err => console.error('private send failed', err?.message || err)));
-    }
-
-    // 2. Group — the timetable is general info, so also post it to the parent group.
     const groupId = process.env.TELEGRAM_GROUP_CHAT_ID;
-    let group = 0;
-    if (groupId) {
-      for (const [, txt] of textByGrade) {
-        group++;
-        jobs.push(sendMessage(groupId, txt).catch(err => console.error('group send failed', err?.message || err)));
+    const image: string = typeof body.image === 'string' && body.image.startsWith('data:image') ? body.image : '';
+    const caption: string = String(body.caption || '');
+    const jobs: Promise<any>[] = [];
+    let priv = 0, group = 0;
+
+    if (image) {
+      // App-rendered timetable image (the button path) → the class's parents + group.
+      for (const p of pairs) { priv++; jobs.push(sendPhoto(String((p as any).chat_id), image, caption).catch(err => console.error('private photo failed', err?.message || err))); }
+      if (groupId) { group++; jobs.push(sendPhoto(groupId, image, caption).catch(err => console.error('group photo failed', err?.message || err))); }
+    } else {
+      // Text fallback (URL/cron trigger, no rendered image).
+      const { data: settings } = await db
+        .from('school_settings')
+        .select('setting_key, setting_value')
+        .in('setting_key', grades.map(g => `school_timetable::${g}`));
+      const textByGrade = new Map<string, string>();
+      for (const s of settings || []) {
+        const grade = String((s as any).setting_key).replace('school_timetable::', '');
+        const txt = timetableText(grade, (s as any).setting_value);
+        if (txt) textByGrade.set(grade, txt);
       }
+      for (const p of pairs) {
+        const txt = textByGrade.get((p as any).grade);
+        if (!txt) continue;
+        priv++;
+        jobs.push(sendMessage(String((p as any).chat_id), txt).catch(err => console.error('private send failed', err?.message || err)));
+      }
+      if (groupId) for (const [, txt] of textByGrade) { group++; jobs.push(sendMessage(groupId, txt).catch(err => console.error('group send failed', err?.message || err))); }
     }
 
     await Promise.allSettled(jobs);
-    res.status(200).json({ grades: [...textByGrade.keys()], private: priv, group });
+    res.status(200).json({ private: priv, group });
   } catch (e: any) {
     console.error('telegram-timetable error', e?.message || e);
     res.status(500).json({ error: e?.message || 'failed' });
