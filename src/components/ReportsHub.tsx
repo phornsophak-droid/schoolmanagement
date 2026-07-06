@@ -32,8 +32,8 @@ import ClassRankingReport from './ClassRankingReport';
 import SchoolSummary from './SchoolSummary';
 import { semesterAvgOf, annualAcademicRaw, annualFinalOf } from '../utils/scoring';
 import { loadSubmissions, submissionDate, ReportSubmission } from '../utils/reportSubmit';
-import { renderElementToPdfDataUrl } from '../utils/exportPdf';
-import { elementToWordDataUrl } from '../utils/exportWord';
+import { renderElementToPdfDataUrl, renderElementToPngDataUrl } from '../utils/exportPdf';
+import { imageToWordDataUrl } from '../utils/exportWord';
 
 interface ReportsHubProps {
   reports: SchoolReport[];
@@ -152,7 +152,7 @@ export default function ReportsHub({
       const caption = `${s.title} — ${s.grade} · ${s.period} · គ្រូ ${s.teacher || ''} · បញ្ជូន ${d.day} ${d.month} ${d.year}`;
       const filename = `របាយការណ៍_${s.grade}_${s.period}`.replace(/\s+/g, '_');
       const payload: any = { target: 'teacher', caption, filename, secret };
-      if (format === 'word') payload.doc = elementToWordDataUrl(el);
+      if (format === 'word') payload.doc = imageToWordDataUrl(await renderElementToPngDataUrl(el, 800));
       else payload.pdf = await renderElementToPdfDataUrl(el);
       const res = await fetch('/api/telegram-announce', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
