@@ -94,7 +94,12 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
   // Parents type their child's name themselves (the class roster is never shown,
   // for privacy). Match the typed name against the class: exact first, then a
   // loose contains; show the few candidates only when several match.
-  const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
+  // Strip zero-width / bidi characters (Khmer text pasted from other apps often
+  // carries them), collapse spaces, lowercase — so an invisible char or spacing
+  // difference can't hide a real match.
+  const normalize = (s: string) => (s || '')
+    .replace(/[​‌‍‎‏⁠﻿]/g, '')
+    .replace(/\s+/g, ' ').trim().toLowerCase();
   const confirmName = (typed?: string) => {
     const q = normalize(typed ?? nameQuery);
     setNameError('');
@@ -103,6 +108,12 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
     if (!q) return;
     let result = childNames.filter(n => normalize(n) === q);
     if (result.length === 0) result = childNames.filter(n => normalize(n).includes(q));
+    if (result.length === 0) {
+      // Token match — every typed word must appear in the name (order/spacing
+      // independent), so "វិៈបុត្រ ឡាំ" or a partial name still finds the child.
+      const toks = q.split(' ').filter(t => t.length >= 2);
+      if (toks.length) result = childNames.filter(n => { const nn = normalize(n); return toks.every(t => nn.includes(t)); });
+    }
     if (result.length === 0) {
       setNameError('រកមិនឃើញឈ្មោះនេះក្នុងថ្នាក់ — សូមពិនិត្យអក្ខរាវិរុទ្ធ រួចព្យាយាមម្ដងទៀត។');
       return;
