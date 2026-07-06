@@ -7,6 +7,8 @@ import React, { useEffect, useState } from 'react';
 import { CalendarDays, Send, Save, Pencil, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { SchoolUser } from '../types';
 import { fetchSetting, syncUpsertSetting } from '../lib/supabase';
+import { renderElementToPngDataUrl } from '../utils/exportPdf';
+import SchoolLogo from './SchoolLogo';
 
 // Weekly SHIFT schedule (កាលវិភាគប្រចាំសប្តាហ៍) — which classes study in the morning
 // vs afternoon shift. Shown in the announcements area; the principal edits it and
@@ -17,22 +19,14 @@ const SETTING_KEY = 'shift_schedule';
 const LS_KEY = 'shift_schedule';
 const SECRET_KEY = 'telegram_announce_secret';
 
-type Shift = { morning: string[]; afternoon: string[] };
+type Shift = { morning: string[]; afternoon: string[]; title?: string };
 
+const DEFAULT_TITLE = 'កាលវិភាគប្រចាំសប្តាហ៍';
 const parseLines = (s: string): string[] => s.split('\n').map(x => x.trim()).filter(Boolean);
 
 function readLocal(): Shift {
-  try { const v = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); return { morning: v.morning || [], afternoon: v.afternoon || [] }; }
-  catch { return { morning: [], afternoon: [] }; }
-}
-
-// Format the schedule as a Telegram message.
-function formatMessage(s: Shift): string {
-  const list = (arr: string[]) => arr.length ? arr.map(c => `• ${c}`).join('\n') : '—';
-  return `📅 <b>កាលវិភាគប្រចាំសប្តាហ៍</b>\n\n` +
-    `🌅 <b>វេនព្រឹក</b>\n${list(s.morning)}\n\n` +
-    `🌇 <b>វេនរសៀល</b>\n${list(s.afternoon)}\n\n` +
-    `— សាលាសហគមន៍ច្បារច្រុះ`;
+  try { const v = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); return { morning: v.morning || [], afternoon: v.afternoon || [], title: v.title || '' }; }
+  catch { return { morning: [], afternoon: [], title: '' }; }
 }
 
 export default function ShiftSchedule({ currentUser }: { currentUser?: SchoolUser | null }) {
@@ -41,6 +35,7 @@ export default function ShiftSchedule({ currentUser }: { currentUser?: SchoolUse
   const [editing, setEditing] = useState(false);
   const [mDraft, setMDraft] = useState('');
   const [aDraft, setADraft] = useState('');
+  const [tDraft, setTDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [secret, setSecret] = useState(() => { try { return localStorage.getItem(SECRET_KEY) || ''; } catch { return ''; } });
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
@@ -48,17 +43,17 @@ export default function ShiftSchedule({ currentUser }: { currentUser?: SchoolUse
   useEffect(() => {
     fetchSetting(SETTING_KEY).then(v => {
       if (v && (Array.isArray(v.morning) || Array.isArray(v.afternoon))) {
-        const s = { morning: v.morning || [], afternoon: v.afternoon || [] };
+        const s = { morning: v.morning || [], afternoon: v.afternoon || [], title: v.title || '' };
         setShift(s);
         try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch { /* ignore */ }
       }
     }).catch(() => { /* offline — use local */ });
   }, []);
 
-  const startEdit = () => { setMDraft(shift.morning.join('\n')); setADraft(shift.afternoon.join('\n')); setEditing(true); setStatus(null); };
+  const startEdit = () => { setMDraft(shift.morning.join('\n')); setADraft(shift.afternoon.join('\n')); setTDraft(shift.title || ''); setEditing(true); setStatus(null); };
 
   const save = async () => {
-    const s: Shift = { morning: parseLines(mDraft), afternoon: parseLines(aDraft) };
+    const s: Shift = { morning: parseLines(mDraft), afternoon: parseLines(aDraft), title: tDraft.trim() };
     setShift(s);
     try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch { /* ignore */ }
     setEditing(false);
@@ -71,10 +66,14 @@ export default function ShiftSchedule({ currentUser }: { currentUser?: SchoolUse
     if (!secret.trim()) { setStatus({ ok: false, text: 'សូមបញ្ចូលពាក្យសម្ងាត់ផ្ញើ (ANNOUNCE_SECRET)។' }); return; }
     setSending(true); setStatus(null);
     try {
+      // Render the table to an image so the group gets a clean picture, not text.
+      let image: string | undefined;
+      const el = document.getElementById('shift-print');
+      if (el) { try { image = await renderElementToPngDataUrl(el, 900); } catch { /* fall back below */ } }
       const res = await fetch('/api/telegram-announce', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: formatMessage(shift), secret: secret.trim() }),
+        body: JSON.stringify({ image, caption: `📅 ${shift.title?.trim() || DEFAULT_TITLE} — សាលាសហគមន៍ច្បារច្រុះ`, secret: secret.trim() }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
@@ -95,7 +94,7 @@ export default function ShiftSchedule({ currentUser }: { currentUser?: SchoolUse
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2"><CalendarDays size={16} className="text-indigo-600" /> កាលវិភាគប្រចាំសប្តាហ៍</h3>
+        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2"><CalendarDays size={16} className="text-indigo-600" /> {shift.title?.trim() || DEFAULT_TITLE}</h3>
         {isPrincipal && !editing && (
           <button onClick={startEdit} className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center gap-1.5"><Pencil size={12} /> កែ</button>
         )}
@@ -103,6 +102,10 @@ export default function ShiftSchedule({ currentUser }: { currentUser?: SchoolUse
 
       {editing ? (
         <div className="space-y-2">
+          <label className="block space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase">ចំណងជើង</span>
+            <input value={tDraft} onChange={e => setTDraft(e.target.value)} placeholder="ឧ. កាលវិភាគប្រចាំសប្តាហ៍ ២ (ថ្ងៃ៦–១១ កក្កដា) ២០២៥-២០២៦" className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500" />
+          </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 uppercase">🌅 វេនព្រឹក (ថ្នាក់មួយបន្ទាត់)</span><textarea value={mDraft} onChange={e => setMDraft(e.target.value)} rows={7} placeholder={'មត្តេយ្យ ២\nថ្នាក់ទី ១ក\n...'} className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 resize-y" /></label>
             <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 uppercase">🌇 វេនរសៀល (ថ្នាក់មួយបន្ទាត់)</span><textarea value={aDraft} onChange={e => setADraft(e.target.value)} rows={7} placeholder={'មត្តេយ្យ ១\nថ្នាក់ទី ១ខ\n...'} className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 resize-y" /></label>
@@ -144,6 +147,35 @@ export default function ShiftSchedule({ currentUser }: { currentUser?: SchoolUse
           </button>
         </div>
       )}
+
+      {/* Off-screen printable — captured to an image for the Telegram group */}
+      <div style={{ position: 'absolute', left: -99999, top: 0 }} aria-hidden>
+        <div id="shift-print" style={{ width: 900, background: '#fff', padding: 28, boxSizing: 'border-box', color: '#1e293b', fontFamily: "'Kantumruy Pro', sans-serif" }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            <div style={{ width: 60 }}><SchoolLogo className="w-full h-auto" /></div>
+            <div>
+              <div style={{ fontSize: 19, fontWeight: 700, color: '#047857' }}>សាលាសហគមន៍ច្បារច្រុះ</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{shift.title?.trim() || DEFAULT_TITLE}</div>
+            </div>
+          </div>
+          <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 15 }}>
+            <thead>
+              <tr>
+                <th style={{ border: '1px solid #94a3b8', padding: '9px 8px', background: '#eef2ff', width: '50%' }}>🌅 វេនព្រឹក</th>
+                <th style={{ border: '1px solid #94a3b8', padding: '9px 8px', background: '#fff7ed', width: '50%' }}>🌇 វេនរសៀល</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: Math.max(shift.morning.length, shift.afternoon.length, 1) }).map((_, i) => (
+                <tr key={i}>
+                  <td style={{ border: '1px solid #94a3b8', padding: '8px', textAlign: 'center' }}>{shift.morning[i] || ''}</td>
+                  <td style={{ border: '1px solid #94a3b8', padding: '8px', textAlign: 'center' }}>{shift.afternoon[i] || ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

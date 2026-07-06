@@ -22,7 +22,8 @@ export default async function handler(req: Req, res: Res) {
   if (!secret || body.secret !== secret) { res.status(401).json({ error: 'unauthorized' }); return; }
 
   const message = String(body.message || '').trim();
-  if (!message) { res.status(400).json({ error: 'empty message' }); return; }
+  const image: string = typeof body.image === 'string' && body.image.startsWith('data:image') ? body.image : '';
+  if (!message && !image) { res.status(400).json({ error: 'empty message' }); return; }
 
   // target=teacher → the TEACHERS' group (work reports); default = parent group.
   const target = body.target === 'teacher' ? 'teacher' : 'parent';
@@ -32,15 +33,29 @@ export default async function handler(req: Req, res: Res) {
     : process.env.TELEGRAM_GROUP_CHAT_ID;
   if (!token || !groupId) { res.status(500).json({ error: 'bot token / group id not configured' }); return; }
 
-  const header = target === 'teacher' ? '📋 <b>របាយការណ៍ការងារគ្រូ</b>' : '📢 <b>សេចក្តីជូនដំណឹង</b>';
-  const text = `${header}\n\n${escapeHtml(message)}\n\n— សាលាសហគមន៍ច្បារច្រុះ`;
   try {
-    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: groupId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
-    });
-    const data = await r.json();
+    // An image (e.g. the shift-schedule table) is sent as a photo so it renders as
+    // a proper picture instead of a text grid; otherwise a plain HTML text message.
+    let data: any;
+    if (image) {
+      const base64 = image.replace(/^data:image\/\w+;base64,/, '');
+      const form = new FormData();
+      form.append('chat_id', String(groupId));
+      const caption = String(body.caption || message || '').slice(0, 1000);
+      if (caption) form.append('caption', caption);
+      form.append('photo', new Blob([Buffer.from(base64, 'base64')], { type: 'image/png' }) as any, 'schedule.png');
+      const r = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: form });
+      data = await r.json();
+    } else {
+      const header = target === 'teacher' ? '📋 <b>របាយការណ៍ការងារគ្រូ</b>' : '📢 <b>សេចក្តីជូនដំណឹង</b>';
+      const text = `${header}\n\n${escapeHtml(message)}\n\n— សាលាសហគមន៍ច្បារច្រុះ`;
+      const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: groupId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
+      });
+      data = await r.json();
+    }
     if (!data.ok) { res.status(502).json({ error: data.description || 'telegram error' }); return; }
     res.status(200).json({ ok: true, message_id: data.result?.message_id });
   } catch (e: any) {
