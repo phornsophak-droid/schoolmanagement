@@ -52,7 +52,7 @@ export default async function handler(req: Req, res: Res) {
       form.append('chat_id', String(groupId));
       const caption = String(body.caption || message || '').replace(/<[^>]+>/g, '').slice(0, 1000);
       if (caption) form.append('caption', caption);
-      const fname = String(body.filename || 'report.doc').replace(/[^\w.\-]/g, '_');
+      const fname = String(body.filename || 'report.doc').replace(/[\/\\:*?"<>|\x00-\x1f]/g, '_').trim();
       form.append('document', new Blob([Buffer.from(base64, 'base64')], { type: 'application/msword' }) as any, fname.endsWith('.doc') ? fname : `${fname}.doc`);
       const r = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: 'POST', body: form });
       data = await r.json();
@@ -63,7 +63,7 @@ export default async function handler(req: Req, res: Res) {
       form.append('chat_id', String(groupId));
       const caption = String(body.caption || message || '').replace(/<[^>]+>/g, '').slice(0, 1000);
       if (caption) form.append('caption', caption);
-      const fname = String(body.filename || 'report.pdf').replace(/[^\w.\-]/g, '_');
+      const fname = String(body.filename || 'report.pdf').replace(/[\/\\:*?"<>|\x00-\x1f]/g, '_').trim();
       form.append('document', new Blob([Buffer.from(base64, 'base64')], { type: 'application/pdf' }) as any, fname.endsWith('.pdf') ? fname : `${fname}.pdf`);
       const r = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: 'POST', body: form });
       data = await r.json();
