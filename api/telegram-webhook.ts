@@ -181,7 +181,7 @@ async function answerQuestion(question: string, context: string): Promise<string
     `- សរសេរជាអក្សរធម្មតា។ កុំប្រើ markdown (** ឬ #)។ អាចប្រើ • សម្រាប់បញ្ជី។\n\n` +
     `ទិន្នន័យកូន៖\n${context || '(គ្មានទិន្នន័យ)'}\n\n` +
     `សំណួរមាតាបិតា៖ ${question}`;
-  const res = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+  const res = await ai.models.generateContent({ model: 'gemini-2.5-flash-lite', contents: prompt });
   let out = (res.text || '').trim();
   if (!out) return 'សូមអភ័យទោស ខ្ញុំមិនអាចឆ្លើយបានទេ។ សូមទាក់ទងសាលា។';
   // Telegram is in HTML mode: escape any literal HTML from the model, then turn
@@ -256,7 +256,10 @@ export default async function handler(req: Req, res: Res) {
       } catch (err: any) {
         const reason = err?.message || err?.error?.message || String(err);
         console.error('qa error', reason);
-        await sendMessage(chatId, 'សូមអភ័យទោស មានបញ្ហាបច្ចេកទេស។\n\nមូលហេតុ៖ ' + reason + '\n\nសូមព្យាយាមម្ដងទៀត ឬទាក់ទងសាលា។');
+        const quota = /quota|resource[_ ]?exhausted|rate.?limit|429|too many requests/i.test(reason);
+        await sendMessage(chatId, quota
+          ? 'សូមអភ័យទោស ប្រព័ន្ធកំពុងមមាញឹកបន្តិច។ សូមរង់ចាំមួយភ្លែត រួចសួរម្ដងទៀត។ 🙏'
+          : 'សូមអភ័យទោស មានបញ្ហាបច្ចេកទេសបណ្ដោះអាសន្ន។ សូមព្យាយាមម្ដងទៀត ឬទាក់ទងសាលា។');
       }
     }
     res.status(200).json({ ok: true });
