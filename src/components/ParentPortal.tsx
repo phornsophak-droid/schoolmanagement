@@ -125,6 +125,15 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
       }
     }
     if (result.length === 0) {
+      // Subsequence (both directions) — the typed text and the stored name share
+      // their letters in order, tolerating one side having an EXTRA or MISSING
+      // letter (e.g. parent types "វិរៈបុត្រ" but it's stored "វិៈបុត្រ", or vice
+      // versa). Bidirectional so it works whichever spelling is longer.
+      const nq = normalize(q).replace(/\s/g, '');
+      const isSubseq = (a: string, b: string) => { let i = 0; for (let j = 0; j < b.length && i < a.length; j++) if (b[j] === a[i]) i++; return i === a.length; };
+      if (nq.length >= 3) result = childNames.filter(n => { const nn = normalize(n).replace(/\s/g, ''); return nn.length >= 3 && (isSubseq(nq, nn) || isSubseq(nn, nq)); });
+    }
+    if (result.length === 0) {
       setNameError('រកមិនឃើញឈ្មោះនេះក្នុងថ្នាក់ — សូមពិនិត្យអក្ខរាវិរុទ្ធ រួចព្យាយាមម្ដងទៀត។');
       return;
     }

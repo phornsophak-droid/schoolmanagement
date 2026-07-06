@@ -102,6 +102,20 @@ async function findRows(db: SupabaseClient, rawQuery: string): Promise<Row[]> {
       const { data } = await q.limit(500);
       add(data);
     }
+
+    // 3. Subsequence fallback — the parent may DROP or ADD a letter (e.g. type
+    // "វិៈបុត្រ" for the stored "វិរៈបុត្រ"), so no token is a clean substring.
+    // Fetch by the FIRST word (usually spelled right) then keep names where the
+    // whole typed query appears as a subsequence (same order, gaps allowed).
+    if (seen.size === 0 && tokens.length) {
+      const nq = cleaned.replace(/\s/g, '');
+      const isSubseq = (a: string, b: string) => { let i = 0; for (let j = 0; j < b.length && i < a.length; j++) if (b[j] === a[i]) i++; return i === a.length; };
+      // Fetch by the shorter of the first two words' prefix so a mis-typed later
+      // letter still pulls candidates, then keep bidirectional-subsequence matches.
+      const probe = tokens[0].slice(0, 3);
+      const { data } = await db.from('student_scores').select('name, grade, extra_data').ilike('name', `%${probe}%`).limit(500);
+      add((data || []).filter((r: any) => { const nn = String(r.name || '').replace(/\s/g, ''); return nn.length >= 3 && (isSubseq(nq, nn) || isSubseq(nn, nq)); }));
+    }
   }
 
   return [...seen.values()];
