@@ -95,6 +95,16 @@ const describeSupabaseError = (err: any): string => {
   return parts.join(' | ');
 };
 
+// localStorage.setItem that never throws. A full cache (QuotaExceededError) must
+// not crash the app — the same data lives in memory (React state) and the cloud.
+// Returns false when the write was dropped so callers can tell.
+const safeSetLocal = (key: string, value: string): boolean => {
+  try { localStorage.setItem(key, value); return true; }
+  catch (e) { console.warn(`localStorage full — could not cache "${key}"`, e); return false; }
+};
+const isQuotaError = (err: any): boolean =>
+  !!err && (err.name === 'QuotaExceededError' || err.code === 22 || /quota|exceeded/i.test(String(err.message || err)));
+
 const mergeRowsById = (key: string, delta: any[] | null | undefined) => {
   if (!delta || delta.length === 0) return;
   const isAtt = key === 'school_daily_attendance'; // stored compressed — go through the helpers
@@ -105,22 +115,16 @@ const mergeRowsById = (key: string, delta: any[] | null | undefined) => {
   delta.forEach((r: any) => { if (r && r.id != null) byId.set(r.id, r); });
   const merged = Array.from(byId.values());
   if (isAtt) persistAttendance(merged);
-  else localStorage.setItem(key, JSON.stringify(merged));
+  else safeSetLocal(key, JSON.stringify(merged));
 };
 
-// Restore submitted work reports pulled from the cloud: keep the index, and write
-// each report's filled blob back to its own localStorage key so the principal can
-// open it. See src/utils/reportSubmit.ts.
+// Restore the work-report submission LOG pulled from the cloud. Reports now live
+// in Telegram, so we keep only the lightweight index — strip any legacy `data`
+// blob so it can't re-bloat localStorage. See src/utils/reportSubmit.ts.
 function restoreReportSubmissions(subs: any): void {
   if (!Array.isArray(subs)) return;
-  try {
-    localStorage.setItem('report_submissions', JSON.stringify(subs));
-    subs.forEach((s: any) => {
-      if (s && s.key && s.data !== undefined) {
-        localStorage.setItem(s.key, JSON.stringify(s.data));
-      }
-    });
-  } catch { /* ignore */ }
+  const light = subs.map((s: any) => { const { data, ...meta } = s || {}; return meta; });
+  safeSetLocal('report_submissions', JSON.stringify(light));
 }
 import Dashboard from './components/Dashboard';
 import TelegramAnnounce from './components/TelegramAnnounce';
@@ -144,6 +148,7 @@ import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
 import { persistAttendance, loadAttendance, initAttendanceStore, clearAttendanceStore } from './utils/attendanceStore';
 import { persistScores, loadScores, initScoresStore, clearScoresStore } from './utils/scoresStore';
+import { pruneSubmissionBlobs } from './utils/reportSubmit';
 import { useT, LanguageToggle } from './i18n';
 
 
@@ -248,6 +253,9 @@ export default function App() {
   // copy into it) before the authenticated app renders — removes the ~5 MB cap.
   const [storeReady, setStoreReady] = useState(false);
   useEffect(() => { Promise.all([initAttendanceStore(), initScoresStore()]).finally(() => setStoreReady(true)); }, []);
+  // Reclaim localStorage: drop any heavy work-report blobs left over from before
+  // reports moved to Telegram-only (they overflowed the quota).
+  useEffect(() => { try { pruneSubmissionBlobs(); } catch { /* ignore */ } }, []);
 
   // 1. Initial State Hydration with safety fallback (LocalStorage)
   // Wait for the IndexedDB stores to load first: loadScores()/loadAttendance()
@@ -483,11 +491,11 @@ export default function App() {
             // the existing no-wipe guards.
             if (data.reports && data.reports.length > 0) {
               setReports(data.reports);
-              localStorage.setItem('school_reports_v2', JSON.stringify(data.reports));
+              safeSetLocal('school_reports_v2', JSON.stringify(data.reports));
             }
             if (data.grades && data.grades.length > 0) {
               setGrades(data.grades);
-              localStorage.setItem('school_grades_v2', JSON.stringify(data.grades));
+              safeSetLocal('school_grades_v2', JSON.stringify(data.grades));
             }
             if (data.settings && Object.keys(data.settings).length > 0) {
               // Mirror settings (signatures) into the quota-free memory cache first,
@@ -558,15 +566,15 @@ export default function App() {
                   } else {
                     if (newData.students) applyCloudStudents(newData.students);
                     if (newData.studentAttendance && newData.studentAttendance.length > 0) persistAttendance(newData.studentAttendance);
-                    if (newData.teacherAttendance && newData.teacherAttendance.length > 0) localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(newData.teacherAttendance));
+                    if (newData.teacherAttendance && newData.teacherAttendance.length > 0) safeSetLocal('school_teachers_daily_attendance', JSON.stringify(newData.teacherAttendance));
                   }
                   if (newData.reports) {
                     setReports(newData.reports);
-                    localStorage.setItem('school_reports_v2', JSON.stringify(newData.reports));
+                    safeSetLocal('school_reports_v2', JSON.stringify(newData.reports));
                   }
                   if (newData.grades) {
                     setGrades(newData.grades);
-                    localStorage.setItem('school_grades_v2', JSON.stringify(newData.grades));
+                    safeSetLocal('school_grades_v2', JSON.stringify(newData.grades));
                   }
                   if (newData.settings && Object.keys(newData.settings).length > 0) {
                     mergeCachedSettings(newData.settings);
@@ -732,19 +740,19 @@ export default function App() {
       }
       if (data.reports) {
         setReports(data.reports);
-        localStorage.setItem('school_reports_v2', JSON.stringify(data.reports));
+        safeSetLocal('school_reports_v2', JSON.stringify(data.reports));
         parts.push(`${data.reports.length} របាយការណ៍`);
       }
       if (data.grades && data.grades.length > 0) {
         setGrades(data.grades);
-        localStorage.setItem('school_grades_v2', JSON.stringify(data.grades));
+        safeSetLocal('school_grades_v2', JSON.stringify(data.grades));
       }
       if (data.studentAttendance && data.studentAttendance.length > 0) {
         persistAttendance(data.studentAttendance);
         parts.push(`${data.studentAttendance.length} វត្តមានសិស្ស`);
       }
       if (data.teacherAttendance && data.teacherAttendance.length > 0) {
-        localStorage.setItem('school_teachers_daily_attendance', JSON.stringify(data.teacherAttendance));
+        safeSetLocal('school_teachers_daily_attendance', JSON.stringify(data.teacherAttendance));
         parts.push(`${data.teacherAttendance.length} វត្តមានគ្រូ`);
       }
       
@@ -779,6 +787,15 @@ export default function App() {
       }
       return true;
     } catch (err: any) {
+      // A full browser cache is NOT a fetch failure — the data is already in
+      // memory + the cloud, so don't misreport it as "Supabase paused".
+      if (isQuotaError(err)) {
+        console.warn('localStorage full during sync — data kept in memory + cloud', err);
+        setSupabaseStatus('connected');
+        setSupabaseErrorMsg('');
+        if (!quiet) alert('ឃ្លាំងផ្ទុករបស់ browser ពេញ — ទិន្នន័យនៅដំណើរការធម្មតា (រក្សាក្នុង Cloud) តែមិនអាចរក្សាចម្លងក្នុងម៉ាស៊ីនបានទេ។');
+        return true;
+      }
       console.error('Supabase manual pull failed:', describeSupabaseError(err), err);
       setSupabaseStatus('error');
       setSupabaseErrorMsg(describeSupabaseError(err));

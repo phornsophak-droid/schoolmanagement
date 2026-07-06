@@ -784,7 +784,7 @@ export default function ReportsHub({
                   <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
                     <CheckCircle2 size={15} className="text-emerald-600" /> របាយការណ៍ដែលបានបញ្ជូន
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">របាយការណ៍ការងារដែលគ្រូបានបញ្ជូនមក (រក្សាទុកក្នុង Cloud)</p>
+                  <p className="text-xs text-slate-400 mt-1">កំណត់ត្រាការបញ្ជូនរបាយការណ៍ (របាយការណ៍ពេញនៅក្នុង Telegram)</p>
                 </div>
                 {(() => {
                   const subs = loadSubmissions().filter(s => (teacherLocked ? gradeOptions.includes(s.grade) : true));
@@ -800,7 +800,13 @@ export default function ReportsHub({
                               <p className="text-[10px] text-slate-400 mt-0.5">{s.grade} • {s.period} • {s.teacher || 'គ្រូ'} • បានបញ្ជូន {d.day} {d.month} {d.year}</p>
                             </div>
                             <button
-                              onClick={() => { try { localStorage.setItem(s.key, JSON.stringify(s.data)); } catch { /* ignore */ } setReviewing(s); }}
+                              onClick={() => {
+                                // Reports live in Telegram now — the submission log keeps no blob.
+                                let hasLocal = false; try { hasLocal = !!localStorage.getItem(s.key); } catch { /* ignore */ }
+                                if (s.data !== undefined) { try { localStorage.setItem(s.key, JSON.stringify(s.data)); } catch { /* ignore */ } hasLocal = true; }
+                                if (hasLocal) setReviewing(s);
+                                else alert('របាយការណ៍នេះមិនរក្សាទុកក្នុង App ទេ — សូមមើលក្នុងក្រុម Telegram។');
+                              }}
                               className="px-3 py-1.5 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 shrink-0 flex items-center gap-1"
                             >
                               <Eye size={12} /> មើល

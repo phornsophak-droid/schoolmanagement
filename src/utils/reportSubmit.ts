@@ -23,7 +23,7 @@ export interface ReportSubmission {
   title: string;
   teacher: string;
   submittedAt: string; // ISO timestamp (= the report's printed date)
-  data: any;           // the filled report blob
+  data?: any;          // filled report blob — NO LONGER stored (report goes to Telegram)
 }
 
 export function loadSubmissions(): ReportSubmission[] {
@@ -41,11 +41,27 @@ export function getSubmission(key: string): ReportSubmission | undefined {
 
 export function submitReport(entry: Omit<ReportSubmission, 'submittedAt'>): ReportSubmission {
   const full: ReportSubmission = { ...entry, submittedAt: new Date().toISOString() };
-  const next = [full, ...loadSubmissions().filter(s => s.key !== entry.key)];
+  // The report itself is delivered to Telegram, so we keep only a lightweight
+  // submission LOG here (no heavy `data` blob). Storing every blob bloated
+  // localStorage (quota errors) and the report_submissions cloud setting.
+  const { data, ...meta } = full;
+  const next: ReportSubmission[] = [meta, ...loadSubmissions().filter(s => s.key !== entry.key)];
   try { localStorage.setItem(STORE, JSON.stringify(next)); } catch { /* ignore */ }
   // Fire-and-forget cloud sync (no-op when Supabase isn't configured).
   Promise.resolve(syncUpsertSetting(STORE, next)).catch(() => { /* stays local */ });
-  return full;
+  return full; // caller still gets `data` for immediate rendering/printing
+}
+
+// One-time cleanup: strip heavy report blobs already sitting in the stored
+// submissions (reclaims localStorage + shrinks the cloud setting). Reports now
+// live in Telegram. Returns true if anything was pruned.
+export function pruneSubmissionBlobs(): boolean {
+  const subs = loadSubmissions();
+  if (!subs.some(s => s.data !== undefined)) return false;
+  const light: ReportSubmission[] = subs.map(({ data, ...m }) => m);
+  try { localStorage.setItem(STORE, JSON.stringify(light)); } catch { /* ignore */ }
+  Promise.resolve(syncUpsertSetting(STORE, light)).catch(() => { /* stays local */ });
+  return true;
 }
 
 // Khmer date parts for a submission timestamp — the lunar line + Gregorian d/m/y.
