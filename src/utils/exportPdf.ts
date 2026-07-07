@@ -105,6 +105,10 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
   // the output to ~1500px keeps it fast on every device.
   const renderWidth = fixedWidth ?? Math.max(el.scrollWidth, el.offsetWidth, 800);
   const scale = Math.min(2.5, Math.max(1.5, 1500 / renderWidth));
+  // Canvas-Y positions where a new PDF page must start — measured in the clone
+  // (see onclone) from elements marked `.rc-page-break`. buildMultipagePdf honours
+  // them so a section can be forced onto a fresh page.
+  const breaks: number[] = [];
   const options = {
     scale,
     useCORS: true,
@@ -210,6 +214,20 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
           cf.parentNode?.replaceChild(box, cf);
         });
       } catch { /* fall back to native field rendering */ }
+
+      // Measure forced page-break positions (AFTER the field swaps above, so the
+      // layout is final). Each `.rc-page-break` element's top → canvas Y = its
+      // offset from the export root × scale.
+      try {
+        const root = el.id ? doc.getElementById(el.id) : null;
+        if (root) {
+          const rootTop = root.getBoundingClientRect().top;
+          root.querySelectorAll<HTMLElement>('.rc-page-break').forEach(n => {
+            const y = (n.getBoundingClientRect().top - rootTop) * scale;
+            if (y > 1) breaks.push(y);
+          });
+        }
+      } catch { /* no forced breaks — whitespace slicing still applies */ }
     },
   };
 
@@ -223,7 +241,10 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
     try { await html2canvas(el, { ...options, scale: 0.5 }); } catch { /* warm-up only */ }
     await new Promise(resolve => setTimeout(resolve, 60));
   }
-  return html2canvas(el, options);
+  breaks.length = 0; // discard any warm-up measurements; keep only the real render's
+  const canvas = await html2canvas(el, options);
+  (canvas as any).__pageBreaks = breaks.slice();
+  return canvas;
 }
 
 // Render an element to a single-image PDF page (landscape if the snapshot is
@@ -287,6 +308,11 @@ function buildMultipagePdf(canvas: HTMLCanvasElement): jsPDF {
     return true;
   };
 
+  // Forced page breaks (canvas Y) from `.rc-page-break` elements — a section that
+  // must start on a fresh page. Ignore any within the top 8% of a page (already
+  // near the top, so no break needed).
+  const forced = (((canvas as any).__pageBreaks as number[]) || []).filter(b => b > 0 && b < ch).sort((a, b) => a - b);
+
   const tmp = document.createElement('canvas');
   const tctx = tmp.getContext('2d')!;
   let sy = 0;
@@ -294,9 +320,14 @@ function buildMultipagePdf(canvas: HTMLCanvasElement): jsPDF {
   let guard = 0;
   while (sy < ch && guard++ < 400) {
     let sliceH = Math.min(pageContentPx, ch - sy);
-    // For every page but the last, back the cut up to a blank row (keep >= 55% of
-    // the page so we don't waste too much space when whitespace is scarce).
-    if (sy + sliceH < ch && pixels) {
+    // A forced break inside this page wins: cut there so that section starts the
+    // next page. (Skip breaks in the top 8% — the section already sits near the top.)
+    const fb = forced.find(b => b > sy + pageContentPx * 0.08 && b <= sy + sliceH);
+    if (fb !== undefined) {
+      sliceH = fb - sy;
+    } else if (sy + sliceH < ch && pixels) {
+      // Otherwise back the cut up to a blank row (keep >= 55% of the page so we
+      // don't waste too much space when whitespace is scarce).
       const minH = Math.floor(sliceH * 0.55);
       for (let y = sy + sliceH; y > sy + minH; y--) {
         if (rowIsBlank(y)) { sliceH = y - sy; break; }

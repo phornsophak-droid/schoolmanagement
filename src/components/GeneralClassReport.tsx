@@ -327,7 +327,9 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
           </tbody>
         </table>
 
-        {/* 5. Absentees list */}
+        {/* 5. Absentees list — forced onto a fresh PDF page so its header isn't
+            orphaned at the bottom of the previous page (see .rc-page-break). */}
+        <div className="rc-page-break">
         <SectionTitle title="៥. សិស្សអវត្តមាន ចាប់ពី ៣ដងឡើង ដោយគ្មានច្បាប់" />
         <table className="w-full border-collapse mb-4">
           <thead>
@@ -349,6 +351,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
             ))}
           </tbody>
         </table>
+        </div>
 
         {/* 6. Challenges & solutions */}
         <SectionTitle title="៦. បញ្ហាប្រឈម និងដំណោះស្រាយ" />
