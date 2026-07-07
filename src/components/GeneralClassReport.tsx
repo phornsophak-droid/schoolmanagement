@@ -106,6 +106,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
     } else {
       setToast('');
       alert(r.error === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram (ANNOUNCE_SECRET)។'
+        : r.error === 'unauthorized' ? 'ពាក្យសម្ងាត់ Telegram មិនត្រឹមត្រូវ — សូមចុច «ផ្ញើម្ដងទៀត» ហើយបញ្ចូលពាក្យសម្ងាត់ ANNOUNCE_SECRET ឲ្យត្រូវ។'
         : r.error === 'no-element' ? 'ផ្ញើមិនបាន — រកមិនឃើញសន្លឹករបាយការណ៍។'
         : 'ផ្ញើទៅ Telegram មិនបាន៖ ' + (r.error || '') + '\nកំណត់ត្រា៖ បរាជ័យ — សូមចុច «ផ្ញើម្ដងទៀត»។');
     }

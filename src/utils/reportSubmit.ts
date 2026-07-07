@@ -122,8 +122,13 @@ export async function sendSubmissionToTelegram(el: HTMLElement, sub: ReportSubmi
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.ok) return { ok: true };
-    // A wrong cached secret would fail every send — clear it so the next try re-asks.
-    if (data.error === 'unauthorized') { try { localStorage.removeItem(SECRET_KEY); } catch { /* ignore */ } }
+    // A wrong secret fails every send. Clear it from BOTH localStorage AND the
+    // cloud setting — otherwise the bad cloud value keeps re-poisoning every
+    // device (resolveAnnounceSecret falls back to it). Next try prompts fresh.
+    if (data.error === 'unauthorized') {
+      try { localStorage.removeItem(SECRET_KEY); } catch { /* ignore */ }
+      Promise.resolve(syncUpsertSetting(SECRET_KEY, '')).catch(() => { /* offline */ });
+    }
     return { ok: false, error: data.error || String(res.status) };
   } catch (e: any) {
     return { ok: false, error: e?.message || 'failed' };
