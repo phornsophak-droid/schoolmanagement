@@ -245,25 +245,59 @@ export async function renderElementToPngDataUrl(el: HTMLElement, fixedWidth?: nu
 }
 
 // Build a MULTI-PAGE A4 PDF from a canvas (fit to page width, spilling onto more
-// pages when tall).
+// pages when tall). Each page is a freshly-cropped slice of the source canvas, and
+// the cut line is nudged UP to a blank (whitespace) row so a line of text is never
+// sliced in half at the page boundary ("អក្សរនៅជាកន្លែងខណ្ឌទំព័រ"). Falls back to a
+// plain fixed-height slice if the pixels can't be read.
 function buildMultipagePdf(canvas: HTMLCanvasElement): jsPDF {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
   const margin = 16;
   const imgW = pageW - margin * 2;
-  const imgH = (canvas.height * imgW) / canvas.width; // scaled height at full width
-  const img = canvas.toDataURL('image/jpeg', 0.92);
+  const cw = canvas.width;
+  const ch = canvas.height;
+  const ptPerPx = imgW / cw;
+  const pageContentPx = Math.max(1, Math.floor((pageH - margin * 2) / ptPerPx)); // canvas px per page
 
-  let heightLeft = imgH;
-  let position = margin;
-  pdf.addImage(img, 'JPEG', margin, position, imgW, imgH, undefined, 'FAST');
-  heightLeft -= (pageH - margin * 2);
-  while (heightLeft > 0) {
-    position = margin - (imgH - heightLeft); // shift the tall image up on each page
-    pdf.addPage();
-    pdf.addImage(img, 'JPEG', margin, position, imgW, imgH, undefined, 'FAST');
-    heightLeft -= (pageH - margin * 2);
+  // Single readback of the pixels so we can look for whitespace cut lines.
+  let pixels: Uint8ClampedArray | null = null;
+  try { pixels = canvas.getContext('2d')!.getImageData(0, 0, cw, ch).data; } catch { pixels = null; }
+  const rowIsBlank = (y: number): boolean => {
+    if (!pixels) return true;
+    const step = Math.max(4, Math.floor(cw / 200)); // ~200 samples across the row
+    for (let x = 0; x < cw; x += step) {
+      const i = (y * cw + x) * 4;
+      if (pixels[i + 3] < 8) continue; // transparent = blank
+      if (pixels[i] < 244 || pixels[i + 1] < 244 || pixels[i + 2] < 244) return false; // ink
+    }
+    return true;
+  };
+
+  const tmp = document.createElement('canvas');
+  const tctx = tmp.getContext('2d')!;
+  let sy = 0;
+  let first = true;
+  let guard = 0;
+  while (sy < ch && guard++ < 400) {
+    let sliceH = Math.min(pageContentPx, ch - sy);
+    // For every page but the last, back the cut up to a blank row (keep >= 55% of
+    // the page so we don't waste too much space when whitespace is scarce).
+    if (sy + sliceH < ch && pixels) {
+      const minH = Math.floor(sliceH * 0.55);
+      for (let y = sy + sliceH; y > sy + minH; y--) {
+        if (rowIsBlank(y)) { sliceH = y - sy; break; }
+      }
+    }
+    tmp.width = cw;
+    tmp.height = sliceH;
+    tctx.fillStyle = '#ffffff';
+    tctx.fillRect(0, 0, cw, sliceH);
+    tctx.drawImage(canvas, 0, sy, cw, sliceH, 0, 0, cw, sliceH);
+    if (!first) pdf.addPage();
+    pdf.addImage(tmp.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, imgW, sliceH * ptPerPx, undefined, 'FAST');
+    first = false;
+    sy += sliceH;
   }
   return pdf;
 }
