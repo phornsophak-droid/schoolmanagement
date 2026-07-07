@@ -297,6 +297,9 @@ export default function ClassReport({ template, students, grade, period, teacher
   }
 
   const lineInput = 'border-b border-slate-300 outline-none focus:border-blue-500 bg-transparent px-1';
+  // Lunar + Gregorian parts of the submit date, so the sign-off matches the health
+  // / general reports (date stacked above the teacher's signature).
+  const subDate = submittedAt ? submissionDate(submittedAt) : null;
 
   return (
     <div className="space-y-4">
@@ -459,13 +462,12 @@ export default function ClassReport({ template, students, grade, period, teacher
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-8 mt-10 text-[13px]">
+          <div className="flex justify-end mt-12 text-center text-[13px]">
             <div className="space-y-1">
-              <p><span className="font-bold">គ្រូបង្រៀន</span></p>
-              <TeacherSignature grade={grade} height={60} />
-            </div>
-            <div className="text-right space-y-1">
-              <p className="pt-6"><span className="font-bold">កាលបរិច្ឆេទ៖</span> {fields.date}</p>
+              {subDate && <p>{subDate.lunar}</p>}
+              <p>{subDate ? `ច្បារច្រុះ ថ្ងៃទី${subDate.day} ខែ${subDate.month} ឆ្នាំ${subDate.year}` : (fields.date || 'កាលបរិច្ឆេទ៖ ...... / ...... / ......')}</p>
+              <p className="font-bold pt-2">ហត្ថលេខាគ្រូបង្រៀន</p>
+              <TeacherSignature grade={grade} height={64} />
             </div>
           </div>
         )}
