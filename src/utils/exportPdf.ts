@@ -151,6 +151,52 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
       // would otherwise show in the PDF/image. Hide it to match print output —
       // an actually-uploaded photo is not .rc-no-print, so it still appears.
       doc.querySelectorAll<HTMLElement>('.rc-no-print').forEach(n => { n.style.display = 'none'; });
+
+      // Replace <input>/<textarea> with a styled <div> holding the same value.
+      // html2canvas draws form controls through a simplified text path that does
+      // NOT shape Khmer complex script — subscripts/coeng are dropped and vowels
+      // reorder, so a filled report (e.g. the health report) came out with "half
+      // the letters missing". Static <div>s render through the normal, correctly
+      // shaped text path. Original and clone field order match (structural copy),
+      // so we read each live value by index.
+      try {
+        const cloneRoot = (el.id && doc.getElementById(el.id)) || doc.body;
+        const orig = el.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea');
+        const clones = cloneRoot.querySelectorAll<HTMLElement>('input, textarea');
+        clones.forEach((cf, i) => {
+          const of = orig[i];
+          if (!of) return;
+          const cs = window.getComputedStyle(of);
+          const isArea = of.tagName === 'TEXTAREA';
+          const box = doc.createElement('div');
+          box.textContent = of.value || '';
+          box.style.fontFamily = cs.fontFamily;
+          box.style.fontSize = cs.fontSize;
+          box.style.fontWeight = cs.fontWeight;
+          box.style.lineHeight = cs.lineHeight;
+          box.style.color = cs.color;
+          box.style.textAlign = cs.textAlign;
+          box.style.padding = cs.padding;
+          box.style.boxSizing = 'border-box';
+          box.style.maxWidth = '100%';
+          if (isArea) {
+            box.style.display = 'block';
+            box.style.width = cs.width;
+            box.style.minHeight = cs.height;
+            box.style.border = cs.border;
+            box.style.borderRadius = cs.borderRadius;
+            box.style.whiteSpace = 'pre-wrap';
+            box.style.wordBreak = 'break-word';
+          } else {
+            box.style.display = 'inline-block';
+            box.style.minWidth = cs.width; // keep the underline's width when empty
+            box.style.borderBottom = cs.borderBottom;
+            box.style.whiteSpace = 'nowrap';
+            box.style.verticalAlign = 'baseline';
+          }
+          cf.parentNode?.replaceChild(box, cf);
+        });
+      } catch { /* fall back to native field rendering */ }
     },
   };
 
