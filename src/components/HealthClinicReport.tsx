@@ -239,9 +239,9 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
         <div className="flex justify-end mt-12 text-center">
           <div className="space-y-1">
             {subDate && <p>{subDate.lunar}</p>}
-            <p className="font-bold">ហត្ថលេខាគិលានុបដ្ឋាក/យិកា</p>
+            <p>{subDate ? `ច្បារច្រុះ ថ្ងៃទី${subDate.day} ខែ${subDate.month} ឆ្នាំ${subDate.year}` : 'កាលបរិច្ឆេទ៖ ...... / ...... / ......'}</p>
+            <p className="font-bold pt-2">ហត្ថលេខាគិលានុបដ្ឋាក/យិកា</p>
             <TeacherSignature grade={grade} height={64} />
-            <p className="pt-2">{subDate ? `ច្បារច្រុះ ថ្ងៃទី${subDate.day} ខែ${subDate.month} ឆ្នាំ${subDate.year}` : 'កាលបរិច្ឆេទ៖ ...... / ...... / ......'}</p>
           </div>
         </div>
       </div>
