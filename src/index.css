@@ -14,3 +14,17 @@ select:focus, input:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+/* Report fill-in fields grow with their text instead of clipping it (on browsers
+   that support field-sizing). Excludes full-width table inputs and check/radio. */
+@supports (field-sizing: content) {
+  .rc-grow-inputs input:not(.w-full):not([type="checkbox"]):not([type="radio"]) {
+    field-sizing: content;
+    width: auto !important;
+    min-width: 2.5rem;
+    max-width: 100%;
+    /* don't animate the growing width (the global `transition: all` would jitter) */
+    transition-property: border-color, box-shadow, background-color;
+  }
+  .rc-grow-inputs textarea { field-sizing: content; }
+}
+

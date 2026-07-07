@@ -280,7 +280,7 @@ export default function ClassReport({ template, students, grade, period, teacher
       </div>
 
       {/* The printable report sheet */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 print:p-0 print:border-0 print:shadow-none text-slate-800 text-sm leading-relaxed">
+      <div className="rc-grow-inputs bg-white rounded-2xl shadow-sm border border-slate-100 p-8 print:p-0 print:border-0 print:shadow-none text-slate-800 text-sm leading-relaxed">
 
         {/* Header */}
         <div className="text-center border-b-2 border-slate-800 pb-3 mb-5">
