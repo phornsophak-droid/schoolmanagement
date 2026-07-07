@@ -31,22 +31,39 @@ function CheckBox({ checked, onClick, label }: { checked: boolean; onClick: () =
   );
 }
 
+// Tailwind w-* → rem, used as a MIN width so the field starts at its intended
+// size but GROWS with the text instead of clipping it.
+const W_REM: Record<string, string> = {
+  'w-16': '4rem', 'w-20': '5rem', 'w-24': '6rem', 'w-32': '8rem',
+  'w-40': '10rem', 'w-48': '12rem', 'w-56': '14rem', 'w-80': '20rem',
+};
 function LineInput({ value, onChange, w = 'w-32' }: { value: string; onChange: (v: string) => void; w?: string }) {
+  const full = w === 'w-full';
+  const minWidth = W_REM[w] || (w.startsWith('w-[') ? w.slice(3, -1) : undefined);
   return (
     <input
       value={value}
       onChange={e => onChange(e.target.value)}
-      className={`border-b border-slate-400 outline-none focus:border-blue-500 bg-transparent px-1 text-center ${w}`}
+      // `size` grows the input with its content everywhere; `field-sizing:content`
+      // does it natively (respecting min/max) on browsers that support it.
+      size={full ? undefined : Math.max(4, (value || '').length + 1)}
+      style={full ? undefined : ({ minWidth, maxWidth: '100%', fieldSizing: 'content' } as any)}
+      className={`border-b border-slate-400 outline-none focus:border-blue-500 bg-transparent px-1 text-center ${full ? 'w-full' : 'inline-block'}`}
     />
   );
 }
 
 function TextBox({ value, onChange, rows = 2 }: { value: string; onChange: (v: string) => void; rows?: number }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  // Auto-grow the height to fit the text (so nothing is hidden below the fold).
+  useEffect(() => { const el = ref.current; if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }, [value]);
   return (
     <textarea
+      ref={ref}
       value={value}
       onChange={e => onChange(e.target.value)}
       rows={rows}
+      style={{ overflow: 'hidden' }}
       className="w-full text-[13px] border border-slate-300 rounded-lg p-2 outline-none focus:border-blue-500 resize-y leading-relaxed mb-2"
     />
   );

@@ -37,8 +37,11 @@ function Cell({ value, onChange, center = true }: { value: string; onChange: (v:
   );
 }
 function Area({ value, onChange, rows = 3 }: { value: string; onChange: (v: string) => void; rows?: number }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  // Auto-grow the height to fit the text.
+  useEffect(() => { const el = ref.current; if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }, [value]);
   return (
-    <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows}
+    <textarea ref={ref} value={value} onChange={e => onChange(e.target.value)} rows={rows} style={{ overflow: 'hidden' }}
       className="w-full text-[13px] border border-slate-300 rounded-lg p-2 outline-none focus:border-blue-500 resize-y leading-relaxed mb-2" />
   );
 }
