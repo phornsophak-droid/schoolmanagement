@@ -18,8 +18,11 @@ export default async function handler(req: Req, res: Res) {
   if (req.method !== 'POST') { res.status(405).json({ error: 'method not allowed' }); return; }
 
   const body = typeof req.body === 'string' ? safeParse(req.body) : (req.body || {});
-  const secret = process.env.ANNOUNCE_SECRET;
-  if (!secret || body.secret !== secret) { res.status(401).json({ error: 'unauthorized' }); return; }
+  // Accept either env var so ONE value (VITE_ANNOUNCE_SECRET, also baked into the
+  // client for auto-send on every device) can gate both sides. ANNOUNCE_SECRET is
+  // still honoured for backward compatibility.
+  const secrets = [process.env.ANNOUNCE_SECRET, process.env.VITE_ANNOUNCE_SECRET].filter(Boolean);
+  if (secrets.length === 0 || !secrets.includes(body.secret)) { res.status(401).json({ error: 'unauthorized' }); return; }
 
   const message = String(body.message || '').trim();
   const image: string = typeof body.image === 'string' && body.image.startsWith('data:image') ? body.image : '';

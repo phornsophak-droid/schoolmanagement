@@ -88,7 +88,13 @@ export function pruneSubmissionBlobs(): boolean {
 // cloud setting (set once by anyone) → prompt. A prompted value is persisted to
 // BOTH so every other teacher's submit is then fully automatic.
 const SECRET_KEY = 'telegram_announce_secret';
+// Baked into the build from the Vercel env var VITE_ANNOUNCE_SECRET. When set,
+// EVERY device sends automatically with no prompt — the truly "auto all devices"
+// path. (This ships the secret in the client bundle, same posture as the Supabase
+// anon key the app already exposes.) Falls back to cache/cloud/prompt when unset.
+const BUILD_SECRET = ((import.meta as any).env?.VITE_ANNOUNCE_SECRET as string) || '';
 async function resolveAnnounceSecret(): Promise<string> {
+  if (BUILD_SECRET) return BUILD_SECRET;
   let secret = '';
   try { secret = localStorage.getItem(SECRET_KEY) || ''; } catch { /* ignore */ }
   if (secret) return secret;
