@@ -26,6 +26,8 @@ export interface ReportSubmission {
   title: string;
   teacher: string;
   submittedAt: string; // ISO timestamp (= the report's printed date)
+  status?: 'sent' | 'failed'; // did the Telegram delivery succeed? (so the teacher knows)
+  error?: string;      // failure reason when status === 'failed'
   data?: any;          // filled report blob — NO LONGER stored (report goes to Telegram)
 }
 

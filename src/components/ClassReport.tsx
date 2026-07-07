@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
+import { Printer, X, Send, CheckCircle2, Save, AlertTriangle } from 'lucide-react';
 import { StudentScore } from '../types';
 import HealthClinicReport from './HealthClinicReport';
 import GeneralClassReport from './GeneralClassReport';
@@ -205,16 +205,29 @@ export default function ClassReport({ template, students, grade, period, teacher
   }, [fields, storeKey]);
   useEffect(() => () => { try { localStorage.setItem(storeKey, JSON.stringify(fieldsRef.current)); } catch { /* ignore */ } }, [storeKey]);
 
-  // Submission — saves to the cloud for the principal; the submit time becomes the date.
+  // Submission log is local; the submit time becomes the printed date.
   const [submittedAt, setSubmittedAt] = useState<string>('');
+  const [status, setStatus] = useState<'' | 'sent' | 'failed'>('');
   const [toast, setToast] = useState('');
   const [sending, setSending] = useState(false);
-  useEffect(() => { setSubmittedAt(getSubmission(storeKey)?.submittedAt || ''); }, [storeKey]);
+  useEffect(() => {
+    const s = getSubmission(storeKey);
+    setSubmittedAt(s?.submittedAt || '');
+    setStatus(s?.status || (s?.submittedAt ? 'sent' : '')); // legacy records = sent
+  }, [storeKey]);
+
+  // Explicit save — persist current answers immediately (they also auto-save).
+  const handleSave = () => {
+    try { localStorage.setItem(storeKey, JSON.stringify(fields)); } catch { /* ignore */ }
+    setToast('បានរក្សាទុក ✓');
+    setTimeout(() => setToast(''), 2500);
+  };
+
   const handleSubmit = async () => {
     if (sending) return;
     setSending(true);
-    // Send FIRST, record ONLY if Telegram confirms — otherwise the "បានបញ្ជូន ✓"
-    // log would lie (report shown as submitted while the group never got it).
+    // Send FIRST, then ALWAYS record the outcome (sent / failed) so the teacher
+    // can tell whether the group actually received it.
     const submittedAtIso = new Date().toISOString();
     const d = submissionDate(submittedAtIso);
     const stamped = { ...fields, date: `ច្បារច្រុះ ថ្ងៃទី${d.day} ខែ${d.month} ឆ្នាំ${d.year}` };
@@ -225,15 +238,16 @@ export default function ClassReport({ template, students, grade, period, teacher
     const el = document.getElementById('class-report-print');
     const meta = { key: storeKey, grade, period, type: template.key, title: template.title, teacher: teacherName || '', submittedAt: submittedAtIso };
     const r = el ? await sendSubmissionToTelegram(el, meta) : { ok: false, error: 'no-element' };
+    submitReport({ ...meta, data: stamped, status: r.ok ? 'sent' : 'failed', error: r.ok ? undefined : (r.error || 'failed') });
+    setSubmittedAt(submittedAtIso);
+    setStatus(r.ok ? 'sent' : 'failed');
     if (r.ok) {
-      submitReport({ ...meta, data: stamped });
-      setSubmittedAt(submittedAtIso);
       setToast('បានផ្ញើរបាយការណ៍ជា PDF ចូល Telegram ✓');
     } else {
       setToast('');
-      alert(r.error === 'no-secret' ? 'មិនបានផ្ញើ — គ្មានពាក្យសម្ងាត់ Telegram (ANNOUNCE_SECRET)។'
-        : r.error === 'no-element' ? 'មិនបានផ្ញើ — រកមិនឃើញសន្លឹករបាយការណ៍។'
-        : 'ផ្ញើទៅ Telegram មិនបាន៖ ' + (r.error || '') + '\nរបាយការណ៍មិនត្រូវបានកត់ត្រាថាបញ្ជូនទេ — សូមព្យាយាមម្ដងទៀត។');
+      alert(r.error === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram (ANNOUNCE_SECRET)។'
+        : r.error === 'no-element' ? 'ផ្ញើមិនបាន — រកមិនឃើញសន្លឹករបាយការណ៍។'
+        : 'ផ្ញើទៅ Telegram មិនបាន៖ ' + (r.error || '') + '\nកំណត់ត្រា៖ បរាជ័យ — សូមចុច «ផ្ញើម្ដងទៀត»។');
     }
     setTimeout(() => setToast(''), 4000);
     setSending(false);
@@ -297,8 +311,11 @@ export default function ClassReport({ template, students, grade, period, teacher
           <p className="text-xs text-slate-400 mt-0.5">{grade} • {period} — ស្ថិតិបំពេញស្វ័យប្រវត្តិ ផ្នែកអត្ថបទសរសេរដោយផ្ទាល់ (រក្សាទុកស្វ័យប្រវត្តិ)</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleSubmit} disabled={sending} className={`px-4 py-2 ${submittedAt ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors`}>
-            {submittedAt ? <CheckCircle2 size={13} /> : <Send size={13} />} {sending ? 'កំពុងផ្ញើ…' : submittedAt ? 'បានបញ្ជូន ✓' : 'បញ្ជូនរបាយការណ៍'}
+          <button onClick={handleSave} className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm border border-slate-200 transition-colors">
+            <Save size={13} /> រក្សាទុក
+          </button>
+          <button onClick={handleSubmit} disabled={sending} className={`px-4 py-2 ${status === 'sent' ? 'bg-emerald-600 hover:bg-emerald-700' : status === 'failed' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors`}>
+            {status === 'sent' ? <CheckCircle2 size={13} /> : status === 'failed' ? <AlertTriangle size={13} /> : <Send size={13} />} {sending ? 'កំពុងផ្ញើ…' : status === 'sent' ? 'បានបញ្ជូន ✓' : status === 'failed' ? 'ផ្ញើមិនបាន ⚠ ផ្ញើម្ដងទៀត' : 'បញ្ជូនរបាយការណ៍'}
           </button>
           <button onClick={handlePdf} disabled={pdfBusy} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
             <Printer size={13} /> {pdfBusy ? 'កំពុងបង្កើត…' : 'ទាញយក PDF'}

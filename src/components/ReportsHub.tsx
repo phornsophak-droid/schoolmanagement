@@ -759,11 +759,17 @@ export default function ReportsHub({
                     <div className="divide-y divide-slate-100">
                       {subs.map(s => {
                         const d = submissionDate(s.submittedAt);
+                        const failed = s.status === 'failed';
                         return (
                           <div key={s.key} className="flex items-center justify-between gap-3 py-2.5">
                             <div className="min-w-0">
-                              <p className="text-xs font-bold text-slate-800 truncate">{s.title}</p>
-                              <p className="text-[10px] text-slate-400 mt-0.5">{s.grade} • {s.period} • {s.teacher || 'គ្រូ'} • បានបញ្ជូន {d.day} {d.month} {d.year}</p>
+                              <p className="text-xs font-bold text-slate-800 truncate flex items-center gap-1.5">
+                                {s.title}
+                                <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold ${failed ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                  {failed ? '⚠ បរាជ័យ' : '✓ ជោគជ័យ'}
+                                </span>
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">{s.grade} • {s.period} • {s.teacher || 'គ្រូ'} • {failed ? 'ព្យាយាម' : 'បញ្ជូន'} {d.day} {d.month} {d.year}</p>
                             </div>
                             <button
                               onClick={() => {
