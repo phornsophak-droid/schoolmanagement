@@ -291,7 +291,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
               <tbody>
                 {ACTIVITY_ROWS.map((row, i) => (
                   <tr key={i}>
-                    <td className={`${td} font-semibold`}>{row}</td>
+                    <td className={`${td} font-semibold whitespace-nowrap`}>{row}</td>
                     <td className={td}><Cell value={v(`${sec.prefix}_${i}_lesson`)} onChange={x => set(`${sec.prefix}_${i}_lesson`, x)} center={false} /></td>
                     <td className={td}><Cell value={v(`${sec.prefix}_${i}_pct`)} onChange={x => set(`${sec.prefix}_${i}_pct`, x)} /></td>
                   </tr>

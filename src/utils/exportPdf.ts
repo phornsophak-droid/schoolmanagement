@@ -187,11 +187,24 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
             box.style.borderRadius = cs.borderRadius;
             box.style.whiteSpace = 'pre-wrap';
             box.style.wordBreak = 'break-word';
-          } else {
-            box.style.display = 'inline-block';
-            box.style.minWidth = cs.width; // keep the underline's width when empty
+          } else if (of.closest('td, th')) {
+            // A field that fills a TABLE CELL: let it WRAP within the column. With
+            // nowrap a long value forced the column (and the whole table) wider than
+            // the page, so text overflowed and the last column fell off. No
+            // min-width here so the column keeps its natural share.
+            box.style.display = 'block';
+            box.style.width = '100%';
+            box.style.whiteSpace = 'pre-wrap';
+            box.style.wordBreak = 'break-word';
             box.style.borderBottom = cs.borderBottom;
-            box.style.whiteSpace = 'nowrap';
+          } else {
+            // Inline fill-in-the-blank: keep the underline width, but WRAP (not
+            // nowrap) so a long value never pushes the layout wider than the page.
+            box.style.display = 'inline-block';
+            box.style.minWidth = cs.width;
+            box.style.borderBottom = cs.borderBottom;
+            box.style.whiteSpace = 'normal';
+            box.style.wordBreak = 'break-word';
             box.style.verticalAlign = 'baseline';
           }
           cf.parentNode?.replaceChild(box, cf);
