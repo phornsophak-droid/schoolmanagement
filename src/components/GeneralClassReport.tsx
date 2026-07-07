@@ -8,7 +8,7 @@ import { Printer, X, Send, CheckCircle2, Save, AlertTriangle } from 'lucide-reac
 import { StudentScore } from '../types';
 import { khmerMonthEnd } from '../utils/khmerDate';
 import { submitReport, getSubmission, submissionDate, sendSubmissionToTelegram } from '../utils/reportSubmit';
-import { exportElementToMultipagePdf } from '../utils/exportPdf';
+import { exportElementToMultipagePdf, REPORT_PDF_WIDTH } from '../utils/exportPdf';
 import TeacherSignature from './TeacherSignature';
 
 interface GeneralClassReportProps {
@@ -120,7 +120,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
     const el = document.getElementById('gen-class-print');
     if (!el) return;
     setPdfBusy(true);
-    try { await exportElementToMultipagePdf(el, 'CCC-General-Report'); }
+    try { await exportElementToMultipagePdf(el, 'CCC-General-Report', REPORT_PDF_WIDTH); }
     catch { alert('បង្កើត PDF មិនបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setPdfBusy(false); }
   };

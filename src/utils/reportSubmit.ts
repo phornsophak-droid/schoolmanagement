@@ -11,7 +11,7 @@
 // submit time becomes the report's printed date.
 
 import { syncUpsertSetting, fetchSetting } from '../lib/supabase';
-import { renderElementToPdfDataUrl } from './exportPdf';
+import { renderElementToPdfDataUrl, REPORT_PDF_WIDTH } from './exportPdf';
 import { khmerLunarFull } from './khmerDate';
 
 const STORE = 'report_submissions';
@@ -121,7 +121,7 @@ export async function sendSubmissionToTelegram(el: HTMLElement, sub: ReportSubmi
   const stamp = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
   const filename = `CCC-Report-${sub.type || 'report'}-${stamp}`;
   try {
-    const pdf = await renderElementToPdfDataUrl(el);
+    const pdf = await renderElementToPdfDataUrl(el, REPORT_PDF_WIDTH);
     const res = await fetch('/api/telegram-announce', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ target: 'teacher', caption, filename, secret, pdf }),

@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Printer, X, Send, CheckCircle2, Save, AlertTriangle } from 'lucide-react';
 import { submitReport, getSubmission, submissionDate, sendSubmissionToTelegram } from '../utils/reportSubmit';
-import { exportElementToMultipagePdf } from '../utils/exportPdf';
+import { exportElementToMultipagePdf, REPORT_PDF_WIDTH } from '../utils/exportPdf';
 import TeacherSignature from './TeacherSignature';
 
 interface HealthClinicReportProps {
@@ -147,7 +147,7 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
     const el = document.getElementById('health-clinic-print');
     if (!el) return;
     setPdfBusy(true);
-    try { await exportElementToMultipagePdf(el, 'CCC-Health-Report'); }
+    try { await exportElementToMultipagePdf(el, 'CCC-Health-Report', REPORT_PDF_WIDTH); }
     catch { alert('បង្កើត PDF មិនបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setPdfBusy(false); }
   };

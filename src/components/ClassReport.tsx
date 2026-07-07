@@ -11,7 +11,7 @@ import GeneralClassReport from './GeneralClassReport';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { submitReport, getSubmission, submissionDate, sendSubmissionToTelegram } from '../utils/reportSubmit';
-import { exportElementToMultipagePdf } from '../utils/exportPdf';
+import { exportElementToMultipagePdf, REPORT_PDF_WIDTH } from '../utils/exportPdf';
 
 const SCHOOL_NAME = 'សាលាសហគមន៍ច្បារច្រុះ';
 
@@ -259,7 +259,7 @@ export default function ClassReport({ template, students, grade, period, teacher
     const el = document.getElementById('class-report-print');
     if (!el) return;
     setPdfBusy(true);
-    try { await exportElementToMultipagePdf(el, 'CCC-Report'); }
+    try { await exportElementToMultipagePdf(el, 'CCC-Report', REPORT_PDF_WIDTH); }
     catch { alert('បង្កើត PDF មិនបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setPdfBusy(false); }
   };

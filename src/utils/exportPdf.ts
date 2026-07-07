@@ -9,6 +9,12 @@ import jsPDF from 'jspdf';
 // → every report-card / certificate PDF export failed.
 import html2canvas from 'html2canvas-pro';
 
+// Fixed render width for the monthly WORK reports so the PDF looks the same on
+// every device. Without it the capture uses the element's on-screen width, so a
+// report submitted from a phone came out narrow and cramped while a desktop one
+// was wide. Pinning to this width makes kindergarten match the general classes.
+export const REPORT_PDF_WIDTH = 850;
+
 // iPhone, iPod, and iPadOS (which reports itself as "MacIntel" but has touch).
 const isIOS = (): boolean =>
   /iP(hone|ad|od)/.test(navigator.userAgent) ||
