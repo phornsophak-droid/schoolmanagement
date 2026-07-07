@@ -14,6 +14,17 @@ select:focus, input:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+/* When printing, neutralise the app's fixed-height scroll shell so a tall report
+   flows onto as many pages as needed instead of being clipped to one sheet. */
+@media print {
+  html, body { height: auto !important; overflow: visible !important; }
+  .h-screen, [class*="overflow-"] {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
 /* Report fill-in fields grow with their text instead of clipping it (on browsers
    that support field-sizing). Excludes full-width table inputs and check/radio. */
 @supports (field-sizing: content) {
