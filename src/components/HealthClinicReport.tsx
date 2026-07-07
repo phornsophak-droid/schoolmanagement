@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
-import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
+import { submitReport, getSubmission, submissionDate, sendSubmissionToTelegram } from '../utils/reportSubmit';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import TeacherSignature from './TeacherSignature';
 
@@ -98,12 +98,24 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
 
   const [submittedAt, setSubmittedAt] = useState<string>('');
   const [toast, setToast] = useState('');
+  const [sending, setSending] = useState(false);
   useEffect(() => { setSubmittedAt(getSubmission(storeKey)?.submittedAt || ''); }, [storeKey]);
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (sending) return;
+    setSending(true);
     const sub = submitReport({ key: storeKey, grade, period, type: 'health', title: 'របាយការណ៍ប្រចាំខែ គិលានុបដ្ឋាក/យិកា', teacher: teacherName || '', data: f });
     setSubmittedAt(sub.submittedAt);
-    setToast('បានបញ្ជូនរបាយការណ៍ទៅនាយកសាលា ☁️');
-    setTimeout(() => setToast(''), 3000);
+    setToast('បានបញ្ជូនរបាយការណ៍ទៅនាយកសាលា ☁️ កំពុងផ្ញើ PDF…');
+    // Render the sheet AFTER the submit date is stamped so the PDF shows it, then
+    // auto-deliver to the teachers' Telegram group.
+    await new Promise(r => setTimeout(r, 60));
+    const el = document.getElementById('health-clinic-print');
+    const r = el ? await sendSubmissionToTelegram(el, sub) : { ok: false, error: 'no-element' };
+    setToast(r.ok ? 'បានផ្ញើរបាយការណ៍ជា PDF ចូល Telegram ✓'
+      : r.error === 'no-secret' ? 'បានរក្សាទុក — ប៉ុន្តែមិនបានផ្ញើ Telegram (គ្មានពាក្យសម្ងាត់)។'
+      : 'បានរក្សាទុក — ផ្ញើ Telegram មិនបាន៖ ' + (r.error || ''));
+    setTimeout(() => setToast(''), 4000);
+    setSending(false);
   };
   const subDate = submittedAt ? submissionDate(submittedAt) : null;
 
@@ -137,8 +149,8 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
           <p className="text-xs text-slate-400 mt-0.5">{grade} • {period} — បំពេញដោយផ្ទាល់ (រក្សាទុកស្វ័យប្រវត្តិ)</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleSubmit} className={`px-4 py-2 ${submittedAt ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors`}>
-            {submittedAt ? <CheckCircle2 size={13} /> : <Send size={13} />} {submittedAt ? 'បានបញ្ជូន ✓' : 'បញ្ជូនរបាយការណ៍'}
+          <button onClick={handleSubmit} disabled={sending} className={`px-4 py-2 ${submittedAt ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors`}>
+            {submittedAt ? <CheckCircle2 size={13} /> : <Send size={13} />} {sending ? 'កំពុងផ្ញើ…' : submittedAt ? 'បានបញ្ជូន ✓' : 'បញ្ជូនរបាយការណ៍'}
           </button>
           <button onClick={handlePdf} disabled={pdfBusy} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
             <Printer size={13} /> {pdfBusy ? 'កំពុងបង្កើត…' : 'ទាញយក PDF'}

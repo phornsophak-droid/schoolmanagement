@@ -10,7 +10,7 @@ import HealthClinicReport from './HealthClinicReport';
 import GeneralClassReport from './GeneralClassReport';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
-import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
+import { submitReport, getSubmission, submissionDate, sendSubmissionToTelegram } from '../utils/reportSubmit';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
 
 const SCHOOL_NAME = 'សាលាសហគមន៍ច្បារច្រុះ';
@@ -208,16 +208,27 @@ export default function ClassReport({ template, students, grade, period, teacher
   // Submission — saves to the cloud for the principal; the submit time becomes the date.
   const [submittedAt, setSubmittedAt] = useState<string>('');
   const [toast, setToast] = useState('');
+  const [sending, setSending] = useState(false);
   useEffect(() => { setSubmittedAt(getSubmission(storeKey)?.submittedAt || ''); }, [storeKey]);
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (sending) return;
+    setSending(true);
     const d = submissionDate(new Date().toISOString());
     const stamped = { ...fields, date: `ច្បារច្រុះ ថ្ងៃទី${d.day} ខែ${d.month} ឆ្នាំ${d.year}` };
     setFields(stamped);
     try { localStorage.setItem(storeKey, JSON.stringify(stamped)); } catch { /* ignore */ }
     const sub = submitReport({ key: storeKey, grade, period, type: template.key, title: template.title, teacher: teacherName || '', data: stamped });
     setSubmittedAt(sub.submittedAt);
-    setToast('បានបញ្ជូនរបាយការណ៍ទៅនាយកសាលា ☁️');
-    setTimeout(() => setToast(''), 3000);
+    setToast('បានបញ្ជូនរបាយការណ៍ទៅនាយកសាលា ☁️ កំពុងផ្ញើ PDF…');
+    // Let the stamped date paint, then render the sheet and auto-deliver to Telegram.
+    await new Promise(r => setTimeout(r, 60));
+    const el = document.getElementById('class-report-print');
+    const r = el ? await sendSubmissionToTelegram(el, sub) : { ok: false, error: 'no-element' };
+    setToast(r.ok ? 'បានផ្ញើរបាយការណ៍ជា PDF ចូល Telegram ✓'
+      : r.error === 'no-secret' ? 'បានរក្សាទុក — ប៉ុន្តែមិនបានផ្ញើ Telegram (គ្មានពាក្យសម្ងាត់)។'
+      : 'បានរក្សាទុក — ផ្ញើ Telegram មិនបាន៖ ' + (r.error || ''));
+    setTimeout(() => setToast(''), 4000);
+    setSending(false);
   };
 
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -278,8 +289,8 @@ export default function ClassReport({ template, students, grade, period, teacher
           <p className="text-xs text-slate-400 mt-0.5">{grade} • {period} — ស្ថិតិបំពេញស្វ័យប្រវត្តិ ផ្នែកអត្ថបទសរសេរដោយផ្ទាល់ (រក្សាទុកស្វ័យប្រវត្តិ)</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleSubmit} className={`px-4 py-2 ${submittedAt ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors`}>
-            {submittedAt ? <CheckCircle2 size={13} /> : <Send size={13} />} {submittedAt ? 'បានបញ្ជូន ✓' : 'បញ្ជូនរបាយការណ៍'}
+          <button onClick={handleSubmit} disabled={sending} className={`px-4 py-2 ${submittedAt ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors`}>
+            {submittedAt ? <CheckCircle2 size={13} /> : <Send size={13} />} {sending ? 'កំពុងផ្ញើ…' : submittedAt ? 'បានបញ្ជូន ✓' : 'បញ្ជូនរបាយការណ៍'}
           </button>
           <button onClick={handlePdf} disabled={pdfBusy} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
             <Printer size={13} /> {pdfBusy ? 'កំពុងបង្កើត…' : 'ទាញយក PDF'}
