@@ -127,7 +127,20 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
 
   // Auto-computed statistics for this class & month.
   const st = useMemo(() => {
-    const recs = students.filter(s => s.grade === grade && s.month === period);
+    let recs = students.filter(s => s.grade === grade && s.month === period);
+    if (recs.length === 0) {
+      // No score rows for this month — e.g. a kindergarten class imported as a plain
+      // roster (no per-month grades). Fall back to the whole class roster, ONE row
+      // per student, so the head-count still fills automatically. Pass/fail/ABC stay
+      // 0 when there are no scores, which is correct for those classes.
+      const seen = new Set<string>();
+      recs = students.filter(s => s.grade === grade).filter(s => {
+        const k = `${s.name.trim()}_${s.gender}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    }
     const fem = (a: StudentScore[]) => a.filter(s => s.gender === 'ស្រី');
     const boys = recs.filter(s => s.gender === 'ប្រុស');
     const girls = fem(recs);
