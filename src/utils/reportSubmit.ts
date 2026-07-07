@@ -42,8 +42,8 @@ export function getSubmission(key: string): ReportSubmission | undefined {
   return loadSubmissions().find(s => s.key === key);
 }
 
-export function submitReport(entry: Omit<ReportSubmission, 'submittedAt'>): ReportSubmission {
-  const full: ReportSubmission = { ...entry, submittedAt: new Date().toISOString() };
+export function submitReport(entry: Omit<ReportSubmission, 'submittedAt'> & { submittedAt?: string }): ReportSubmission {
+  const full: ReportSubmission = { ...entry, submittedAt: entry.submittedAt || new Date().toISOString() };
   // Keep only the lightweight NOTICE (drop the heavy `data` blob — the report goes
   // to Telegram). Store locally, then sync the notice to the cloud so the principal
   // gets an in-app alert on their device. The notice carries no report content.

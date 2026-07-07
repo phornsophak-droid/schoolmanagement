@@ -77,16 +77,25 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
   const handleSubmit = async () => {
     if (sending) return;
     setSending(true);
-    const sub = submitReport({ key: storeKey, grade, period, type: 'general', title: 'របាយការណ៍ប្រចាំខែ ថ្នាក់ចំណេះដឹងទូទៅ', teacher: teacherName || '', data: f });
-    setSubmittedAt(sub.submittedAt);
+    // Send FIRST, record ONLY if Telegram confirms — otherwise the "បានបញ្ជូន ✓"
+    // log would lie (report shown as submitted while the group never got it).
+    const submittedAtIso = new Date().toISOString();
+    setSubmittedAt(submittedAtIso); // paint the date onto the sheet so the PDF shows it
     setToast('កំពុងផ្ញើរបាយការណ៍ជា PDF ចូល Telegram…');
-    // Render AFTER the submit date is stamped, then auto-deliver to Telegram.
     await new Promise(r => setTimeout(r, 60));
     const el = document.getElementById('gen-class-print');
-    const r = el ? await sendSubmissionToTelegram(el, sub) : { ok: false, error: 'no-element' };
-    setToast(r.ok ? 'បានផ្ញើរបាយការណ៍ជា PDF ចូល Telegram ✓'
-      : r.error === 'no-secret' ? 'បានរក្សាទុក — ប៉ុន្តែមិនបានផ្ញើ Telegram (គ្មានពាក្យសម្ងាត់)។'
-      : 'បានរក្សាទុក — ផ្ញើ Telegram មិនបាន៖ ' + (r.error || ''));
+    const meta = { key: storeKey, grade, period, type: 'general', title: 'របាយការណ៍ប្រចាំខែ ថ្នាក់ចំណេះដឹងទូទៅ', teacher: teacherName || '', submittedAt: submittedAtIso };
+    const r = el ? await sendSubmissionToTelegram(el, meta) : { ok: false, error: 'no-element' };
+    if (r.ok) {
+      submitReport({ ...meta, data: f });
+      setToast('បានផ្ញើរបាយការណ៍ជា PDF ចូល Telegram ✓');
+    } else {
+      setSubmittedAt(getSubmission(storeKey)?.submittedAt || ''); // not sent — revert
+      setToast('');
+      alert(r.error === 'no-secret' ? 'មិនបានផ្ញើ — គ្មានពាក្យសម្ងាត់ Telegram (ANNOUNCE_SECRET)។'
+        : r.error === 'no-element' ? 'មិនបានផ្ញើ — រកមិនឃើញសន្លឹករបាយការណ៍។'
+        : 'ផ្ញើទៅ Telegram មិនបាន៖ ' + (r.error || '') + '\nរបាយការណ៍មិនត្រូវបានកត់ត្រាថាបញ្ជូនទេ — សូមព្យាយាមម្ដងទៀត។');
+    }
     setTimeout(() => setToast(''), 4000);
     setSending(false);
   };

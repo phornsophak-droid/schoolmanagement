@@ -213,20 +213,28 @@ export default function ClassReport({ template, students, grade, period, teacher
   const handleSubmit = async () => {
     if (sending) return;
     setSending(true);
-    const d = submissionDate(new Date().toISOString());
+    // Send FIRST, record ONLY if Telegram confirms — otherwise the "បានបញ្ជូន ✓"
+    // log would lie (report shown as submitted while the group never got it).
+    const submittedAtIso = new Date().toISOString();
+    const d = submissionDate(submittedAtIso);
     const stamped = { ...fields, date: `ច្បារច្រុះ ថ្ងៃទី${d.day} ខែ${d.month} ឆ្នាំ${d.year}` };
     setFields(stamped);
     try { localStorage.setItem(storeKey, JSON.stringify(stamped)); } catch { /* ignore */ }
-    const sub = submitReport({ key: storeKey, grade, period, type: template.key, title: template.title, teacher: teacherName || '', data: stamped });
-    setSubmittedAt(sub.submittedAt);
     setToast('កំពុងផ្ញើរបាយការណ៍ជា PDF ចូល Telegram…');
-    // Let the stamped date paint, then render the sheet and auto-deliver to Telegram.
     await new Promise(r => setTimeout(r, 60));
     const el = document.getElementById('class-report-print');
-    const r = el ? await sendSubmissionToTelegram(el, sub) : { ok: false, error: 'no-element' };
-    setToast(r.ok ? 'បានផ្ញើរបាយការណ៍ជា PDF ចូល Telegram ✓'
-      : r.error === 'no-secret' ? 'បានរក្សាទុក — ប៉ុន្តែមិនបានផ្ញើ Telegram (គ្មានពាក្យសម្ងាត់)។'
-      : 'បានរក្សាទុក — ផ្ញើ Telegram មិនបាន៖ ' + (r.error || ''));
+    const meta = { key: storeKey, grade, period, type: template.key, title: template.title, teacher: teacherName || '', submittedAt: submittedAtIso };
+    const r = el ? await sendSubmissionToTelegram(el, meta) : { ok: false, error: 'no-element' };
+    if (r.ok) {
+      submitReport({ ...meta, data: stamped });
+      setSubmittedAt(submittedAtIso);
+      setToast('បានផ្ញើរបាយការណ៍ជា PDF ចូល Telegram ✓');
+    } else {
+      setToast('');
+      alert(r.error === 'no-secret' ? 'មិនបានផ្ញើ — គ្មានពាក្យសម្ងាត់ Telegram (ANNOUNCE_SECRET)។'
+        : r.error === 'no-element' ? 'មិនបានផ្ញើ — រកមិនឃើញសន្លឹករបាយការណ៍។'
+        : 'ផ្ញើទៅ Telegram មិនបាន៖ ' + (r.error || '') + '\nរបាយការណ៍មិនត្រូវបានកត់ត្រាថាបញ្ជូនទេ — សូមព្យាយាមម្ដងទៀត។');
+    }
     setTimeout(() => setToast(''), 4000);
     setSending(false);
   };
