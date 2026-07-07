@@ -7,6 +7,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Printer, X, Send, CheckCircle2, Save, AlertTriangle } from 'lucide-react';
 import { StudentScore } from '../types';
 import { khmerMonthEnd } from '../utils/khmerDate';
+import { loadAttendance } from '../utils/attendanceStore';
 import { submitReport, getSubmission, submissionDate, sendSubmissionToTelegram } from '../utils/reportSubmit';
 import { exportElementToMultipagePdf, REPORT_PDF_WIDTH } from '../utils/exportPdf';
 import TeacherSignature from './TeacherSignature';
@@ -26,6 +27,7 @@ const ACTIVITY_ROWS = [
   'កិច្ចការផ្ទះ', 'ថ្នាក់បន្ថែមថ្ងៃសៅរ៍', 'កិច្ចតែងការបង្រៀន', 'សកម្មភាពផ្សេងៗ',
 ];
 const KH_NUM = ['១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩', '១០'];
+const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
 
 // Module-level cell input (stable identity → keeps focus while typing).
 function Cell({ value, onChange, center = true }: { value: string; onChange: (v: string) => void; center?: boolean }) {
@@ -127,21 +129,20 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
 
   // Auto-computed statistics for this class & month.
   const st = useMemo(() => {
-    let recs = students.filter(s => s.grade === grade && s.month === period);
-    if (recs.length === 0) {
-      // No score rows for this month — e.g. a kindergarten class imported as a plain
-      // roster (no per-month grades). Fall back to the whole class roster, ONE row
-      // per student, so the head-count still fills automatically. Pass/fail/ABC stay
-      // 0 when there are no scores, which is correct for those classes.
-      const seen = new Set<string>();
-      recs = students.filter(s => s.grade === grade).filter(s => {
-        const k = `${s.name.trim()}_${s.gender}`;
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      });
-    }
     const fem = (a: StudentScore[]) => a.filter(s => s.gender === 'ស្រី');
+    // Distinct students in the class across the whole year = start-of-year roster.
+    const seen = new Set<string>();
+    const roster = students.filter(s => s.grade === grade).filter(s => {
+      const k = `${s.name.trim()}_${s.gender}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    // This month's score rows if present; otherwise fall back to the roster (e.g. a
+    // kindergarten class imported as a plain roster with no per-month grades) so the
+    // head-count still auto-fills. Pass/fail/ABC stay 0 without scores, as expected.
+    const recsMonth = students.filter(s => s.grade === grade && s.month === period);
+    const recs = recsMonth.length ? recsMonth : roster;
     const boys = recs.filter(s => s.gender === 'ប្រុស');
     const girls = fem(recs);
     const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
@@ -151,6 +152,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
     const drop = recs.filter(s => (s as any).status === 'បោះបង់');
     const abc = (arr: StudentScore[], key: 'khmerAvg' | 'mathAvg') => arr.filter(s => (s[key] ?? -1) >= 7).length;
     return {
+      startTotal: roster.length, startFemale: fem(roster).length,
       total: recs.length, female: girls.length, boys: boys.length, girlsLen: girls.length,
       pass: pass.length, passF: fem(pass).length, passPct: pct(pass.length, recs.length),
       fail: fail.length, failF: fem(fail).length, failPct: pct(fail.length, recs.length),
@@ -159,6 +161,43 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
       khmerAll: pct(abc(recs, 'khmerAvg'), recs.length), khmerB: pct(abc(boys, 'khmerAvg'), boys.length), khmerG: pct(abc(girls, 'khmerAvg'), girls.length),
       mathAll: pct(abc(recs, 'mathAvg'), recs.length), mathB: pct(abc(boys, 'mathAvg'), boys.length), mathG: pct(abc(girls, 'mathAvg'), girls.length),
     };
+  }, [students, grade, period]);
+
+  // Students absent WITHOUT permission on >= 3 distinct days this month, from the
+  // saved daily attendance. Attendance is keyed by score-row id; a person has one
+  // row (id) per month, so we match all of a name's ids and de-dup by date (a day
+  // with any unexcused-absent session counts once).
+  const absentMany = useMemo(() => {
+    const idx = KH_MONTHS.indexOf((period || '').trim());
+    if (idx < 0) return { count: 0, pct: 0 };
+    const ym = `${idx >= 8 ? 2025 : 2026}-${String(idx + 1).padStart(2, '0')}`;
+    const persons = new Map<string, Set<string>>(); // name -> its ids
+    students.filter(s => s.grade === grade).forEach(s => {
+      const k = s.name.trim();
+      if (!persons.has(k)) persons.set(k, new Set());
+      persons.get(k)!.add(s.id);
+    });
+    if (persons.size === 0) return { count: 0, pct: 0 };
+    const absentDays = new Map<string, Set<string>>(); // name -> set of dates
+    const records = loadAttendance() as { date?: string; grade?: string; studentStates?: Record<string, string> }[];
+    for (const r of records) {
+      if (r.grade !== grade) continue;
+      const date = r.date || '';
+      if (date.slice(0, 7) !== ym) continue;
+      const states = r.studentStates || {};
+      persons.forEach((ids, name) => {
+        for (const id of ids) {
+          if (states[id] === 'absent') {
+            if (!absentDays.has(name)) absentDays.set(name, new Set());
+            absentDays.get(name)!.add(date);
+            break;
+          }
+        }
+      });
+    }
+    let count = 0;
+    absentDays.forEach(days => { if (days.size >= 3) count++; });
+    return { count, pct: persons.size > 0 ? Math.round((count / persons.size) * 100) : 0 };
   }, [students, grade, period]);
 
   const Num = ({ n }: { n: number }) => <span className="font-bold">{n}</span>;
@@ -225,15 +264,15 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
           </thead>
           <tbody>
             <tr className="text-center">
-              <td className={td}><Cell value={v('startTotal')} onChange={x => set('startTotal', x)} /></td>
-              <td className={td}><Cell value={v('startFemale')} onChange={x => set('startFemale', x)} /></td>
+              <td className={td}><Num n={st.startTotal} /></td>
+              <td className={td}><Num n={st.startFemale} /></td>
               <td className={td}><Num n={st.total} /></td>
               <td className={td}><Num n={st.female} /></td>
               <td className={td}><Num n={st.drop} /></td>
               <td className={td}><Num n={st.dropF} /></td>
               <td className={td}>{st.dropPct}%</td>
-              <td className={td}><Cell value={v('absMany')} onChange={x => set('absMany', x)} /></td>
-              <td className={td}><Cell value={v('absManyPct')} onChange={x => set('absManyPct', x)} /></td>
+              <td className={td}><Num n={absentMany.count} /></td>
+              <td className={td}>{absentMany.pct}%</td>
             </tr>
           </tbody>
         </table>
