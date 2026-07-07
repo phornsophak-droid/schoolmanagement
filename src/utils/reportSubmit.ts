@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Submission of the monthly work reports. The filled report blob (already kept in
-// localStorage by each report component) is bundled with metadata under one
-// `school_settings` key ('report_submissions') so it reaches the cloud and the
-// principal can review it. The submit time becomes the report's printed date.
+// Submission of the monthly work reports. The report itself is delivered to the
+// principal as a PDF in Telegram — it is NOT stored in the cloud. All we keep is a
+// LOCAL, lightweight log ('report_submissions' in localStorage) marking that a
+// report was sent, so the teacher's device can show "បានបញ្ជូន ✓". The submit
+// time becomes the report's printed date.
 
 import { syncUpsertSetting, fetchSetting } from '../lib/supabase';
 import { renderElementToPdfDataUrl } from './exportPdf';
@@ -42,26 +43,23 @@ export function getSubmission(key: string): ReportSubmission | undefined {
 
 export function submitReport(entry: Omit<ReportSubmission, 'submittedAt'>): ReportSubmission {
   const full: ReportSubmission = { ...entry, submittedAt: new Date().toISOString() };
-  // The report itself is delivered to Telegram, so we keep only a lightweight
-  // submission LOG here (no heavy `data` blob). Storing every blob bloated
-  // localStorage (quota errors) and the report_submissions cloud setting.
+  // The report is delivered to Telegram — nothing report-related is saved to the
+  // cloud. We keep only a LOCAL, lightweight submission LOG (no `data` blob) so the
+  // teacher's device can show "បានបញ្ជូន ✓". Deliberately no cloud sync here.
   const { data, ...meta } = full;
   const next: ReportSubmission[] = [meta, ...loadSubmissions().filter(s => s.key !== entry.key)];
   try { localStorage.setItem(STORE, JSON.stringify(next)); } catch { /* ignore */ }
-  // Fire-and-forget cloud sync (no-op when Supabase isn't configured).
-  Promise.resolve(syncUpsertSetting(STORE, next)).catch(() => { /* stays local */ });
   return full; // caller still gets `data` for immediate rendering/printing
 }
 
 // One-time cleanup: strip heavy report blobs already sitting in the stored
-// submissions (reclaims localStorage + shrinks the cloud setting). Reports now
-// live in Telegram. Returns true if anything was pruned.
+// submissions (reclaims localStorage). Reports live in Telegram; the log is local
+// only. Returns true if anything was pruned.
 export function pruneSubmissionBlobs(): boolean {
   const subs = loadSubmissions();
   if (!subs.some(s => s.data !== undefined)) return false;
   const light: ReportSubmission[] = subs.map(({ data, ...m }) => m);
   try { localStorage.setItem(STORE, JSON.stringify(light)); } catch { /* ignore */ }
-  Promise.resolve(syncUpsertSetting(STORE, light)).catch(() => { /* stays local */ });
   return true;
 }
 

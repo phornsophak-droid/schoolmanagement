@@ -219,7 +219,7 @@ export default function ClassReport({ template, students, grade, period, teacher
     try { localStorage.setItem(storeKey, JSON.stringify(stamped)); } catch { /* ignore */ }
     const sub = submitReport({ key: storeKey, grade, period, type: template.key, title: template.title, teacher: teacherName || '', data: stamped });
     setSubmittedAt(sub.submittedAt);
-    setToast('បានបញ្ជូនរបាយការណ៍ទៅនាយកសាលា ☁️ កំពុងផ្ញើ PDF…');
+    setToast('កំពុងផ្ញើរបាយការណ៍ជា PDF ចូល Telegram…');
     // Let the stamped date paint, then render the sheet and auto-deliver to Telegram.
     await new Promise(r => setTimeout(r, 60));
     const el = document.getElementById('class-report-print');

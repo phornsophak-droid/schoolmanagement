@@ -79,7 +79,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
     setSending(true);
     const sub = submitReport({ key: storeKey, grade, period, type: 'general', title: 'របាយការណ៍ប្រចាំខែ ថ្នាក់ចំណេះដឹងទូទៅ', teacher: teacherName || '', data: f });
     setSubmittedAt(sub.submittedAt);
-    setToast('បានបញ្ជូនរបាយការណ៍ទៅនាយកសាលា ☁️ កំពុងផ្ញើ PDF…');
+    setToast('កំពុងផ្ញើរបាយការណ៍ជា PDF ចូល Telegram…');
     // Render AFTER the submit date is stamped, then auto-deliver to Telegram.
     await new Promise(r => setTimeout(r, 60));
     const el = document.getElementById('gen-class-print');

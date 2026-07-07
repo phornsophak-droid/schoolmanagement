@@ -118,13 +118,13 @@ const mergeRowsById = (key: string, delta: any[] | null | undefined) => {
   else safeSetLocal(key, JSON.stringify(merged));
 };
 
-// Restore the work-report submission LOG pulled from the cloud. Reports now live
-// in Telegram, so we keep only the lightweight index — strip any legacy `data`
-// blob so it can't re-bloat localStorage. See src/utils/reportSubmit.ts.
-function restoreReportSubmissions(subs: any): void {
-  if (!Array.isArray(subs)) return;
-  const light = subs.map((s: any) => { const { data, ...meta } = s || {}; return meta; });
-  safeSetLocal('report_submissions', JSON.stringify(light));
+// The work-report submission LOG is LOCAL ONLY now — reports live in Telegram and
+// nothing report-related is written to the cloud. So we deliberately do NOT restore
+// this key from the cloud: a stale cloud value must never clobber the device's own
+// record. Kept as a no-op so the existing call sites need no change.
+// See src/utils/reportSubmit.ts.
+function restoreReportSubmissions(_subs: any): void {
+  /* intentionally no-op — the submission log stays local */
 }
 import Dashboard from './components/Dashboard';
 import TelegramAnnounce from './components/TelegramAnnounce';

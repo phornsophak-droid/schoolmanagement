@@ -105,7 +105,7 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
     setSending(true);
     const sub = submitReport({ key: storeKey, grade, period, type: 'health', title: 'របាយការណ៍ប្រចាំខែ គិលានុបដ្ឋាក/យិកា', teacher: teacherName || '', data: f });
     setSubmittedAt(sub.submittedAt);
-    setToast('បានបញ្ជូនរបាយការណ៍ទៅនាយកសាលា ☁️ កំពុងផ្ញើ PDF…');
+    setToast('កំពុងផ្ញើរបាយការណ៍ជា PDF ចូល Telegram…');
     // Render the sheet AFTER the submit date is stamped so the PDF shows it, then
     // auto-deliver to the teachers' Telegram group.
     await new Promise(r => setTimeout(r, 60));
