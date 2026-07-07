@@ -113,7 +113,7 @@ const ART_TEMPLATE: ReportTemplate = {
 // HealthClinicReport); only the key is needed here to route to it.
 const HEALTH_TEMPLATE: ReportTemplate = {
   key: 'health',
-  title: 'របាយការណ៍ប្រចាំខែ គិលានុបដ្ឋាក/យិកា',
+  title: 'របាយការណ៍ប្រចាំខែ គិលានុបដ្ឋាកយិកា',
   blocks: [],
 };
 

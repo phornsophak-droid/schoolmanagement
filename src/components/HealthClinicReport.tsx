@@ -103,7 +103,7 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
   const handleSubmit = async () => {
     if (sending) return;
     setSending(true);
-    const sub = submitReport({ key: storeKey, grade, period, type: 'health', title: 'របាយការណ៍ប្រចាំខែ គិលានុបដ្ឋាក/យិកា', teacher: teacherName || '', data: f });
+    const sub = submitReport({ key: storeKey, grade, period, type: 'health', title: 'របាយការណ៍ប្រចាំខែ គិលានុបដ្ឋាកយិកា', teacher: teacherName || '', data: f });
     setSubmittedAt(sub.submittedAt);
     setToast('កំពុងផ្ញើរបាយការណ៍ជា PDF ចូល Telegram…');
     // Render the sheet AFTER the submit date is stamped so the PDF shows it, then
@@ -145,7 +145,7 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
       {/* Toolbar (hidden in print) */}
       <div className="flex items-center justify-between gap-3 p-4 bg-white rounded-2xl shadow-sm border border-slate-100 print:hidden">
         <div>
-          <h3 className="text-sm font-bold text-slate-800">📄 របាយការណ៍ប្រចាំខែ គិលានុបដ្ឋាក/យិកា (CamKids Clinic)</h3>
+          <h3 className="text-sm font-bold text-slate-800">📄 របាយការណ៍ប្រចាំខែ គិលានុបដ្ឋាកយិកា (CCC Clinic)</h3>
           <p className="text-xs text-slate-400 mt-0.5">{grade} • {period} — បំពេញដោយផ្ទាល់ (រក្សាទុកស្វ័យប្រវត្តិ)</p>
         </div>
         <div className="flex items-center gap-2">
@@ -166,13 +166,13 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
 
         {/* Header */}
         <div className="text-center border-b-2 border-slate-800 pb-3 mb-5">
-          <h1 className="text-lg font-extrabold tracking-wide">គ្លីនិក CamKids Clinic</h1>
-          <p className="text-sm text-slate-600 mt-0.5">របាយការណ៍ប្រចាំខែរបស់គិលានុបដ្ឋាក/យិកា</p>
+          <h1 className="text-lg font-extrabold tracking-wide">គ្លីនិកសហគមន៍ច្បារច្រុះ (CCC Clinic)</h1>
+          <p className="text-sm text-slate-600 mt-0.5">របាយការណ៍ប្រចាំខែរបស់គិលានុបដ្ឋាកយិកា</p>
         </div>
 
         <div className="space-y-2 mb-6">
           <div className="flex gap-2 items-center"><span className="font-bold whitespace-nowrap">ខែធ្វើរបាយការណ៍៖</span><span>{period}</span></div>
-          <div className="flex gap-2 items-center"><span className="font-bold whitespace-nowrap">ឈ្មោះគិលានុបដ្ឋាក/យិកា៖</span><span>{teacherName || '________________'}</span></div>
+          <div className="flex gap-2 items-center"><span className="font-bold whitespace-nowrap">ឈ្មោះគិលានុបដ្ឋាកយិកា៖</span><span>{teacherName || '________________'}</span></div>
           <div className="flex gap-2 items-center"><span className="font-bold whitespace-nowrap">កាលបរិច្ឆេទប្រគល់៖</span><LineInput value={v('submitDate')} onChange={x => set('submitDate', x)} w="w-40" /></div>
         </div>
 
@@ -263,7 +263,7 @@ export default function HealthClinicReport({ grade, period, teacherName, onClose
           <div className="space-y-1">
             {subDate && <p>{subDate.lunar}</p>}
             <p>{subDate ? `ច្បារច្រុះ ថ្ងៃទី${subDate.day} ខែ${subDate.month} ឆ្នាំ${subDate.year}` : 'កាលបរិច្ឆេទ៖ ...... / ...... / ......'}</p>
-            <p className="font-bold pt-2">ហត្ថលេខាគិលានុបដ្ឋាក/យិកា</p>
+            <p className="font-bold pt-2">ហត្ថលេខាគិលានុបដ្ឋាកយិកា</p>
             <TeacherSignature grade={grade} height={64} />
           </div>
         </div>
