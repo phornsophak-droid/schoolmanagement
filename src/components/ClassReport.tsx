@@ -11,6 +11,7 @@ import GeneralClassReport from './GeneralClassReport';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature from './TeacherSignature';
 import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
+import { exportElementToMultipagePdf } from '../utils/exportPdf';
 
 const SCHOOL_NAME = 'សាលាសហគមន៍ច្បារច្រុះ';
 
@@ -219,6 +220,16 @@ export default function ClassReport({ template, students, grade, period, teacher
     setTimeout(() => setToast(''), 3000);
   };
 
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const handlePdf = async () => {
+    const el = document.getElementById('class-report-print');
+    if (!el) return;
+    setPdfBusy(true);
+    try { await exportElementToMultipagePdf(el, 'CCC-Report'); }
+    catch { alert('បង្កើត PDF មិនបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setPdfBusy(false); }
+  };
+
   // Unique students + A–F distribution from each student's mean score.
   const stats = useMemo(() => {
     let recs = students.filter(s => s.grade === grade);
@@ -270,8 +281,8 @@ export default function ClassReport({ template, students, grade, period, teacher
           <button onClick={handleSubmit} className={`px-4 py-2 ${submittedAt ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors`}>
             {submittedAt ? <CheckCircle2 size={13} /> : <Send size={13} />} {submittedAt ? 'បានបញ្ជូន ✓' : 'បញ្ជូនរបាយការណ៍'}
           </button>
-          <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
-            <Printer size={13} /> បោះពុម្ព / PDF
+          <button onClick={handlePdf} disabled={pdfBusy} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
+            <Printer size={13} /> {pdfBusy ? 'កំពុងបង្កើត…' : 'ទាញយក PDF'}
           </button>
           <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-colors">
             <X size={13} /> បិទ
@@ -280,7 +291,7 @@ export default function ClassReport({ template, students, grade, period, teacher
       </div>
 
       {/* The printable report sheet */}
-      <div className="rc-grow-inputs bg-white rounded-2xl shadow-sm border border-slate-100 p-8 print:p-0 print:border-0 print:shadow-none text-slate-800 text-sm leading-relaxed">
+      <div id="class-report-print" className="rc-grow-inputs bg-white rounded-2xl shadow-sm border border-slate-100 p-8 print:p-0 print:border-0 print:shadow-none text-slate-800 text-sm leading-relaxed">
 
         {/* Header */}
         <div className="text-center border-b-2 border-slate-800 pb-3 mb-5">

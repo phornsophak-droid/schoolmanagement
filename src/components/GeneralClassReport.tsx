@@ -8,6 +8,7 @@ import { Printer, X, Send, CheckCircle2 } from 'lucide-react';
 import { StudentScore } from '../types';
 import { khmerMonthEnd } from '../utils/khmerDate';
 import { submitReport, getSubmission, submissionDate } from '../utils/reportSubmit';
+import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import TeacherSignature from './TeacherSignature';
 
 interface GeneralClassReportProps {
@@ -80,6 +81,16 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
   };
   const subDate = submittedAt ? submissionDate(submittedAt) : null;
 
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const handlePdf = async () => {
+    const el = document.getElementById('gen-class-print');
+    if (!el) return;
+    setPdfBusy(true);
+    try { await exportElementToMultipagePdf(el, 'CCC-General-Report'); }
+    catch { alert('បង្កើត PDF មិនបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setPdfBusy(false); }
+  };
+
   // Auto-computed statistics for this class & month.
   const st = useMemo(() => {
     const recs = students.filter(s => s.grade === grade && s.month === period);
@@ -122,8 +133,8 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
           <button onClick={handleSubmit} className={`px-4 py-2 ${submittedAt ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors`}>
             {submittedAt ? <CheckCircle2 size={13} /> : <Send size={13} />} {submittedAt ? 'បានបញ្ជូន ✓' : 'បញ្ជូនរបាយការណ៍'}
           </button>
-          <button onClick={() => window.print()} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
-            <Printer size={13} /> បោះពុម្ព / PDF
+          <button onClick={handlePdf} disabled={pdfBusy} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
+            <Printer size={13} /> {pdfBusy ? 'កំពុងបង្កើត…' : 'ទាញយក PDF'}
           </button>
           <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-colors">
             <X size={13} /> បិទ
@@ -132,7 +143,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
       </div>
 
       {/* Printable sheet */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 print:p-0 print:border-0 print:shadow-none text-slate-800 text-[12px] leading-relaxed">
+      <div id="gen-class-print" className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 print:p-0 print:border-0 print:shadow-none text-slate-800 text-[12px] leading-relaxed">
 
         <div className="text-center border-b-2 border-slate-800 pb-3 mb-4">
           <h1 className="text-lg font-extrabold tracking-wide">របាយការណ៍ប្រចាំខែថ្នាក់ចំណេះដឹងទូទៅ</h1>

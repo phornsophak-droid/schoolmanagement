@@ -198,11 +198,9 @@ export async function renderElementToPngDataUrl(el: HTMLElement, fixedWidth?: nu
   return canvas.toDataURL('image/png');
 }
 
-// Render an element to a MULTI-PAGE A4 PDF (fit to page width, spilling onto more
-// pages when tall) and return it as a base64 data URL WITHOUT downloading — used
-// to post a long report to the server (e.g. Telegram sendDocument).
-export async function renderElementToPdfDataUrl(el: HTMLElement, fixedWidth?: number): Promise<string> {
-  const canvas = await renderElementToCanvas(el, fixedWidth);
+// Build a MULTI-PAGE A4 PDF from a canvas (fit to page width, spilling onto more
+// pages when tall).
+function buildMultipagePdf(canvas: HTMLCanvasElement): jsPDF {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
@@ -221,7 +219,22 @@ export async function renderElementToPdfDataUrl(el: HTMLElement, fixedWidth?: nu
     pdf.addImage(img, 'JPEG', margin, position, imgW, imgH, undefined, 'FAST');
     heightLeft -= (pageH - margin * 2);
   }
-  return pdf.output('datauristring'); // data:application/pdf;base64,...
+  return pdf;
+}
+
+// Render an element to a MULTI-PAGE A4 PDF and return it as a base64 data URL
+// WITHOUT downloading — used to post a long report to the server (Telegram).
+export async function renderElementToPdfDataUrl(el: HTMLElement, fixedWidth?: number): Promise<string> {
+  return buildMultipagePdf(await renderElementToCanvas(el, fixedWidth)).output('datauristring');
+}
+
+// Render an element to a MULTI-PAGE A4 PDF and DOWNLOAD/open it — a reliable
+// replacement for window.print() (which the app's fixed-height shell clips to one
+// page). Rendering runs in the foreground, then the file is delivered.
+export async function exportElementToMultipagePdf(el: HTMLElement, filename: string, fixedWidth?: number): Promise<void> {
+  const pdf = buildMultipagePdf(await renderElementToCanvas(el, fixedWidth));
+  const name = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+  deliverBlob(pdf.output('blob'), name);
 }
 
 // Render an element to a downloadable PNG image (lossless — keeps Khmer text and
