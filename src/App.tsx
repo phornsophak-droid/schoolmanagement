@@ -118,13 +118,14 @@ const mergeRowsById = (key: string, delta: any[] | null | undefined) => {
   else safeSetLocal(key, JSON.stringify(merged));
 };
 
-// The work-report submission LOG is LOCAL ONLY now — reports live in Telegram and
-// nothing report-related is written to the cloud. So we deliberately do NOT restore
-// this key from the cloud: a stale cloud value must never clobber the device's own
-// record. Kept as a no-op so the existing call sites need no change.
+// Restore the work-report submission NOTICE pulled from the cloud so the principal
+// gets an in-app alert when a teacher submits. Only the lightweight notice syncs —
+// strip any legacy `data` blob so report content can't ride along / bloat storage.
 // See src/utils/reportSubmit.ts.
-function restoreReportSubmissions(_subs: any): void {
-  /* intentionally no-op — the submission log stays local */
+function restoreReportSubmissions(subs: any): void {
+  if (!Array.isArray(subs)) return;
+  const light = subs.map((s: any) => { const { data, ...meta } = s || {}; return meta; });
+  safeSetLocal('report_submissions', JSON.stringify(light));
 }
 import Dashboard from './components/Dashboard';
 import TelegramAnnounce from './components/TelegramAnnounce';
@@ -148,7 +149,7 @@ import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
 import { persistAttendance, loadAttendance, initAttendanceStore, clearAttendanceStore } from './utils/attendanceStore';
 import { persistScores, loadScores, initScoresStore, clearScoresStore } from './utils/scoresStore';
-import { pruneSubmissionBlobs } from './utils/reportSubmit';
+import { pruneSubmissionBlobs, unseenSubmissions, markSubmissionsSeen } from './utils/reportSubmit';
 import { useT, LanguageToggle } from './i18n';
 
 
@@ -256,6 +257,26 @@ export default function App() {
   // Reclaim localStorage: drop any heavy work-report blobs left over from before
   // reports moved to Telegram-only (they overflowed the quota).
   useEffect(() => { try { pruneSubmissionBlobs(); } catch { /* ignore */ } }, []);
+
+  // Principal alert — how many teacher report submissions haven't been viewed yet.
+  // The notice arrives from the cloud (restoreReportSubmissions) into localStorage,
+  // so we recompute on a light interval + window focus to keep the badge fresh.
+  const [unseenReports, setUnseenReports] = useState(0);
+  useEffect(() => {
+    if (currentUser?.role !== 'principal') { setUnseenReports(0); return; }
+    const recompute = () => { try { setUnseenReports(unseenSubmissions().length); } catch { /* ignore */ } };
+    recompute();
+    const id = setInterval(recompute, 20000);
+    window.addEventListener('focus', recompute);
+    return () => { clearInterval(id); window.removeEventListener('focus', recompute); };
+  }, [currentUser]);
+  // Opening the Reports view is treated as "seen" and clears the alert.
+  useEffect(() => {
+    if (currentUser?.role === 'principal' && activeView === 'wizard') {
+      markSubmissionsSeen();
+      setUnseenReports(0);
+    }
+  }, [activeView, currentUser]);
 
   // 1. Initial State Hydration with safety fallback (LocalStorage)
   // Wait for the IndexedDB stores to load first: loadScores()/loadAttendance()
@@ -1532,6 +1553,9 @@ export default function App() {
               <FileText size={16} className={activeView === 'wizard' ? 'text-blue-400' : 'text-slate-400'} />
               <span>{t('nav.reports')}</span>
             </div>
+            {currentUser?.role === 'principal' && unseenReports > 0 && (
+              <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-extrabold flex items-center justify-center animate-pulse">{unseenReports}</span>
+            )}
             {currentUser?.role === 'teacher' && <Lock size={12} className="text-slate-500" />}
           </button>
 
@@ -2031,6 +2055,15 @@ export default function App() {
                     exit={{ opacity: 0, y: -15 }}
                     transition={{ duration: 0.15 }}
                   >
+                    {currentUser?.role === 'principal' && unseenReports > 0 && (
+                      <button
+                        onClick={handleCreateReportInit}
+                        className="w-full mb-4 flex items-center gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-left hover:bg-amber-100 transition-colors shadow-sm"
+                      >
+                        <span className="flex-none w-9 h-9 rounded-full bg-amber-500 text-white flex items-center justify-center font-extrabold animate-pulse">{unseenReports}</span>
+                        <span className="text-sm font-bold text-amber-900">គ្រូបានបញ្ជូនរបាយការណ៍ថ្មី {String(unseenReports).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d])} — ចុចដើម្បីមើល</span>
+                      </button>
+                    )}
                     <Dashboard
                       reports={reports}
                       students={students}

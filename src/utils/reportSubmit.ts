@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Submission of the monthly work reports. The report itself is delivered to the
-// principal as a PDF in Telegram — it is NOT stored in the cloud. All we keep is a
-// LOCAL, lightweight log ('report_submissions' in localStorage) marking that a
-// report was sent, so the teacher's device can show "បានបញ្ជូន ✓". The submit
-// time becomes the report's printed date.
+// Submission of the monthly work reports. The report CONTENT (filled fields / PDF)
+// is delivered to the principal in Telegram and is NEVER stored in the cloud. Only
+// a tiny NOTICE (title, class, month, teacher, time — no report data) syncs to the
+// cloud, so the PRINCIPAL's account can show an in-app alert that a teacher
+// submitted. On the teacher's own device the same notice drives "បានបញ្ជូន ✓". The
+// submit time becomes the report's printed date.
 
 import { syncUpsertSetting, fetchSetting } from '../lib/supabase';
 import { renderElementToPdfDataUrl } from './exportPdf';
@@ -43,13 +44,30 @@ export function getSubmission(key: string): ReportSubmission | undefined {
 
 export function submitReport(entry: Omit<ReportSubmission, 'submittedAt'>): ReportSubmission {
   const full: ReportSubmission = { ...entry, submittedAt: new Date().toISOString() };
-  // The report is delivered to Telegram — nothing report-related is saved to the
-  // cloud. We keep only a LOCAL, lightweight submission LOG (no `data` blob) so the
-  // teacher's device can show "បានបញ្ជូន ✓". Deliberately no cloud sync here.
+  // Keep only the lightweight NOTICE (drop the heavy `data` blob — the report goes
+  // to Telegram). Store locally, then sync the notice to the cloud so the principal
+  // gets an in-app alert on their device. The notice carries no report content.
   const { data, ...meta } = full;
   const next: ReportSubmission[] = [meta, ...loadSubmissions().filter(s => s.key !== entry.key)];
   try { localStorage.setItem(STORE, JSON.stringify(next)); } catch { /* ignore */ }
+  Promise.resolve(syncUpsertSetting(STORE, next)).catch(() => { /* stays local */ });
   return full; // caller still gets `data` for immediate rendering/printing
+}
+
+// ── Principal alert: which submissions the principal hasn't looked at yet ──────
+// A device-local watermark (last time the list was viewed). Anything newer counts
+// as an unseen alert. Stored per device so each principal device tracks its own.
+const SEEN_KEY = 'report_submissions_seen_at';
+
+export function unseenSubmissions(): ReportSubmission[] {
+  let seen = '';
+  try { seen = localStorage.getItem(SEEN_KEY) || ''; } catch { /* ignore */ }
+  return loadSubmissions().filter(s => (s.submittedAt || '') > seen);
+}
+
+export function markSubmissionsSeen(): void {
+  const latest = loadSubmissions().reduce((m, s) => (s.submittedAt > m ? s.submittedAt : m), '');
+  try { localStorage.setItem(SEEN_KEY, latest || new Date().toISOString()); } catch { /* ignore */ }
 }
 
 // One-time cleanup: strip heavy report blobs already sitting in the stored
