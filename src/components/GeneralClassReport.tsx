@@ -153,9 +153,9 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
     // average, math, or Khmer. The subject column lists which they're failing.
     const failSubjects = (s: StudentScore): string => {
       const out: string[] = [];
+      if ((s.overallAvg ?? 10) < 5) out.push('មធ្យមភាគ');
       if ((s.khmerAvg ?? 10) < 5) out.push('ភាសាខ្មែរ');
       if ((s.mathAvg ?? 10) < 5) out.push('គណិតវិទ្យា');
-      if (out.length === 0 && (s.overallAvg ?? 10) < 5) out.push('មធ្យមភាគរួម');
       return out.join(', ');
     };
     const slow = recs.filter(s => (s as any).status === 'រៀនយឺត'
