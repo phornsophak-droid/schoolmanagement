@@ -454,6 +454,24 @@ export default function ClassStudentMgmt({
     }
   };
 
+  // Delete every student of the SELECTED group within the active class.
+  const handleClearGroupInActiveGrade = () => {
+    if (!canManageStudents(selectedRosterGrade)) {
+      alert(`លោកអ្នកមានសិទ្ធិលុបសិស្សបានតែក្នុងថ្នាក់របស់លោកអ្នកប៉ុណ្ណោះ!`);
+      return;
+    }
+    if (selectedRosterGrade === 'ទាំងអស់' || selectedGroup === 'ទាំងអស់') {
+      alert('សូមជ្រើសរើសថ្នាក់ និងក្រុមជាក់លាក់ជាមុនសិន ដើម្បីលុបតាមក្រុម!');
+      return;
+    }
+    const grp = selectedGroup === '(គ្មានក្រុម)' ? '' : selectedGroup;
+    if (window.confirm(`តើលោកអ្នកពិតជាចង់លុបសិស្សទាំងអស់ក្នុងក្រុម «${selectedGroup}» នៃថ្នាក់ «${selectedRosterGrade}» មែនទេ? ទិន្នន័យពិន្ទុ និងគណនីរបស់ពួកគេនឹងត្រូវលុបចោលទាំងស្រុង!`)) {
+      const remaining = students.filter(s => !(s.grade === selectedRosterGrade && (s.group || '') === grp));
+      onSaveStudents(remaining);
+      alert(`បានលុបសិស្សក្នុងក្រុម «${selectedGroup}» រួចរាល់ហើយ។`);
+    }
+  };
+
   const handleClearAllStudentsGlobally = () => {
     if (currentUser?.role === 'teacher') {
       alert('លោកអ្នកមានសិទ្ធិលុបសិស្សបានតែក្នុងថ្នាក់របស់លោកអ្នកប៉ុណ្ណោះ! សូមជ្រើសរើសថ្នាក់ជាក់លាក់របស់លោកអ្នកដើម្បីលុប។');
@@ -1554,6 +1572,16 @@ export default function ClassStudentMgmt({
                             🗑️ លុបសិស្សទាំងអស់គ្នាក្នុងសាលា
                           </button>
                         )
+                      )}
+
+                      {selectedRosterGrade !== 'ទាំងអស់' && selectedGroup !== 'ទាំងអស់' && canManageStudents(selectedRosterGrade) && (
+                        <button
+                          onClick={handleClearGroupInActiveGrade}
+                          className="px-2.5 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/50 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1"
+                          title={`លុបសិស្សក្នុងក្រុម ${selectedGroup}`}
+                        >
+                          🗑️ លុបក្រុម {selectedGroup}
+                        </button>
                       )}
 
                       {canManageStudents(selectedRosterGrade) && (
