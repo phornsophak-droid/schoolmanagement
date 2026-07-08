@@ -380,25 +380,35 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
             </tr>
           </thead>
           <tbody>
-            {Array.from({ length: Math.max(st.slowList.length + 2, 10) }).map((_, i) => {
-              const auto = st.slowList[i];
-              return (
-                <tr key={i}>
-                  <td className={`${td} text-center`}>{toKhNum(i + 1)}</td>
-                  <td className={td}><Cell value={f[`slow_${i}_name`] ?? (auto ? auto.name : '')} onChange={x => set(`slow_${i}_name`, x)} center={false} /></td>
-                  <td className={`${td} text-center`}><Cell value={f[`slow_${i}_gender`] ?? (auto ? auto.gender : '')} onChange={x => set(`slow_${i}_gender`, x)} /></td>
-                  <td className={td}><Cell value={f[`slow_${i}_subject`] ?? (auto ? auto.subject : '')} onChange={x => set(`slow_${i}_subject`, x)} center={false} /></td>
-                  <td className={td}><Cell value={v(`slow_${i}_plan`)} onChange={x => set(`slow_${i}_plan`, x)} center={false} /></td>
-                  <td className={td}><Cell value={v(`slow_${i}_other`)} onChange={x => set(`slow_${i}_other`, x)} center={false} /></td>
-                </tr>
-              );
-            })}
+            {(() => {
+              // Only render rows that have a name — the auto-detected slow learners
+              // plus any the teacher typed in manually. No trailing empty rows.
+              const manualMax = Object.keys(f).reduce((mx, k) => {
+                const m = k.match(/^slow_(\d+)_name$/);
+                return m && (f[k] || '').trim() ? Math.max(mx, +m[1] + 1) : mx;
+              }, 0);
+              const rows = Math.max(st.slowList.length, manualMax);
+              if (rows === 0) return <tr><td className={`${td} text-center text-slate-400`} colSpan={6}>គ្មានសិស្សរៀនយឺតក្នុងខែនេះទេ។</td></tr>;
+              return Array.from({ length: rows }).map((_, i) => {
+                const auto = st.slowList[i];
+                return (
+                  <tr key={i}>
+                    <td className={`${td} text-center`}>{toKhNum(i + 1)}</td>
+                    <td className={td}><Cell value={f[`slow_${i}_name`] ?? (auto ? auto.name : '')} onChange={x => set(`slow_${i}_name`, x)} center={false} /></td>
+                    <td className={`${td} text-center`}><Cell value={f[`slow_${i}_gender`] ?? (auto ? auto.gender : '')} onChange={x => set(`slow_${i}_gender`, x)} /></td>
+                    <td className={td}><Cell value={f[`slow_${i}_subject`] ?? (auto ? auto.subject : '')} onChange={x => set(`slow_${i}_subject`, x)} center={false} /></td>
+                    <td className={td}><Cell value={v(`slow_${i}_plan`)} onChange={x => set(`slow_${i}_plan`, x)} center={false} /></td>
+                    <td className={td}><Cell value={v(`slow_${i}_other`)} onChange={x => set(`slow_${i}_other`, x)} center={false} /></td>
+                  </tr>
+                );
+              });
+            })()}
           </tbody>
         </table>
 
-        {/* 5. Absentees list — forced onto a fresh PDF page so its header isn't
-            orphaned at the bottom of the previous page (see .rc-page-break). */}
-        <div className="rc-page-break">
+        {/* 5. Absentees list — flows right after the slow-learner table (no forced
+            page break) so there's no big gap before it. */}
+        <div>
         <SectionTitle title="៥. សិស្សអវត្តមាន ចាប់ពី ៣ដងឡើង ដោយគ្មានច្បាប់" />
         <table className="w-full border-collapse mb-4">
           <thead>
