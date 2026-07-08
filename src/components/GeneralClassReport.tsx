@@ -27,6 +27,7 @@ const ACTIVITY_ROWS = [
   'កិច្ចការផ្ទះ', 'ថ្នាក់បន្ថែមថ្ងៃសៅរ៍', 'កិច្ចតែងការបង្រៀន', 'សកម្មភាពផ្សេងៗ',
 ];
 const KH_NUM = ['១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩', '១០'];
+const toKhNum = (n: number) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 
@@ -379,11 +380,11 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
             </tr>
           </thead>
           <tbody>
-            {KH_NUM.map((kn, i) => {
+            {Array.from({ length: Math.max(st.slowList.length + 2, 10) }).map((_, i) => {
               const auto = st.slowList[i];
               return (
                 <tr key={i}>
-                  <td className={`${td} text-center`}>{kn}</td>
+                  <td className={`${td} text-center`}>{toKhNum(i + 1)}</td>
                   <td className={td}><Cell value={f[`slow_${i}_name`] ?? (auto ? auto.name : '')} onChange={x => set(`slow_${i}_name`, x)} center={false} /></td>
                   <td className={`${td} text-center`}><Cell value={f[`slow_${i}_gender`] ?? (auto ? auto.gender : '')} onChange={x => set(`slow_${i}_gender`, x)} /></td>
                   <td className={td}><Cell value={f[`slow_${i}_subject`] ?? (auto ? auto.subject : '')} onChange={x => set(`slow_${i}_subject`, x)} center={false} /></td>
@@ -411,7 +412,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
               <tr><td className={`${td} text-center text-slate-400`} colSpan={6}>គ្មានសិស្សអវត្តមានអត់ច្បាប់ចាប់ពី ៣ដងឡើងក្នុងខែនេះទេ។</td></tr>
             ) : absentMany.list.map((a, i) => (
               <tr key={a.name}>
-                <td className={`${td} text-center`}>{KH_NUM[i] || i + 1}</td>
+                <td className={`${td} text-center`}>{toKhNum(i + 1)}</td>
                 <td className={td}>{a.name}</td>
                 <td className={`${td} text-center`}>{a.gender}</td>
                 <td className={`${td} text-center`}>{toKh(a.days)}</td>
