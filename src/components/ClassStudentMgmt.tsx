@@ -655,19 +655,23 @@ export default function ClassStudentMgmt({
     if (exportTemplate) {
       const tplGrade = selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦');
       listToExport = [
-        { id: '1', name: 'សុខ ម៉ារីហ្សា', gender: 'ស្រី', grade: tplGrade, group: classCategory === 'extra' ? 'A' : undefined, status: 'ធម្មតា' } as any,
-        { id: '2', name: 'លី ម៉េងហួរ', gender: 'ប្រុស', grade: tplGrade, group: classCategory === 'extra' ? 'B' : undefined, status: 'ធម្មតា' } as any
+        { id: '1', studentId: '1001', name: 'សុខ ម៉ារីហ្សា', gender: 'ស្រី', grade: tplGrade, group: classCategory === 'extra' ? 'A' : undefined, dob: '01/01/2015', status: 'ធម្មតា' } as any,
+        { id: '2', studentId: '1002', name: 'លី ម៉េងហួរ', gender: 'ប្រុស', grade: tplGrade, group: classCategory === 'extra' ? 'B' : undefined, dob: '15/03/2015', status: 'ធម្មតា' } as any
       ];
     }
 
     // After-hours classes get an extra ក្រុម column.
     const withGroup = classCategory === 'extra';
-    const headers = withGroup ? "ល.រ,ឈ្មោះសិស្ស,ភេទ,ថ្នាក់,ក្រុម,ស្ថានភាព" : "ល.រ,ឈ្មោះសិស្ស,ភេទ,ថ្នាក់,ស្ថានភាព";
+    const headers = withGroup
+      ? "ល.រ,អត្តលេខ,ឈ្មោះសិស្ស,ភេទ,ថ្នាក់,ក្រុម,ថ្ងៃខែឆ្នាំកំណើត,ស្ថានភាព"
+      : "ល.រ,អត្តលេខ,ឈ្មោះសិស្ស,ភេទ,ថ្នាក់,ថ្ងៃខែឆ្នាំកំណើត,ស្ថានភាព";
     const rows = listToExport.map((s, idx) => {
       const statusStr = s.status || 'ធម្មតា';
+      const id = resolvedId(s) || '';
+      const dob = resolvedDob(s) || '';
       return withGroup
-        ? `${idx + 1},"${s.name}","${s.gender}","${s.grade}","${s.group || ''}","${statusStr}"`
-        : `${idx + 1},"${s.name}","${s.gender}","${s.grade}","${statusStr}"`;
+        ? `${idx + 1},"${id}","${s.name}","${s.gender}","${s.grade}","${s.group || ''}","${dob}","${statusStr}"`
+        : `${idx + 1},"${id}","${s.name}","${s.gender}","${s.grade}","${dob}","${statusStr}"`;
     });
     
     // We prepend the UTF-8 Byte Order Mark (BOM) so Microsoft Excel on Windows/macOS correctly parses Khmer font!
@@ -792,6 +796,8 @@ export default function ClassStudentMgmt({
         let serialIndex = -1;
         let statusIndex = -1;
         let groupIndex = -1;
+        let studentIdIndex = -1;
+        let dobIndex = -1;
 
         let bestHeaderRowIndex = -1;
         let bestHeaderScore = 0;
@@ -801,6 +807,8 @@ export default function ClassStudentMgmt({
         let bestSerialIdx = -1;
         let bestStatusIdx = -1;
         let bestGroupIdx = -1;
+        let bestStudentIdIdx = -1;
+        let bestDobIdx = -1;
 
         for (let i = 0; i < Math.min(rows.length, 15); i++) {
           const rowVals = rows[i];
@@ -812,6 +820,8 @@ export default function ClassStudentMgmt({
           let tempSerialIdx = -1;
           let tempStatusIdx = -1;
           let tempGroupIdx = -1;
+          let tempStudentIdIdx = -1;
+          let tempDobIdx = -1;
           let score = 0;
 
           for (let c = 0; c < rowVals.length; c++) {
@@ -854,6 +864,16 @@ export default function ClassStudentMgmt({
                 tempGroupIdx = c;
                 score += 1;
               }
+            } else if (val.includes("អត្តលេខ") || valLower === "studentid" || valLower === "student id") {
+              if (tempStudentIdIdx === -1) {
+                tempStudentIdIdx = c;
+                score += 1;
+              }
+            } else if (val.includes("កំណើត") || valLower === "dob" || valLower.includes("birth")) {
+              if (tempDobIdx === -1) {
+                tempDobIdx = c;
+                score += 1;
+              }
             }
           }
 
@@ -866,6 +886,8 @@ export default function ClassStudentMgmt({
             bestSerialIdx = tempSerialIdx;
             bestStatusIdx = tempStatusIdx;
             bestGroupIdx = tempGroupIdx;
+            bestStudentIdIdx = tempStudentIdIdx;
+            bestDobIdx = tempDobIdx;
           }
         }
 
@@ -877,6 +899,8 @@ export default function ClassStudentMgmt({
           if (bestSerialIdx !== -1) serialIndex = bestSerialIdx;
           if (bestStatusIdx !== -1) statusIndex = bestStatusIdx;
           if (bestGroupIdx !== -1) groupIndex = bestGroupIdx;
+          if (bestStudentIdIdx !== -1) studentIdIndex = bestStudentIdIdx;
+          if (bestDobIdx !== -1) dobIndex = bestDobIdx;
         } else {
           // If no row scored a match, default to index 0 and rely on statistical column-classification helper below
           startIndex = 0;
@@ -1105,6 +1129,14 @@ export default function ClassStudentMgmt({
             ? String(row[groupIndex] ?? '').replace(/[﻿​]/g, '').trim() || undefined
             : undefined;
 
+          // Parse អត្តលេខ and ថ្ងៃខែឆ្នាំកំណើត if the columns are present.
+          const studentIdVal = studentIdIndex !== -1
+            ? String(row[studentIdIndex] ?? '').replace(/[﻿​]/g, '').trim() || undefined
+            : undefined;
+          const dobVal = dobIndex !== -1
+            ? String(row[dobIndex] ?? '').replace(/[﻿​]/g, '').trim() || undefined
+            : undefined;
+
           // Add clean record with default score template
           const payload = {
             id: generateUniqueId(),
@@ -1112,6 +1144,8 @@ export default function ClassStudentMgmt({
             gender: gender,
             grade: gradeVal,
             group: groupVal,
+            studentId: studentIdVal,
+            dob: dobVal,
             status: statusVal,
             month: 'មេសា', // default fallback
             khmer: { listening: null, writing: null, reading: null, speaking: null },
