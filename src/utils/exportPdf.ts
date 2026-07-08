@@ -303,15 +303,21 @@ function buildMultipagePdf(canvas: HTMLCanvasElement): jsPDF {
   // Single readback of the pixels so we can look for whitespace cut lines.
   let pixels: Uint8ClampedArray | null = null;
   try { pixels = canvas.getContext('2d')!.getImageData(0, 0, cw, ch).data; } catch { pixels = null; }
-  const rowIsBlank = (y: number): boolean => {
-    if (!pixels) return true;
-    const step = Math.max(4, Math.floor(cw / 200)); // ~200 samples across the row
+  // Fraction of "ink" (non-white) pixels in a row. A blank gap ≈ 0; a table cell's
+  // interior is tiny (just the vertical borders); a line of text is high. We cut at
+  // the emptiest row so text/rows are never sliced — crucially this also works for
+  // TABLES, whose every row has vertical borders and so is never fully blank.
+  const rowInk = (y: number): number => {
+    if (!pixels) return 0;
+    const step = Math.max(2, Math.floor(cw / 400)); // ~400 samples across the row
+    let ink = 0, samples = 0;
     for (let x = 0; x < cw; x += step) {
+      samples++;
       const i = (y * cw + x) * 4;
-      if (pixels[i + 3] < 8) continue; // transparent = blank
-      if (pixels[i] < 244 || pixels[i + 1] < 244 || pixels[i + 2] < 244) return false; // ink
+      if (pixels[i + 3] < 8) continue; // transparent
+      if (pixels[i] < 210 || pixels[i + 1] < 210 || pixels[i + 2] < 210) ink++; // ink
     }
-    return true;
+    return samples ? ink / samples : 0;
   };
 
   // Forced page breaks (canvas Y) from `.rc-page-break` elements — a section that
@@ -332,12 +338,15 @@ function buildMultipagePdf(canvas: HTMLCanvasElement): jsPDF {
     if (fb !== undefined) {
       sliceH = fb - sy;
     } else if (sy + sliceH < ch && pixels) {
-      // Otherwise back the cut up to a blank row (keep >= 55% of the page so we
-      // don't waste too much space when whitespace is scarce).
-      const minH = Math.floor(sliceH * 0.55);
+      // Otherwise back the cut up to the EMPTIEST row in the lower half of the page
+      // (keep >= 50%), so a line of text / table row is never sliced through.
+      const minH = Math.floor(sliceH * 0.5);
+      let bestY = sy + sliceH, bestInk = Infinity;
       for (let y = sy + sliceH; y > sy + minH; y--) {
-        if (rowIsBlank(y)) { sliceH = y - sy; break; }
+        const ink = rowInk(y);
+        if (ink < bestInk) { bestInk = ink; bestY = y; if (ink === 0) break; }
       }
+      sliceH = bestY - sy;
     }
     tmp.width = cw;
     tmp.height = sliceH;
