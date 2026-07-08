@@ -1767,6 +1767,8 @@ export default function ClassStudentMgmt({
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500">
                           <th className="px-4 py-3 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{t('common.studentName')}</th>
+                          <th className="px-4 py-3 text-center whitespace-nowrap">អត្តលេខ</th>
+                          <th className="px-4 py-3 text-center whitespace-nowrap">ថ្ងៃខែឆ្នាំកំណើត</th>
                           <th className="px-4 py-3 text-center">{t('common.gender')}</th>
                           <th className="px-4 py-3 text-center">{t('cls.col.class')}</th>
                           {classCategory === 'extra' && <th className="px-4 py-3 text-center">{t('cls.col.group')}</th>}
@@ -1785,6 +1787,8 @@ export default function ClassStudentMgmt({
                                   </span>
                                   {p.name}
                                 </td>
+                                <td className="px-4 py-3 text-center font-sans text-slate-600 whitespace-nowrap">{p.studentId || <span className="text-slate-300">-</span>}</td>
+                                <td className="px-4 py-3 text-center text-slate-600 whitespace-nowrap">{p.dob || <span className="text-slate-300">-</span>}</td>
                                 <td className="px-4 py-3 text-center">
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                     p.gender === 'ស្រី' 
@@ -1843,7 +1847,7 @@ export default function ClassStudentMgmt({
                           })
                         ) : (
                           <tr>
-                            <td colSpan={classCategory === 'extra' ? 6 : 5} className="px-4 py-12 text-center text-slate-400 font-medium">
+                            <td colSpan={classCategory === 'extra' ? 8 : 7} className="px-4 py-12 text-center text-slate-400 font-medium">
                               <AlertTriangle size={32} className="mx-auto text-amber-500 mb-2" />
                               គ្មានគណនីសិស្សដែលស្វែងរកក្នុង {selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : 'ប្រព័ន្ធ'} ឡើយ។
                             </td>
