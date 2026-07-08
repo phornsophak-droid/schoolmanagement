@@ -192,24 +192,32 @@ export default function ClassStudentMgmt({
   //   • ថ្ងៃខែឆ្នាំកំណើត — from the student's GENERAL (non-after-hours) class record,
   //     matched by base name (dob is shared across all their classes).
   const lookups = useMemo(() => {
-    const idByClass = new Map<string, { id: string; june: boolean }>();
+    const idByClass = new Map<string, { id: string; june: boolean }>(); // name|grade|group
+    const idByBase = new Map<string, { id: string; june: boolean }>();  // base name (any class)
     const dobByBase = new Map<string, string>();
     for (const s of students) {
       const sid = (s as any).studentId;
+      const june = s.month === 'មិថុនា';
       if (sid) {
-        const key = `${s.name.trim()}|${s.grade}|${s.group || ''}`;
-        const cur = idByClass.get(key);
-        const june = s.month === 'មិថុនា';
-        if (!cur || (june && !cur.june)) idByClass.set(key, { id: sid, june });
+        const ckey = `${s.name.trim()}|${s.grade}|${s.group || ''}`;
+        const c = idByClass.get(ckey); if (!c || (june && !c.june)) idByClass.set(ckey, { id: sid, june });
+        const bkey = baseStudentName(s.name);
+        const b = idByBase.get(bkey); if (!b || (june && !b.june)) idByBase.set(bkey, { id: sid, june });
       }
       if (s.dob && !isExtraClass(s.grade)) {
         const base = baseStudentName(s.name);
         if (!dobByBase.has(base)) dobByBase.set(base, s.dob);
       }
     }
-    return { idByClass, dobByBase };
+    return { idByClass, idByBase, dobByBase };
   }, [students]);
-  const resolvedId = (p: StudentScore) => p.studentId || lookups.idByClass.get(`${p.name.trim()}|${p.grade}|${p.group || ''}`)?.id || '';
+  // Prefer THIS class's id, then the record's own, then ANY of the student's other
+  // records — so every student gets an id filled in.
+  const resolvedId = (p: StudentScore) =>
+    lookups.idByClass.get(`${p.name.trim()}|${p.grade}|${p.group || ''}`)?.id
+    || p.studentId
+    || lookups.idByBase.get(baseStudentName(p.name))?.id
+    || '';
   const resolvedDob = (p: StudentScore) => p.dob || lookups.dobByBase.get(baseStudentName(p.name)) || '';
 
   // Stats calculation — count UNIQUE students (by name+grade, not monthly records),
