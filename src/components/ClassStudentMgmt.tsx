@@ -186,27 +186,31 @@ export default function ClassStudentMgmt({
   const phantomGrades = useMemo(() => findPhantomGrades(students.map(s => s.grade)), [students]);
   const visibleStudents = useMemo(() => students.filter(s => !phantomGrades.has(s.grade)), [students, phantomGrades]);
 
-  // After-hours rows (tagged "(PE)"/"(H)") carry no id/dob, so pull them from the
-  // student's other records, matched by base name:
-  //   • អត្តលេខ — from the June (មិថុនា) score list (falls back to any month).
-  //   • ថ្ងៃខែឆ្នាំកំណើត — from the general (non-after-hours) class record.
-  const identityByBase = useMemo(() => {
-    const m = new Map<string, { studentId?: string; dob?: string; idFromJune?: boolean }>();
+  // Fill blank id/dob from the student's other records:
+  //   • អត្តលេខ — from THIS class's own score list (the after-hours class has its own
+  //     A00x ids), preferring the June (មិថុនា) month; keyed by name+grade+group.
+  //   • ថ្ងៃខែឆ្នាំកំណើត — from the student's GENERAL (non-after-hours) class record,
+  //     matched by base name (dob is shared across all their classes).
+  const lookups = useMemo(() => {
+    const idByClass = new Map<string, { id: string; june: boolean }>();
+    const dobByBase = new Map<string, string>();
     for (const s of students) {
-      const base = baseStudentName(s.name);
-      let cur = m.get(base);
-      if (!cur) { cur = {}; m.set(base, cur); }
       const sid = (s as any).studentId;
       if (sid) {
-        if (s.month === 'មិថុនា' && !cur.idFromJune) { cur.studentId = sid; cur.idFromJune = true; }
-        else if (!cur.studentId) cur.studentId = sid;
+        const key = `${s.name.trim()}|${s.grade}|${s.group || ''}`;
+        const cur = idByClass.get(key);
+        const june = s.month === 'មិថុនា';
+        if (!cur || (june && !cur.june)) idByClass.set(key, { id: sid, june });
       }
-      if (!cur.dob && s.dob && !isExtraClass(s.grade)) cur.dob = s.dob;
+      if (s.dob && !isExtraClass(s.grade)) {
+        const base = baseStudentName(s.name);
+        if (!dobByBase.has(base)) dobByBase.set(base, s.dob);
+      }
     }
-    return m;
+    return { idByClass, dobByBase };
   }, [students]);
-  const resolvedId = (p: StudentScore) => p.studentId || identityByBase.get(baseStudentName(p.name))?.studentId || '';
-  const resolvedDob = (p: StudentScore) => p.dob || identityByBase.get(baseStudentName(p.name))?.dob || '';
+  const resolvedId = (p: StudentScore) => p.studentId || lookups.idByClass.get(`${p.name.trim()}|${p.grade}|${p.group || ''}`)?.id || '';
+  const resolvedDob = (p: StudentScore) => p.dob || lookups.dobByBase.get(baseStudentName(p.name)) || '';
 
   // Stats calculation — count UNIQUE students (by name+grade, not monthly records),
   // scoped to the selected class category. Matches the Dashboard totals.
