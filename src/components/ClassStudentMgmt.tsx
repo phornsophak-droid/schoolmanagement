@@ -1766,12 +1766,12 @@ export default function ClassStudentMgmt({
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500">
-                          <th className="px-4 py-3 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{t('common.studentName')}</th>
-                          <th className="px-4 py-3 text-center whitespace-nowrap">អត្តលេខ</th>
-                          <th className="px-4 py-3 text-center whitespace-nowrap">ថ្ងៃខែឆ្នាំកំណើត</th>
+                          <th className="px-4 py-3 text-center sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">អត្តលេខ</th>
+                          <th className="px-4 py-3 whitespace-nowrap">{t('common.studentName')}</th>
                           <th className="px-4 py-3 text-center">{t('common.gender')}</th>
                           <th className="px-4 py-3 text-center">{t('cls.col.class')}</th>
                           {classCategory === 'extra' && <th className="px-4 py-3 text-center">{t('cls.col.group')}</th>}
+                          <th className="px-4 py-3 text-center whitespace-nowrap">ថ្ងៃខែឆ្នាំកំណើត</th>
                           <th className="px-4 py-3 text-center">{t('cls.col.status')}</th>
                           <th className="px-4 py-3 text-right">{t('common.action')}</th>
                         </tr>
@@ -1781,17 +1781,18 @@ export default function ClassStudentMgmt({
                           filteredProfiles.map((p, index) => {
                             return (
                               <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-4 py-3 font-bold text-slate-800 flex items-center gap-2 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">
-                                  <span className="w-7 h-7 bg-indigo-50 text-indigo-650 rounded-full flex items-center justify-center font-sans font-black text-[11px] border border-indigo-100">
-                                    {index + 1}
-                                  </span>
-                                  {p.name}
+                                <td className="px-4 py-3 text-center font-sans text-slate-700 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{p.studentId || <span className="text-slate-300">-</span>}</td>
+                                <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-7 h-7 bg-indigo-50 text-indigo-650 rounded-full flex items-center justify-center font-sans font-black text-[11px] border border-indigo-100">
+                                      {index + 1}
+                                    </span>
+                                    {p.name}
+                                  </div>
                                 </td>
-                                <td className="px-4 py-3 text-center font-sans text-slate-600 whitespace-nowrap">{p.studentId || <span className="text-slate-300">-</span>}</td>
-                                <td className="px-4 py-3 text-center text-slate-600 whitespace-nowrap">{p.dob || <span className="text-slate-300">-</span>}</td>
                                 <td className="px-4 py-3 text-center">
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                    p.gender === 'ស្រី' 
+                                    p.gender === 'ស្រី'
                                       ? 'bg-rose-50 border border-pink-100 text-rose-600'
                                       : 'bg-blue-50 border border-blue-100 text-blue-600'
                                   }`}>
@@ -1804,6 +1805,7 @@ export default function ClassStudentMgmt({
                                     {p.group ? <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 border border-indigo-100">{p.group}</span> : <span className="text-slate-300">-</span>}
                                   </td>
                                 )}
+                                <td className="px-4 py-3 text-center text-slate-600 whitespace-nowrap">{p.dob || <span className="text-slate-300">-</span>}</td>
                                 <td className="px-4 py-3 text-center">
                                   {p.status === 'រៀនយឺត' ? (
                                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 border border-amber-105 text-amber-700">
