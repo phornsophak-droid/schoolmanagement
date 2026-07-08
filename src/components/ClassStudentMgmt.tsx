@@ -186,17 +186,22 @@ export default function ClassStudentMgmt({
   const phantomGrades = useMemo(() => findPhantomGrades(students.map(s => s.grade)), [students]);
   const visibleStudents = useMemo(() => students.filter(s => !phantomGrades.has(s.grade)), [students, phantomGrades]);
 
-  // A student's អត្តលេខ / ថ្ងៃខែឆ្នាំកំណើត are usually filled only on their general-class
-  // record. Index them by base name so after-hours rows (which carry a "(PE)"/"(H)"
-  // tag and no id/dob) can display the value pulled from that record.
+  // After-hours rows (tagged "(PE)"/"(H)") carry no id/dob, so pull them from the
+  // student's other records, matched by base name:
+  //   • អត្តលេខ — from the June (មិថុនា) score list (falls back to any month).
+  //   • ថ្ងៃខែឆ្នាំកំណើត — from the general (non-after-hours) class record.
   const identityByBase = useMemo(() => {
-    const m = new Map<string, { studentId?: string; dob?: string }>();
+    const m = new Map<string, { studentId?: string; dob?: string; idFromJune?: boolean }>();
     for (const s of students) {
       const base = baseStudentName(s.name);
       let cur = m.get(base);
       if (!cur) { cur = {}; m.set(base, cur); }
-      if (!cur.studentId && (s as any).studentId) cur.studentId = (s as any).studentId;
-      if (!cur.dob && s.dob) cur.dob = s.dob;
+      const sid = (s as any).studentId;
+      if (sid) {
+        if (s.month === 'មិថុនា' && !cur.idFromJune) { cur.studentId = sid; cur.idFromJune = true; }
+        else if (!cur.studentId) cur.studentId = sid;
+      }
+      if (!cur.dob && s.dob && !isExtraClass(s.grade)) cur.dob = s.dob;
     }
     return m;
   }, [students]);
