@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { StudentScore, SchoolUser, afterHoursSubject } from '../types';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
-import { distinctStudentKey, findPhantomGrades } from '../utils/studentKey';
+import { distinctStudentKey, findPhantomGrades, baseStudentName } from '../utils/studentKey';
 import { syncUpsertSetting } from '../lib/supabase';
 import { useT } from '../i18n';
 import * as XLSX from 'xlsx';
@@ -185,6 +185,23 @@ export default function ClassStudentMgmt({
   // those records are never deleted, just not shown.
   const phantomGrades = useMemo(() => findPhantomGrades(students.map(s => s.grade)), [students]);
   const visibleStudents = useMemo(() => students.filter(s => !phantomGrades.has(s.grade)), [students, phantomGrades]);
+
+  // A student's អត្តលេខ / ថ្ងៃខែឆ្នាំកំណើត are usually filled only on their general-class
+  // record. Index them by base name so after-hours rows (which carry a "(PE)"/"(H)"
+  // tag and no id/dob) can display the value pulled from that record.
+  const identityByBase = useMemo(() => {
+    const m = new Map<string, { studentId?: string; dob?: string }>();
+    for (const s of students) {
+      const base = baseStudentName(s.name);
+      let cur = m.get(base);
+      if (!cur) { cur = {}; m.set(base, cur); }
+      if (!cur.studentId && (s as any).studentId) cur.studentId = (s as any).studentId;
+      if (!cur.dob && s.dob) cur.dob = s.dob;
+    }
+    return m;
+  }, [students]);
+  const resolvedId = (p: StudentScore) => p.studentId || identityByBase.get(baseStudentName(p.name))?.studentId || '';
+  const resolvedDob = (p: StudentScore) => p.dob || identityByBase.get(baseStudentName(p.name))?.dob || '';
 
   // Stats calculation — count UNIQUE students (by name+grade, not monthly records),
   // scoped to the selected class category. Matches the Dashboard totals.
@@ -1781,7 +1798,7 @@ export default function ClassStudentMgmt({
                           filteredProfiles.map((p, index) => {
                             return (
                               <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-4 py-3 text-center font-sans text-slate-700 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{p.studentId || <span className="text-slate-300">-</span>}</td>
+                                <td className="px-4 py-3 text-center font-sans text-slate-700 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{resolvedId(p) || <span className="text-slate-300">-</span>}</td>
                                 <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     <span className="w-7 h-7 bg-indigo-50 text-indigo-650 rounded-full flex items-center justify-center font-sans font-black text-[11px] border border-indigo-100">
@@ -1805,7 +1822,7 @@ export default function ClassStudentMgmt({
                                     {p.group ? <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 border border-indigo-100">{p.group}</span> : <span className="text-slate-300">-</span>}
                                   </td>
                                 )}
-                                <td className="px-4 py-3 text-center text-slate-600 whitespace-nowrap">{p.dob || <span className="text-slate-300">-</span>}</td>
+                                <td className="px-4 py-3 text-center text-slate-600 whitespace-nowrap">{resolvedDob(p) || <span className="text-slate-300">-</span>}</td>
                                 <td className="px-4 py-3 text-center">
                                   {p.status === 'រៀនយឺត' ? (
                                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 border border-amber-105 text-amber-700">
