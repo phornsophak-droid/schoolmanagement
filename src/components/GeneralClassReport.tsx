@@ -28,6 +28,7 @@ const ACTIVITY_ROWS = [
 ];
 const KH_NUM = ['១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩', '១០'];
 const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
+const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 
 // Module-level cell input (stable identity → keeps focus while typing).
 function Cell({ value, onChange, center = true }: { value: string; onChange: (v: string) => void; center?: boolean }) {
@@ -168,16 +169,17 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
   // row (id) per month, so we match all of a name's ids and de-dup by date (a day
   // with any unexcused-absent session counts once).
   const absentMany = useMemo(() => {
+    const empty = { count: 0, pct: 0, list: [] as { name: string; gender: string; days: number }[] };
     const idx = KH_MONTHS.indexOf((period || '').trim());
-    if (idx < 0) return { count: 0, pct: 0 };
+    if (idx < 0) return empty;
     const ym = `${idx >= 8 ? 2025 : 2026}-${String(idx + 1).padStart(2, '0')}`;
-    const persons = new Map<string, Set<string>>(); // name -> its ids
+    const persons = new Map<string, { ids: Set<string>; gender: string }>(); // name -> ids + gender
     students.filter(s => s.grade === grade).forEach(s => {
       const k = s.name.trim();
-      if (!persons.has(k)) persons.set(k, new Set());
-      persons.get(k)!.add(s.id);
+      if (!persons.has(k)) persons.set(k, { ids: new Set(), gender: s.gender });
+      persons.get(k)!.ids.add(s.id);
     });
-    if (persons.size === 0) return { count: 0, pct: 0 };
+    if (persons.size === 0) return empty;
     const absentDays = new Map<string, Set<string>>(); // name -> set of dates
     const records = loadAttendance() as { date?: string; grade?: string; studentStates?: Record<string, string> }[];
     for (const r of records) {
@@ -185,8 +187,8 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
       const date = r.date || '';
       if (date.slice(0, 7) !== ym) continue;
       const states = r.studentStates || {};
-      persons.forEach((ids, name) => {
-        for (const id of ids) {
+      persons.forEach((info, name) => {
+        for (const id of info.ids) {
           if (states[id] === 'absent') {
             if (!absentDays.has(name)) absentDays.set(name, new Set());
             absentDays.get(name)!.add(date);
@@ -195,9 +197,12 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
         }
       });
     }
-    let count = 0;
-    absentDays.forEach(days => { if (days.size >= 3) count++; });
-    return { count, pct: persons.size > 0 ? Math.round((count / persons.size) * 100) : 0 };
+    const list: { name: string; gender: string; days: number }[] = [];
+    absentDays.forEach((days, name) => {
+      if (days.size >= 3) list.push({ name, gender: persons.get(name)!.gender, days: days.size });
+    });
+    list.sort((a, b) => b.days - a.days || a.name.localeCompare(b.name));
+    return { count: list.length, pct: persons.size > 0 ? Math.round((list.length / persons.size) * 100) : 0, list };
   }, [students, grade, period]);
 
   const Num = ({ n }: { n: number }) => <span className="font-bold">{n}</span>;
@@ -391,14 +396,16 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
             </tr>
           </thead>
           <tbody>
-            {KH_NUM.map((kn, i) => (
-              <tr key={i}>
-                <td className={`${td} text-center`}>{kn}</td>
-                <td className={td}><Cell value={v(`abs_${i}_name`)} onChange={x => set(`abs_${i}_name`, x)} center={false} /></td>
-                <td className={`${td} text-center`}><Cell value={v(`abs_${i}_gender`)} onChange={x => set(`abs_${i}_gender`, x)} /></td>
-                <td className={`${td} text-center`}><Cell value={v(`abs_${i}_count`)} onChange={x => set(`abs_${i}_count`, x)} /></td>
-                <td className={td}><Cell value={v(`abs_${i}_reason`)} onChange={x => set(`abs_${i}_reason`, x)} center={false} /></td>
-                <td className={td}><Cell value={v(`abs_${i}_guardian`)} onChange={x => set(`abs_${i}_guardian`, x)} center={false} /></td>
+            {absentMany.list.length === 0 ? (
+              <tr><td className={`${td} text-center text-slate-400`} colSpan={6}>គ្មានសិស្សអវត្តមានអត់ច្បាប់ចាប់ពី ៣ដងឡើងក្នុងខែនេះទេ។</td></tr>
+            ) : absentMany.list.map((a, i) => (
+              <tr key={a.name}>
+                <td className={`${td} text-center`}>{KH_NUM[i] || i + 1}</td>
+                <td className={td}>{a.name}</td>
+                <td className={`${td} text-center`}>{a.gender}</td>
+                <td className={`${td} text-center`}>{toKh(a.days)}</td>
+                <td className={td}><Cell value={v(`abs_reason_${a.name}`)} onChange={x => set(`abs_reason_${a.name}`, x)} center={false} /></td>
+                <td className={td}><Cell value={v(`abs_guardian_${a.name}`)} onChange={x => set(`abs_guardian_${a.name}`, x)} center={false} /></td>
               </tr>
             ))}
           </tbody>
