@@ -149,7 +149,17 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
     const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
     const pass = recs.filter(s => s.result === 'ជាប់');
     const fail = recs.filter(s => s.result === 'ធ្លាក់');
-    const slow = recs.filter(s => (s as any).status === 'រៀនយឺត');
+    // Slow learners = manually flagged 'រៀនយឺត' OR failing (< 5) the overall
+    // average, math, or Khmer. The subject column lists which they're failing.
+    const failSubjects = (s: StudentScore): string => {
+      const out: string[] = [];
+      if ((s.khmerAvg ?? 10) < 5) out.push('ភាសាខ្មែរ');
+      if ((s.mathAvg ?? 10) < 5) out.push('គណិតវិទ្យា');
+      if (out.length === 0 && (s.overallAvg ?? 10) < 5) out.push('មធ្យមភាគរួម');
+      return out.join(', ');
+    };
+    const slow = recs.filter(s => (s as any).status === 'រៀនយឺត'
+      || (s.overallAvg ?? 10) < 5 || (s.mathAvg ?? 10) < 5 || (s.khmerAvg ?? 10) < 5);
     const drop = recs.filter(s => (s as any).status === 'បោះបង់');
     const abc = (arr: StudentScore[], key: 'khmerAvg' | 'mathAvg') => arr.filter(s => (s[key] ?? -1) >= 7).length;
     return {
@@ -157,7 +167,8 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
       total: recs.length, female: girls.length, boys: boys.length, girlsLen: girls.length,
       pass: pass.length, passF: fem(pass).length, passPct: pct(pass.length, recs.length),
       fail: fail.length, failF: fem(fail).length, failPct: pct(fail.length, recs.length),
-      slow: slow.length, slowF: fem(slow).length, slowPct: pct(slow.length, recs.length), slowList: slow,
+      slow: slow.length, slowF: fem(slow).length, slowPct: pct(slow.length, recs.length),
+      slowList: slow.map(s => ({ name: s.name, gender: s.gender, subject: failSubjects(s) })),
       drop: drop.length, dropF: fem(drop).length, dropPct: pct(drop.length, recs.length),
       khmerAll: pct(abc(recs, 'khmerAvg'), recs.length), khmerB: pct(abc(boys, 'khmerAvg'), boys.length), khmerG: pct(abc(girls, 'khmerAvg'), girls.length),
       mathAll: pct(abc(recs, 'mathAvg'), recs.length), mathB: pct(abc(boys, 'mathAvg'), boys.length), mathG: pct(abc(girls, 'mathAvg'), girls.length),
@@ -375,7 +386,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
                   <td className={`${td} text-center`}>{kn}</td>
                   <td className={td}><Cell value={f[`slow_${i}_name`] ?? (auto ? auto.name : '')} onChange={x => set(`slow_${i}_name`, x)} center={false} /></td>
                   <td className={`${td} text-center`}><Cell value={f[`slow_${i}_gender`] ?? (auto ? auto.gender : '')} onChange={x => set(`slow_${i}_gender`, x)} /></td>
-                  <td className={td}><Cell value={v(`slow_${i}_subject`)} onChange={x => set(`slow_${i}_subject`, x)} center={false} /></td>
+                  <td className={td}><Cell value={f[`slow_${i}_subject`] ?? (auto ? auto.subject : '')} onChange={x => set(`slow_${i}_subject`, x)} center={false} /></td>
                   <td className={td}><Cell value={v(`slow_${i}_plan`)} onChange={x => set(`slow_${i}_plan`, x)} center={false} /></td>
                   <td className={td}><Cell value={v(`slow_${i}_other`)} onChange={x => set(`slow_${i}_other`, x)} center={false} /></td>
                 </tr>
