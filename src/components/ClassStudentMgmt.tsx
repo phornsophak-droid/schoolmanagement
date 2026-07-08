@@ -137,6 +137,12 @@ export default function ClassStudentMgmt({
     return g === currentUser!.grade;
   };
 
+  // Who may ADD / EDIT students in a class: the principal (any class), or an
+  // after-hours teacher (English, drawing, …) in their own class — they enrol
+  // their own students. General-class rosters stay principal-only (official data).
+  const canManageStudents = (g: string) =>
+    currentUser?.role === 'principal' || (isExtraTeacher && teacherCanAccessGrade(g));
+
   const [selectedRosterGrade, setSelectedRosterGrade] = useState<string>(
     isTeacher ? (teacherGradeOptions[0] || currentUser!.grade) : (grades[0] || 'ថ្នាក់ទី៦')
   );
@@ -371,8 +377,8 @@ export default function ClassStudentMgmt({
         alert('បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានសិស្សដោយជោគជ័យ ចំពោះគ្រប់ខែសិក្សាទាំងអស់!');
       }
     } else {
-      if (currentUser?.role !== 'principal') {
-         alert('មានតែនាយកសាលាប៉ុណ្ណោះ ដែលមានសិទ្ធិចុះឈ្មោះសិស្សថ្មី។');
+      if (!canManageStudents(studentFormGrade)) {
+         alert('លោកអ្នកមានសិទ្ធិចុះឈ្មោះសិស្សបានតែក្នុងថ្នាក់របស់លោកអ្នកប៉ុណ្ណោះ។');
          return;
       }
       
@@ -1550,7 +1556,7 @@ export default function ClassStudentMgmt({
                         )
                       )}
 
-                      {currentUser?.role === 'principal' && (
+                      {canManageStudents(selectedRosterGrade) && (
                         <button
                           onClick={handleOpenAddStudent}
                           className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-2xs"
@@ -1782,7 +1788,7 @@ export default function ClassStudentMgmt({
                                   )}
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                  {currentUser?.role === 'principal' ? (
+                                  {canManageStudents(p.grade) ? (
                                     <div className="flex items-center justify-end gap-1.5 animate-fadeIn">
                                       <button
                                         onClick={() => handleOpenEditStudent(p)}
