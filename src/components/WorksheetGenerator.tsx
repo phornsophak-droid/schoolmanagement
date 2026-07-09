@@ -537,7 +537,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
             </p>
             <div className="flex items-center gap-2 flex-wrap justify-end">
               <button onClick={handleGenerate} disabled={loading} className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 disabled:opacity-60 text-white flex items-center gap-2 shadow-md">
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} បង្កើតលំហាត់
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} បង្កើតសន្លឹកកិច្ចការ
               </button>
               {/* Exam paper — period (ខែ/ឆមាស/ឆ្នាំ) picked from this button's dropdown. */}
               <div className="relative">
