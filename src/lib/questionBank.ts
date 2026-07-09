@@ -25,7 +25,7 @@ export interface BankQuestion extends WSQuestion {
   objective?: string;     // learning objective (from the curriculum)
   type: WorksheetType;
   difficulty: Difficulty;
-  status: 'draft' | 'approved';
+  status?: 'draft' | 'approved'; // kept for backward compatibility with old data, but ignored
   source?: 'ai' | 'manual';
   createdBy?: string;
   createdAt: string;
@@ -95,33 +95,18 @@ export async function bulkAddQuestions(qs: Omit<BankQuestion, 'id' | 'createdAt'
   return added;
 }
 
-export async function approveQuestion(id: string): Promise<BankQuestion[]> {
-  return setStatus(id, 'approved');
-}
-export async function unapproveQuestion(id: string): Promise<BankQuestion[]> {
-  return setStatus(id, 'draft');
-}
-async function setStatus(id: string, status: 'draft' | 'approved'): Promise<BankQuestion[]> {
-  const list = loadQuestions();
-  const idx = list.findIndex(q => q.id === id);
-  if (idx < 0) return list;
-  list[idx] = { ...list[idx], status, updatedAt: new Date().toISOString() };
-  return persistAll(list);
-}
-
 const shuffle = <T>(a: T[]): T[] => {
   const out = [...a];
   for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
   return out;
 };
 
-// Pick up to `count` APPROVED questions matching the params (grade+subject+type;
+// Pick up to `count` questions matching the params (grade+subject+type;
 // difficulty and lesson narrow further when set). Returns the chosen questions
 // and how many more are still needed (shortfall) so the caller can ask the AI
 // only for the remainder.
 export function pickApproved(params: WorksheetParams, count: number): { used: BankQuestion[]; shortfall: number } {
   const pool = loadQuestions().filter(q =>
-    q.status === 'approved' &&
     q.grade === params.grade &&
     q.subject === params.subject &&
     q.type === params.type &&

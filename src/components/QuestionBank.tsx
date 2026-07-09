@@ -9,8 +9,7 @@ import * as XLSX from 'xlsx';
 import { SchoolUser } from '../types';
 import { WorksheetType, Difficulty, TYPE_LABELS, DIFFICULTY_LABELS, generateQuestions } from '../lib/worksheets';
 import {
-  BankQuestion, loadQuestions, refreshQuestionsFromCloud, saveQuestion, deleteQuestion,
-  approveQuestion, unapproveQuestion, bulkAddQuestions,
+  BankQuestion, loadQuestions, refreshQuestionsFromCloud, saveQuestion, deleteQuestion, bulkAddQuestions,
 } from '../lib/questionBank';
 import { curriculumSubjects, lessonsFor, refreshCurriculumFromCloud } from '../lib/curriculum';
 import { extractTextFromFile } from '../lib/extractText';
@@ -87,7 +86,7 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
       const added = await bulkAddQuestions(qs.map(q => ({
         prompt: q.prompt, options: q.options, pairs: q.pairs, answer: q.answer,
         grade: aiCfg.grade, subject: aiCfg.subject, type: aiCfg.type, difficulty: aiCfg.difficulty,
-        status: 'draft' as const, source: 'ai' as const, createdBy: teacherName,
+        source: 'ai' as const, createdBy: teacherName,
       })));
       setItems(loadQuestions());
       setAiPanel(false);
@@ -143,7 +142,7 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
           objective: ci.objective >= 0 ? (row[ci.objective] ?? '').toString().trim() || undefined : undefined,
           type,
           difficulty: ci.difficulty >= 0 ? resolveDiff((row[ci.difficulty] ?? '').toString()) : 'medium',
-          status: 'draft', source: 'manual', createdBy: teacherName,
+          source: 'manual', createdBy: teacherName,
         });
       }
       const added = await bulkAddQuestions(news);
@@ -168,7 +167,6 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
   const [fGrade, setFGrade] = useState('');
   const [fSubject, setFSubject] = useState('');
   const [fType, setFType] = useState<WorksheetType | ''>('');
-  const [fStatus, setFStatus] = useState<'all' | 'approved' | 'draft'>('all');
   const [search, setSearch] = useState('');
 
   useEffect(() => { refreshQuestionsFromCloud().then(setItems); }, []);
@@ -177,10 +175,8 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
     (!fGrade || q.grade === fGrade) &&
     (!fSubject || q.subject === fSubject) &&
     (!fType || q.type === fType) &&
-    (fStatus === 'all' || q.status === fStatus) &&
     (!search || (q.prompt || '').toLowerCase().includes(search.toLowerCase()) || (q.answer || '').toLowerCase().includes(search.toLowerCase()))
   );
-  const approvedCount = items.filter(q => q.status === 'approved').length;
 
   const emptyDraft = (): Draft => ({
     id: null, grade: gradeList[0], subject: subjects[0], lesson: '',
@@ -210,7 +206,6 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
       options: draft.type === 'multiple_choice' ? draft.options.map(o => o.trim()).filter(Boolean) : undefined,
       pairs: isMatching ? draft.pairs.filter(p => p.left.trim() || p.right.trim()).map(p => ({ left: p.left.trim(), right: p.right.trim() })) : undefined,
       answer: draft.answer.trim(),
-      status: existing?.status || 'draft',
       source: existing?.source || 'manual',
       createdBy: existing?.createdBy || teacherName,
       createdAt: existing?.createdAt || new Date().toISOString(),
@@ -227,8 +222,6 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
     setItems(await deleteQuestion(id));
     flash('បានលុប ✓');
   };
-  const approve = async (id: string) => { setItems(await approveQuestion(id)); flash('បានអនុម័ត ✓'); };
-  const unapprove = async (id: string) => { setItems(await unapproveQuestion(id)); flash('បានដកការអនុម័ត'); };
 
   const fieldCls = 'w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:border-indigo-500 outline-none';
   const smallCls = 'px-2 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-600 font-semibold outline-none';
@@ -239,7 +232,7 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
       <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
           <HelpCircle size={16} className="text-rose-500" /> ធនាគារសំណួរ (Question Bank)
-          <span className="text-[11px] font-semibold text-slate-400">· អនុម័ត {approvedCount}/{items.length}</span>
+          <span className="text-[11px] font-semibold text-slate-400">· {items.length} សំណួរ</span>
         </h3>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <input ref={aiFileRef} type="file" accept=".txt,.csv,.pdf,.docx" onChange={onAiFile} className="hidden" />
@@ -268,7 +261,6 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
             <input type="number" min={1} max={50} value={aiCfg.count} onChange={e => setAiCfg({ ...aiCfg, count: Math.max(1, Math.min(50, Number(e.target.value) || 1)) })} className={smallCls} />
           </div>
           <button onClick={() => aiFileRef.current?.click()} disabled={busy} className="w-full px-4 py-2.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-sm">{busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} {busy ? 'កំពុងស្រង់…' : 'ជ្រើសឯកសារ រួចស្រង់សំណួរ'}</button>
-          <p className="text-[10px] text-slate-400 text-center">សំណួរនឹងចូលធនាគារជា «ព្រាង» — នាយកសាលាអនុម័តមុននឹងប្រើ។</p>
         </div>
       )}
 
@@ -334,7 +326,6 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
           <select value={fGrade} onChange={e => setFGrade(e.target.value)} className={smallCls}><option value="">ថ្នាក់ទាំងអស់</option>{gradeList.map(g => <option key={g} value={g}>{g}</option>)}</select>
           <select value={fSubject} onChange={e => setFSubject(e.target.value)} className={smallCls}><option value="">មុខវិជ្ជាទាំងអស់</option>{subjects.map(s => <option key={s} value={s}>{s}</option>)}</select>
           <select value={fType} onChange={e => setFType(e.target.value as WorksheetType | '')} className={smallCls}><option value="">ប្រភេទទាំងអស់</option>{(Object.keys(TYPE_LABELS) as WorksheetType[]).map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}</select>
-          <select value={fStatus} onChange={e => setFStatus(e.target.value as any)} className={smallCls}><option value="all">ស្ថានភាពទាំងអស់</option><option value="approved">អនុម័ត</option><option value="draft">ព្រាង</option></select>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ស្វែងរក…" className={`${smallCls} flex-1 min-w-[120px]`} />
         </div>
       )}
@@ -343,7 +334,7 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
       {filtered.length === 0 && !draft ? (
         <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-400 flex flex-col items-center gap-2">
           <FileText size={28} className="opacity-50" />
-          <p className="text-sm font-medium">មិនទាន់មានសំណួរ។ ចុច «សំណួរថ្មី» ដើម្បីបញ្ចូល ឬបង្កើតលំហាត់ដោយ AI (សំណួរនឹងចូលធនាគារជាព្រាង)។</p>
+          <p className="text-sm font-medium">មិនទាន់មានសំណួរ។ ចុច «សំណួរថ្មី» ដើម្បីបញ្ចូល ឬបង្កើតលំហាត់ដោយ AI។</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -351,9 +342,6 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
             <div key={q.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                  {q.status === 'approved'
-                    ? <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1"><CheckCircle2 size={10} /> អនុម័ត</span>
-                    : <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1"><Clock size={10} /> ព្រាង (រង់ចាំអនុម័ត)</span>}
                   {q.source === 'ai' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-200">AI</span>}
                 </div>
                 <div className="font-semibold text-slate-800 text-sm truncate">{q.type === 'matching' ? `ផ្គូផ្គង (${q.pairs?.length || 0} គូ)` : q.prompt}</div>
@@ -361,13 +349,6 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
                 {q.answer && q.type !== 'matching' && <p className="text-[12px] text-emerald-700 mt-0.5">✔ {q.answer}</p>}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                {isPrincipal ? (
-                  q.status === 'approved'
-                    ? <button onClick={() => unapprove(q.id)} title="ដកការអនុម័ត" className="p-2 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200"><Clock size={13} /></button>
-                    : <button onClick={() => approve(q.id)} title="អនុម័ត" className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200"><ShieldCheck size={13} /></button>
-                ) : q.status !== 'approved' && (
-                  <span className="text-[10px] text-slate-400 font-semibold px-1">រង់ចាំអនុម័ត</span>
-                )}
                 <button onClick={() => startEdit(q)} title="កែ" className="p-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200"><Pencil size={13} /></button>
                 <button onClick={() => remove(q.id)} title="លុប" className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"><Trash2 size={13} /></button>
               </div>
@@ -377,8 +358,7 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
       )}
 
       <p className="text-[11px] text-slate-400 text-center">
-        {isPrincipal ? 'ចុច 🛡 ដើម្បីអនុម័តសំណួរ។ ' : 'តែនាយកសាលាទេ ដែលអាចអនុម័តសំណួរ។ '}
-        សំណួរដែលបានអនុម័ត ត្រូវបានយកមកប្រើក្នុង «បង្កើតសន្លឹកលំហាត់» មុននឹងហៅ AI។
+        សំណួរទាំងអស់ ត្រូវបានយកមកប្រើក្នុង «បង្កើតសន្លឹកលំហាត់» មុននឹងហៅ AI។
         {' '}<button onClick={downloadTemplate} className="text-indigo-500 hover:underline font-semibold inline-flex items-center gap-1"><Download size={11} /> ទាញយក Template Excel</button>
       </p>
     </div>
