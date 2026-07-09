@@ -28,6 +28,7 @@ export interface WorksheetParams {
   difficulty: Difficulty;
   count: number;
   type: WorksheetType;
+  types?: WorksheetType[];
   // Optional source material (lesson/workbook text pasted by the teacher, e.g.
   // copied from a doc in the Document Bank). When present the AI grounds the
   // questions ON this text instead of inventing generic content.
@@ -123,6 +124,10 @@ function langInstruction(l: WSLanguage): string {
 
 // Shared prompt — same instructions whether it runs on Gemini or local Ollama.
 function buildWorksheetPrompt(params: WorksheetParams): string {
+  const mixedFormats = params.types && params.types.length > 0 
+    ? params.types.map(t => TYPE_LABELS[t].split('(')[0].trim()).join(', ')
+    : 'Multiple Choice, Fill in the Blank, Matching, True/False, Short Answer, Essay, Word Problems, Reading, and Writing Practice';
+
   const shape = params.type === 'multiple_choice'
     ? `Each item: { "prompt": string, "options": [4 strings], "answer": string (must equal exactly one option) }.`
     : params.type === 'matching'
@@ -130,7 +135,7 @@ function buildWorksheetPrompt(params: WorksheetParams): string {
       : params.type === 'true_false'
         ? `Each item: { "prompt": string (a statement), "answer": "ត្រូវ" or "ខុស" (or "True"/"False" for English) }.`
         : params.type === 'mixed'
-          ? `Each item: { "prompt": string (question/instructions), "options"?: [4 strings] (if multiple choice), "pairs"?: [{"left": string, "right": string}] (if matching), "answer": string }. Use a highly diverse mix of formats: Multiple Choice, Fill in the Blank, Matching, True/False, Short Answer, Essay, Word Problems, Reading, and Writing Practice.`
+          ? `Each item: { "prompt": string (question/instructions), "options"?: [4 strings] (if multiple choice), "pairs"?: [{"left": string, "right": string}] (if matching), "answer": string }. Use a highly diverse mix of ONLY these formats: ${mixedFormats}.`
           : `Each item: { "prompt": string, "answer": string (the model/expected answer) }.`;
 
   const source = (params.source || '').trim();

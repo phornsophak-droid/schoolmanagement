@@ -181,6 +181,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     difficulty: 'easy',
     count: 10,
     type: 'multiple_choice',
+    types: ['multiple_choice'],
     source: '',
   });
   const set = <K extends keyof WorksheetParams>(k: K, v: WorksheetParams[K]) => setParams(p => ({ ...p, [k]: v }));
@@ -197,6 +198,21 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   // ---- Status ----
   const [loading, setLoading] = useState(false);
   const [examMenuOpen, setExamMenuOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+
+  const toggleType = (t: WorksheetType) => {
+    const current = params.types || [params.type];
+    let next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
+    if (next.length === 0) next = [t]; // enforce at least one
+    setParams(p => ({
+      ...p,
+      types: next,
+      type: next.length > 1 ? 'mixed' : next[0],
+    }));
+  };
+
+  const typeLabel = (params.types?.length || 1) > 1 ? `ចម្រុះ (${params.types?.length || 0})` : TYPE_LABELS[params.type].split('(')[0].trim();
+
   const [pdfBusy, setPdfBusy] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const flash = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3500); };
@@ -403,7 +419,28 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Field label="ថ្នាក់"><select value={params.grade} onChange={e => set('grade', e.target.value)} className={fieldCls}>{generalGrades.map(g => <option key={g} value={g}>{g}</option>)}</select></Field>
             <Field label="មុខវិជ្ជា"><select value={params.subject} onChange={e => set('subject', e.target.value)} className={fieldCls}>{subjectList.map(s => <option key={s} value={s}>{s}</option>)}</select></Field>
-            <Field label="ប្រភេទលំហាត់"><select value={params.type} onChange={e => set('type', e.target.value as WorksheetType)} className={fieldCls}>{(Object.keys(TYPE_LABELS) as WorksheetType[]).map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}</select></Field>
+            <Field label="ប្រភេទលំហាត់">
+              <div className="relative">
+                <div onClick={() => setTypeOpen(!typeOpen)} className={`${fieldCls} cursor-pointer flex justify-between items-center bg-white`}>
+                  <span className="truncate">{typeLabel}</span>
+                  <ChevronDown size={14} className={`text-slate-400 shrink-0 transition-transform ${typeOpen ? 'rotate-180' : ''}`} />
+                </div>
+                {typeOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setTypeOpen(false)} />
+                    <div className="absolute top-full left-0 mt-1 w-full min-w-[220px] bg-white border border-slate-200 shadow-xl rounded-xl z-20 py-1.5 max-h-[400px] overflow-y-auto">
+                      <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 font-mono uppercase border-b border-slate-100 mb-1">ជ្រើសរើសប្រភេទ (ច្រើនបាន)</div>
+                      {(Object.keys(TYPE_LABELS) as WorksheetType[]).filter(t => t !== 'mixed').map(t => (
+                        <label key={t} className="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 cursor-pointer text-[12px] font-medium text-slate-700 transition-colors">
+                          <input type="checkbox" checked={(params.types || [params.type]).includes(t)} onChange={() => toggleType(t)} className="accent-indigo-600 w-4 h-4 rounded-sm border-slate-300" />
+                          <span className="truncate">{TYPE_LABELS[t]}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </Field>
             <Field label="កម្រិត"><select value={params.difficulty} onChange={e => set('difficulty', e.target.value as Difficulty)} className={fieldCls}>{(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map(d => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}</select></Field>
             <Field label="ភាសា"><select value={params.language} onChange={e => set('language', e.target.value as WSLanguage)} className={fieldCls}>{(Object.keys(LANGUAGE_LABELS) as WSLanguage[]).map(l => <option key={l} value={l}>{LANGUAGE_LABELS[l]}</option>)}</select></Field>
             <Field label="ចំនួនសំណួរ"><input type="number" min={1} max={50} value={params.count} onChange={e => set('count', Math.max(1, Math.min(50, Number(e.target.value) || 1)))} className={fieldCls} /></Field>
