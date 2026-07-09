@@ -16,7 +16,7 @@ export type WorksheetType =
   | 'multiple_choice' | 'fill_blank' | 'matching' | 'true_false'
   | 'short_answer' | 'essay' | 'word_problems' | 'reading' | 'writing' | 'mixed';
 
-export type Difficulty = 'easy' | 'medium' | 'hard';
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'mixed';
 export type WSLanguage = 'km' | 'en' | 'bilingual';
 
 export interface WorksheetParams {
@@ -69,7 +69,9 @@ export const TYPE_LABELS: Record<WorksheetType, string> = {
   writing: 'សរសេរ (Writing Practice)',
   mixed: 'លំហាត់ចម្រុះ (Mixed Exercises)',
 };
-export const DIFFICULTY_LABELS: Record<Difficulty, string> = { easy: 'ងាយ', medium: 'មធ្យម', hard: 'ពិបាក' };
+export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  easy: 'ងាយ (Easy)', medium: 'មធ្យម (Medium)', hard: 'ពិបាក (Hard)', mixed: 'ចម្រុះ (30/50/20)',
+};
 export const LANGUAGE_LABELS: Record<WSLanguage, string> = { km: 'ខ្មែរ', en: 'English', bilingual: 'ខ្មែរ + English' };
 
 export const SUBJECTS = ['គណិតវិទ្យា', 'ភាសាខ្មែរ', 'ភាសាអង់គ្លេស', 'វិទ្យាសាស្ត្រ', 'សិក្សាសង្គម', 'កុំព្យូទ័រ', 'សិល្បៈ'];
@@ -154,7 +156,7 @@ ${shape}
 
 Constraints:
 - Grade: ${params.grade}. Subject: ${params.subject}. Lesson: ${params.lesson || '(general)'}. Topic: ${params.topic || '(general)'}.
-- ${params.type === 'mixed' ? 'Difficulty distribution: 30% easy, 50% medium, 20% hard. Formats must strongly align with the lesson content.' : `Difficulty: ${params.difficulty}.`} Worksheet type: ${params.type}.
+- ${params.difficulty === 'mixed' ? 'Difficulty distribution: 30% easy, 50% medium, 20% hard.' : `Difficulty: ${params.difficulty}.`} Worksheet type: ${params.type}.
 - ${langInstruction(params.language)}
 - Age-appropriate. Clear and unambiguous. NO duplicate questions. Vary the wording and numbers.
 - Do not add commentary, markdown, or anything outside the JSON.${sourceBlock}`;

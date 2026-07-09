@@ -178,7 +178,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     lesson: '',
     topic: '',
     language: 'km',
-    difficulty: 'easy',
+    difficulty: 'mixed',
     count: 10,
     type: 'multiple_choice',
     types: ['multiple_choice'],
@@ -441,7 +441,6 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
                 )}
               </div>
             </Field>
-            <Field label="កម្រិត"><select value={params.difficulty} onChange={e => set('difficulty', e.target.value as Difficulty)} className={fieldCls}>{(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map(d => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}</select></Field>
             <Field label="ភាសា"><select value={params.language} onChange={e => set('language', e.target.value as WSLanguage)} className={fieldCls}>{(Object.keys(LANGUAGE_LABELS) as WSLanguage[]).map(l => <option key={l} value={l}>{LANGUAGE_LABELS[l]}</option>)}</select></Field>
             <Field label="ចំនួនសំណួរ"><input type="number" min={1} max={50} value={params.count} onChange={e => set('count', Math.max(1, Math.min(50, Number(e.target.value) || 1)))} className={fieldCls} /></Field>
             <Field label="មេរៀន"><input list="wsg-lessons" value={params.lesson} onChange={e => set('lesson', e.target.value)} placeholder="ឧ. មេរៀនទី ៣" className={fieldCls} /><datalist id="wsg-lessons">{lessonsFor(params.grade, params.subject).map(l => <option key={l.id} value={l.title} />)}</datalist></Field>
