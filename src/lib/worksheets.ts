@@ -130,7 +130,7 @@ function buildWorksheetPrompt(params: WorksheetParams): string {
       : params.type === 'true_false'
         ? `Each item: { "prompt": string (a statement), "answer": "ត្រូវ" or "ខុស" (or "True"/"False" for English) }.`
         : params.type === 'mixed'
-          ? `Each item: { "prompt": string, "options": [optional, 4 strings if multiple choice], "answer": string }. Use a mix of question types (multiple choice, true/false, short answer, fill in the blank).`
+          ? `Each item: { "prompt": string (question/instructions), "options"?: [4 strings] (if multiple choice), "pairs"?: [{"left": string, "right": string}] (if matching), "answer": string }. Use a highly diverse mix of formats: Multiple Choice, Fill in the Blank, Matching, True/False, Short Answer, Essay, Word Problems, Reading, and Writing Practice.`
           : `Each item: { "prompt": string, "answer": string (the model/expected answer) }.`;
 
   const source = (params.source || '').trim();
@@ -149,7 +149,7 @@ ${shape}
 
 Constraints:
 - Grade: ${params.grade}. Subject: ${params.subject}. Lesson: ${params.lesson || '(general)'}. Topic: ${params.topic || '(general)'}.
-- ${params.type === 'mixed' ? 'Difficulty distribution: 30% easy, 50% medium, 20% hard.' : `Difficulty: ${params.difficulty}.`} Worksheet type: ${params.type}.
+- ${params.type === 'mixed' ? 'Difficulty distribution: 30% easy, 50% medium, 20% hard. Formats must strongly align with the lesson content.' : `Difficulty: ${params.difficulty}.`} Worksheet type: ${params.type}.
 - ${langInstruction(params.language)}
 - Age-appropriate. Clear and unambiguous. NO duplicate questions. Vary the wording and numbers.
 - Do not add commentary, markdown, or anything outside the JSON.${sourceBlock}`;
