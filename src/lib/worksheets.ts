@@ -14,7 +14,7 @@ import { pickApproved, bulkAddQuestions, toWSQuestion, hydrateQuestions } from '
 
 export type WorksheetType =
   | 'multiple_choice' | 'fill_blank' | 'matching' | 'true_false'
-  | 'short_answer' | 'essay' | 'word_problems' | 'reading' | 'writing';
+  | 'short_answer' | 'essay' | 'word_problems' | 'reading' | 'writing' | 'mixed';
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type WSLanguage = 'km' | 'en' | 'bilingual';
@@ -66,6 +66,7 @@ export const TYPE_LABELS: Record<WorksheetType, string> = {
   word_problems: 'លំហាត់មានន័យ (Word Problems)',
   reading: 'អំណាន (Reading)',
   writing: 'សរសេរ (Writing Practice)',
+  mixed: 'លំហាត់ចម្រុះ (Mixed Exercises)',
 };
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = { easy: 'ងាយ', medium: 'មធ្យម', hard: 'ពិបាក' };
 export const LANGUAGE_LABELS: Record<WSLanguage, string> = { km: 'ខ្មែរ', en: 'English', bilingual: 'ខ្មែរ + English' };
@@ -128,7 +129,9 @@ function buildWorksheetPrompt(params: WorksheetParams): string {
       ? `Each item: { "prompt": "ផ្គូផ្គង", "pairs": [ { "left": string, "right": string } ], "answer": "" }. Put ${params.count} pairs in ONE item.`
       : params.type === 'true_false'
         ? `Each item: { "prompt": string (a statement), "answer": "ត្រូវ" or "ខុស" (or "True"/"False" for English) }.`
-        : `Each item: { "prompt": string, "answer": string (the model/expected answer) }.`;
+        : params.type === 'mixed'
+          ? `Each item: { "prompt": string, "options": [optional, 4 strings if multiple choice], "answer": string }. Use a mix of question types (multiple choice, true/false, short answer, fill in the blank).`
+          : `Each item: { "prompt": string, "answer": string (the model/expected answer) }.`;
 
   const source = (params.source || '').trim();
   const sourceBlock = source
@@ -146,7 +149,7 @@ ${shape}
 
 Constraints:
 - Grade: ${params.grade}. Subject: ${params.subject}. Lesson: ${params.lesson || '(general)'}. Topic: ${params.topic || '(general)'}.
-- Difficulty: ${params.difficulty}. Worksheet type: ${params.type}.
+- ${params.type === 'mixed' ? 'Difficulty distribution: 30% easy, 50% medium, 20% hard.' : `Difficulty: ${params.difficulty}.`} Worksheet type: ${params.type}.
 - ${langInstruction(params.language)}
 - Age-appropriate. Clear and unambiguous. NO duplicate questions. Vary the wording and numbers.
 - Do not add commentary, markdown, or anything outside the JSON.${sourceBlock}`;
