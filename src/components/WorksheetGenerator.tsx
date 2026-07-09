@@ -441,6 +441,9 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
                 : 'ℹ️ គ្មាន AI — គណិតវិទ្យាដំណើរការដោយឥតគិតថ្លៃ; មុខវិជ្ជាផ្សេងត្រូវការ Ollama ឬ Gemini key។'}
             </p>
             <div className="flex items-center gap-2 flex-wrap justify-end">
+              <a href="https://gemini.google.com/gem/1kp1UXGuq_Zli7s5gY3NUpeko2wVZseyb?usp=sharing" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white flex items-center gap-2 shadow-md">
+                <Sparkles size={16} /> បង្កើតសន្លឹកកិច្ចការជាមួយ Gemini Gem
+              </a>
               <a href="https://notebooklm.google.com/notebook/68210444-9d69-4e1f-bc7d-528d392678cd/preview" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center gap-2 shadow-md">
                 <Sparkles size={16} /> បង្កើតកិច្ចការជាមួយ NotebookLM
               </a>
