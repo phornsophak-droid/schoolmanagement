@@ -441,6 +441,9 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
                 : 'ℹ️ គ្មាន AI — គណិតវិទ្យាដំណើរការដោយឥតគិតថ្លៃ; មុខវិជ្ជាផ្សេងត្រូវការ Ollama ឬ Gemini key។'}
             </p>
             <div className="flex items-center gap-2 flex-wrap justify-end">
+              <a href="https://notebooklm.google.com/notebook/68210444-9d69-4e1f-bc7d-528d392678cd/preview" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white flex items-center gap-2 shadow-md">
+                <Sparkles size={16} /> បង្កើតកិច្ចការជាមួយ NotebookLM
+              </a>
               <button onClick={handleGenerate} disabled={loading} className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 disabled:opacity-60 text-white flex items-center gap-2 shadow-md">
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} បង្កើតលំហាត់
               </button>
