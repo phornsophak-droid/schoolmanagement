@@ -380,6 +380,8 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         <div className="ws-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5"><Sparkles size={15} className="text-indigo-500" /> ម៉ាស៊ីនបង្កើតសន្លឹកលំហាត់ (AI Worksheet)</h3>
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            <a href="https://gemini.google.com/gem/1kp1UXGuq_Zli7s5gY3NUpeko2wVZseyb?usp=sharing" target="_blank" rel="noopener noreferrer" className="px-3 py-2 text-xs font-bold rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 flex items-center gap-1.5 transition-colors border border-purple-200 shadow-sm">✨ Gemini</a>
+            <a href="https://notebooklm.google.com/notebook/68210444-9d69-4e1f-bc7d-528d392678cd/preview" target="_blank" rel="noopener noreferrer" className="px-3 py-2 text-xs font-bold rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 flex items-center gap-1.5 transition-colors border border-teal-200 shadow-sm">✨ NotebookLM</a>
             {(questions.length > 0 || examSections) && <>
               <button onClick={() => setShowAnswers(s => !s)} className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 border transition-colors ${showAnswers ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'}`}>
                 <KeyRound size={13} /> {showAnswers ? 'លាក់ចម្លើយ' : 'កូនសោចម្លើយ'}
