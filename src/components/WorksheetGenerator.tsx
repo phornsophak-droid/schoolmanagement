@@ -199,7 +199,7 @@ const buildWordHtml = (d: WordDocInput): string => {
     answerKey = `<div style="margin-top:16pt;border-top:2px dashed #888;padding-top:8pt"><h2 style="font-size:14pt;margin:0 0 4pt">🔑 កូនសោចម្លើយ (Answer Key)</h2>${inner}</div>`;
   }
 
-  const style = `@page{size:A4;margin:1.6cm} body{font-family:'Khmer OS Battambang','Battambang',serif;font-size:13pt;color:#000;line-height:1.5} h1,h2{font-family:'Khmer OS Battambang','Battambang',serif} table{border-collapse:collapse}`;
+  const style = `@page{size:A4;margin:1.6cm} body{font-family:'Khmer OS Siemreap','Siemreap',serif;font-size:11pt;color:#000;line-height:1.5} h1,h2{font-family:'Khmer OS Siemreap','Siemreap',serif} table{border-collapse:collapse}`;
   return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(heading)}</title><style>${style}</style></head><body>${header}${instr}${body}${answerKey}</body></html>`;
 };
 
@@ -277,9 +277,21 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const [typeOpen, setTypeOpen] = useState(false);
 
   const toggleType = (t: WorksheetType) => {
-    const current = params.types || [params.type];
-    let next = current.includes(t) ? current.filter(x => x !== t) : [...current, t];
-    if (next.length === 0) next = [t]; // enforce at least one
+    let next = [...(params.types || [params.type])];
+    
+    if (t === 'mixed') {
+      next = ['mixed']; // Checking 'mixed' overrides all others.
+    } else {
+      next = next.filter(x => x !== 'mixed'); // Uncheck 'mixed' if picking a specific type.
+      if (next.includes(t)) {
+        next = next.filter(x => x !== t);
+      } else {
+        next.push(t);
+      }
+    }
+    
+    if (next.length === 0) next = ['multiple_choice']; // Enforce at least one
+    
     setParams(p => ({
       ...p,
       types: next,
@@ -506,7 +518,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
                     <div className="fixed inset-0 z-10" onClick={() => setTypeOpen(false)} />
                     <div className="absolute top-full left-0 mt-1 w-full min-w-[220px] bg-white border border-slate-200 shadow-xl rounded-xl z-20 py-1.5 max-h-[400px] overflow-y-auto">
                       <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 font-mono uppercase border-b border-slate-100 mb-1">ជ្រើសរើសប្រភេទ (ច្រើនបាន)</div>
-                      {(Object.keys(TYPE_LABELS) as WorksheetType[]).filter(t => t !== 'mixed').map(t => (
+                      {(Object.keys(TYPE_LABELS) as WorksheetType[]).map(t => (
                         <label key={t} className="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50 cursor-pointer text-[12px] font-medium text-slate-700 transition-colors">
                           <input type="checkbox" checked={(params.types || [params.type]).includes(t)} onChange={() => toggleType(t)} className="accent-indigo-600 w-4 h-4 rounded-sm border-slate-300" />
                           <span className="truncate">{TYPE_LABELS[t]}</span>
