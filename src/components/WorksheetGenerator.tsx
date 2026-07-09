@@ -136,27 +136,46 @@ const buildWordHtml = (d: WordDocInput): string => {
   const { heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers } = d;
   const totalPoints = examSections ? examSections.reduce((n, s) => n + s.points, 0) : questions.length;
   const header = `
-    <table width="100%" cellspacing="0" cellpadding="0" style="border-bottom:2px solid #000;padding-bottom:4pt">
+    <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:12pt">
       <tr>
-        <td valign="top"><b style="font-size:15pt">សាលាសហគមន៍ច្បារច្រុះ</b><br/><span style="font-size:10pt;color:#555">Chbar Chros Community School</span></td>
-        <td valign="top" align="right" style="font-size:11pt">
-          <div><b>មុខវិជ្ជា៖</b> ${esc(params.subject)}</div>
-          <div><b>ថ្នាក់៖</b> ${esc(params.grade)}</div>
-          ${params.lesson ? `<div><b>មេរៀន៖</b> ${esc(params.lesson)}</div>` : ''}
+        <td valign="top" style="width:60%">
+          <div style="font-weight:bold;font-size:16pt;font-family:'Khmer OS Moul Light','Moul',serif">សាលាសហគមន៍ច្បារច្រុះ</div>
+          <div style="font-size:11pt;color:#333">Chbar Chros Community School</div>
+        </td>
+        <td valign="top" align="left" style="font-size:12pt;line-height:1.6">
+          <div style="font-weight:bold">ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
+          ${examPeriod 
+            ? `<div>លេខបន្ទប់:........................</div><div>លេខតុ:........................</div>` 
+            : `<div>មុខវិជ្ជា <span style="padding:0 8px">${esc(params.subject)}</span></div><div>គ្រូបង្រៀន: ${esc(teacherName || '........................')}</div>`
+          }
         </td>
       </tr>
-    </table>`;
-  const titleBlock = `
-    <h1 style="text-align:center;font-size:17pt;margin:8pt 0 2pt">${esc(heading)}</h1>
-    ${examPeriod ? `<p style="text-align:center;font-size:11pt;color:#555;margin:0 0 6pt">វិញ្ញាសាប្រឡង${esc(EXAM_PERIOD_LABELS[examPeriod])} • ឆ្នាំសិក្សា ២០២៥-២០២៦</p>` : ''}`;
-  const infoLine = `
-    <table width="100%" cellspacing="0" cellpadding="0" style="border-bottom:1px solid #999;padding-bottom:4pt;font-size:11pt">
+    </table>
+
+    <div style="text-align:center;font-size:13pt;font-weight:bold;line-height:1.8;margin-bottom:12pt">
+      ${examPeriod 
+        ? `<div>ប្រឡងប្រចាំ <span style="padding:0 8px">${esc(EXAM_PERIOD_LABELS[examPeriod])}</span></div>
+           <div>មុខវិជ្ជា <span style="padding:0 8px">${esc(params.subject)}</span></div>
+           <div>រយៈពេល....................................</div>` 
+        : `<div>សន្លឹកកិច្ចការប្រចាំ....................................</div>`
+      }
+    </div>
+
+    <table width="100%" cellspacing="0" cellpadding="6" border="1" style="border-collapse:collapse;border:1px solid #000;font-size:11pt;margin-bottom:12pt">
       <tr>
-        <td>ឈ្មោះសិស្ស៖ ..............................</td>
-        <td align="center">ថ្ងៃទី៖ ......../......../........</td>
-        <td align="right">ពិន្ទុ៖ ......... / ${toKh(totalPoints)}${teacherName && !examSections ? ` &nbsp; គ្រូ៖ ${esc(teacherName)}` : ''}</td>
+        <td style="width:35%">ឈ្មោះសិស្ស: ...........................................</td>
+        <td style="width:35%">ថ្ងៃខែឆ្នាំកំណើតទី: ........./........./.........</td>
+        <td style="width:30%">${examPeriod ? 'កាលបរិច្ឆេទប្រឡង' : 'កាលបរិច្ឆេទ'}: ....../....../......</td>
       </tr>
-    </table>`;
+      <tr>
+        <td>ថ្នាក់ទី: <span style="padding:0 8px">${esc(params.grade)}</span>.............................</td>
+        <td>ហត្ថលេខា.............................................</td>
+        <td>ពិន្ទុ: .................. / ${toKh(totalPoints)}</td>
+      </tr>
+    </table>
+
+    <h1 style="text-align:center;font-size:14pt;margin:8pt 0 12pt">${esc(heading)}</h1>
+  `;
   const instr = instructions ? `<p style="font-style:italic;font-size:11.5pt;margin:6pt 0">សេចក្ដីណែនាំ៖ ${esc(instructions)}</p>` : '';
 
   let body = '';
@@ -181,7 +200,7 @@ const buildWordHtml = (d: WordDocInput): string => {
   }
 
   const style = `@page{size:A4;margin:1.6cm} body{font-family:'Khmer OS Battambang','Battambang',serif;font-size:13pt;color:#000;line-height:1.5} h1,h2{font-family:'Khmer OS Battambang','Battambang',serif} table{border-collapse:collapse}`;
-  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(heading)}</title><style>${style}</style></head><body>${header}${titleBlock}${infoLine}${instr}${body}${answerKey}</body></html>`;
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(heading)}</title><style>${style}</style></head><body>${header}${instr}${body}${answerKey}</body></html>`;
 };
 
 // Blank writing lines for hand-written answers (printer-friendly underlines).
