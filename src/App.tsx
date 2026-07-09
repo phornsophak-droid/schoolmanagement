@@ -2119,11 +2119,20 @@ export default function App() {
                     transition={{ duration: 0.15 }}
                   >
                     {/* Sub-tabs: generator · question bank · curriculum · lesson library. */}
-                    <div className="flex border-b border-slate-200/80 bg-slate-100 p-1 rounded-xl max-w-2xl mb-3">
-                      <button onClick={() => setWorksheetTab('generate')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'generate' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📝 បង្កើតសន្លឹកលំហាត់</button>
-                      <button onClick={() => setWorksheetTab('bank')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'bank' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>❓ ធនាគារសំណួរ</button>
-                      <button onClick={() => setWorksheetTab('curriculum')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'curriculum' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📚 កម្មវិធីសិក្សា</button>
-                      <button onClick={() => setWorksheetTab('lessons')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'lessons' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📖 បណ្ណាល័យមេរៀន</button>
+                    <div className="flex border-b border-slate-200/80 bg-slate-100 p-1 rounded-xl w-full mb-3 gap-1 overflow-x-auto scrollbar-hide">
+                      <button onClick={() => setWorksheetTab('generate')} className={`flex-1 min-w-[120px] py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'generate' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📝 បង្កើតសន្លឹកលំហាត់</button>
+                      <button onClick={() => setWorksheetTab('bank')} className={`flex-1 min-w-[110px] py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'bank' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>❓ ធនាគារសំណួរ</button>
+                      <button onClick={() => setWorksheetTab('curriculum')} className={`flex-1 min-w-[110px] py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'curriculum' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📚 កម្មវិធីសិក្សា</button>
+                      <button onClick={() => setWorksheetTab('lessons')} className={`flex-1 min-w-[120px] py-2 text-xs font-bold rounded-lg transition-all ${worksheetTab === 'lessons' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}>📖 បណ្ណាល័យមេរៀន</button>
+                      
+                      <div className="w-[1px] bg-slate-200/60 mx-1 my-1"></div>
+                      
+                      <a href="https://gemini.google.com/gem/1kp1UXGuq_Zli7s5gY3NUpeko2wVZseyb?usp=sharing" target="_blank" rel="noopener noreferrer" className="px-4 py-2 text-[11px] font-bold rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shrink-0 flex items-center gap-1.5 shadow-sm transition-all">
+                        ✨ Gemini Gem
+                      </a>
+                      <a href="https://notebooklm.google.com/notebook/68210444-9d69-4e1f-bc7d-528d392678cd/preview" target="_blank" rel="noopener noreferrer" className="px-4 py-2 text-[11px] font-bold rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shrink-0 flex items-center gap-1.5 shadow-sm transition-all">
+                        ✨ NotebookLM
+                      </a>
                     </div>
                     {worksheetTab === 'lessons' ? (
                       <LessonLibrary
