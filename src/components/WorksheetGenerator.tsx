@@ -136,7 +136,7 @@ const Lines: React.FC<{ n: number }> = ({ n }) => (
 
 // One printable question row — shared by the worksheet body and each exam section.
 const QRow: React.FC<{ q: WSQuestion; type: WorksheetType; num: number; showAns: boolean }> = ({ q, type, num, showAns }) => (
-  <li className="flex gap-2">
+  <li className="break-inside-avoid flex gap-2">
     <span className="font-bold shrink-0">{toKh(num)}.</span>
     <div className="flex-1 min-w-0">
       {q.pairs ? (
@@ -149,14 +149,14 @@ const QRow: React.FC<{ q: WSQuestion; type: WorksheetType; num: number; showAns:
           <div className="font-medium">{q.prompt}</div>
           {q.options ? (
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-1 pl-1">
-              {q.options.map((o, j) => <div key={j} className="flex items-center gap-1.5"><span className="inline-block w-4 h-4 border border-slate-500 rounded-full text-[10px] text-center leading-4">{OPT_LETTERS[j]}</span> {o}</div>)}
+              {q.options.map((o, j) => <div key={j} className="flex items-center gap-1.5"><span className="inline-block w-4 h-4 border border-slate-500 rounded-full text-[9pt] text-center leading-4">{OPT_LETTERS[j]}</span> {o}</div>)}
             </div>
           ) : type === 'true_false' ? (
-            <div className="flex gap-6 mt-1 pl-1 text-[12.5px]"><span>◯ ត្រូវ</span><span>◯ ខុស</span></div>
+            <div className="flex gap-6 mt-1 pl-1"><span>◯ ត្រូវ</span><span>◯ ខុស</span></div>
           ) : (
             <Lines n={type === 'essay' || type === 'writing' || type === 'reading' ? 5 : type === 'short_answer' ? 2 : 1} />
           )}
-          {showAns && q.answer && <div className="ws-no-print mt-1 text-[12px] font-bold text-emerald-700">✔ ចម្លើយ៖ {q.answer}</div>}
+          {showAns && q.answer && <div className="ws-no-print mt-1 text-[10pt] font-bold text-emerald-700">✔ ចម្លើយ៖ {q.answer}</div>}
         </>
       )}
     </div>
@@ -474,43 +474,43 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         {/* Printable exam paper (វិញ្ញាសា) — mixed sections */}
         {examSections ? (
           <FitToWidth designWidth={A4_WIDTH}>
-            <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10" style={{ fontFamily: "'Khmer OS Battambang','Battambang',serif" }}>
+            <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
               <div className="flex items-center justify-between gap-3 border-b-2 border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <SchoolLogo size={56} />
                   <div className="leading-tight">
-                    <div className="font-bold text-[15px]">សាលាសហគមន៍ច្បារច្រុះ</div>
-                    <div className="text-[11px] text-slate-500">Chbar Chros Community School</div>
+                    <div className="font-bold text-[14pt]">សាលាសហគមន៍ច្បារច្រុះ</div>
+                    <div className="text-[10pt] text-slate-500">Chbar Chros Community School</div>
                   </div>
                 </div>
-                <div className="text-right text-[12px] space-y-0.5">
+                <div className="text-right text-[10pt] space-y-0.5">
                   <div><span className="font-semibold">មុខវិជ្ជា៖</span> {params.subject}</div>
                   <div><span className="font-semibold">ថ្នាក់៖</span> {params.grade}</div>
                 </div>
               </div>
-              <h1 className="text-center text-[18px] font-extrabold my-1">{heading}</h1>
-              {examPeriod && <p className="text-center text-[12px] text-slate-600 mb-2">វិញ្ញាសាប្រឡង{EXAM_PERIOD_LABELS[examPeriod]} • ឆ្នាំសិក្សា ២០២៥-២០២៦</p>}
-              <div className="flex flex-wrap justify-between text-[12px] gap-x-6 gap-y-1 border-b border-slate-300 pb-2 mb-1">
+              <h1 className="text-center text-[14pt] font-extrabold my-2">{heading}</h1>
+              {examPeriod && <p className="text-center text-[10pt] text-slate-600 mb-3">វិញ្ញាសាប្រឡង{EXAM_PERIOD_LABELS[examPeriod]} • ឆ្នាំសិក្សា ២០២៥-២០២៦</p>}
+              <div className="flex flex-wrap justify-between text-[11pt] gap-x-6 gap-y-1 border-b border-slate-300 pb-2 mb-2">
                 <span>ឈ្មោះសិស្ស៖ ......................................</span>
                 <span>ថ្ងៃទី៖ ............ /............ /............</span>
                 <span>ពិន្ទុ៖ ............ / {toKh(examSections.reduce((n, s) => n + s.points, 0))}</span>
               </div>
-              {instructions && <p className="text-[12.5px] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
+              {instructions && <p className="text-[11pt] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
               {examSections.map((sec, si) => (
                 <div key={si} className="mt-4">
-                  <h2 className="font-extrabold text-[14px] bg-slate-100 px-2 py-1 rounded">ផ្នែកទី {toKh(si + 1)}៖ {sec.label} <span className="font-normal text-[11px] text-slate-500">({toKh(sec.points)} ពិន្ទុ)</span></h2>
-                  <ol className="mt-2 space-y-3 text-[13.5px]">
+                  <h2 className="font-extrabold text-[12pt] bg-slate-100 px-2 py-1 rounded">ផ្នែកទី {toKh(si + 1)}៖ {sec.label} <span className="font-normal text-[10pt] text-slate-500">({toKh(sec.points)} ពិន្ទុ)</span></h2>
+                  <ol className="mt-3 space-y-3">
                     {sec.questions.map((q, i) => <QRow key={i} q={q} type={sec.type} num={i + 1} showAns={showAnswers} />)}
                   </ol>
                 </div>
               ))}
               {showAnswers && (
                 <div className="mt-6 pt-3 border-t-2 border-dashed border-slate-400">
-                  <h2 className="font-extrabold text-[15px] mb-2">🔑 កូនសោចម្លើយ (Answer Key)</h2>
+                  <h2 className="font-extrabold text-[13pt] mb-2">🔑 កូនសោចម្លើយ (Answer Key)</h2>
                   {examSections.map((sec, si) => (
                     <div key={si} className="mb-2">
-                      <div className="font-bold text-[12.5px]">ផ្នែកទី {toKh(si + 1)}៖ {sec.label}</div>
-                      <ol className="grid grid-cols-2 gap-x-8 gap-y-1 text-[12px]">
+                      <div className="font-bold text-[11pt]">ផ្នែកទី {toKh(si + 1)}៖ {sec.label}</div>
+                      <ol className="grid grid-cols-2 gap-x-8 gap-y-1 text-[10pt]">
                         {sec.questions.map((q, i) => <li key={i}><span className="font-bold">{toKh(i + 1)}.</span> {q.pairs ? q.pairs.map(p => `${p.left}→${p.right}`).join('; ') : q.answer || '—'}</li>)}
                       </ol>
                     </div>
@@ -526,17 +526,17 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
           </div>
         ) : (
           <FitToWidth designWidth={A4_WIDTH}>
-            <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10" style={{ fontFamily: "'Khmer OS Battambang','Battambang',serif" }}>
+            <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
               {/* Header */}
               <div className="flex items-center justify-between gap-3 border-b-2 border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <SchoolLogo size={56} />
                   <div className="leading-tight">
-                    <div className="font-bold text-[15px]">សាលាសហគមន៍ច្បារច្រុះ</div>
-                    <div className="text-[11px] text-slate-500">Chbar Chros Community School</div>
+                    <div className="font-bold text-[13pt]">សាលាសហគមន៍ច្បារច្រុះ</div>
+                    <div className="text-[9pt] text-slate-500">Chbar Chros Community School</div>
                   </div>
                 </div>
-                <div className="text-right text-[12px] space-y-0.5">
+                <div className="text-right text-[10pt] space-y-0.5">
                   <div><span className="font-semibold">មុខវិជ្ជា៖</span> {params.subject}</div>
                   <div><span className="font-semibold">ថ្នាក់៖</span> {params.grade}</div>
                   {params.lesson && <div><span className="font-semibold">មេរៀន៖</span> {params.lesson}</div>}
