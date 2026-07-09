@@ -70,6 +70,48 @@ const qToWord = (q: WSQuestion, type: WorksheetType, num: number, showAns: boole
 
 const qListTable = (rows: string) => `<table width="100%" cellspacing="0" cellpadding="4" style="margin-top:6pt">${rows}</table>`;
 
+const PrintHeader = ({ params, heading, totalPoints, examPeriod }: { params: WorksheetParams; heading: string; totalPoints: number; examPeriod: ExamPeriod | null }) => (
+  <>
+    <div className="flex justify-between items-start mb-4">
+      <div className="flex items-center gap-3">
+        <SchoolLogo size={64} />
+        <div className="leading-tight">
+          <div className="font-bold text-[16pt]" style={{ fontFamily: "'Moul', serif" }}>សាលាសហគមន៍ច្បារច្រុះ</div>
+          <div className="text-[11pt] text-slate-700 font-sans">Chbar Chros Community School</div>
+        </div>
+      </div>
+      <div className="text-[12pt] leading-[1.6]">
+        <div className="font-bold">ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
+        <div>លេខបន្ទប់:........................</div>
+        <div>លេខតុ:........................</div>
+      </div>
+    </div>
+
+    <div className="text-center text-[13pt] font-bold leading-[1.8] mb-4">
+      <div>ប្រឡងប្រចាំ{examPeriod ? <span className="px-2">{EXAM_PERIOD_LABELS[examPeriod]}</span> : '....................................'}</div>
+      <div>មុខវិជ្ជា <span className="px-2">{params.subject}</span></div>
+      <div>រយៈពេល....................................</div>
+    </div>
+
+    <table className="w-full border-collapse border border-black text-[11pt] mb-4">
+      <tbody>
+        <tr>
+          <td className="border border-black p-2 w-[35%]">ឈ្មោះសិស្ស: ...........................................</td>
+          <td className="border border-black p-2 w-[35%]">ថ្ងៃខែឆ្នាំកំណើតទី: ........./........./.........</td>
+          <td className="border border-black p-2 w-[30%]">កាលបរិច្ឆេទប្រឡង: ....../....../......</td>
+        </tr>
+        <tr>
+          <td className="border border-black p-2">ថ្នាក់ទី: <span className="px-2">{params.grade}</span>.............................</td>
+          <td className="border border-black p-2">ហត្ថលេខា.............................................</td>
+          <td className="border border-black p-2">ពិន្ទុ: .................. / {toKh(totalPoints)}</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <h1 className="text-center text-[14pt] font-extrabold my-2">{heading}</h1>
+  </>
+);
+
 interface WordDocInput {
   heading: string; instructions: string; params: WorksheetParams; teacherName: string;
   questions: WSQuestion[]; examSections: ExamSection[] | null; examPeriod: ExamPeriod | null; showAnswers: boolean;
@@ -511,26 +553,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         {examSections ? (
           <FitToWidth designWidth={A4_WIDTH}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
-              <div className="flex items-center justify-between gap-3 border-b-2 border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <SchoolLogo size={56} />
-                  <div className="leading-tight">
-                    <div className="font-bold text-[14pt]">សាលាសហគមន៍ច្បារច្រុះ</div>
-                    <div className="text-[10pt] text-slate-500">Chbar Chros Community School</div>
-                  </div>
-                </div>
-                <div className="text-right text-[10pt] space-y-0.5">
-                  <div><span className="font-semibold">មុខវិជ្ជា៖</span> {params.subject}</div>
-                  <div><span className="font-semibold">ថ្នាក់៖</span> {params.grade}</div>
-                </div>
-              </div>
-              <h1 className="text-center text-[14pt] font-extrabold my-2">{heading}</h1>
-              {examPeriod && <p className="text-center text-[10pt] text-slate-600 mb-3">វិញ្ញាសាប្រឡង{EXAM_PERIOD_LABELS[examPeriod]} • ឆ្នាំសិក្សា ២០២៥-២០២៦</p>}
-              <div className="flex flex-wrap justify-between text-[11pt] gap-x-6 gap-y-1 border-b border-slate-300 pb-2 mb-2">
-                <span>ឈ្មោះសិស្ស៖ ......................................</span>
-                <span>ថ្ងៃទី៖ ............ /............ /............</span>
-                <span>ពិន្ទុ៖ ............ / {toKh(examSections.reduce((n, s) => n + s.points, 0))}</span>
-              </div>
+              <PrintHeader params={params} heading={heading} totalPoints={examSections.reduce((n, s) => n + s.points, 0)} examPeriod={examPeriod} />
               {instructions && <p className="text-[11pt] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
               {examSections.map((sec, si) => (
                 <div key={si} className="mt-4">
@@ -563,30 +586,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         ) : (
           <FitToWidth designWidth={A4_WIDTH}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
-              {/* Header */}
-              <div className="flex items-center justify-between gap-3 border-b-2 border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <SchoolLogo size={56} />
-                  <div className="leading-tight">
-                    <div className="font-bold text-[13pt]">សាលាសហគមន៍ច្បារច្រុះ</div>
-                    <div className="text-[9pt] text-slate-500">Chbar Chros Community School</div>
-                  </div>
-                </div>
-                <div className="text-right text-[10pt] space-y-0.5">
-                  <div><span className="font-semibold">មុខវិជ្ជា៖</span> {params.subject}</div>
-                  <div><span className="font-semibold">ថ្នាក់៖</span> {params.grade}</div>
-                  {params.lesson && <div><span className="font-semibold">មេរៀន៖</span> {params.lesson}</div>}
-                </div>
-              </div>
-
-              <h1 className="text-center text-[18px] font-extrabold my-3">{heading}</h1>
-
-              <div className="flex flex-wrap justify-between text-[12px] gap-x-6 gap-y-1 border-b border-slate-300 pb-2 mb-1">
-                <span>ឈ្មោះសិស្ស៖ ......................................</span>
-                <span>ថ្ងៃទី៖ ............ /............ /............</span>
-                <span>ពិន្ទុ៖ ............ / {toKh(questions.length)}</span>
-                <span>គ្រូ៖ {teacherName || '....................'}</span>
-              </div>
+              <PrintHeader params={params} heading={heading} totalPoints={questions.length} examPeriod={null} />
               {instructions && <p className="text-[12.5px] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
 
               {/* Body */}
