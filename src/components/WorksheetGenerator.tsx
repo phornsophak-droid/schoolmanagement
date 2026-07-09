@@ -70,7 +70,7 @@ const qToWord = (q: WSQuestion, type: WorksheetType, num: number, showAns: boole
 
 const qListTable = (rows: string) => `<table width="100%" cellspacing="0" cellpadding="4" style="margin-top:6pt">${rows}</table>`;
 
-const PrintHeader = ({ params, heading, totalPoints, examPeriod }: { params: WorksheetParams; heading: string; totalPoints: number; examPeriod: ExamPeriod | null }) => (
+const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName }: { params: WorksheetParams; heading: string; totalPoints: number; examPeriod: ExamPeriod | null; teacherName: string }) => (
   <>
     <div className="flex justify-between items-start mb-4">
       <div className="flex items-center gap-3">
@@ -82,23 +82,38 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod }: { params: Wor
       </div>
       <div className="text-[12pt] leading-[1.6]">
         <div className="font-bold">ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
-        <div>លេខបន្ទប់:........................</div>
-        <div>លេខតុ:........................</div>
+        {examPeriod ? (
+          <>
+            <div>លេខបន្ទប់:........................</div>
+            <div>លេខតុ:........................</div>
+          </>
+        ) : (
+          <>
+            <div>មុខវិជ្ជា <span className="px-2">{params.subject}</span></div>
+            <div>គ្រូបង្រៀន: {teacherName || '........................'}</div>
+          </>
+        )}
       </div>
     </div>
 
-    <div className="text-center text-[13pt] font-bold leading-[1.8] mb-4">
-      <div>ប្រឡងប្រចាំ{examPeriod ? <span className="px-2">{EXAM_PERIOD_LABELS[examPeriod]}</span> : '....................................'}</div>
-      <div>មុខវិជ្ជា <span className="px-2">{params.subject}</span></div>
-      <div>រយៈពេល....................................</div>
-    </div>
+    {examPeriod ? (
+      <div className="text-center text-[13pt] font-bold leading-[1.8] mb-4">
+        <div>ប្រឡងប្រចាំ <span className="px-2">{EXAM_PERIOD_LABELS[examPeriod]}</span></div>
+        <div>មុខវិជ្ជា <span className="px-2">{params.subject}</span></div>
+        <div>រយៈពេល....................................</div>
+      </div>
+    ) : (
+      <div className="text-center text-[13pt] font-bold leading-[1.8] mb-4">
+        <div>សន្លឹកកិច្ចការប្រចាំ....................................</div>
+      </div>
+    )}
 
     <table className="w-full border-collapse border border-black text-[11pt] mb-4">
       <tbody>
         <tr>
           <td className="border border-black p-2 w-[35%]">ឈ្មោះសិស្ស: ...........................................</td>
           <td className="border border-black p-2 w-[35%]">ថ្ងៃខែឆ្នាំកំណើតទី: ........./........./.........</td>
-          <td className="border border-black p-2 w-[30%]">កាលបរិច្ឆេទប្រឡង: ....../....../......</td>
+          <td className="border border-black p-2 w-[30%]">{examPeriod ? 'កាលបរិច្ឆេទប្រឡង' : 'កាលបរិច្ឆេទ'}: ....../....../......</td>
         </tr>
         <tr>
           <td className="border border-black p-2">ថ្នាក់ទី: <span className="px-2">{params.grade}</span>.............................</td>
@@ -553,7 +568,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         {examSections ? (
           <FitToWidth designWidth={A4_WIDTH}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
-              <PrintHeader params={params} heading={heading} totalPoints={examSections.reduce((n, s) => n + s.points, 0)} examPeriod={examPeriod} />
+              <PrintHeader params={params} heading={heading} totalPoints={examSections.reduce((n, s) => n + s.points, 0)} examPeriod={examPeriod} teacherName={teacherName} />
               {instructions && <p className="text-[11pt] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
               {examSections.map((sec, si) => (
                 <div key={si} className="mt-4">
@@ -586,7 +601,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         ) : (
           <FitToWidth designWidth={A4_WIDTH}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
-              <PrintHeader params={params} heading={heading} totalPoints={questions.length} examPeriod={null} />
+              <PrintHeader params={params} heading={heading} totalPoints={questions.length} examPeriod={null} teacherName={teacherName} />
               {instructions && <p className="text-[12.5px] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
 
               {/* Body */}
