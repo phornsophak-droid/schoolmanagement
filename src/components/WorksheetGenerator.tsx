@@ -597,7 +597,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
 
         {/* Printable exam paper (វិញ្ញាសា) — mixed sections */}
         {examSections ? (
-          <FitToWidth designWidth={A4_WIDTH}>
+          <FitToWidth designWidth={A4_WIDTH} fitHeight={false}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
               <PrintHeader params={params} heading={heading} totalPoints={examSections.reduce((n, s) => n + s.points, 0)} examPeriod={examPeriod} teacherName={teacherName} />
               {instructions && <p className="text-[11pt] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
@@ -630,7 +630,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
             <p className="text-sm font-medium">ជ្រើសរើសលក្ខណៈ រួចចុច «បង្កើតលំហាត់» ដើម្បីបង្ហាញសន្លឹកលំហាត់នៅទីនេះ។</p>
           </div>
         ) : (
-          <FitToWidth designWidth={A4_WIDTH}>
+          <FitToWidth designWidth={A4_WIDTH} fitHeight={false}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
               <PrintHeader params={params} heading={heading} totalPoints={questions.length} examPeriod={null} teacherName={teacherName} />
               {instructions && <p className="text-[12.5px] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}

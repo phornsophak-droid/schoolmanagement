@@ -8,6 +8,8 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 interface FitToWidthProps {
   /** The width the child is designed for (px). The child is never scaled up. */
   designWidth: number;
+  /** Whether to shrink to fit the available height. Defaults to true for backward compatibility. */
+  fitHeight?: boolean;
   children: React.ReactNode;
 }
 
@@ -24,7 +26,7 @@ interface FitToWidthProps {
 //
 // The transform/sizing is reset for print via the .rc-fit-* classes (see each
 // card's print CSS), so PDF / paper output is always full size.
-export default function FitToWidth({ designWidth, children }: FitToWidthProps) {
+export default function FitToWidth({ designWidth, fitHeight = true, children }: FitToWidthProps) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState<{ scale: number; w: number | string; h: number | undefined }>({
@@ -44,7 +46,13 @@ export default function FitToWidth({ designWidth, children }: FitToWidthProps) {
       const top = outer.getBoundingClientRect().top;
       const availH = window.innerHeight - top - 16;
       const natH = inner.offsetHeight; // natural (un-scaled) height — transform doesn't change offsetHeight
-      const s = Math.min(1, availW / designWidth, availH > 40 ? availH / natH : 1);
+      
+      let s = availW / designWidth;
+      if (fitHeight && availH > 40) {
+        s = Math.min(s, availH / natH);
+      }
+      s = Math.min(1, s);
+
       if (s >= 1) setFit({ scale: 1, w: '100%', h: undefined });
       else setFit({ scale: s, w: Math.ceil(designWidth * s), h: Math.ceil(natH * s) });
     };
