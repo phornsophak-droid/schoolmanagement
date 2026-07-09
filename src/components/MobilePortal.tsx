@@ -42,6 +42,7 @@ import ReportsHub from './ReportsHub';
 import Gradebook from './Gradebook';
 import DailyAttendance from './DailyAttendance';
 import Dashboard from './Dashboard';
+import WorksheetGenerator from './WorksheetGenerator';
 import { SchoolLogo } from './SchoolLogo';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 
@@ -126,7 +127,7 @@ export default function MobilePortal({
   onRenameGrade
 }: MobilePortalProps) {
   // Mobile active navigation view
-  const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat'>('home');
+  const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat' | 'worksheets'>('home');
   const [showMenuOverlay, setShowMenuOverlay] = useState(false);
   const [showAiHelper, setShowAiHelper] = useState(false);
   // Gradebook month/class filters on phone — must be real state, else the dropdowns
@@ -728,6 +729,30 @@ export default function MobilePortal({
                     </div>
                     <span className="text-[13px] font-extrabold text-left text-emerald-950 leading-tight">
                       របាយការណ៍
+                    </span>
+                  </button>
+
+                  {/* Button 8: គ្រប់គ្រងវិញ្ញាសា */}
+                  <button
+                    onClick={() => setInnerView('worksheets')}
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                        <Sparkles className="w-4.5 h-4.5 text-rose-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration - Paper & Sparkles */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="30" y="25" width="60" height="70" rx="4" fill="#FFFFFF" stroke="#E11D48" strokeWidth="1.5" />
+                        <line x1="45" y1="40" x2="75" y2="40" stroke="#F43F5E" strokeWidth="2" strokeLinecap="round" />
+                        <line x1="45" y1="55" x2="75" y2="55" stroke="#F43F5E" strokeWidth="2" strokeLinecap="round" />
+                        <line x1="45" y1="70" x2="65" y2="70" stroke="#F43F5E" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M80,80 L95,95 M95,80 L80,95" stroke="#FDE047" strokeWidth="3" strokeLinecap="round" />
+                        <circle cx="87.5" cy="87.5" r="10" fill="#FDE047" opacity="0.3" />
+                      </svg>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-rose-950 leading-tight">
+                      គ្រប់គ្រងវិញ្ញាសា
                     </span>
                   </button>
 
@@ -1342,6 +1367,72 @@ export default function MobilePortal({
             )}
 
             {/* PREVIOUS BULLETIN BOARD */}
+            {innerView === 'chat' && (
+              <motion.div
+                key="chat"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-10 bg-[#F8FAFC] flex flex-col p-3 pb-[80px]"
+              >
+                <div className="border-b border-emerald-250/50 pb-2 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-emerald-950">ជំនួយការឆ្លាតវៃ</h3>
+                  </div>
+                </div>
+
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                  <div className="w-16 h-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mb-4">
+                    <MessageSquare size={32} />
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-800 mb-2">ជំនួយការឆ្លាតវៃ (AI Assistant)</h3>
+                  <p className="text-xs text-slate-500 mb-6 max-w-[250px]">
+                    មុខងារនេះកំពុងត្រូវបានអភិវឌ្ឍន៍ ហើយនឹងមានវត្តមានក្នុងពេលឆាប់ៗនេះ។
+                  </p>
+                  <button 
+                    onClick={() => setInnerView('home')}
+                    className="px-6 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold"
+                  >
+                    ត្រឡប់ក្រោយ
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* WORKSHEETS VIEW */}
+            {innerView === 'worksheets' && (
+              <motion.div
+                key="worksheets"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-10 bg-[#F8FAFC] flex flex-col p-3 overflow-hidden"
+              >
+                <div className="border-b border-emerald-250/50 pb-2 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-emerald-950">គ្រប់គ្រងវិញ្ញាសា</h3>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-0 border border-emerald-100 text-slate-800 overflow-auto w-full flex-1 mt-2 relative">
+                  <WorksheetGenerator
+                    embedded
+                    grades={grades}
+                    currentUser={currentUser}
+                    onClose={() => setInnerView('home')}
+                  />
+                </div>
+              </motion.div>
+            )}
+
             {innerView === 'unused-notices' && (
               <motion.div
                 key="notices"
