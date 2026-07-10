@@ -64,6 +64,7 @@ const recordSession = (r: { id?: string; session?: string }): Session | undefine
 const ABSENCE_REASON_GROUPS: { label: string; options: string[] }[] = [
   { label: '១. បញ្ហាសុខភាព', options: [
     'ឈឺធម្មតា (ផ្តាសាយ គ្រុនក្តៅ ឈឺពោះ។ល។)',
+    'គ្រុនឈាម',
     'ជួបគ្រោះថ្នាក់ ឬរបួស',
     'ទៅពិនិត្យសុខភាព ឬព្យាបាលជំងឺ',
   ] },
