@@ -44,51 +44,60 @@ export default async function handler(req: Req, res: Res) {
   // "base64,".
   const b64 = (dataUrl: string): string => { const i = dataUrl.indexOf('base64,'); return i >= 0 ? dataUrl.slice(i + 7) : dataUrl; };
 
-  try {
-    // An image (e.g. the shift-schedule table) is sent as a photo so it renders as
-    // a proper picture instead of a text grid; otherwise a plain HTML text message.
-    let data: any;
+  // Build + send to a given chat id. An image (e.g. the shift-schedule table) goes
+  // as a photo; otherwise a plain HTML text message. Returns Telegram's JSON.
+  const sendTo = async (chatId: string): Promise<any> => {
     if (doc) {
       // An editable Word (.doc) report → send as a document file.
       const base64 = b64(doc);
       const form = new FormData();
-      form.append('chat_id', String(groupId));
+      form.append('chat_id', chatId);
       const caption = String(body.caption || message || '').replace(/<[^>]+>/g, '').slice(0, 1000);
       if (caption) form.append('caption', caption);
       const fname = String(body.filename || 'report.doc').replace(/[\/\\:*?"<>|\x00-\x1f]/g, '_').trim();
       form.append('document', new Blob([Buffer.from(base64, 'base64')], { type: 'application/msword' }) as any, fname.endsWith('.doc') ? fname : `${fname}.doc`);
       const r = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: 'POST', body: form });
-      data = await r.json();
-    } else if (pdf) {
+      return r.json();
+    }
+    if (pdf) {
       // A rendered PDF (e.g. a long work report) → send as a document file.
       const base64 = b64(pdf);
       const form = new FormData();
-      form.append('chat_id', String(groupId));
+      form.append('chat_id', chatId);
       const caption = String(body.caption || message || '').replace(/<[^>]+>/g, '').slice(0, 1000);
       if (caption) form.append('caption', caption);
       const fname = String(body.filename || 'report.pdf').replace(/[\/\\:*?"<>|\x00-\x1f]/g, '_').trim();
       form.append('document', new Blob([Buffer.from(base64, 'base64')], { type: 'application/pdf' }) as any, fname.endsWith('.pdf') ? fname : `${fname}.pdf`);
       const r = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: 'POST', body: form });
-      data = await r.json();
-    } else if (image) {
+      return r.json();
+    }
+    if (image) {
       const base64 = b64(image);
       const form = new FormData();
-      form.append('chat_id', String(groupId));
+      form.append('chat_id', chatId);
       const caption = String(body.caption || message || '').slice(0, 1000);
       if (caption) form.append('caption', caption);
       form.append('photo', new Blob([Buffer.from(base64, 'base64')], { type: 'image/png' }) as any, 'schedule.png');
       const r = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: form });
-      data = await r.json();
-    } else {
-      const header = target === 'teacher' ? '📋 <b>របាយការណ៍ការងារគ្រូ</b>' : '📢 <b>សេចក្តីជូនដំណឹង</b>';
-      const text = `${header}\n\n${escapeHtml(message)}\n\n— សាលាសហគមន៍ច្បារច្រុះ`;
-      const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: groupId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
-      });
-      data = await r.json();
+      return r.json();
     }
+    const header = target === 'teacher' ? '📋 <b>របាយការណ៍ការងារគ្រូ</b>' : '📢 <b>សេចក្តីជូនដំណឹង</b>';
+    const text = `${header}\n\n${escapeHtml(message)}\n\n— សាលាសហគមន៍ច្បារច្រុះ`;
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
+    });
+    return r.json();
+  };
+
+  try {
+    // If a plain group was upgraded to a SUPERGROUP its chat id changed; Telegram
+    // rejects the old id and returns the new one in parameters.migrate_to_chat_id.
+    // Retry once with the migrated id so the send still lands (env var can stay).
+    let data = await sendTo(String(groupId));
+    const migrated = data?.parameters?.migrate_to_chat_id;
+    if (!data.ok && migrated) data = await sendTo(String(migrated));
     if (!data.ok) { res.status(502).json({ error: data.description || 'telegram error' }); return; }
     res.status(200).json({ ok: true, message_id: data.result?.message_id });
   } catch (e: any) {
