@@ -41,6 +41,7 @@ interface Props {
 }
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
+const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
 const A4_WIDTH = 794; // px @96dpi — pinned width for a crisp, consistent PDF/print
 const OPT_LETTERS = ['ក', 'ខ', 'គ', 'ឃ', 'ង'];
 
@@ -90,7 +91,7 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
   </label>
 );
 
-const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, duration }: { params: WorksheetParams; heading: string; totalPoints: number; examPeriod: ExamPeriod | null; teacherName: string; duration?: string }) => {
+const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, duration, month }: { params: WorksheetParams; heading: string; totalPoints: number; examPeriod: ExamPeriod | null; teacherName: string; duration?: string; month?: string }) => {
   const dotted = 'inline-block border-b border-dotted border-slate-500 align-bottom';
   // Shared centered school identity block (logo + Khmer/English name + motto).
   const Identity = () => (
@@ -113,7 +114,7 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, du
       <>
         <Identity />
         <div className="flex justify-between items-center font-bold text-[13pt] py-2.5">
-          <div>📖 សន្លឹកកិច្ចការ</div>
+          <div>📖 សន្លឹកកិច្ចការ{month ? ` ប្រចាំខែ${month}` : ''}</div>
           <div>ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
         </div>
         <div className="text-[12pt] leading-[2.4]">
@@ -315,6 +316,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const [title, setTitle] = useState('');
   const [instructions, setInstructions] = useState('');
   const [duration, setDuration] = useState(''); // exam duration in minutes (រយៈពេល)
+  const [month, setMonth] = useState(''); // optional month shown in the worksheet header (ខែ)
   const [questions, setQuestions] = useState<WSQuestion[]>([]);
   const [showAnswers, setShowAnswers] = useState(false);
   // Exam-paper mode (វិញ្ញាសាប្រឡង ប្រចាំខែ/ឆមាស/ឆ្នាំ) — mixed-type sections.
@@ -404,7 +406,13 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     flash('បានលុបមេរៀន ✓');
   };
 
-  const heading = title || `សន្លឹកលំហាត់ ${params.subject} — ${params.grade}`;
+  // The printed title: the user's custom title if they typed one, otherwise an
+  // auto title derived from the CURRENT settings (worksheet vs exam). We never write
+  // the auto value back into `title`, so it stays a live default and the user's own
+  // title always takes effect.
+  const heading = title.trim() || (examPeriod
+    ? `វិញ្ញាសាប្រឡង${EXAM_PERIOD_LABELS[examPeriod]} មុខវិជ្ជា${params.subject}`
+    : `សន្លឹកលំហាត់ ${params.subject}${params.topic ? ` — ${params.topic}` : ` — ${params.grade}`}`);
 
   // Fall back to the picked curriculum lesson's material as the AI source when the
   // teacher hasn't pasted their own source text.
@@ -423,7 +431,6 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     try {
       const { questions: qs, fromBank, fromAI } = await generateFromBank(effectiveParams());
       setQuestions(qs);
-      if (!title) setTitle(`សន្លឹកលំហាត់ ${params.subject}${params.topic ? ` — ${params.topic}` : ''}`);
       flash(`បានបង្កើតលំហាត់ ${toKh(qs.length)} ✓ (ធនាគារ ${toKh(fromBank)} + AI ${toKh(fromAI)})`);
     } catch (e: any) {
       console.error('Worksheet generation failed', e);
@@ -442,7 +449,6 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
       const sections = await generateExam(effectiveParams(), period);
       setExamSections(sections);
       setExamPeriod(period);
-      setTitle(`វិញ្ញាសាប្រឡង${EXAM_PERIOD_LABELS[period]} មុខវិជ្ជា${params.subject}`);
       const total = sections.reduce((n, s) => n + s.questions.length, 0);
       flash(`បានបង្កើតវិញ្ញាសា (${toKh(sections.length)} ផ្នែក, ${toKh(total)} សំណួរ) ✓`);
     } catch (e: any) {
@@ -583,6 +589,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
             <Field label="ចំណងជើង (ស្រេចចិត្ត)"><input value={title} onChange={e => setTitle(e.target.value)} placeholder={heading} className={fieldCls} /></Field>
             <Field label="សេចក្ដីណែនាំ (ស្រេចចិត្ត)"><input value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="ឧ. ចូរឆ្លើយសំណួរខាងក្រោម…" className={fieldCls} /></Field>
             <Field label="រយៈពេល — នាទី (វិញ្ញាសា)"><input type="number" min={0} value={duration} onChange={e => setDuration(e.target.value)} placeholder="ឧ. ៦០" className={fieldCls} /></Field>
+            <Field label="ខែ (ស្រេចចិត្ត)"><select value={month} onChange={e => setMonth(e.target.value)} className={fieldCls}><option value="">— ជ្រើសរើសខែ —</option>{KH_MONTHS.map(m => <option key={m} value={m}>{m}</option>)}</select></Field>
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -678,7 +685,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         ) : (
           <FitToWidth designWidth={A4_WIDTH} fitHeight={false}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
-              <PrintHeader params={params} heading={heading} totalPoints={questions.length} examPeriod={null} teacherName={teacherName} />
+              <PrintHeader params={params} heading={heading} totalPoints={questions.length} examPeriod={null} teacherName={teacherName} month={month} />
               {instructions && <p className="text-[12.5px] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
 
               {/* Body */}
