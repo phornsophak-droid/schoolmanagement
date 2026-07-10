@@ -290,7 +290,9 @@ function tierCounts(total: number): number[] {
 // the fixed 3/5/2 points. Bank-first per tier; skips a tier only if it fails.
 export async function generateExam(params: WorksheetParams, period: ExamPeriod): Promise<ExamSection[]> {
   const isMath = params.subject.includes('គណិត');
-  const counts = tierCounts(EXAM_TOTAL_Q[period]);
+  // Honour the user's chosen question count; fall back to the per-period default.
+  const total = params.count && params.count > 0 ? params.count : EXAM_TOTAL_Q[period];
+  const counts = tierCounts(total);
   const sections: ExamSection[] = [];
   for (let i = 0; i < EXAM_TIERS.length; i++) {
     const tier = EXAM_TIERS[i];

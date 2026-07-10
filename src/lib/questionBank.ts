@@ -106,12 +106,20 @@ const shuffle = <T>(a: T[]): T[] => {
 // and how many more are still needed (shortfall) so the caller can ask the AI
 // only for the remainder.
 export function pickApproved(params: WorksheetParams, count: number): { used: BankQuestion[]; shortfall: number } {
+  // When a topic is given, only reuse bank questions that actually relate to it
+  // (loose contains match on the prompt/lesson/objective). Otherwise the bank would
+  // return off-topic questions and the topic would have no effect; an empty match
+  // makes the whole count a shortfall so the AI generates topic-specific questions.
+  const topic = (params.topic || '').trim().toLowerCase();
+  const onTopic = (q: BankQuestion): boolean =>
+    !topic || [q.prompt, q.lesson, q.objective].some(f => (f || '').toLowerCase().includes(topic));
   const pool = loadQuestions().filter(q =>
     q.grade === params.grade &&
     q.subject === params.subject &&
     q.type === params.type &&
     (!params.difficulty || q.difficulty === params.difficulty) &&
-    (!params.lesson || !q.lesson || q.lesson === params.lesson)
+    (!params.lesson || !q.lesson || q.lesson === params.lesson) &&
+    onTopic(q)
   );
   const used = shuffle(pool).slice(0, count);
   return { used, shortfall: Math.max(0, count - used.length) };
