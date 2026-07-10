@@ -751,9 +751,10 @@ export default function Dashboard({
     printReportHtml(html);
   };
 
-  // Send the daily-absence panel to the TEACHERS' Telegram group as an image that
-  // keeps the exact on-screen look (the toolbar is hidden in the capture via
-  // .rc-no-print). Rendered wide so all 10 columns + the 4 cards show fully.
+  // Send the daily-absence panel to BOTH the teachers' and the parents' Telegram
+  // groups as an image that keeps the exact on-screen look (the toolbar is hidden
+  // in the capture via .rc-no-print). Rendered wide so all 10 columns + the 4 cards
+  // show fully. The image is rendered ONCE and posted to each group.
   const [sendingDaily, setSendingDaily] = useState(false);
   const handleSendDailyImage = async () => {
     if (sendingDaily) return;
@@ -763,11 +764,17 @@ export default function Dashboard({
     try {
       const png = await renderElementToPngDataUrl(el, 1240);
       const caption = `📋 តារាងសិស្សអវត្តមានប្រចាំថ្ងៃ — ${dailyAbsentReport.date || ''}${sessionKm ? ' • ' + sessionKm : ''}`;
-      const r = await sendImageToTelegram(png, caption, 'teacher');
-      alert(r.ok ? 'បានផ្ញើតារាងអវត្តមានទៅ Telegram ✓'
-        : r.error === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram។'
-        : r.error === 'unauthorized' ? 'ពាក្យសម្ងាត់ Telegram មិនត្រឹមត្រូវ — សូមព្យាយាមម្ដងទៀត។'
-        : 'ផ្ញើមិនបាន៖ ' + (r.error || ''));
+      const [rt, rp] = await Promise.all([
+        sendImageToTelegram(png, caption, 'teacher'),
+        sendImageToTelegram(png, caption, 'parent'),
+      ]);
+      const okCount = [rt, rp].filter(r => r.ok).length;
+      const firstErr = (!rt.ok && rt.error) || (!rp.ok && rp.error) || '';
+      alert(okCount === 2 ? 'បានផ្ញើទៅគ្រុបគ្រូ និងអាណាព្យាបាល ✓'
+        : okCount === 1 ? `បានផ្ញើតែ ${rt.ok ? 'គ្រុបគ្រូ' : 'គ្រុបអាណាព្យាបាល'} — មួយទៀតមិនបាន៖ ${firstErr}`
+        : firstErr === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram។'
+        : firstErr === 'unauthorized' ? 'ពាក្យសម្ងាត់ Telegram មិនត្រឹមត្រូវ — សូមព្យាយាមម្ដងទៀត។'
+        : 'ផ្ញើមិនបាន៖ ' + (firstErr || ''));
     } catch { alert('បង្កើតរូបភាពមិនបាន — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setSendingDaily(false); }
   };
