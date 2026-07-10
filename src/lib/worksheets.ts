@@ -7,7 +7,7 @@
 // a free offline math generator, and Supabase persistence. Pure logic only; the
 // UI lives in components/WorksheetGenerator.tsx.
 
-import { getClient, hasGemini } from './gemini';
+import { getClient, hasGemini, getGeminiModel } from './gemini';
 import { ollamaReachable, ollamaGenerateJSON } from './ollama';
 import { getSupabaseClient } from './supabase';
 import { pickApproved, bulkAddQuestions, toWSQuestion, hydrateQuestions } from './questionBank';
@@ -182,7 +182,7 @@ export async function generateWorksheetAI(params: WorksheetParams): Promise<WSQu
   const ai = getClient();
   if (!ai) throw new Error('Gemini API key not configured');
   const res = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: getGeminiModel(),
     contents: buildWorksheetPrompt(params),
     config: { responseMimeType: 'application/json' },
   });

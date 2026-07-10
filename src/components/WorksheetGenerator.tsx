@@ -21,6 +21,16 @@ import { hasGemini } from '../lib/gemini';
 import { getOllamaModel, ollamaReachable } from '../lib/ollama';
 import { LessonSource, loadLessons, refreshLessonsFromCloud, saveLesson, deleteLesson } from '../lib/lessons';
 
+// Turn a raw AI error into a short Khmer message. The Gemini free tier is only
+// ~20 requests/day per model, so a 429 / RESOURCE_EXHAUSTED is the common case.
+const friendlyAiError = (e: any, fallback: string): string => {
+  const msg = String(e?.message || e || '');
+  if (/RESOURCE_EXHAUSTED|["']?code["']?\s*:\s*429|\bquota\b|rate.?limit/i.test(msg)) {
+    return 'AI (Gemini free) បានប្រើអស់កូតាថ្ងៃនេះ (~២០ដង/ថ្ងៃ)។ សូមព្យាយាមម្ដងទៀតនៅថ្ងៃស្អែក ឬប្ដូរគំរូ/ដាក់ key ផ្សេង។ (ការបង្កើតពីធនាគារវិញ្ញាសានៅដំណើរការធម្មតា)';
+  }
+  return msg || fallback;
+};
+
 interface Props {
   grades: string[];
   currentUser?: SchoolUser | null;
@@ -377,7 +387,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
       flash(`បានបង្កើតលំហាត់ ${toKh(qs.length)} ✓ (ធនាគារ ${toKh(fromBank)} + AI ${toKh(fromAI)})`);
     } catch (e: any) {
       console.error('Worksheet generation failed', e);
-      flash(e?.message || 'បង្កើតលំហាត់មិនបានសម្រេច — សូមព្យាយាមម្ដងទៀត។', false);
+      flash(friendlyAiError(e, 'បង្កើតលំហាត់មិនបានសម្រេច — សូមព្យាយាមម្ដងទៀត។'), false);
     } finally {
       setLoading(false);
     }
@@ -397,7 +407,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
       flash(`បានបង្កើតវិញ្ញាសា (${toKh(sections.length)} ផ្នែក, ${toKh(total)} សំណួរ) ✓`);
     } catch (e: any) {
       console.error('Exam generation failed', e);
-      flash(e?.message || 'បង្កើតវិញ្ញាសាមិនបានសម្រេច — សូមព្យាយាមម្ដងទៀត។', false);
+      flash(friendlyAiError(e, 'បង្កើតវិញ្ញាសាមិនបានសម្រេច — សូមព្យាយាមម្ដងទៀត។'), false);
     } finally {
       setLoading(false);
     }

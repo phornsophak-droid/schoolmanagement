@@ -13,6 +13,17 @@ const apiKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) || ''
 
 export const hasGemini = (): boolean => !!apiKey;
 
+// The model, made configurable so it can be switched without a code change when
+// Google changes free-tier quotas. gemini-2.5-flash's free tier is only ~20
+// requests/day; the "-lite" model has a much higher free daily limit, so it's the
+// default. Override via localStorage 'gemini_model' or env VITE_GEMINI_MODEL
+// (e.g. 'gemini-2.0-flash', 'gemini-2.5-flash').
+export const getGeminiModel = (): string => {
+  let ls = '';
+  try { ls = localStorage.getItem('gemini_model') || ''; } catch { /* ignore */ }
+  return ls || (import.meta.env.VITE_GEMINI_MODEL as string | undefined) || 'gemini-2.5-flash-lite';
+};
+
 let client: GoogleGenAI | null = null;
 export const getClient = (): GoogleGenAI | null => {
   if (!apiKey) return null;
@@ -40,7 +51,7 @@ export async function generateSchoolSummaryAI(dataDigest: string, periodLabel: s
 ${dataDigest}`;
 
   const res = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: getGeminiModel(),
     contents: prompt,
   });
   const text = (res.text || '').trim();
