@@ -103,7 +103,7 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName }: 
       <>
         <Identity />
         <div className="flex justify-between items-center font-bold text-[13pt] py-2.5">
-          <div>📖 សន្លឹកកិច្ចការ (WORKSHEET)</div>
+          <div>📖 សន្លឹកកិច្ចការ</div>
           <div>ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
         </div>
         <div className="text-[12pt] leading-[2.4]">
@@ -135,7 +135,7 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName }: 
     <>
       <Identity />
       <div className="flex justify-between items-center font-bold text-[13pt] py-2.5">
-        <div>📝 វិញ្ញាសាប្រឡង (EXAM)</div>
+        <div>📝 វិញ្ញាសាប្រឡង</div>
         <div>ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
       </div>
       <div className="text-center font-bold text-[13pt] leading-[1.9] mb-1">
