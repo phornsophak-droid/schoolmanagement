@@ -26,6 +26,8 @@ import { SchoolReport, StudentScore, SchoolUser } from '../types';
 import { loadAttendance } from '../utils/attendanceStore';
 import { getSupabaseClient, syncUpsertStudentAttendance } from '../lib/supabase';
 import { distinctStudentKey, findPhantomGrades } from '../utils/studentKey';
+import { renderElementToPngDataUrl } from '../utils/exportPdf';
+import { sendImageToTelegram } from '../utils/reportSubmit';
 import schoolLogo from '../assets/logo.png';
 import { useT } from '../i18n';
 
@@ -749,6 +751,27 @@ export default function Dashboard({
     printReportHtml(html);
   };
 
+  // Send the daily-absence panel to the TEACHERS' Telegram group as an image that
+  // keeps the exact on-screen look (the toolbar is hidden in the capture via
+  // .rc-no-print). Rendered wide so all 10 columns + the 4 cards show fully.
+  const [sendingDaily, setSendingDaily] = useState(false);
+  const handleSendDailyImage = async () => {
+    if (sendingDaily) return;
+    const el = document.getElementById('panel_daily_absent');
+    if (!el) return;
+    setSendingDaily(true);
+    try {
+      const png = await renderElementToPngDataUrl(el, 1240);
+      const caption = `📋 តារាងសិស្សអវត្តមានប្រចាំថ្ងៃ — ${dailyAbsentReport.date || ''}${sessionKm ? ' • ' + sessionKm : ''}`;
+      const r = await sendImageToTelegram(png, caption, 'teacher');
+      alert(r.ok ? 'បានផ្ញើតារាងអវត្តមានទៅ Telegram ✓'
+        : r.error === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram។'
+        : r.error === 'unauthorized' ? 'ពាក្យសម្ងាត់ Telegram មិនត្រឹមត្រូវ — សូមព្យាយាមម្ដងទៀត។'
+        : 'ផ្ញើមិនបាន៖ ' + (r.error || ''));
+    } catch { alert('បង្កើតរូបភាពមិនបាន — សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setSendingDaily(false); }
+  };
+
   // Attendance SUMMARY report (per-class headcount) for the selected day/month/year.
   const handleDownloadSummaryPdf = () => {
     const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
@@ -1262,7 +1285,7 @@ export default function Dashboard({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="rc-no-print flex items-center gap-2 shrink-0">
             <input
               type="date"
               value={effectiveDailyDate || ''}
@@ -1271,6 +1294,15 @@ export default function Dashboard({
               className="px-2.5 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold text-slate-700 cursor-pointer focus:border-rose-400 outline-none transition-colors"
               title="ជ្រើសរើសថ្ងៃ"
             />
+            <button
+              onClick={handleSendDailyImage}
+              disabled={sendingDaily}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:opacity-60 text-white rounded-xl text-sm font-bold transition duration-200 cursor-pointer shadow-md shadow-sky-200"
+              title="ផ្ញើតារាងជារូបភាពទៅ Telegram"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              {sendingDaily ? 'កំពុងផ្ញើ…' : 'បញ្ជូន Telegram'}
+            </button>
             <button
               onClick={handleDownloadDailyPdf}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-sm font-bold transition duration-200 cursor-pointer shadow-md shadow-rose-200"

@@ -107,6 +107,33 @@ async function resolveAnnounceSecret(): Promise<string> {
   return secret;
 }
 
+// Post a ready-made PNG data URL (e.g. a rendered on-screen panel) to a Telegram
+// group as a photo, so it keeps the exact on-screen look. Reuses the same secret
+// resolution as report submission.
+export async function sendImageToTelegram(
+  imageDataUrl: string,
+  caption: string,
+  target: 'teacher' | 'parent' = 'teacher',
+): Promise<{ ok: boolean; error?: string }> {
+  const secret = await resolveAnnounceSecret();
+  if (!secret) return { ok: false, error: 'no-secret' };
+  try {
+    const res = await fetch('/api/telegram-announce', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target, image: imageDataUrl, caption, secret }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) return { ok: true };
+    if (data.error === 'unauthorized') {
+      try { localStorage.removeItem(SECRET_KEY); } catch { /* ignore */ }
+      Promise.resolve(syncUpsertSetting(SECRET_KEY, '')).catch(() => { /* offline */ });
+    }
+    return { ok: false, error: data.error || String(res.status) };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'failed' };
+  }
+}
+
 // Render a submitted report's on-screen sheet to a multi-page PDF and post it to
 // the TEACHERS' Telegram group via the CCC bot. Called straight from the teacher's
 // "បញ្ជូនរបាយការណ៍" button so submitting auto-delivers the PDF (no separate step).
