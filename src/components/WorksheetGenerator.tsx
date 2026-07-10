@@ -80,7 +80,17 @@ const qToWord = (q: WSQuestion, type: WorksheetType, num: number, showAns: boole
 
 const qListTable = (rows: string) => `<table width="100%" cellspacing="0" cellpadding="4" style="margin-top:6pt">${rows}</table>`;
 
-const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName }: { params: WorksheetParams; heading: string; totalPoints: number; examPeriod: ExamPeriod | null; teacherName: string }) => {
+// A labelled form-field wrapper. MUST stay at module scope: defining it inside the
+// component re-created the component type on every render, so React remounted the
+// inputs and focus was lost after a single keystroke ("វាយអក្សរអត់បាន").
+const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <label className="block space-y-1">
+    <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">{label}</span>
+    {children}
+  </label>
+);
+
+const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, duration }: { params: WorksheetParams; heading: string; totalPoints: number; examPeriod: ExamPeriod | null; teacherName: string; duration?: string }) => {
   const dotted = 'inline-block border-b border-dotted border-slate-500 align-bottom';
   // Shared centered school identity block (logo + Khmer/English name + motto).
   const Identity = () => (
@@ -140,7 +150,7 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName }: 
       </div>
       <div className="text-center font-bold text-[13pt] leading-[1.9] mb-1">
         <div>ប្រឡងប្រចាំ{EXAM_PERIOD_LABELS[examPeriod]} • មុខវិជ្ជា {params.subject}</div>
-        <div className="text-[11pt] font-normal">រយៈពេល ..................... នាទី</div>
+        <div className="text-[11pt] font-normal">រយៈពេល {duration ? `${toKh(duration)} ` : '..................... '}នាទី</div>
       </div>
       <div className="text-[12pt] leading-[2.4]">
         <div className="flex gap-8">
@@ -304,6 +314,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   // ---- Worksheet header / content ----
   const [title, setTitle] = useState('');
   const [instructions, setInstructions] = useState('');
+  const [duration, setDuration] = useState(''); // exam duration in minutes (រយៈពេល)
   const [questions, setQuestions] = useState<WSQuestion[]>([]);
   const [showAnswers, setShowAnswers] = useState(false);
   // Exam-paper mode (វិញ្ញាសាប្រឡង ប្រចាំខែ/ឆមាស/ឆ្នាំ) — mixed-type sections.
@@ -497,14 +508,8 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     flash(ok ? 'បានរក្សាទុកក្នុង Cloud ✓' : 'រក្សាទុកមិនបាន (មិនបានភ្ជាប់ Cloud ឬតារាងមិនទាន់បង្កើត)', ok);
   };
 
-  // Reusable styled controls (match the app's slate/indigo form style).
+  // Reusable styled control class (match the app's slate/indigo form style).
   const fieldCls = 'w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:border-indigo-500 outline-none transition-colors';
-  const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-    <label className="block space-y-1">
-      <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">{label}</span>
-      {children}
-    </label>
-  );
 
   const printCss = `@media print {
     @page { size: A4 portrait; margin: 12mm; }
@@ -577,6 +582,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="ចំណងជើង (ស្រេចចិត្ត)"><input value={title} onChange={e => setTitle(e.target.value)} placeholder={heading} className={fieldCls} /></Field>
             <Field label="សេចក្ដីណែនាំ (ស្រេចចិត្ត)"><input value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="ឧ. ចូរឆ្លើយសំណួរខាងក្រោម…" className={fieldCls} /></Field>
+            <Field label="រយៈពេល — នាទី (វិញ្ញាសា)"><input type="number" min={0} value={duration} onChange={e => setDuration(e.target.value)} placeholder="ឧ. ៦០" className={fieldCls} /></Field>
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -639,7 +645,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         {examSections ? (
           <FitToWidth designWidth={A4_WIDTH} fitHeight={false}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
-              <PrintHeader params={params} heading={heading} totalPoints={examSections.reduce((n, s) => n + s.points, 0)} examPeriod={examPeriod} teacherName={teacherName} />
+              <PrintHeader params={params} heading={heading} totalPoints={examSections.reduce((n, s) => n + s.points, 0)} examPeriod={examPeriod} teacherName={teacherName} duration={duration} />
               {instructions && <p className="text-[11pt] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
               {examSections.map((sec, si) => (
                 <div key={si} className="mt-4">
