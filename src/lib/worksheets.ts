@@ -300,7 +300,9 @@ export async function generateExam(params: WorksheetParams, period: ExamPeriod):
       // Bank-first per tier: reuse approved questions at this difficulty, AI fills rest.
       const { questions } = await generateFromBank({ ...params, type, difficulty: tier.difficulty, count });
       if (questions.length) sections.push({
-        label: `${DIFFICULTY_LABELS[tier.difficulty]} — ${TYPE_LABELS[type]}`,
+        // Show only the Khmer exercise type — no difficulty word and no English.
+        // (The difficulty still drives generation above via tier.difficulty.)
+        label: TYPE_LABELS[type].split('(')[0].trim(),
         type, questions, points: tier.points,
       });
     } catch (e) { console.warn('Exam tier failed', tier.difficulty, e); }
