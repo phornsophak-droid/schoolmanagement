@@ -26,7 +26,7 @@ import { SchoolReport, StudentScore, SchoolUser } from '../types';
 import { loadAttendance } from '../utils/attendanceStore';
 import { getSupabaseClient, syncUpsertStudentAttendance } from '../lib/supabase';
 import { distinctStudentKey, findPhantomGrades } from '../utils/studentKey';
-import { renderElementToPngDataUrl } from '../utils/exportPdf';
+import { renderHtmlToPngDataUrl } from '../utils/exportPdf';
 import { sendImageToTelegram } from '../utils/reportSubmit';
 import schoolLogo from '../assets/logo.png';
 import { useT } from '../i18n';
@@ -681,7 +681,9 @@ export default function Dashboard({
     }
   };
 
-  const handleDownloadDailyPdf = () => {
+  // Build the polished daily-absence report HTML (shared by the PDF print and the
+  // Telegram image, so the sent photo matches the PDF exactly).
+  const buildDailyAbsenceHtml = () => {
     const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
     const { date, lateCount, permissionCount, absentCount, totalAbsences, list } = dailyAbsentReport;
     const baseScope = currentUser?.role === 'teacher' ? `ថ្នាក់៖ ${currentUser?.grade || ''}` : 'គ្រប់ថ្នាក់ទាំងអស់';
@@ -748,21 +750,21 @@ export default function Dashboard({
         <div class="foot">បង្កើតដោយ<b>ប្រព័ន្ធគ្រប់គ្រងសាលា</b> • ${new Date().toLocaleString('en-GB')}</div>
       </body></html>`;
 
-    printReportHtml(html);
+    return html;
   };
 
-  // Send the daily-absence panel to BOTH the teachers' and the parents' Telegram
-  // groups as an image that keeps the exact on-screen look (the toolbar is hidden
-  // in the capture via .rc-no-print). Rendered wide so all 10 columns + the 4 cards
-  // show fully. The image is rendered ONCE and posted to each group.
+  const handleDownloadDailyPdf = () => printReportHtml(buildDailyAbsenceHtml());
+
+  // Send the daily-absence report to BOTH the teachers' and the parents' Telegram
+  // groups as an IMAGE of the exact same polished layout we print to PDF (logo +
+  // header + table + footer). Rendered ONCE from the shared HTML, then posted to
+  // each group.
   const [sendingDaily, setSendingDaily] = useState(false);
   const handleSendDailyImage = async () => {
     if (sendingDaily) return;
-    const el = document.getElementById('panel_daily_absent');
-    if (!el) return;
     setSendingDaily(true);
     try {
-      const png = await renderElementToPngDataUrl(el, 1240);
+      const png = await renderHtmlToPngDataUrl(buildDailyAbsenceHtml(), 820);
       const caption = `📋 តារាងសិស្សអវត្តមានប្រចាំថ្ងៃ — ${dailyAbsentReport.date || ''}${sessionKm ? ' • ' + sessionKm : ''}`;
       const [rt, rp] = await Promise.all([
         sendImageToTelegram(png, caption, 'teacher'),

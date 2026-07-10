@@ -284,6 +284,42 @@ export async function renderElementToPngDataUrl(el: HTMLElement, fixedWidth?: nu
   return canvas.toDataURL('image/png');
 }
 
+// Render a full self-contained HTML document string to a PNG data URL — used to
+// turn the SAME polished report HTML we print to PDF into an image (so a Telegram
+// photo matches the PDF exactly). Rendered inside an off-screen iframe so the
+// report's global CSS (bare table/th/td/body selectors) can't leak into the app.
+export async function renderHtmlToPngDataUrl(html: string, width = 820): Promise<string> {
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText = `position:fixed;left:-99999px;top:0;width:${width}px;height:10px;border:0;background:#fff;`;
+  document.body.appendChild(iframe);
+  try {
+    const doc = iframe.contentDocument!;
+    doc.open(); doc.write(html); doc.close();
+    try { await (doc as any).fonts?.ready; } catch { /* fonts API absent */ }
+    // Wait for images (e.g. the school logo) so they aren't blank in the capture.
+    await new Promise<void>(resolve => {
+      const imgs = Array.from(doc.images || []);
+      if (imgs.length === 0) { resolve(); return; }
+      let pending = imgs.length;
+      const done = () => { if (--pending <= 0) resolve(); };
+      imgs.forEach(im => { if (im.complete) done(); else { im.addEventListener('load', done); im.addEventListener('error', done); } });
+      setTimeout(resolve, 4000); // safety net
+    });
+    await new Promise(r => setTimeout(r, 80));
+    const body = doc.body;
+    const height = Math.max(body.scrollHeight, doc.documentElement.scrollHeight);
+    iframe.style.height = `${height}px`;
+    const canvas = await html2canvas(body, {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+      width, windowWidth: width, height, windowHeight: height,
+    });
+    return canvas.toDataURL('image/png');
+  } finally {
+    iframe.remove();
+  }
+}
+
 // Build a MULTI-PAGE A4 PDF from a canvas (fit to page width, spilling onto more
 // pages when tall). Each page is a freshly-cropped slice of the source canvas, and
 // the cut line is nudged UP to a blank (whitespace) row so a line of text is never
