@@ -81,21 +81,27 @@ const qToWord = (q: WSQuestion, type: WorksheetType, num: number, showAns: boole
 const qListTable = (rows: string) => `<table width="100%" cellspacing="0" cellpadding="4" style="margin-top:6pt">${rows}</table>`;
 
 const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName }: { params: WorksheetParams; heading: string; totalPoints: number; examPeriod: ExamPeriod | null; teacherName: string }) => {
-  // WORKSHEET template — centered school identity (Khmer + English + motto), a
-  // WORKSHEET label row, dotted-line fields, and a points badge.
+  const dotted = 'inline-block border-b border-dotted border-slate-500 align-bottom';
+  // Shared centered school identity block (logo + Khmer/English name + motto).
+  const Identity = () => (
+    <>
+      <div className="flex items-center justify-center gap-4 text-center">
+        <SchoolLogo size={74} />
+        <div className="leading-tight">
+          <div className="text-[18pt] font-bold text-[#1e3a8a]" style={{ fontFamily: "'Moul', serif" }}>សាលាសហគមន៍ច្បារច្រុះ</div>
+          <div className="text-[12pt] font-bold tracking-wide text-slate-800 font-sans">CHBAR CHROS COMMUNITY SCHOOL</div>
+          <div className="text-[10pt] italic text-slate-500">“វិជ្ជាសម្បទា បំរិនសម្បទា ចរិយាសម្បទា”</div>
+        </div>
+      </div>
+      <div className="border-t-2 border-slate-800 mt-3" />
+    </>
+  );
+
+  // WORKSHEET template — WORKSHEET label row, dotted-line fields, points badge.
   if (!examPeriod) {
-    const dotted = 'inline-block border-b border-dotted border-slate-500 align-bottom';
     return (
       <>
-        <div className="flex items-center justify-center gap-4 text-center">
-          <SchoolLogo size={74} />
-          <div className="leading-tight">
-            <div className="text-[18pt] font-bold text-[#1e3a8a]" style={{ fontFamily: "'Moul', serif" }}>សាលាសហគមន៍ច្បារច្រុះ</div>
-            <div className="text-[12pt] font-bold tracking-wide text-slate-800 font-sans">CHBAR CHROS COMMUNITY SCHOOL</div>
-            <div className="text-[10pt] italic text-slate-500">“វិជ្ជាសម្បទា បំរិនសម្បទា ចរិយាសម្បទា”</div>
-          </div>
-        </div>
-        <div className="border-t-2 border-slate-800 mt-3" />
+        <Identity />
         <div className="flex justify-between items-center font-bold text-[13pt] py-2.5">
           <div>📖 សន្លឹកកិច្ចការ (WORKSHEET)</div>
           <div>ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
@@ -123,46 +129,39 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName }: 
     );
   }
 
-  // EXAM paper header (unchanged).
+  // EXAM template — same identity, an EXAM label row, an exam subtitle, then the
+  // official exam fields (room/desk/candidate/duration) and a points badge.
   return (
     <>
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3">
-          <SchoolLogo size={64} />
-          <div className="leading-tight">
-            <div className="font-bold text-[16pt]" style={{ fontFamily: "'Moul', serif" }}>សាលាសហគមន៍ច្បារច្រុះ</div>
-            <div className="text-[11pt] text-slate-700 font-sans">Chbar Chros Community School</div>
-          </div>
+      <Identity />
+      <div className="flex justify-between items-center font-bold text-[13pt] py-2.5">
+        <div>📝 វិញ្ញាសាប្រឡង (EXAM)</div>
+        <div>ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
+      </div>
+      <div className="text-center font-bold text-[13pt] leading-[1.9] mb-1">
+        <div>ប្រឡងប្រចាំ{EXAM_PERIOD_LABELS[examPeriod]} • មុខវិជ្ជា {params.subject}</div>
+        <div className="text-[11pt] font-normal">រយៈពេល ..................... នាទី</div>
+      </div>
+      <div className="text-[12pt] leading-[2.4]">
+        <div className="flex gap-8">
+          <span className="whitespace-nowrap">លេខបន្ទប់៖ <span className={`${dotted} min-w-[90px]`}>&nbsp;</span></span>
+          <span className="whitespace-nowrap">លេខតុ៖ <span className={`${dotted} min-w-[90px]`}>&nbsp;</span></span>
+          <span className="whitespace-nowrap flex-1">ថ្នាក់៖ <span className={`${dotted} px-2 text-center`} style={{ minWidth: '110px' }}>{params.grade}</span></span>
         </div>
-        <div className="text-[12pt] leading-[1.6]">
-          <div className="font-bold">ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
-          <div>លេខបន្ទប់:........................</div>
-          <div>លេខតុ:........................</div>
+        <div>នាមត្រកូល និងនាមខ្លួន៖ <span className={dotted} style={{ width: '68%' }}>&nbsp;</span></div>
+        <div className="flex gap-8">
+          <span className="whitespace-nowrap flex-1">ថ្ងៃខែឆ្នាំកំណើត៖ ____ /____ /______</span>
+          <span className="whitespace-nowrap">ហត្ថលេខាបេក្ខជន៖ <span className={`${dotted} min-w-[150px]`}>&nbsp;</span></span>
+        </div>
+        <div>កាលបរិច្ឆេទប្រឡង៖ ____ /____ /______</div>
+      </div>
+      <div className="flex justify-end mt-3">
+        <div className="border-2 border-amber-300 bg-amber-50 rounded-2xl px-5 py-2 text-[12pt] font-bold text-slate-700">
+          ⭐ ពិន្ទុ៖ <span className={dotted} style={{ width: '90px' }}>&nbsp;</span> / {toKh(totalPoints)}
         </div>
       </div>
-
-      <div className="text-center text-[13pt] font-bold leading-[1.8] mb-4">
-        <div>ប្រឡងប្រចាំ <span className="px-2">{EXAM_PERIOD_LABELS[examPeriod]}</span></div>
-        <div>មុខវិជ្ជា <span className="px-2">{params.subject}</span></div>
-        <div>រយៈពេល....................................</div>
-      </div>
-
-      <table className="w-full border-collapse border border-black text-[11pt] mb-4">
-        <tbody>
-          <tr>
-            <td className="border border-black p-2 w-[35%]">ឈ្មោះសិស្ស: ...........................................</td>
-            <td className="border border-black p-2 w-[35%]">ថ្ងៃខែឆ្នាំកំណើតទី: ........./........./.........</td>
-            <td className="border border-black p-2 w-[30%]">កាលបរិច្ឆេទប្រឡង: ....../....../......</td>
-          </tr>
-          <tr>
-            <td className="border border-black p-2">ថ្នាក់ទី: <span className="px-2">{params.grade}</span>.............................</td>
-            <td className="border border-black p-2">ហត្ថលេខា.............................................</td>
-            <td className="border border-black p-2">ពិន្ទុ: .................. / {toKh(totalPoints)}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h1 className="text-center text-[14pt] font-extrabold my-2">{heading}</h1>
+      <div className="border-t-2 border-slate-800 mt-3" />
+      <h1 className="text-center text-[14pt] font-extrabold my-3">{heading}</h1>
     </>
   );
 };
