@@ -26,7 +26,7 @@ import { SchoolReport, StudentScore, SchoolUser } from '../types';
 import { loadAttendance } from '../utils/attendanceStore';
 import { getSupabaseClient, syncUpsertStudentAttendance } from '../lib/supabase';
 import { distinctStudentKey, findPhantomGrades } from '../utils/studentKey';
-import { renderHtmlToPngDataUrl } from '../utils/exportPdf';
+import { renderHtmlToPngDataUrl, renderElementToPngDataUrl } from '../utils/exportPdf';
 import { sendImageToTelegram } from '../utils/reportSubmit';
 import schoolLogo from '../assets/logo.png';
 import { useT } from '../i18n';
@@ -781,6 +781,33 @@ export default function Dashboard({
     finally { setSendingDaily(false); }
   };
 
+  // Send the absence-REASONS panel to both Telegram groups as an image of exactly
+  // what's on screen (toolbar hidden via .rc-no-print). Rendered wide for clarity.
+  const [sendingReasons, setSendingReasons] = useState(false);
+  const handleSendReasonsImage = async () => {
+    if (sendingReasons) return;
+    const el = document.getElementById('panel_absence_reasons');
+    if (!el) return;
+    setSendingReasons(true);
+    try {
+      const png = await renderElementToPngDataUrl(el, 1240);
+      const periodKm = reasonChartMode === 'daily' ? 'ប្រចាំថ្ងៃ' : reasonChartMode === 'monthly' ? 'ប្រចាំខែ' : 'ប្រចាំឆ្នាំ';
+      const caption = `📊 មូលហេតុនៃការអវត្តមានសិស្ស — ${periodKm} · ${absenceReasonStats.scopeLabel}`;
+      const [rt, rp] = await Promise.all([
+        sendImageToTelegram(png, caption, 'teacher'),
+        sendImageToTelegram(png, caption, 'parent'),
+      ]);
+      const okCount = [rt, rp].filter(r => r.ok).length;
+      const firstErr = (!rt.ok && rt.error) || (!rp.ok && rp.error) || '';
+      alert(okCount === 2 ? 'បានផ្ញើទៅគ្រុបគ្រូ និងអាណាព្យាបាល ✓'
+        : okCount === 1 ? `បានផ្ញើតែ ${rt.ok ? 'គ្រុបគ្រូ' : 'គ្រុបអាណាព្យាបាល'} — មួយទៀតមិនបាន៖ ${firstErr}`
+        : firstErr === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram។'
+        : firstErr === 'unauthorized' ? 'ពាក្យសម្ងាត់ Telegram មិនត្រឹមត្រូវ — សូមព្យាយាមម្ដងទៀត។'
+        : 'ផ្ញើមិនបាន៖ ' + (firstErr || ''));
+    } catch { alert('បង្កើតរូបភាពមិនបាន — សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setSendingReasons(false); }
+  };
+
   // Attendance SUMMARY report (per-class headcount) for the selected day/month/year.
   const handleDownloadSummaryPdf = () => {
     const esc = (s: any) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
@@ -1216,7 +1243,16 @@ export default function Dashboard({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="rc-no-print flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleSendReasonsImage}
+              disabled={sendingReasons}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#0ea5e9] hover:bg-[#0284c7] disabled:opacity-60 text-white rounded-xl text-xs font-bold transition duration-200 cursor-pointer shadow-md shadow-sky-200"
+              title="ផ្ញើស្ថិតិមូលហេតុជារូបភាពទៅ Telegram"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              {sendingReasons ? 'កំពុងផ្ញើ…' : 'បញ្ជូន Telegram'}
+            </button>
             {reasonChartMode === 'daily' && (
               <input
                 type="date"
