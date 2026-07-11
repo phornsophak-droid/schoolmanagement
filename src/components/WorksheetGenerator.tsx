@@ -150,7 +150,8 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, du
         <div>ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
       </div>
       <div className="text-center font-bold text-[13pt] leading-[1.9] mb-1">
-        <div>ប្រឡងប្រចាំ{EXAM_PERIOD_LABELS[examPeriod]} • មុខវិជ្ជា {params.subject}</div>
+        <div>{month ? `ប្រឡងប្រចាំខែ${month}` : `ប្រឡង${EXAM_PERIOD_LABELS[examPeriod]}`}</div>
+        <div>មុខវិជ្ជា {params.subject}</div>
         <div className="text-[11pt] font-normal">រយៈពេល {duration ? `${toKh(duration)} ` : '..................... '}នាទី</div>
       </div>
       <div className="text-[12pt] leading-[2.4]">
@@ -316,7 +317,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const [title, setTitle] = useState('');
   const [instructions, setInstructions] = useState('');
   const [duration, setDuration] = useState(''); // exam duration in minutes (រយៈពេល)
-  const [month, setMonth] = useState(''); // optional month shown in the worksheet header (ខែ)
+  const [month, setMonth] = useState(''); // selected Khmer month (ខែ) for the header
   const [questions, setQuestions] = useState<WSQuestion[]>([]);
   const [showAnswers, setShowAnswers] = useState(false);
   // Exam-paper mode (វិញ្ញាសាប្រឡង ប្រចាំខែ/ឆមាស/ឆ្នាំ) — mixed-type sections.
@@ -411,7 +412,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   // the auto value back into `title`, so it stays a live default and the user's own
   // title always takes effect.
   const heading = title.trim() || (examPeriod
-    ? `វិញ្ញាសាប្រឡង${EXAM_PERIOD_LABELS[examPeriod]} មុខវិជ្ជា${params.subject}`
+    ? `វិញ្ញាសា${month ? `ប្រឡងប្រចាំខែ${month}` : `ប្រឡង${EXAM_PERIOD_LABELS[examPeriod]}`} មុខវិជ្ជា${params.subject}`
     : `សន្លឹកលំហាត់ ${params.subject}${params.topic ? ` — ${params.topic}` : ` — ${params.grade}`}`);
 
   // Fall back to the picked curriculum lesson's material as the AI source when the
@@ -652,7 +653,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         {examSections ? (
           <FitToWidth designWidth={A4_WIDTH} fitHeight={false}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
-              <PrintHeader params={params} heading={heading} totalPoints={examSections.reduce((n, s) => n + s.points, 0)} examPeriod={examPeriod} teacherName={teacherName} duration={duration} />
+              <PrintHeader params={params} heading={heading} totalPoints={examSections.reduce((n, s) => n + s.points, 0)} examPeriod={examPeriod} teacherName={teacherName} duration={duration} month={month} />
               {instructions && <p className="text-[11pt] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
               {examSections.map((sec, si) => (
                 <div key={si} className="mt-4">
