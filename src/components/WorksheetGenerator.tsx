@@ -469,10 +469,10 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
 
   // "រក្សាសំណួរដើម" — the teacher already has a question list; parse what they
   // pasted into the source box VERBATIM (no AI) and lay it out. `mode` picks the
-  // page style: 'worksheet' (សន្លឹកកិច្ចការ) or 'exam' (វិញ្ញាសា — exam header with
-  // room/desk/duration fields). Both render the same flat question list; only the
-  // header differs (driven by examPeriod).
-  const handleUsePasted = (mode: 'worksheet' | 'exam') => {
+  // page style: 'worksheet' (សន្លឹកកិច្ចការ) or an exam PERIOD ('month'|'semester'|
+  // 'year' → វិញ្ញាសាប្រចាំខែ/ឆមាស/ឆ្នាំ, with the exam header). Both render the same
+  // flat question list; only the header differs (driven by examPeriod).
+  const handleUsePasted = (mode: 'worksheet' | ExamPeriod) => {
     const src = (params.source || '').trim();
     if (!src) { flash('ប្រអប់ «មាតិកា/វិញ្ញាសា» ទទេ — សូមបិទភ្ជាប់សំណួររបស់អ្នកជាមុនសិន', false); return; }
     const parsed = parsePastedQuestions(src);
@@ -480,14 +480,15 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
       flash('រកសំណួរមិនឃើញ — ត្រូវឱ្យបន្ទាត់នីមួយៗចាប់ផ្ដើមដោយលេខ (១. ២. ៣. …)', false);
       return;
     }
+    const isExam = mode !== 'worksheet';
     setExamSections(null);
-    setExamPeriod(mode === 'exam' ? (examPeriod || 'month') : null);
+    setExamPeriod(isExam ? mode : null);
     setShowAnswers(false);
     setQuestions(parsed.questions);
     if (parsed.instructions) setInstructions(parsed.instructions);
     set('type', parsed.multipleChoice ? 'multiple_choice' : 'short_answer');
     set('types', parsed.multipleChoice ? ['multiple_choice'] : ['short_answer']);
-    flash(`បានរៀបចំ${mode === 'exam' ? 'វិញ្ញាសា' : 'សន្លឹកកិច្ចការ'} ${toKh(parsed.questions.length)} សំណួរ (រក្សាដដែល — គ្មាន AI) ✓`);
+    flash(`បានរៀបចំ${isExam ? `វិញ្ញាសា${EXAM_PERIOD_LABELS[mode]}` : 'សន្លឹកកិច្ចការ'} ${toKh(parsed.questions.length)} សំណួរ (រក្សាដដែល — គ្មាន AI) ✓`);
   };
 
   // Build a full exam paper (វិញ្ញាសាប្រឡង) for a period — mixed sections.
@@ -685,11 +686,14 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
                 {pasteMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setPasteMenuOpen(false)} />
-                    <div className="absolute right-0 bottom-full mb-2 z-20 min-w-[200px] bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 overflow-hidden">
+                    <div className="absolute right-0 bottom-full mb-2 z-20 min-w-[210px] bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 overflow-hidden">
                       <div className="px-3 py-1 text-[10px] font-bold text-slate-400 font-mono uppercase">📋 រៀបចំសំណួរដើម ជា</div>
-                      <button onClick={() => { setPasteMenuOpen(false); handleUsePasted('exam'); }} disabled={loading} className="w-full text-left px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60 flex items-center gap-2">
-                        <FileText size={13} /> វិញ្ញាសា
-                      </button>
+                      {(['month', 'semester', 'year'] as ExamPeriod[]).map(p => (
+                        <button key={p} onClick={() => { setPasteMenuOpen(false); handleUsePasted(p); }} disabled={loading} className="w-full text-left px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60 flex items-center gap-2">
+                          <FileText size={13} /> វិញ្ញាសា{EXAM_PERIOD_LABELS[p]}
+                        </button>
+                      ))}
+                      <div className="border-t border-slate-100 my-1" />
                       <button onClick={() => { setPasteMenuOpen(false); handleUsePasted('worksheet'); }} disabled={loading} className="w-full text-left px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60 flex items-center gap-2">
                         <BookMarked size={13} /> សន្លឹកកិច្ចការ
                       </button>
