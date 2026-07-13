@@ -77,6 +77,91 @@ export const LANGUAGE_LABELS: Record<WSLanguage, string> = { km: 'ខ្មែ�
 export const SUBJECTS = ['គណិតវិទ្យា', 'ភាសាខ្មែរ', 'ភាសាអង់គ្លេស', 'វិទ្យាសាស្ត្រ', 'សិក្សាសង្គម', 'កុំព្យូទ័រ', 'សិល្បៈ'];
 
 // ---------------------------------------------------------------------------
+// Parse a teacher's OWN pasted question list into WSQuestion[] — VERBATIM, with
+// NO AI. The teacher who already has questions just pastes them and gets a clean
+// laid-out worksheet ("រក្សាសំណួរដើម" — keep the original questions).
+//
+// Recognised shape (very forgiving):
+//   <optional header line, e.g. "កិច្ចការ៖ …">
+//   ១. <prompt> [answer] A. opt | B. opt | C. opt | D. opt
+//   ២. <prompt>
+//      ក. opt
+//      ខ. opt
+//      ចម្លើយ៖ ខ
+// Numbers may be Khmer (១២៣) or Latin (123); option labels A–H, a–h, or Khmer
+// consonants (ក ខ គ …); options separated by "|" or line breaks. A bracketed
+// [X] or a "ចម្លើយ៖ X" tail is taken as the answer key and stripped from the
+// printed prompt. Questions with fewer than 2 detected options stay as plain
+// (fill-in / short-answer) prompts, so nothing is ever lost.
+// ---------------------------------------------------------------------------
+export interface ParsedPaste { instructions: string; questions: WSQuestion[]; multipleChoice: boolean; }
+
+const Q_NUM_RE = /^\s*(?:[0-9]{1,3}|[០-៩]{1,3})\s*[.)．៖:]\s*/;
+
+function stripBrackets(s: string): { text: string; answer: string } {
+  const brs = [...s.matchAll(/\[([^\]]{1,24})\]/g)];
+  const answer = brs.length ? brs[brs.length - 1][1].trim() : '';
+  const text = s.replace(/\s*\[[^\]]{1,24}\]\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  return { text, answer };
+}
+
+// Split one question block into prompt + options (+ answer).
+function splitQuestion(block: string): { prompt: string; options: string[]; answer: string } {
+  let answer = '';
+  const am = block.match(/ចម្លើយ\s*[:៖]\s*([^\n|]+)/);
+  if (am) { answer = am[1].trim(); block = (block.slice(0, am.index) + block.slice(am.index! + am[0].length)).trim(); }
+
+  // Pipe-separated inline options → newlines, so every option starts a "segment".
+  const norm = block.replace(/\s*\|\s*/g, '\n');
+  // An option label = a single letter/consonant then . ) ． ៖ : then a space,
+  // preceded by start-of-text, whitespace, or a closing bracket.
+  const re = /(^|[\s\]])((?:[A-Ha-h])|[ក-អ])[.)．៖:]\s+/g;
+  const marks: { idx: number; end: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(norm))) marks.push({ idx: m.index + m[1].length, end: re.lastIndex });
+
+  if (marks.length < 2) {
+    const { text, answer: a } = stripBrackets(block.replace(/\n+/g, ' '));
+    return { prompt: text, options: [], answer: answer || a };
+  }
+  const options: string[] = [];
+  for (let i = 0; i < marks.length; i++) {
+    const end = i + 1 < marks.length ? marks[i + 1].idx : norm.length;
+    options.push(norm.slice(marks[i].end, end).replace(/\n+/g, ' ').trim());
+  }
+  const { text: prompt, answer: a } = stripBrackets(norm.slice(0, marks[0].idx).replace(/\n+/g, ' '));
+  return { prompt, options: options.filter(Boolean), answer: answer || a };
+}
+
+export function parsePastedQuestions(text: string): ParsedPaste {
+  const lines = text.replace(/\r/g, '').split('\n').map(l => l.trim());
+  const firstQ = lines.findIndex(l => Q_NUM_RE.test(l));
+
+  // No numbering at all → each non-empty line is its own question.
+  if (firstQ === -1) {
+    const qs = lines.filter(Boolean).map(l => {
+      const s = splitQuestion(l);
+      return { prompt: s.prompt, options: s.options.length ? s.options : undefined, answer: s.answer } as WSQuestion;
+    }).filter(q => q.prompt);
+    return { instructions: '', questions: qs, multipleChoice: qs.some(q => !!q.options?.length) };
+  }
+
+  const instructions = lines.slice(0, firstQ).filter(Boolean).join(' ').trim();
+  const groups: string[][] = [];
+  for (let i = firstQ; i < lines.length; i++) {
+    const l = lines[i];
+    if (Q_NUM_RE.test(l)) groups.push([l.replace(Q_NUM_RE, '')]);
+    else if (groups.length && l) groups[groups.length - 1].push(l);
+  }
+  const questions: WSQuestion[] = groups.map(g => {
+    const s = splitQuestion(g.join('\n'));
+    return { prompt: s.prompt, options: s.options.length ? s.options : undefined, answer: s.answer } as WSQuestion;
+  }).filter(q => q.prompt);
+
+  return { instructions, questions, multipleChoice: questions.some(q => !!q.options?.length) };
+}
+
+// ---------------------------------------------------------------------------
 // Free offline generator — randomised arithmetic. Works with no AI key and is
 // unlimited/free, so daily math practice never depends on the network.
 // ---------------------------------------------------------------------------

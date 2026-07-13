@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Trash2, BookMarked, ChevronDown, HelpCircle } from 'lucide-react';
+import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Trash2, BookMarked, ChevronDown, HelpCircle, ClipboardList } from 'lucide-react';
 import { SchoolUser } from '../types';
 import SchoolLogo from './SchoolLogo';
 import FitToWidth from './FitToWidth';
@@ -12,7 +12,7 @@ import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import {
   WorksheetParams, WorksheetType, Difficulty, WSLanguage, WSQuestion, Worksheet,
   TYPE_LABELS, DIFFICULTY_LABELS, LANGUAGE_LABELS, SUBJECTS,
-  saveWorksheet, generateFromBank,
+  saveWorksheet, generateFromBank, parsePastedQuestions,
   ExamPeriod, ExamSection, EXAM_PERIOD_LABELS, generateExam,
 } from '../lib/worksheets';
 import { bulkAddQuestions } from '../lib/questionBank';
@@ -441,6 +441,25 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     }
   };
 
+  // "រក្សាសំណួរដើម" — the teacher already has a question list; parse what they
+  // pasted into the source box VERBATIM (no AI) and lay it out as the worksheet.
+  const handleUsePasted = () => {
+    const src = (params.source || '').trim();
+    if (!src) { flash('ប្រអប់ «មាតិកា/វិញ្ញាសា» ទទេ — សូមបិទភ្ជាប់សំណួររបស់អ្នកជាមុនសិន', false); return; }
+    const parsed = parsePastedQuestions(src);
+    if (!parsed.questions.length) {
+      flash('រកសំណួរមិនឃើញ — ត្រូវឱ្យបន្ទាត់នីមួយៗចាប់ផ្ដើមដោយលេខ (១. ២. ៣. …)', false);
+      return;
+    }
+    setExamSections(null); setExamPeriod(null);
+    setShowAnswers(false);
+    setQuestions(parsed.questions);
+    if (parsed.instructions) setInstructions(parsed.instructions);
+    set('type', parsed.multipleChoice ? 'multiple_choice' : 'short_answer');
+    set('types', parsed.multipleChoice ? ['multiple_choice'] : ['short_answer']);
+    flash(`បានរៀបចំសំណួរដើម ${toKh(parsed.questions.length)} (រក្សាដដែល — គ្មាន AI) ✓`);
+  };
+
   // Build a full exam paper (វិញ្ញាសាប្រឡង) for a period — mixed sections.
   const handleGenerateExam = async (period: ExamPeriod) => {
     setLoading(true);
@@ -612,7 +631,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
               value={params.source || ''}
               onChange={e => { set('source', e.target.value); setSelectedLessonId(''); }}
               rows={4}
-              placeholder="ជ្រើស «បណ្ណាល័យមេរៀន» ខាងលើ ឬ ចម្លងអត្ថបទមេរៀន/វិញ្ញាសារ (ពីបណ្ណាល័យឯកសារ) បិទភ្ជាប់ទីនេះ។ AI នឹងបង្កើតសំណួរផ្អែកលើអត្ថបទនេះ; ចុច «រក្សាទុក» ដើម្បីប្រើឡើងវិញ។"
+              placeholder="ជ្រើស «បណ្ណាល័យមេរៀន» ខាងលើ ឬ ចម្លងអត្ថបទមេរៀន/វិញ្ញាសារ បិទភ្ជាប់ទីនេះ។&#10;• AI នឹងបង្កើតសំណួរផ្អែកលើអត្ថបទនេះ (ចុច «បង្កើតសន្លឹកកិច្ចការ»)។&#10;• បើអ្នកមានបញ្ជីសំណួររួចហើយ (១. ២. ៣. …) បិទភ្ជាប់ ហើយចុច «រក្សាសំណួរដើម» ដើម្បីរៀបចំដោយមិនកែ។"
               className={`${fieldCls} resize-y leading-relaxed`}
             />
           </div>
@@ -623,6 +642,10 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
                 : 'ℹ️ គ្មាន AI — គណិតវិទ្យាដំណើរការដោយឥតគិតថ្លៃ; មុខវិជ្ជាផ្សេងត្រូវការ Ollama ឬ Gemini key។'}
             </p>
             <div className="flex items-center gap-2 flex-wrap justify-end">
+              {/* Keep the teacher's OWN questions verbatim — parse the pasted list, no AI. */}
+              <button onClick={handleUsePasted} disabled={loading} title="យកសំណួរដែលអ្នកបានបិទភ្ជាប់មករៀបចំឱ្យស្អាត ដោយមិនកែ (គ្មាន AI)" className="px-4 py-2.5 text-sm font-bold rounded-xl bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 text-emerald-700 border border-emerald-200 flex items-center gap-2 shadow-sm">
+                <ClipboardList size={16} /> រក្សាសំណួរដើម
+              </button>
               <button onClick={handleGenerate} disabled={loading} className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 disabled:opacity-60 text-white flex items-center gap-2 shadow-md">
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} បង្កើតសន្លឹកកិច្ចការ
               </button>
