@@ -7,6 +7,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Trash2, BookMarked, ChevronDown, HelpCircle, ClipboardList } from 'lucide-react';
 import { SchoolUser } from '../types';
 import SchoolLogo from './SchoolLogo';
+import logoPng from '../assets/logo.png';
 import FitToWidth from './FitToWidth';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import {
@@ -181,53 +182,73 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, du
 interface WordDocInput {
   heading: string; instructions: string; params: WorksheetParams; teacherName: string;
   questions: WSQuestion[]; examSections: ExamSection[] | null; examPeriod: ExamPeriod | null; showAnswers: boolean;
-  month: string; duration: string;
+  month: string; duration: string; logo: string;
 }
 
 const buildWordHtml = (d: WordDocInput): string => {
-  const { heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers, month, duration } = d;
+  const { heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers, month, duration, logo } = d;
   const totalPoints = examSections ? examSections.reduce((n, s) => n + s.points, 0) : questions.length;
-  const header = `
-    <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:12pt">
-      <tr>
-        <td valign="top" style="width:60%">
-          <div style="font-weight:bold;font-size:16pt;font-family:'Khmer OS Moul Light','Moul',serif">សាលាសហគមន៍ច្បារច្រុះ</div>
-          <div style="font-size:11pt;color:#333">Chbar Chros Community School</div>
-        </td>
-        <td valign="top" align="left" style="font-size:12pt;line-height:1.6">
-          <div style="font-weight:bold">ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
-          ${examPeriod 
-            ? `<div>លេខបន្ទប់:........................</div><div>លេខតុ:........................</div>` 
-            : `<div>មុខវិជ្ជា <span style="padding:0 8px">${esc(params.subject)}</span></div><div>គ្រូបង្រៀន: ${esc(teacherName || '........................')}</div>`
-          }
-        </td>
-      </tr>
-    </table>
+  const dots = '........................................';
+  const rule = '<div style="border-top:2px solid #1f2937;margin:8pt 0"></div>';
+  const logoImg = logo ? `<img src="${logo}" width="72" height="72" style="width:72px;height:72px" />` : '';
 
-    <div style="text-align:center;font-size:13pt;font-weight:bold;line-height:1.8;margin-bottom:12pt">
+  // ── Header — mirrors the on-screen / PDF exam & worksheet header ──────────────
+  const identity = `
+    <table width="100%" cellspacing="0" cellpadding="0"><tr>
+      <td width="15%" align="center" valign="middle">${logoImg}</td>
+      <td align="center" valign="middle">
+        <div style="font-weight:bold;font-size:19pt;color:#1e3a8a;font-family:'Khmer OS Moul Light','Moul',serif">សាលាសហគមន៍ច្បារច្រុះ</div>
+        <div style="font-weight:bold;font-size:11pt;letter-spacing:1px;color:#1f2937">CHBAR CHROS COMMUNITY SCHOOL</div>
+        <div style="font-style:italic;font-size:9pt;color:#64748b">“វិជ្ជាសម្បទា បំរិនសម្បទា ចរិយាសម្បទា”</div>
+      </td>
+      <td width="15%"></td>
+    </tr></table>
+    ${rule}
+    <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:4pt"><tr>
+      <td style="font-weight:bold;font-size:13pt">${examPeriod ? '📝 វិញ្ញាសាប្រឡង' : '📖 សន្លឹកកិច្ចការ'}</td>
+      <td align="right" style="font-weight:bold;font-size:13pt">ឆ្នាំសិក្សា ២០២៥-២០២៦</td>
+    </tr></table>`;
+
+  const subtitle = `
+    <div style="text-align:center;font-size:13pt;font-weight:bold;line-height:1.7;margin:6pt 0 10pt">
       ${examPeriod
         ? `<div>${month ? `ប្រឡងប្រចាំខែ${esc(month)}` : `ប្រឡង${esc(EXAM_PERIOD_LABELS[examPeriod])}`}</div>
-           <div>មុខវិជ្ជា <span style="padding:0 8px">${esc(params.subject)}</span></div>
+           <div>មុខវិជ្ជា ${esc(params.subject)}</div>
            <div style="font-weight:normal;font-size:11pt">រយៈពេល ${duration ? `${esc(toKh(duration))} ` : '.................... '}នាទី</div>`
-        : `<div>សន្លឹកកិច្ចការ${month ? `ប្រចាំខែ${esc(month)}` : 'ប្រចាំ....................'}</div>`
-      }
-    </div>
+        : `<div>${month ? `សន្លឹកកិច្ចការប្រចាំខែ${esc(month)}` : 'សន្លឹកកិច្ចការ'}</div>
+           <div>មុខវិជ្ជា ${esc(params.subject)}</div>`}
+    </div>`;
 
-    <table width="100%" cellspacing="0" cellpadding="6" border="1" style="border-collapse:collapse;border:1px solid #000;font-size:11pt;margin-bottom:12pt">
-      <tr>
-        <td style="width:35%">ឈ្មោះសិស្ស: ...........................................</td>
-        <td style="width:35%">ថ្ងៃខែឆ្នាំកំណើតទី: ........./........./.........</td>
-        <td style="width:30%">${examPeriod ? 'កាលបរិច្ឆេទប្រឡង' : 'កាលបរិច្ឆេទ'}: ....../....../......</td>
-      </tr>
-      <tr>
-        <td>ថ្នាក់ទី: <span style="padding:0 8px">${esc(params.grade)}</span>.............................</td>
-        <td>ហត្ថលេខា.............................................</td>
-        <td>ពិន្ទុ: .................. / ${toKh(totalPoints)}</td>
-      </tr>
-    </table>
+  const fields = examPeriod
+    ? `<table width="100%" cellspacing="0" cellpadding="2" style="font-size:12pt;line-height:2.2"><tr>
+         <td width="33%">លេខបន្ទប់៖ ..................</td>
+         <td width="30%">លេខតុ៖ ..................</td>
+         <td width="37%">ថ្នាក់៖ <b>${esc(params.grade)}</b></td>
+       </tr></table>
+       <div style="font-size:12pt;line-height:2.4">នាមត្រកូល និងនាមខ្លួន៖ ${dots}${dots}</div>
+       <table width="100%" cellspacing="0" cellpadding="2" style="font-size:12pt;line-height:2.2"><tr>
+         <td width="55%">ថ្ងៃខែឆ្នាំកំណើត៖ ......../......../..........</td>
+         <td width="45%">ហត្ថលេខាបេក្ខជន៖ ..................</td>
+       </tr></table>
+       <div style="font-size:12pt;line-height:2.2">កាលបរិច្ឆេទប្រឡង៖ ......../......../..........</div>`
+    : `<table width="100%" cellspacing="0" cellpadding="2" style="font-size:12pt;line-height:2.2"><tr>
+         <td width="40%">មុខវិជ្ជា៖ <b>${esc(params.subject)}</b></td>
+         <td width="35%">ថ្នាក់៖ <b>${esc(params.grade)}</b></td>
+         <td width="25%">លេខ៖ ..............</td>
+       </tr></table>
+       <div style="font-size:12pt;line-height:2.4">ឈ្មោះសិស្ស៖ ${dots}${dots}</div>
+       <table width="100%" cellspacing="0" cellpadding="2" style="font-size:12pt;line-height:2.2"><tr>
+         <td width="60%">គ្រូបង្រៀន៖ ${esc(teacherName) || dots}</td>
+         <td width="40%">កាលបរិច្ឆេទ៖ ....../....../......</td>
+       </tr></table>`;
 
-    <h1 style="text-align:center;font-size:14pt;margin:8pt 0 12pt">${esc(heading)}</h1>
-  `;
+  const points = `
+    <table width="100%" cellspacing="0" cellpadding="0" style="margin:8pt 0"><tr><td align="right">
+      <span style="border:1.5px solid #f59e0b;background:#fffbeb;padding:5pt 14pt;font-weight:bold;font-size:12pt;color:#334155">⭐ ពិន្ទុ៖ ................. / ${toKh(totalPoints)}</span>
+    </td></tr></table>`;
+
+  const header = `${identity}${subtitle}${fields}${points}${rule}
+    <h1 style="text-align:center;font-size:14pt;margin:6pt 0 12pt">${esc(heading)}</h1>`;
   const instr = instructions ? `<p style="font-style:italic;font-size:11.5pt;margin:6pt 0">សេចក្ដីណែនាំ៖ ${esc(instructions)}</p>` : '';
 
   let body = '';
@@ -500,9 +521,13 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   };
 
   // Export to an editable Word document (.doc). Teacher edits in Word, then prints.
-  const handleWord = () => {
+  const handleWord = async () => {
     if (!examSections && !questions.length) { flash('សូមបង្កើតជាមុនសិន', false); return; }
-    const html = buildWordHtml({ heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers, month, duration });
+    // Embed the school logo as base64 so the .doc shows it offline (a bare asset URL
+    // wouldn't resolve inside Word), giving the same polished header as the PDF.
+    let logo = '';
+    try { const r = await fetch(logoPng); const b = await r.blob(); logo = await new Promise<string>(res => { const fr = new FileReader(); fr.onload = () => res(String(fr.result || '')); fr.onerror = () => res(''); fr.readAsDataURL(b); }); } catch { /* logo optional */ }
+    const html = buildWordHtml({ heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers, month, duration, logo });
     const blob = new Blob(['﻿', html], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
