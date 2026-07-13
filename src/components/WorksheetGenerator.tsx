@@ -8,7 +8,7 @@ import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Tras
 import { SchoolUser } from '../types';
 import SchoolLogo from './SchoolLogo';
 import FitToWidth from './FitToWidth';
-import { exportElementToPdf } from '../utils/exportPdf';
+import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import {
   WorksheetParams, WorksheetType, Difficulty, WSLanguage, WSQuestion, Worksheet,
   TYPE_LABELS, DIFFICULTY_LABELS, LANGUAGE_LABELS, SUBJECTS,
@@ -464,7 +464,9 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     const el = document.getElementById('worksheet-print');
     if (!el) return;
     setPdfBusy(true);
-    try { await exportElementToPdf(el, `សន្លឹកលំហាត់_${params.subject}_${params.grade}`, A4_WIDTH); }
+    // Multi-page A4: flow the worksheet onto as many pages as the questions need,
+    // cutting at blank rows so no question/line is sliced at a page boundary.
+    try { await exportElementToMultipagePdf(el, `សន្លឹកលំហាត់_${params.subject}_${params.grade}`, A4_WIDTH); }
     catch (e) { console.error(e); flash('មិនអាចបង្កើត PDF បានទេ', false); }
     finally { setPdfBusy(false); }
   };
