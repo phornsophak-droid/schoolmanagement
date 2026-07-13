@@ -98,18 +98,52 @@ export interface ParsedPaste { instructions: string; questions: WSQuestion[]; mu
 
 const Q_NUM_RE = /^\s*(?:[0-9]{1,3}|[០-៩]{1,3})\s*[.)．៖:]\s*/;
 
-function stripBrackets(s: string): { text: string; answer: string } {
+// Khmer option labels (ក ខ គ …), matching how options render on the sheet.
+const KH_OPT = ['ក', 'ខ', 'គ', 'ឃ', 'ង', 'ច', 'ឆ', 'ជ'];
+// Map an answer TOKEN to a 0-based option index — but ONLY letters count as option
+// labels (Khmer consonant ក/ខ/គ… or Latin A/B/C…). A digit is deliberately NOT a
+// label: brackets like [២] in real papers are lesson/points markers, not answers.
+function labelToIndex(tok: string): number {
+  const t = (tok || '').trim();
+  const ki = KH_OPT.indexOf(t);
+  if (ki >= 0) return ki;
+  if (/^[A-Ha-h]$/.test(t)) return t.toUpperCase().charCodeAt(0) - 65;
+  return -1;
+}
+
+// Strip every [..] from the text; return it plus the LAST bracket's raw content
+// (the caller decides whether that content is actually an answer label).
+function stripBrackets(s: string): { text: string; bracket: string } {
   const brs = [...s.matchAll(/\[([^\]]{1,24})\]/g)];
-  const answer = brs.length ? brs[brs.length - 1][1].trim() : '';
+  const bracket = brs.length ? brs[brs.length - 1][1].trim() : '';
   const text = s.replace(/\s*\[[^\]]{1,24}\]\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
-  return { text, answer };
+  return { text, bracket };
+}
+
+// Turn a raw answer token into a clean answer for the key.
+//  - Multiple-choice (>=2 options): the token must be an option LABEL (ក/A) or the
+//    exact text of an option → returns "ក. <option>". Anything else (e.g. a stray
+//    lesson number) yields "" so no WRONG answer is shown.
+//  - No options (short answer): the token itself is the answer value.
+function resolveAnswer(token: string, options: string[]): string {
+  const t = (token || '').trim();
+  if (!t) return '';
+  if (options.length >= 2) {
+    const idx = labelToIndex(t);
+    if (idx >= 0 && idx < options.length) return `${KH_OPT[idx] || t}. ${options[idx]}`;
+    const oi = options.findIndex(o => o.trim() === t);
+    if (oi >= 0) return `${KH_OPT[oi] || t}. ${options[oi]}`;
+    return '';
+  }
+  return t;
 }
 
 // Split one question block into prompt + options (+ answer).
 function splitQuestion(block: string): { prompt: string; options: string[]; answer: string } {
-  let answer = '';
+  // An explicit "ចម្លើយ៖ X" marker is the strongest, most trustworthy answer signal.
+  let marker = '';
   const am = block.match(/ចម្លើយ\s*[:៖]\s*([^\n|]+)/);
-  if (am) { answer = am[1].trim(); block = (block.slice(0, am.index) + block.slice(am.index! + am[0].length)).trim(); }
+  if (am) { marker = am[1].trim(); block = (block.slice(0, am.index) + block.slice(am.index! + am[0].length)).trim(); }
 
   // Pipe-separated inline options → newlines, so every option starts a "segment".
   const norm = block.replace(/\s*\|\s*/g, '\n');
@@ -121,16 +155,21 @@ function splitQuestion(block: string): { prompt: string; options: string[]; answ
   while ((m = re.exec(norm))) marks.push({ idx: m.index + m[1].length, end: re.lastIndex });
 
   if (marks.length < 2) {
-    const { text, answer: a } = stripBrackets(block.replace(/\n+/g, ' '));
-    return { prompt: text, options: [], answer: answer || a };
+    const { text, bracket } = stripBrackets(block.replace(/\n+/g, ' '));
+    // Short answer: trust the marker; else the bracket value.
+    return { prompt: text, options: [], answer: (marker ? resolveAnswer(marker, []) || marker : resolveAnswer(bracket, [])) };
   }
   const options: string[] = [];
   for (let i = 0; i < marks.length; i++) {
     const end = i + 1 < marks.length ? marks[i + 1].idx : norm.length;
     options.push(norm.slice(marks[i].end, end).replace(/\n+/g, ' ').trim());
   }
-  const { text: prompt, answer: a } = stripBrackets(norm.slice(0, marks[0].idx).replace(/\n+/g, ' '));
-  return { prompt, options: options.filter(Boolean), answer: answer || a };
+  const opts = options.filter(Boolean);
+  const { text: prompt, bracket } = stripBrackets(norm.slice(0, marks[0].idx).replace(/\n+/g, ' '));
+  // Prefer the explicit marker (verbatim if it doesn't map to a label); else accept
+  // a bracket ONLY when it's a genuine option label — never a lesson number.
+  const answer = (marker ? resolveAnswer(marker, opts) || marker : resolveAnswer(bracket, opts));
+  return { prompt, options: opts, answer };
 }
 
 export function parsePastedQuestions(text: string): ParsedPaste {
