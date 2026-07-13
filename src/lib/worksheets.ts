@@ -147,9 +147,11 @@ function splitQuestion(block: string): { prompt: string; options: string[]; answ
 
   // Pipe-separated inline options → newlines, so every option starts a "segment".
   const norm = block.replace(/\s*\|\s*/g, '\n');
-  // An option label = a single letter/consonant then . ) ． ៖ : then a space,
-  // preceded by start-of-text, whitespace, or a closing bracket.
-  const re = /(^|[\s\]])((?:[A-Ha-h])|[ក-អ])[.)．៖:]\s+/g;
+  // An option label = a single letter/consonant, optionally wrapped in parens, with
+  // a trailing . ) ） ． ៖ : then a space — e.g. "A." "ក)" "(A)" "(ក)". Preceded by
+  // start-of-text, whitespace, or a closing bracket. Options may be separated by
+  // "|", line breaks, OR just spaces (the paren style "(A) … (B) …").
+  const re = /(^|[\s\]])[(（]?((?:[A-Ha-h])|[ក-អ])[.)）．៖:]\s+/g;
   const marks: { idx: number; end: number }[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(norm))) marks.push({ idx: m.index + m[1].length, end: re.lastIndex });
