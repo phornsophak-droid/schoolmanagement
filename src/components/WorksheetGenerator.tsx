@@ -10,6 +10,7 @@ import SchoolLogo from './SchoolLogo';
 import logoPng from '../assets/logo.png';
 import FitToWidth from './FitToWidth';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
+import { extractTextFromFile } from '../lib/extractText';
 import {
   WorksheetParams, WorksheetType, Difficulty, WSLanguage, WSQuestion, Worksheet,
   TYPE_LABELS, DIFFICULTY_LABELS, LANGUAGE_LABELS, SUBJECTS,
@@ -381,6 +382,8 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const typeLabel = (params.types?.length || 1) > 1 ? `ចម្រុះ (${params.types?.length || 0})` : TYPE_LABELS[params.type].split('(')[0].trim();
 
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importInputRef = React.useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const flash = (msg: string, ok = true) => { setToast({ msg, ok }); setTimeout(() => setToast(null), 3500); };
 
@@ -472,14 +475,13 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   // page style: 'worksheet' (សន្លឹកកិច្ចការ) or an exam PERIOD ('month'|'semester'|
   // 'year' → វិញ្ញាសាប្រចាំខែ/ឆមាស/ឆ្នាំ, with the exam header). Both render the same
   // flat question list; only the header differs (driven by examPeriod).
-  const handleUsePasted = (mode: 'worksheet' | ExamPeriod) => {
-    const src = (params.source || '').trim();
-    if (!src) { flash('ប្រអប់ «មាតិកា/វិញ្ញាសា» ទទេ — សូមបិទភ្ជាប់សំណួររបស់អ្នកជាមុនសិន', false); return; }
+  // Parse `src` verbatim and render it with the school header (exam period or
+  // worksheet). Shared by the paste button and the file-import button. Returns
+  // false if no questions were found. `quiet` skips the success toast (the caller
+  // shows its own, e.g. after an import).
+  const applyParsed = (src: string, mode: 'worksheet' | ExamPeriod, quiet = false): boolean => {
     const parsed = parsePastedQuestions(src);
-    if (!parsed.questions.length) {
-      flash('រកសំណួរមិនឃើញ — ត្រូវឱ្យបន្ទាត់នីមួយៗចាប់ផ្ដើមដោយលេខ (១. ២. ៣. …)', false);
-      return;
-    }
+    if (!parsed.questions.length) return false;
     const isExam = mode !== 'worksheet';
     setExamSections(null);
     setExamPeriod(isExam ? mode : null);
@@ -488,7 +490,39 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     if (parsed.instructions) setInstructions(parsed.instructions);
     set('type', parsed.multipleChoice ? 'multiple_choice' : 'short_answer');
     set('types', parsed.multipleChoice ? ['multiple_choice'] : ['short_answer']);
-    flash(`បានរៀបចំ${isExam ? `វិញ្ញាសា${EXAM_PERIOD_LABELS[mode]}` : 'សន្លឹកកិច្ចការ'} ${toKh(parsed.questions.length)} សំណួរ (រក្សាដដែល — គ្មាន AI) ✓`);
+    if (!quiet) flash(`បានរៀបចំ${isExam ? `វិញ្ញាសា${EXAM_PERIOD_LABELS[mode]}` : 'សន្លឹកកិច្ចការ'} ${toKh(parsed.questions.length)} សំណួរ (រក្សាដដែល — គ្មាន AI) ✓`);
+    return true;
+  };
+
+  const handleUsePasted = (mode: 'worksheet' | ExamPeriod) => {
+    const src = (params.source || '').trim();
+    if (!src) { flash('ប្រអប់ «មាតិកា/វិញ្ញាសា» ទទេ — សូមបិទភ្ជាប់សំណួររបស់អ្នកជាមុនសិន', false); return; }
+    if (!applyParsed(src, mode)) flash('រកសំណួរមិនឃើញ — ត្រូវឱ្យបន្ទាត់នីមួយៗចាប់ផ្ដើមដោយលេខ (១. ២. ៣. …)', false);
+  };
+
+  // Import an existing exam FILE (.docx / .pdf / .txt): pull its text, drop it in
+  // the source box, and lay it out with the SCHOOL exam header while keeping the
+  // questions verbatim. Teacher can switch the header type via «រក្សាសំណួរដើម».
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-picking the same file later
+    if (!file) return;
+    setImporting(true);
+    try {
+      const text = await extractTextFromFile(file);
+      if (!text.trim()) { flash('រកអត្ថបទក្នុងឯកសារមិនឃើញ — PDF ស្កេនមិនមានស្រទាប់អក្សរ។', false); return; }
+      set('source', text);
+      setSelectedLessonId('');
+      if (applyParsed(text, examPeriod || 'month', true)) {
+        flash('បាននាំចូលវិញ្ញាសា — ក្បាលប្តូរជារបស់សាលា ✓ (ប្តូរប្រភេទបាននៅ «រក្សាសំណួរដើម»)');
+      } else {
+        flash('បាននាំចូលអត្ថបទ — សូមចុច «រក្សាសំណួរដើម» ដើម្បីរៀបចំ', true);
+      }
+    } catch (err: any) {
+      flash(err?.message || 'នាំចូលឯកសារមិនបាន', false);
+    } finally {
+      setImporting(false);
+    }
   };
 
   // Build a full exam paper (វិញ្ញាសាប្រឡង) for a period — mixed sections.
@@ -652,6 +686,12 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">មាតិកាមេរៀន / វិញ្ញាសារ (ស្រេចចិត្ត)</span>
               <div className="flex items-center gap-1.5">
+                {/* Import an existing exam file (.docx/.pdf/.txt) → extract text → lay
+                    out with the school header, keeping the questions verbatim. */}
+                <input ref={importInputRef} type="file" accept=".docx,.pdf,.txt" className="hidden" onChange={handleImportFile} />
+                <button onClick={() => importInputRef.current?.click()} disabled={importing} title="នាំចូលវិញ្ញាសាពី Word (.docx) ឬ PDF — ក្បាលប្តូរជារបស់សាលា ហើយរក្សាសំណួរដើម" className="px-2 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1 disabled:opacity-60">
+                  {importing ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} className="rotate-180" />} នាំចូល Word/PDF
+                </button>
                 <select value={selectedLessonId} onChange={e => pickLesson(e.target.value)} className="px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-600 font-semibold outline-none max-w-[180px]">
                   <option value="">📚 បណ្ណាល័យមេរៀន…</option>
                   {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}

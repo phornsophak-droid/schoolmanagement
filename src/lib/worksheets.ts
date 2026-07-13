@@ -138,6 +138,36 @@ function resolveAnswer(token: string, options: string[]): string {
   return t;
 }
 
+// Punctuated option labels: "A." "ក)" "(A)" "(ក)" — a label + trailing punct + space.
+function strictLabelMarks(norm: string): { idx: number; end: number }[] {
+  const re = /(^|[\s\]])[(（]?((?:[A-Ha-h])|[ក-អ])[.)）．៖:]\s+/g;
+  const marks: { idx: number; end: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(norm))) marks.push({ idx: m.index + m[1].length, end: re.lastIndex });
+  return marks;
+}
+
+// Bare labels: "ក … ខ … គ …" — single option letters with NO punctuation. Only
+// accepted when they appear IN SEQUENCE (ក,ខ,គ… or A,B,C… starting at the first),
+// so ordinary single-letter words aren't mistaken for options.
+function bareLabelMarks(norm: string): { idx: number; end: number }[] {
+  const re = /(^|[\s\n])((?:[A-Ha-h])|[ក-អ])(?=[\s\n])/g;
+  const cands: { start: number; len: number; seq: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(norm))) {
+    const letter = m[2];
+    let seq = KH_OPT.indexOf(letter);
+    if (seq < 0 && /^[A-Ha-h]$/.test(letter)) seq = letter.toUpperCase().charCodeAt(0) - 65;
+    cands.push({ start: m.index + m[1].length, len: letter.length, seq });
+  }
+  const marks: { idx: number; end: number }[] = [];
+  let expect = 0;
+  for (const c of cands) {
+    if (c.seq === expect) { marks.push({ idx: c.start, end: c.start + c.len + 1 }); expect++; }
+  }
+  return marks.length >= 2 ? marks : [];
+}
+
 // Split one question block into prompt + options (+ answer).
 function splitQuestion(block: string): { prompt: string; options: string[]; answer: string } {
   // An explicit "ចម្លើយ៖ X" marker is the strongest, most trustworthy answer signal.
@@ -150,11 +180,10 @@ function splitQuestion(block: string): { prompt: string; options: string[]; answ
   // An option label = a single letter/consonant, optionally wrapped in parens, with
   // a trailing . ) ） ． ៖ : then a space — e.g. "A." "ក)" "(A)" "(ក)". Preceded by
   // start-of-text, whitespace, or a closing bracket. Options may be separated by
-  // "|", line breaks, OR just spaces (the paren style "(A) … (B) …").
-  const re = /(^|[\s\]])[(（]?((?:[A-Ha-h])|[ក-អ])[.)）．៖:]\s+/g;
-  const marks: { idx: number; end: number }[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(norm))) marks.push({ idx: m.index + m[1].length, end: re.lastIndex });
+  // "|", line breaks, OR just spaces (the paren style "(A) … (B) …"). If no
+  // PUNCTUATED labels are found, fall back to BARE labels ("ក … ខ … គ …").
+  let marks = strictLabelMarks(norm);
+  if (marks.length < 2) marks = bareLabelMarks(norm);
 
   if (marks.length < 2) {
     const { text, bracket } = stripBrackets(block.replace(/\n+/g, ' '));
