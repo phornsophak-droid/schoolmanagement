@@ -159,7 +159,7 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, du
         <div className="flex gap-8">
           <span className="whitespace-nowrap">លេខបន្ទប់៖ <span className={`${dotted} min-w-[90px]`}>&nbsp;</span></span>
           <span className="whitespace-nowrap">លេខតុ៖ <span className={`${dotted} min-w-[90px]`}>&nbsp;</span></span>
-          <span className="whitespace-nowrap flex-1">ថ្នាក់៖ <span className={`${dotted} px-2 text-center`} style={{ minWidth: '110px' }}>{params.grade}</span></span>
+          <span className="whitespace-nowrap flex-1">ថ្នាក់៖ <span className={`${dotted} flex-1`} style={{ minWidth: '110px' }}>&nbsp;</span></span>
         </div>
         <div>នាមត្រកូល និងនាមខ្លួន៖ <span className={dotted} style={{ width: '68%' }}>&nbsp;</span></div>
         <div className="flex gap-8">
@@ -223,7 +223,7 @@ const buildWordHtml = (d: WordDocInput): string => {
     ? `<table width="100%" cellspacing="0" cellpadding="2" style="font-size:12pt;line-height:2.2"><tr>
          <td width="33%">លេខបន្ទប់៖ ..................</td>
          <td width="30%">លេខតុ៖ ..................</td>
-         <td width="37%">ថ្នាក់៖ <b>${esc(params.grade)}</b></td>
+         <td width="37%">ថ្នាក់៖ ..................</td>
        </tr></table>
        <div style="font-size:12pt;line-height:2.4">នាមត្រកូល និងនាមខ្លួន៖ ${dots}${dots}</div>
        <table width="100%" cellspacing="0" cellpadding="2" style="font-size:12pt;line-height:2.2"><tr>
