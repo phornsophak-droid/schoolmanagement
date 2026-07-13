@@ -15,6 +15,15 @@ async function extractDocx(file: File): Promise<string> {
   return (res.value || '').trim();
 }
 
+// Convert a .docx to HTML, PRESERVING structure (paragraphs, tables, bold, lists)
+// so an imported exam keeps its original layout — only its header gets swapped.
+export async function extractDocxHtml(file: File): Promise<string> {
+  const mammoth = await import('mammoth');
+  const arrayBuffer = await file.arrayBuffer();
+  const res = await mammoth.convertToHtml({ arrayBuffer });
+  return (res.value || '').trim();
+}
+
 async function extractPdf(file: File): Promise<string> {
   const pdfjs: any = await import('pdfjs-dist');
   // @ts-ignore - Vite resolves the worker to a URL string

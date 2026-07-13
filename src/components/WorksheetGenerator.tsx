@@ -10,7 +10,7 @@ import SchoolLogo from './SchoolLogo';
 import logoPng from '../assets/logo.png';
 import FitToWidth from './FitToWidth';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
-import { extractTextFromFile } from '../lib/extractText';
+import { extractTextFromFile, extractDocxHtml } from '../lib/extractText';
 import {
   WorksheetParams, WorksheetType, Difficulty, WSLanguage, WSQuestion, Worksheet,
   TYPE_LABELS, DIFFICULTY_LABELS, LANGUAGE_LABELS, SUBJECTS,
@@ -93,6 +93,45 @@ const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
   </label>
 );
 
+// When importing an exam (.docx → HTML), the file carries its OWN header (national
+// header, office hierarchy, name/class fields). Drop everything before the FIRST
+// section list (<ol>) or the FIRST numbered question <p>, so only the questions
+// remain — we prepend the school header instead.
+const stripImportedHeader = (html: string): string => {
+  const olIdx = html.search(/<ol[\s>]/i);
+  let pIdx = -1;
+  const re = /<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) {
+    const txt = m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+    if (/^[១-៩0-9]{1,3}\s*[.)．៖:]/.test(txt)) { pIdx = m.index; break; }
+  }
+  const candidates = [olIdx, pIdx].filter(i => i >= 0).sort((a, b) => a - b);
+  return candidates.length ? html.slice(candidates[0]) : html;
+};
+
+// Sum the section-heading point markers "(N ពិន្ទុ)" inside <li> elements so the
+// imported exam's total shows in the points badge (0 → badge shows a blank line).
+const detectTotalPoints = (html: string): number => {
+  const khToNum = (s: string) => Number(s.replace(/[០-៩]/g, d => String('០១២៣៤៥៦៧៨៩'.indexOf(d))));
+  let total = 0;
+  const liRe = /<li\b[^>]*>([\s\S]*?)<\/li>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = liRe.exec(html))) {
+    const pm = m[1].replace(/<[^>]+>/g, '').match(/([\d០-៩]+(?:[.។][\d០-៩]+)?)\s*ពិន្ទុ/);
+    if (pm) total += khToNum(pm[1].replace('។', '.')) || 0;
+  }
+  return Math.round(total);
+};
+
+// Guess the exam period from the imported header text (ឆមាស / ចុងឆ្នាំ / else month).
+const detectExamPeriod = (html: string): ExamPeriod => {
+  const t = html.replace(/<[^>]+>/g, '');
+  if (/ឆមាស/.test(t)) return 'semester';
+  if (/ប្រចាំឆ្នាំ|ចុងឆ្នាំ|ប្រឡងឆ្នាំ/.test(t)) return 'year';
+  return 'month';
+};
+
 const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, duration, month }: { params: WorksheetParams; heading: string; totalPoints: number; examPeriod: ExamPeriod | null; teacherName: string; duration?: string; month?: string }) => {
   const dotted = 'inline-block border-b border-dotted border-slate-500 align-bottom';
   // Shared centered school identity block (logo + Khmer/English name + motto).
@@ -133,7 +172,7 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, du
         </div>
         <div className="flex justify-end mt-3">
           <div className="border-2 border-amber-300 bg-amber-50 rounded-2xl px-5 py-2 text-[12pt] font-bold text-slate-700">
-            ⭐ ពិន្ទុ៖ <span className={dotted} style={{ width: '90px' }}>&nbsp;</span> / {toKh(totalPoints)}
+            ⭐ ពិន្ទុ៖ <span className={dotted} style={{ width: '90px' }}>&nbsp;</span> / {totalPoints ? toKh(totalPoints) : <span className={dotted} style={{ width: '40px' }}>&nbsp;</span>}
           </div>
         </div>
         <div className="border-t-2 border-slate-800 mt-3" />
@@ -171,7 +210,7 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, du
       </div>
       <div className="flex justify-end mt-3">
         <div className="border-2 border-amber-300 bg-amber-50 rounded-2xl px-5 py-2 text-[12pt] font-bold text-slate-700">
-          ⭐ ពិន្ទុ៖ <span className={dotted} style={{ width: '90px' }}>&nbsp;</span> / {toKh(totalPoints)}
+          ⭐ ពិន្ទុ៖ <span className={dotted} style={{ width: '90px' }}>&nbsp;</span> / {totalPoints ? toKh(totalPoints) : <span className={dotted} style={{ width: '40px' }}>&nbsp;</span>}
         </div>
       </div>
       <div className="border-t-2 border-slate-800 mt-3" />
@@ -184,11 +223,12 @@ interface WordDocInput {
   heading: string; instructions: string; params: WorksheetParams; teacherName: string;
   questions: WSQuestion[]; examSections: ExamSection[] | null; examPeriod: ExamPeriod | null; showAnswers: boolean;
   month: string; duration: string; logo: string;
+  importedBody?: string; importedPoints?: number;
 }
 
 const buildWordHtml = (d: WordDocInput): string => {
-  const { heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers, month, duration, logo } = d;
-  const totalPoints = examSections ? examSections.reduce((n, s) => n + s.points, 0) : questions.length;
+  const { heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers, month, duration, logo, importedBody } = d;
+  const totalPoints = importedBody ? (d.importedPoints || 0) : examSections ? examSections.reduce((n, s) => n + s.points, 0) : questions.length;
   const dots = '........................................';
   const rule = '<div style="border-top:2px solid #1f2937;margin:8pt 0"></div>';
   const logoImg = logo ? `<img src="${logo}" width="72" height="72" style="width:72px;height:72px" />` : '';
@@ -245,7 +285,7 @@ const buildWordHtml = (d: WordDocInput): string => {
 
   const points = `
     <table width="100%" cellspacing="0" cellpadding="0" style="margin:8pt 0"><tr><td align="right">
-      <span style="border:1.5px solid #f59e0b;background:#fffbeb;padding:5pt 14pt;font-weight:bold;font-size:12pt;color:#334155">⭐ ពិន្ទុ៖ ................. / ${toKh(totalPoints)}</span>
+      <span style="border:1.5px solid #f59e0b;background:#fffbeb;padding:5pt 14pt;font-weight:bold;font-size:12pt;color:#334155">⭐ ពិន្ទុ៖ ................. / ${totalPoints ? toKh(totalPoints) : '............'}</span>
     </td></tr></table>`;
 
   const header = `${identity}${subtitle}${fields}${points}${rule}
@@ -253,7 +293,10 @@ const buildWordHtml = (d: WordDocInput): string => {
   const instr = instructions ? `<p style="font-style:italic;font-size:11.5pt;margin:6pt 0">សេចក្ដីណែនាំ៖ ${esc(instructions)}</p>` : '';
 
   let body = '';
-  if (examSections) {
+  if (importedBody) {
+    // Imported exam — keep the original .docx body exactly as converted.
+    body = `<div style="font-size:12pt">${importedBody}</div>`;
+  } else if (examSections) {
     body = examSections.map((sec, si) => {
       const rows = sec.questions.map((q, i) => qToWord(q, sec.type, i + 1, showAnswers)).join('');
       return `
@@ -265,7 +308,7 @@ const buildWordHtml = (d: WordDocInput): string => {
   }
 
   let answerKey = '';
-  if (showAnswers) {
+  if (showAnswers && !importedBody) {
     const keyList = (qs: WSQuestion[]) => `<table width="100%" cellspacing="0" cellpadding="2" style="font-size:11.5pt"><tr><td valign="top" width="50%">${qs.filter((_, i) => i % 2 === 0).map((q, i) => `<div><b>${toKh(i * 2 + 1)}.</b> ${q.pairs ? esc(q.pairs.map(p => `${p.left}→${p.right}`).join('; ')) : esc(q.answer || '—')}</div>`).join('')}</td><td valign="top" width="50%">${qs.filter((_, i) => i % 2 === 1).map((q, i) => `<div><b>${toKh(i * 2 + 2)}.</b> ${q.pairs ? esc(q.pairs.map(p => `${p.left}→${p.right}`).join('; ')) : esc(q.answer || '—')}</div>`).join('')}</td></tr></table>`;
     const inner = examSections
       ? examSections.map((sec, si) => `<div style="font-weight:bold;font-size:11.5pt;margin-top:6pt">ផ្នែកទី ${toKh(si + 1)}៖ ${esc(sec.label)}</div>${keyList(sec.questions)}`).join('')
@@ -349,6 +392,9 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   // Exam-paper mode (វិញ្ញាសាប្រឡង ប្រចាំខែ/ឆមាស/ឆ្នាំ) — mixed-type sections.
   const [examSections, setExamSections] = useState<ExamSection[] | null>(null);
   const [examPeriod, setExamPeriod] = useState<ExamPeriod | null>(null);
+  // Imported exam body (original .docx formatting preserved as HTML); when set, the
+  // preview renders this verbatim under the school header instead of a question list.
+  const [importedHtml, setImportedHtml] = useState<string | null>(null);
 
   // ---- Status ----
   const [loading, setLoading] = useState(false);
@@ -457,6 +503,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const handleGenerate = async () => {
     setLoading(true);
     setShowAnswers(false);
+    setImportedHtml(null);
     setExamSections(null); setExamPeriod(null);
     try {
       const { questions: qs, fromBank, fromAI } = await generateFromBank(effectiveParams());
@@ -483,6 +530,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     const parsed = parsePastedQuestions(src);
     if (!parsed.questions.length) return false;
     const isExam = mode !== 'worksheet';
+    setImportedHtml(null);
     setExamSections(null);
     setExamPeriod(isExam ? mode : null);
     setShowAnswers(false);
@@ -500,19 +548,35 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     if (!applyParsed(src, mode)) flash('រកសំណួរមិនឃើញ — ត្រូវឱ្យបន្ទាត់នីមួយៗចាប់ផ្ដើមដោយលេខ (១. ២. ៣. …)', false);
   };
 
-  // Import an existing exam FILE (.docx / .pdf / .txt): pull its text, drop it in
-  // the source box, and lay it out with the SCHOOL exam header while keeping the
-  // questions verbatim. Teacher can switch the header type via «រក្សាសំណួរដើម».
+  // Import an existing exam FILE. For .docx we KEEP the original body formatting
+  // (tables, section headings, option layout) via mammoth→HTML and only swap the
+  // header for the school's. For .pdf/.txt (no reliable structure) we fall back to
+  // parsing the questions verbatim. Header type is auto-detected (ឆមាស/ឆ្នាំ/ខែ);
+  // switch it any time via «រក្សាសំណួរដើម».
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // allow re-picking the same file later
     if (!file) return;
     setImporting(true);
     try {
+      if ((file.name || '').toLowerCase().endsWith('.docx')) {
+        const rawHtml = await extractDocxHtml(file);
+        if (!rawHtml.trim()) { flash('រកមាតិកាក្នុងឯកសារ .docx មិនឃើញ។', false); return; }
+        const period = detectExamPeriod(rawHtml);
+        const body = stripImportedHeader(rawHtml);
+        setQuestions([]); setExamSections(null);
+        setExamPeriod(period);
+        setShowAnswers(false);
+        setImportedHtml(body);
+        flash(`បាននាំចូលវិញ្ញាសា${EXAM_PERIOD_LABELS[period]} — ក្បាលប្តូរជារបស់សាលា · រក្សាទម្រង់ដើម ✓`);
+        return;
+      }
+      // .pdf / .txt → verbatim parse (no reliable original layout to keep).
       const text = await extractTextFromFile(file);
       if (!text.trim()) { flash('រកអត្ថបទក្នុងឯកសារមិនឃើញ — PDF ស្កេនមិនមានស្រទាប់អក្សរ។', false); return; }
       set('source', text);
       setSelectedLessonId('');
+      setImportedHtml(null);
       if (applyParsed(text, examPeriod || 'month', true)) {
         flash('បាននាំចូលវិញ្ញាសា — ក្បាលប្តូរជារបស់សាលា ✓ (ប្តូរប្រភេទបាននៅ «រក្សាសំណួរដើម»)');
       } else {
@@ -529,6 +593,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   const handleGenerateExam = async (period: ExamPeriod) => {
     setLoading(true);
     setShowAnswers(false);
+    setImportedHtml(null);
     setQuestions([]);
     try {
       const sections = await generateExam(effectiveParams(), period);
@@ -557,12 +622,12 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
 
   // Export to an editable Word document (.doc). Teacher edits in Word, then prints.
   const handleWord = async () => {
-    if (!examSections && !questions.length) { flash('សូមបង្កើតជាមុនសិន', false); return; }
+    if (!examSections && !questions.length && !importedHtml) { flash('សូមបង្កើតជាមុនសិន', false); return; }
     // Embed the school logo as base64 so the .doc shows it offline (a bare asset URL
     // wouldn't resolve inside Word), giving the same polished header as the PDF.
     let logo = '';
     try { const r = await fetch(logoPng); const b = await r.blob(); logo = await new Promise<string>(res => { const fr = new FileReader(); fr.onload = () => res(String(fr.result || '')); fr.onerror = () => res(''); fr.readAsDataURL(b); }); } catch { /* logo optional */ }
-    const html = buildWordHtml({ heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers, month, duration, logo });
+    const html = buildWordHtml({ heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers, month, duration, logo, importedBody: importedHtml || undefined, importedPoints: importedHtml ? detectTotalPoints(importedHtml) : undefined });
     const blob = new Blob(['﻿', html], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -615,7 +680,13 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     #worksheet-print { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; }
     .rc-fit-outer, .rc-fit-frame, .rc-fit-inner { width: auto !important; height: auto !important; overflow: visible !important; margin: 0 !important; transform: none !important; }
     .ws-no-print { display: none !important; }
-  }`;
+  }
+  /* Imported-exam body: restore borders/spacing mammoth doesn't inline. */
+  .ws-imported table { border-collapse: collapse; width: 100%; margin: 6pt 0; }
+  .ws-imported td, .ws-imported th { border: 1px solid #334155; padding: 4px 7px; vertical-align: top; }
+  .ws-imported ol { margin: 6pt 0 6pt 0; padding-left: 1.5em; }
+  .ws-imported ol li { font-weight: bold; margin: 4pt 0; }
+  .ws-imported p { margin: 3pt 0; }`;
 
   return (
     <div className={embedded ? 'w-full' : 'fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4 flex justify-center items-start'}>
@@ -628,7 +699,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
             <a href="https://gemini.google.com/gem/1kp1UXGuq_Zli7s5gY3NUpeko2wVZseyb?usp=sharing" target="_blank" rel="noopener noreferrer" className="px-3 py-2 text-xs font-bold rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 flex items-center gap-1.5 transition-colors border border-purple-200 shadow-sm">✨ Gemini</a>
             <a href="https://notebooklm.google.com/notebook/68210444-9d69-4e1f-bc7d-528d392678cd/preview" target="_blank" rel="noopener noreferrer" className="px-3 py-2 text-xs font-bold rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 flex items-center gap-1.5 transition-colors border border-teal-200 shadow-sm">✨ NotebookLM</a>
             <a href="https://aistudio.google.com/prompts/1uzbJjDjt2mdhj5Ltfi_ZtiYSRdnjMEhb" target="_blank" rel="noopener noreferrer" className="px-3 py-2 text-xs font-bold rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center gap-1.5 transition-colors border border-blue-200 shadow-sm">✨ AI Studio</a>
-            {(questions.length > 0 || examSections) && <>
+            {(questions.length > 0 || examSections || importedHtml) && <>
               <button onClick={() => setShowAnswers(s => !s)} className={`px-3 py-2 text-xs font-bold rounded-xl flex items-center gap-1.5 border transition-colors ${showAnswers ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-amber-700 border-amber-200 hover:bg-amber-50'}`}>
                 <KeyRound size={13} /> {showAnswers ? 'លាក់ចម្លើយ' : 'កូនសោចម្លើយ'}
               </button>
@@ -769,8 +840,15 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
 
         {toast &&<div className={`ws-no-print text-center text-xs font-bold px-3 py-2 rounded-xl ${toast.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>{toast.msg}</div>}
 
-        {/* Printable exam paper (វិញ្ញាសា) — mixed sections */}
-        {examSections ? (
+        {/* Imported exam — school header + the ORIGINAL .docx body, kept verbatim. */}
+        {importedHtml ? (
+          <FitToWidth designWidth={A4_WIDTH} fitHeight={false}>
+            <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
+              <PrintHeader params={params} heading={heading} totalPoints={detectTotalPoints(importedHtml)} examPeriod={examPeriod} teacherName={teacherName} duration={duration} month={month} />
+              <div className="ws-imported mt-3 text-[11pt] leading-relaxed" dangerouslySetInnerHTML={{ __html: importedHtml }} />
+            </div>
+          </FitToWidth>
+        ) : examSections ? (
           <FitToWidth designWidth={A4_WIDTH} fitHeight={false}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
               <PrintHeader params={params} heading={heading} totalPoints={examSections.reduce((n, s) => n + s.points, 0)} examPeriod={examPeriod} teacherName={teacherName} duration={duration} month={month} />
