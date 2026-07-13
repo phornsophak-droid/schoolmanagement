@@ -681,12 +681,21 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     .rc-fit-outer, .rc-fit-frame, .rc-fit-inner { width: auto !important; height: auto !important; overflow: visible !important; margin: 0 !important; transform: none !important; }
     .ws-no-print { display: none !important; }
   }
-  /* Imported-exam body: restore borders/spacing mammoth doesn't inline. */
-  .ws-imported table { border-collapse: collapse; width: 100%; margin: 6pt 0; }
-  .ws-imported td, .ws-imported th { border: 1px solid #334155; padding: 4px 7px; vertical-align: top; }
-  .ws-imported ol { margin: 6pt 0 6pt 0; padding-left: 1.5em; }
-  .ws-imported ol li { font-weight: bold; margin: 4pt 0; }
-  .ws-imported p { margin: 3pt 0; }`;
+  /* Imported-exam body: polish the look while keeping mammoth's structure intact. */
+  .ws-imported { counter-reset: wssec; }
+  .ws-imported p { margin: 5px 0; line-height: 1.85; }
+  /* Section headings (each mammoth <ol><li>) → a numbered indigo banner. */
+  .ws-imported ol { list-style: none; margin: 16px 0 8px; padding: 0; }
+  .ws-imported ol li {
+    counter-increment: wssec;
+    background: #eef2ff; border-left: 4px solid #4f46e5; border-radius: 6px;
+    padding: 7px 12px; margin: 0; font-weight: 700; font-size: 12pt; color: #1e293b;
+  }
+  .ws-imported ol li::before { content: counter(wssec, khmer) "៖ "; color: #4f46e5; font-weight: 800; }
+  /* Matching / answer tables — clean grid with a shaded header row. */
+  .ws-imported table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 11pt; }
+  .ws-imported td, .ws-imported th { border: 1px solid #cbd5e1; padding: 6px 9px; vertical-align: top; }
+  .ws-imported table tr:first-child td { background: #f1f5f9; font-weight: 700; text-align: center; color: #334155; }`;
 
   return (
     <div className={embedded ? 'w-full' : 'fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4 flex justify-center items-start'}>
