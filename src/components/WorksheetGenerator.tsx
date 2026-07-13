@@ -327,6 +327,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   // ---- Status ----
   const [loading, setLoading] = useState(false);
   const [examMenuOpen, setExamMenuOpen] = useState(false);
+  const [pasteMenuOpen, setPasteMenuOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
 
   const toggleType = (t: WorksheetType) => {
@@ -442,8 +443,11 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   };
 
   // "រក្សាសំណួរដើម" — the teacher already has a question list; parse what they
-  // pasted into the source box VERBATIM (no AI) and lay it out as the worksheet.
-  const handleUsePasted = () => {
+  // pasted into the source box VERBATIM (no AI) and lay it out. `mode` picks the
+  // page style: 'worksheet' (សន្លឹកកិច្ចការ) or 'exam' (វិញ្ញាសា — exam header with
+  // room/desk/duration fields). Both render the same flat question list; only the
+  // header differs (driven by examPeriod).
+  const handleUsePasted = (mode: 'worksheet' | 'exam') => {
     const src = (params.source || '').trim();
     if (!src) { flash('ប្រអប់ «មាតិកា/វិញ្ញាសា» ទទេ — សូមបិទភ្ជាប់សំណួររបស់អ្នកជាមុនសិន', false); return; }
     const parsed = parsePastedQuestions(src);
@@ -451,13 +455,14 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
       flash('រកសំណួរមិនឃើញ — ត្រូវឱ្យបន្ទាត់នីមួយៗចាប់ផ្ដើមដោយលេខ (១. ២. ៣. …)', false);
       return;
     }
-    setExamSections(null); setExamPeriod(null);
+    setExamSections(null);
+    setExamPeriod(mode === 'exam' ? (examPeriod || 'month') : null);
     setShowAnswers(false);
     setQuestions(parsed.questions);
     if (parsed.instructions) setInstructions(parsed.instructions);
     set('type', parsed.multipleChoice ? 'multiple_choice' : 'short_answer');
     set('types', parsed.multipleChoice ? ['multiple_choice'] : ['short_answer']);
-    flash(`បានរៀបចំសំណួរដើម ${toKh(parsed.questions.length)} (រក្សាដដែល — គ្មាន AI) ✓`);
+    flash(`បានរៀបចំ${mode === 'exam' ? 'វិញ្ញាសា' : 'សន្លឹកកិច្ចការ'} ${toKh(parsed.questions.length)} សំណួរ (រក្សាដដែល — គ្មាន AI) ✓`);
   };
 
   // Build a full exam paper (វិញ្ញាសាប្រឡង) for a period — mixed sections.
@@ -642,10 +647,27 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
                 : 'ℹ️ គ្មាន AI — គណិតវិទ្យាដំណើរការដោយឥតគិតថ្លៃ; មុខវិជ្ជាផ្សេងត្រូវការ Ollama ឬ Gemini key។'}
             </p>
             <div className="flex items-center gap-2 flex-wrap justify-end">
-              {/* Keep the teacher's OWN questions verbatim — parse the pasted list, no AI. */}
-              <button onClick={handleUsePasted} disabled={loading} title="យកសំណួរដែលអ្នកបានបិទភ្ជាប់មករៀបចំឱ្យស្អាត ដោយមិនកែ (គ្មាន AI)" className="px-4 py-2.5 text-sm font-bold rounded-xl bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 text-emerald-700 border border-emerald-200 flex items-center gap-2 shadow-sm">
-                <ClipboardList size={16} /> រក្សាសំណួរដើម
-              </button>
+              {/* Keep the teacher's OWN questions verbatim — parse the pasted list, no
+                  AI — then lay it out as a worksheet OR an exam paper (their choice). */}
+              <div className="relative">
+                <button onClick={() => setPasteMenuOpen(o => !o)} disabled={loading} title="យកសំណួរដែលអ្នកបានបិទភ្ជាប់មករៀបចំឱ្យស្អាត ដោយមិនកែ (គ្មាន AI)" className="px-4 py-2.5 text-sm font-bold rounded-xl bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 text-emerald-700 border border-emerald-200 flex items-center gap-2 shadow-sm">
+                  <ClipboardList size={16} /> រក្សាសំណួរដើម <ChevronDown size={14} className={`transition-transform ${pasteMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {pasteMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setPasteMenuOpen(false)} />
+                    <div className="absolute right-0 bottom-full mb-2 z-20 min-w-[200px] bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 overflow-hidden">
+                      <div className="px-3 py-1 text-[10px] font-bold text-slate-400 font-mono uppercase">📋 រៀបចំសំណួរដើម ជា</div>
+                      <button onClick={() => { setPasteMenuOpen(false); handleUsePasted('exam'); }} disabled={loading} className="w-full text-left px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60 flex items-center gap-2">
+                        <FileText size={13} /> វិញ្ញាសា
+                      </button>
+                      <button onClick={() => { setPasteMenuOpen(false); handleUsePasted('worksheet'); }} disabled={loading} className="w-full text-left px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 disabled:opacity-60 flex items-center gap-2">
+                        <BookMarked size={13} /> សន្លឹកកិច្ចការ
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
               <button onClick={handleGenerate} disabled={loading} className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 disabled:opacity-60 text-white flex items-center gap-2 shadow-md">
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} បង្កើតសន្លឹកកិច្ចការ
               </button>
@@ -711,7 +733,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
         ) : (
           <FitToWidth designWidth={A4_WIDTH} fitHeight={false}>
             <div id="worksheet-print" className="bg-white rounded-2xl shadow-xl text-slate-900 p-10 leading-relaxed" style={{ fontFamily: "'Khmer OS Siemreap','Siemreap',serif", fontSize: '11pt' }}>
-              <PrintHeader params={params} heading={heading} totalPoints={questions.length} examPeriod={null} teacherName={teacherName} month={month} />
+              <PrintHeader params={params} heading={heading} totalPoints={questions.length} examPeriod={examPeriod} teacherName={teacherName} duration={duration} month={month} />
               {instructions && <p className="text-[12.5px] italic text-slate-700 my-2">សេចក្ដីណែនាំ៖ {instructions}</p>}
 
               {/* Body */}
