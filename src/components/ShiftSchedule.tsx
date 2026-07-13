@@ -73,7 +73,8 @@ export default function ShiftSchedule({ currentUser }: { currentUser?: SchoolUse
       const res = await fetch('/api/telegram-announce', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image, caption: `📅 ${shift.title?.trim() || DEFAULT_TITLE} — សាលាសហគមន៍ច្បារច្រុះ`, secret: secret.trim() }),
+        // alsoPrivate: the shift schedule is a general notice → also DM each linked parent.
+        body: JSON.stringify({ image, caption: `📅 ${shift.title?.trim() || DEFAULT_TITLE} — សាលាសហគមន៍ច្បារច្រុះ`, secret: secret.trim(), alsoPrivate: true }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {
