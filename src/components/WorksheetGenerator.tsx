@@ -181,10 +181,11 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, du
 interface WordDocInput {
   heading: string; instructions: string; params: WorksheetParams; teacherName: string;
   questions: WSQuestion[]; examSections: ExamSection[] | null; examPeriod: ExamPeriod | null; showAnswers: boolean;
+  month: string; duration: string;
 }
 
 const buildWordHtml = (d: WordDocInput): string => {
-  const { heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers } = d;
+  const { heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers, month, duration } = d;
   const totalPoints = examSections ? examSections.reduce((n, s) => n + s.points, 0) : questions.length;
   const header = `
     <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:12pt">
@@ -204,11 +205,11 @@ const buildWordHtml = (d: WordDocInput): string => {
     </table>
 
     <div style="text-align:center;font-size:13pt;font-weight:bold;line-height:1.8;margin-bottom:12pt">
-      ${examPeriod 
-        ? `<div>ប្រឡងប្រចាំ <span style="padding:0 8px">${esc(EXAM_PERIOD_LABELS[examPeriod])}</span></div>
+      ${examPeriod
+        ? `<div>${month ? `ប្រឡងប្រចាំខែ${esc(month)}` : `ប្រឡង${esc(EXAM_PERIOD_LABELS[examPeriod])}`}</div>
            <div>មុខវិជ្ជា <span style="padding:0 8px">${esc(params.subject)}</span></div>
-           <div>រយៈពេល....................................</div>` 
-        : `<div>សន្លឹកកិច្ចការប្រចាំ....................................</div>`
+           <div style="font-weight:normal;font-size:11pt">រយៈពេល ${duration ? `${esc(toKh(duration))} ` : '.................... '}នាទី</div>`
+        : `<div>សន្លឹកកិច្ចការ${month ? `ប្រចាំខែ${esc(month)}` : 'ប្រចាំ....................'}</div>`
       }
     </div>
 
@@ -501,7 +502,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   // Export to an editable Word document (.doc). Teacher edits in Word, then prints.
   const handleWord = () => {
     if (!examSections && !questions.length) { flash('សូមបង្កើតជាមុនសិន', false); return; }
-    const html = buildWordHtml({ heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers });
+    const html = buildWordHtml({ heading, instructions, params, teacherName, questions, examSections, examPeriod, showAnswers, month, duration });
     const blob = new Blob(['﻿', html], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
