@@ -316,6 +316,9 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
   // ---- Worksheet header / content ----
   const [title, setTitle] = useState('');
   const [instructions, setInstructions] = useState('');
+  // The count field shows BLANK by default (easier to type into); params.count keeps
+  // a fallback so AI generation still has a number if the teacher leaves it empty.
+  const [countStr, setCountStr] = useState('');
   const [duration, setDuration] = useState(''); // exam duration in minutes (រយៈពេល)
   const [month, setMonth] = useState(''); // selected Khmer month (ខែ) for the header
   const [questions, setQuestions] = useState<WSQuestion[]>([]);
@@ -608,7 +611,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
               </div>
             </Field>
             <Field label="ភាសា"><select value={params.language} onChange={e => set('language', e.target.value as WSLanguage)} className={fieldCls}>{(Object.keys(LANGUAGE_LABELS) as WSLanguage[]).map(l => <option key={l} value={l}>{LANGUAGE_LABELS[l]}</option>)}</select></Field>
-            <Field label="ចំនួនសំណួរ"><input type="number" min={1} max={50} value={params.count} onChange={e => set('count', Math.max(1, Math.min(50, Number(e.target.value) || 1)))} className={fieldCls} /></Field>
+            <Field label="ចំនួនសំណួរ"><input type="number" min={1} max={50} value={countStr} placeholder="ឧ. ១០" onChange={e => { const v = e.target.value; setCountStr(v); const n = Number(v); if (n >= 1) set('count', Math.max(1, Math.min(50, n))); }} className={fieldCls} /></Field>
             <Field label="មេរៀន"><input list="wsg-lessons" value={params.lesson} onChange={e => set('lesson', e.target.value)} placeholder="ឧ. មេរៀនទី ៣" className={fieldCls} /><datalist id="wsg-lessons">{lessonsFor(params.grade, params.subject).map(l => <option key={l.id} value={l.title} />)}</datalist></Field>
             <Field label="ប្រធានបទ"><input value={params.topic} onChange={e => set('topic', e.target.value)} placeholder="ឧ. បូក, អំណាន…" className={fieldCls} /></Field>
           </div>
