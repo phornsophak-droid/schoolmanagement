@@ -691,7 +691,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     background: #eef2ff; border-left: 4px solid #4f46e5; border-radius: 6px;
     padding: 7px 12px; margin: 0; font-weight: 700; font-size: 12pt; color: #1e293b;
   }
-  .ws-imported ol li::before { content: counter(wssec, khmer) "៖ "; color: #4f46e5; font-weight: 800; }
+  .ws-imported ol li::before { content: counter(wssec, khmer) ". "; color: #4f46e5; font-weight: 800; }
   /* Matching / answer tables — clean grid with a shaded header row. */
   .ws-imported table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 11pt; }
   .ws-imported td, .ws-imported th { border: 1px solid #cbd5e1; padding: 6px 9px; vertical-align: top; }
