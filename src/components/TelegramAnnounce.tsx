@@ -27,7 +27,8 @@ export default function TelegramAnnounce() {
       const res = await fetch('/api/telegram-announce', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg, secret: secret.trim() }),
+        // alsoPrivate: a general notice → also DM each linked parent, not just the group.
+        body: JSON.stringify({ message: msg, secret: secret.trim(), alsoPrivate: true }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok) {

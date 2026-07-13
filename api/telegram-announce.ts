@@ -117,13 +117,14 @@ export default async function handler(req: Req, res: Res) {
     if (!data.ok && migrated) data = await sendTo(String(migrated));
     if (!data.ok) { res.status(502).json({ error: data.description || 'telegram error' }); return; }
 
-    // Also deliver the announcement to each linked parent's PRIVATE chat with the
-    // bot, so parents who don't watch the group still receive it. Parents only —
-    // telegram_links holds parent→student links; teacher reports stay group-only.
-    // Best-effort: the group send already succeeded, so a fan-out failure doesn't
-    // fail the request.
+    // Also deliver to each linked parent's PRIVATE chat with the bot, so parents
+    // who don't watch the group still receive it — but ONLY for general notices
+    // (the composer sets alsoPrivate). Per-student data (absence records / reasons)
+    // must NOT fan out privately, or one child's data reaches every parent. Parents
+    // only; teacher reports stay group-only. Best-effort — the group send already
+    // succeeded, so a fan-out failure doesn't fail the request.
     let privateSent = 0;
-    if (target === 'parent') {
+    if (target === 'parent' && body.alsoPrivate === true) {
       try {
         const db = getAdmin();
         if (db) {
