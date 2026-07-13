@@ -102,7 +102,7 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, du
         <div className="leading-tight">
           <div className="text-[18pt] font-bold text-[#1e3a8a]" style={{ fontFamily: "'Moul', serif" }}>សាលាសហគមន៍ច្បារច្រុះ</div>
           <div className="text-[12pt] font-bold tracking-wide text-slate-800 font-sans">CHBAR CHROS COMMUNITY SCHOOL</div>
-          <div className="text-[10pt] italic text-slate-500">“វិជ្ជាសម្បទា បំរិនសម្បទា ចរិយាសម្បទា”</div>
+          <div className="text-[10pt] italic text-slate-500">“វិជ្ជាសម្បទា បំណិនសម្បទា ចរិយាសម្បទា”</div>
         </div>
       </div>
       <div className="border-t-2 border-slate-800 mt-3" />
@@ -197,9 +197,9 @@ const buildWordHtml = (d: WordDocInput): string => {
     <table width="100%" cellspacing="0" cellpadding="0"><tr>
       <td width="15%" align="center" valign="middle">${logoImg}</td>
       <td align="center" valign="middle">
-        <div style="font-weight:bold;font-size:19pt;color:#1e3a8a;font-family:'Khmer OS Moul Light','Moul',serif">សាលាសហគមន៍ច្បារច្រុះ</div>
-        <div style="font-weight:bold;font-size:11pt;letter-spacing:1px;color:#1f2937">CHBAR CHROS COMMUNITY SCHOOL</div>
-        <div style="font-style:italic;font-size:9pt;color:#64748b">“វិជ្ជាសម្បទា បំរិនសម្បទា ចរិយាសម្បទា”</div>
+        <div style="font-weight:bold;font-size:19pt;line-height:1.7;color:#1e3a8a;font-family:'Khmer OS Moul Light','Moul',serif">សាលាសហគមន៍ច្បារច្រុះ</div>
+        <div style="font-weight:bold;font-size:11pt;line-height:1.5;letter-spacing:1px;color:#1f2937">CHBAR CHROS COMMUNITY SCHOOL</div>
+        <div style="font-style:italic;font-size:9pt;line-height:1.6;color:#64748b">“វិជ្ជាសម្បទា បំណិនសម្បទា ចរិយាសម្បទា”</div>
       </td>
       <td width="15%"></td>
     </tr></table>
