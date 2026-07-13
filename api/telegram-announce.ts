@@ -7,10 +7,27 @@
 // composer (principal only). Gated by ANNOUNCE_SECRET so a random POST can't spam
 // the group. No student data here — announcements are general (holidays, events).
 //
-// Self-contained (see telegram-webhook.ts note): no imports needed at all.
+// Self-contained (see telegram-webhook.ts note): only real npm modules imported.
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+export const config = { maxDuration: 60 };
 
 type Req = { method?: string; body?: any; headers: Record<string, string | string[] | undefined> };
 type Res = { status: (n: number) => Res; json: (b: any) => void };
+
+// Service-role client (bypasses RLS) — only needed to read the parent→bot chat
+// links for the private fan-out. Returns null if not configured so the group send
+// still works on its own.
+let admin: SupabaseClient | null = null;
+function getAdmin(): SupabaseClient | null {
+  if (admin) return admin;
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  admin = createClient(url, key, { auth: { persistSession: false } });
+  return admin;
+}
 
 export default async function handler(req: Req, res: Res) {
   // Same-origin POST from the app; allow simple CORS preflight just in case.
@@ -99,7 +116,28 @@ export default async function handler(req: Req, res: Res) {
     const migrated = data?.parameters?.migrate_to_chat_id;
     if (!data.ok && migrated) data = await sendTo(String(migrated));
     if (!data.ok) { res.status(502).json({ error: data.description || 'telegram error' }); return; }
-    res.status(200).json({ ok: true, message_id: data.result?.message_id });
+
+    // Also deliver the announcement to each linked parent's PRIVATE chat with the
+    // bot, so parents who don't watch the group still receive it. Parents only —
+    // telegram_links holds parent→student links; teacher reports stay group-only.
+    // Best-effort: the group send already succeeded, so a fan-out failure doesn't
+    // fail the request.
+    let privateSent = 0;
+    if (target === 'parent') {
+      try {
+        const db = getAdmin();
+        if (db) {
+          const { data: links } = await db.from('telegram_links').select('chat_id');
+          const groupIdStr = String(groupId);
+          const chatIds = [...new Set((links || []).map((l: any) => String(l.chat_id)).filter(Boolean))]
+            .filter(id => id !== groupIdStr);
+          const results = await Promise.allSettled(chatIds.map(id => sendTo(id)));
+          privateSent = results.filter(r => r.status === 'fulfilled' && (r.value as any)?.ok).length;
+        }
+      } catch { /* private fan-out is best-effort */ }
+    }
+
+    res.status(200).json({ ok: true, message_id: data.result?.message_id, privateSent });
   } catch (e: any) {
     res.status(500).json({ error: e?.message || 'failed' });
   }
