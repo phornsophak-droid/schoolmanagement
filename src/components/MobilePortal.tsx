@@ -494,13 +494,20 @@ export default function MobilePortal({
               <RefreshCw size={16} className="text-emerald-800" />
             </button>
 
-            {/* Bell/Notification Icon */}
-            <div className="relative p-1.5 rounded-full bg-emerald-50 border border-emerald-200/50 hover:bg-emerald-100 transition-all cursor-pointer">
-              <span className="w-4.5 h-4.5 absolute -top-1 -right-1 bg-red-500 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs border-2 border-white">
-                3
-              </span>
+            {/* Bell → opens the ជូនដំណឹង (notifications) panel. Badge = notice count. */}
+            <button
+              onClick={() => setInnerView('notices')}
+              title="ជូនដំណឹង"
+              aria-label="ជូនដំណឹង"
+              className="relative p-1.5 rounded-full bg-emerald-50 border border-emerald-200/50 hover:bg-emerald-100 transition-all cursor-pointer"
+            >
+              {noticesList.length > 0 && (
+                <span className="w-4.5 h-4.5 absolute -top-1 -right-1 bg-red-500 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs border-2 border-white">
+                  {noticesList.length}
+                </span>
+              )}
               <span className="text-emerald-800 text-xs">🔔</span>
-            </div>
+            </button>
           </div>
         </header>
 
