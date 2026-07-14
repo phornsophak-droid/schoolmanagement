@@ -8,9 +8,7 @@ import { HelpCircle, Plus, Pencil, Trash2, Save, X, FileText, CheckCircle2, Cloc
 import * as XLSX from 'xlsx';
 import { SchoolUser } from '../types';
 import { WorksheetType, Difficulty, TYPE_LABELS, DIFFICULTY_LABELS, generateQuestions } from '../lib/worksheets';
-import {
-  BankQuestion, loadQuestions, refreshQuestionsFromCloud, saveQuestion, deleteQuestion, bulkAddQuestions,
-} from '../lib/questionBank';
+import { BankQuestion, BankApi, questionBank } from '../lib/questionBank';
 import { curriculumSubjects, lessonsFor, refreshCurriculumFromCloud } from '../lib/curriculum';
 import { extractTextFromFile } from '../lib/extractText';
 
@@ -40,6 +38,10 @@ interface Props {
   grades: string[];
   currentUser?: SchoolUser | null;
   onClose: () => void;
+  // Which bank to back this UI. Defaults to the worksheet/exam bank; pass
+  // standardTestBank for the SEPARATE standardized-test bank.
+  bank?: BankApi;
+  title?: string;
 }
 
 type Draft = {
@@ -51,7 +53,8 @@ type Draft = {
 
 const uuid = (): string => ((crypto as any).randomUUID ? crypto.randomUUID() : `q-${Date.now()}`);
 
-export default function QuestionBank({ grades, currentUser, onClose }: Props) {
+export default function QuestionBank({ grades, currentUser, onClose, bank = questionBank, title }: Props) {
+  const { loadQuestions, refreshFromCloud, saveQuestion, deleteQuestion, bulkAddQuestions } = bank;
   const isPrincipal = currentUser?.role === 'principal';
   const teacherName = currentUser?.name || '';
   const gradeList = grades.length ? grades : ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣'];
@@ -169,7 +172,7 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
   const [fType, setFType] = useState<WorksheetType | ''>('');
   const [search, setSearch] = useState('');
 
-  useEffect(() => { refreshQuestionsFromCloud().then(setItems); }, []);
+  useEffect(() => { refreshFromCloud().then(setItems); }, [bank]);
 
   const filtered = items.filter(q =>
     (!fGrade || q.grade === fGrade) &&
@@ -231,7 +234,7 @@ export default function QuestionBank({ grades, currentUser, onClose }: Props) {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-          <HelpCircle size={16} className="text-rose-500" /> ធនាគារសំណួរ (Question Bank)
+          <HelpCircle size={16} className="text-rose-500" /> {title || 'ធនាគារសំណួរ (Question Bank)'}
           <span className="text-[11px] font-semibold text-slate-400">· {items.length} សំណួរ</span>
         </h3>
         <div className="flex items-center gap-2 flex-wrap justify-end">

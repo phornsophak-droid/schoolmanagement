@@ -144,6 +144,7 @@ import WorksheetGenerator from './components/WorksheetGenerator';
 import DocBank from './components/DocBank';
 import LessonLibrary from './components/LessonLibrary';
 import QuestionBank from './components/QuestionBank';
+import { standardTestBank } from './lib/questionBank';
 import CurriculumManager from './components/CurriculumManager';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
@@ -162,7 +163,7 @@ const IS_PHONE = typeof navigator !== 'undefined' &&
 export default function App() {
   const { t } = useT();
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'docbank' | 'lessons' | 'timetable'>(() => {
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'docbank' | 'lessons' | 'timetable'>(() => {
     const isMobile = typeof window !== 'undefined' && (
       window.innerWidth < 768 || 
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -1575,6 +1576,21 @@ export default function App() {
           </button>
 
           <button
+            id="nav_standardtests_tab"
+            onClick={() => setActiveView('standardtests')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'standardtests'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <ClipboardCheck size={16} className={activeView === 'standardtests' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>តេស្តស្តង់ដា</span>
+            </div>
+          </button>
+
+          <button
             id="nav_timetable_tab"
             onClick={() => setActiveView('timetable')}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -1876,6 +1892,23 @@ export default function App() {
 
                 <button
                   onClick={() => {
+                    setActiveView('standardtests');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
+                    activeView === 'standardtests'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
+                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ClipboardCheck size={16} />
+                    <span>តេស្តស្តង់ដា</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
                     setActiveView('timetable');
                     setIsMobileMenuOpen(false);
                   }}
@@ -2151,6 +2184,26 @@ export default function App() {
                         onClose={() => setActiveView('dashboard')}
                       />
                     )}
+                  </motion.div>
+                )}
+
+                {activeView === 'standardtests' && (
+                  <motion.div
+                    key="standardtests"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    {/* Standardized tests — a SEPARATE question bank, distinct from the
+                        worksheet/exam bank above. (Phase 1: the test bank.) */}
+                    <QuestionBank
+                      bank={standardTestBank}
+                      title="ធនាគារសំណួរ តេស្តស្តង់ដា"
+                      grades={grades}
+                      currentUser={currentUser}
+                      onClose={() => setActiveView('dashboard')}
+                    />
                   </motion.div>
                 )}
 
