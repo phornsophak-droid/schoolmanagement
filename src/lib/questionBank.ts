@@ -50,6 +50,9 @@ export interface BankApi {
   refreshFromCloud: () => Promise<BankQuestion[]>;
   saveQuestion: (q: BankQuestion) => Promise<BankQuestion[]>;
   deleteQuestion: (id: string) => Promise<BankQuestion[]>;
+  // Bulk delete in ONE persist/sync (deleting an import mistake one-by-one
+  // would be 60 cloud writes).
+  deleteMany: (ids: string[]) => Promise<BankQuestion[]>;
   bulkAddQuestions: (qs: Omit<BankQuestion, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<number>;
   pickApproved: (params: WorksheetParams, count: number) => { used: BankQuestion[]; shortfall: number };
 }
@@ -90,6 +93,11 @@ function makeBank(KEY: string): BankApi {
   const deleteQuestion = async (id: string): Promise<BankQuestion[]> =>
     persistAll(loadQuestions().filter(q => q.id !== id));
 
+  const deleteMany = async (ids: string[]): Promise<BankQuestion[]> => {
+    const drop = new Set(ids);
+    return persistAll(loadQuestions().filter(q => !drop.has(q.id)));
+  };
+
   // Add many AI/imported questions at once. De-dupes on identical prompt within the
   // same grade+subject+type. Returns how many were actually added.
   const bulkAddQuestions = async (qs: Omit<BankQuestion, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<number> => {
@@ -127,7 +135,7 @@ function makeBank(KEY: string): BankApi {
     return { used, shortfall: Math.max(0, count - used.length) };
   };
 
-  return { key: KEY, hydrate: () => kvHydrate(KEY), loadQuestions, refreshFromCloud, saveQuestion, deleteQuestion, bulkAddQuestions, pickApproved };
+  return { key: KEY, hydrate: () => kvHydrate(KEY), loadQuestions, refreshFromCloud, saveQuestion, deleteQuestion, deleteMany, bulkAddQuestions, pickApproved };
 }
 
 // The default worksheet/exam bank, and a SEPARATE standardized-test bank.

@@ -54,7 +54,7 @@ type Draft = {
 const uuid = (): string => ((crypto as any).randomUUID ? crypto.randomUUID() : `q-${Date.now()}`);
 
 export default function QuestionBank({ grades, currentUser, onClose, bank = questionBank, title }: Props) {
-  const { loadQuestions, refreshFromCloud, saveQuestion, deleteQuestion, bulkAddQuestions } = bank;
+  const { loadQuestions, refreshFromCloud, saveQuestion, deleteQuestion, deleteMany, bulkAddQuestions } = bank;
   const isPrincipal = currentUser?.role === 'principal';
   const teacherName = currentUser?.name || '';
   const gradeList = grades.length ? grades : ['ថ្នាក់ទី១', 'ថ្នាក់ទី២', 'ថ្នាក់ទី៣'];
@@ -262,6 +262,16 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
     flash('បានលុប ✓');
   };
 
+  // Delete every question the CURRENT FILTERS show (all of them when no filter) —
+  // one cloud write, for undoing a bad bulk import.
+  const removeAllFiltered = async () => {
+    if (!filtered.length) return;
+    const scope = (fGrade || fSubject || fType || search) ? 'ដែលកំពុងបង្ហាញ (តាមតម្រង)' : 'ទាំងអស់ក្នុងធនាគារនេះ';
+    if (!window.confirm(`លុបសំណួរ ${filtered.length} ${scope}?\n\nសកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ!`)) return;
+    setItems(await deleteMany(filtered.map(q => q.id)));
+    flash(`បានលុប ${filtered.length} សំណួរ ✓`);
+  };
+
   const fieldCls = 'w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-700 focus:border-indigo-500 outline-none';
   const smallCls = 'px-2 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-600 font-semibold outline-none';
 
@@ -374,6 +384,11 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
           <select value={fSubject} onChange={e => setFSubject(e.target.value)} className={smallCls}><option value="">មុខវិជ្ជាទាំងអស់</option>{subjects.map(s => <option key={s} value={s}>{s}</option>)}</select>
           <select value={fType} onChange={e => setFType(e.target.value as WorksheetType | '')} className={smallCls}><option value="">ប្រភេទទាំងអស់</option>{(Object.keys(TYPE_LABELS) as WorksheetType[]).map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}</select>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ស្វែងរក…" className={`${smallCls} flex-1 min-w-[120px]`} />
+          {filtered.length > 0 && (
+            <button onClick={removeAllFiltered} title="លុបសំណួរទាំងអស់ដែលកំពុងបង្ហាញ" className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 flex items-center gap-1">
+              <Trash2 size={12} /> លុបទាំង {filtered.length}
+            </button>
+          )}
         </div>
       )}
 
