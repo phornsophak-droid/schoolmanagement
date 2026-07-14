@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { HelpCircle, Plus, Pencil, Trash2, Save, X, FileText, CheckCircle2, Clock, ShieldCheck, Upload, Loader2, Sparkles, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SchoolUser } from '../types';
-import { WorksheetType, Difficulty, TYPE_LABELS, DIFFICULTY_LABELS, generateQuestions } from '../lib/worksheets';
+import { WorksheetType, Difficulty, TYPE_LABELS, DIFFICULTY_LABELS, generateQuestions, parsePastedQuestions } from '../lib/worksheets';
 import { BankQuestion, BankApi, questionBank } from '../lib/questionBank';
 import { curriculumSubjects, lessonsFor, refreshCurriculumFromCloud } from '../lib/curriculum';
 import { extractTextFromFile } from '../lib/extractText';
@@ -71,6 +71,7 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
   const [aiCfg, setAiCfg] = useState({ grade: gradeList[0], subject: subjects[0], type: 'multiple_choice' as WorksheetType, difficulty: 'medium' as Difficulty, count: 10 });
   const [busy, setBusy] = useState(false);
   const aiFileRef = useRef<HTMLInputElement>(null);
+  const wordFileRef = useRef<HTMLInputElement>(null);
   const xlsxFileRef = useRef<HTMLInputElement>(null);
 
   // A) Upload a lesson/exam document → AI extracts questions → saved as drafts.
@@ -96,6 +97,41 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
       flash(`បានស្រង់ ${qs.length} សំណួរពី «${f.name}» → បន្ថែម ${added} ចូលធនាគារ (ព្រាង) ✓`);
     } catch (err: any) {
       flash(err?.message || 'ស្រង់សំណួរមិនបាន — ត្រូវការ AI (Gemini/Ollama) សម្រាប់មុខវិជ្ជានេះ។', false);
+    } finally { setBusy(false); }
+  };
+
+  // A2) Import questions from Word/PDF/TXT DIRECTLY — no AI. Reuses the verbatim
+  // worksheet parser (numbered questions, ក/ខ/គ or A/B/C options, "ចម្លើយ៖ X").
+  const onWordFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    setBusy(true);
+    try {
+      const text = await extractTextFromFile(f);
+      if (!text) { flash('មិនរកឃើញអត្ថបទក្នុងឯកសារ (ស្កេន/រូបភាព)។ ប្រើ Word ដែលមានអក្សរ។', false); return; }
+      const parsed = parsePastedQuestions(text);
+      if (!parsed.questions.length) { flash('រកមិនឃើញសំណួរ — ត្រូវការសំណួរមានលេខរៀង (១. ២. …)។', false); return; }
+      const news: NewQ[] = parsed.questions.map(q => {
+        // The parser keys MCQ answers as "ក. <option>"; the bank stores the bare
+        // option text (the radio/grader match on it), so strip the label prefix.
+        let answer = q.answer || '';
+        const lm = answer.match(/^([ក-អA-Ha-h])[.．)]\s*(.+)$/);
+        if (lm && q.options?.includes(lm[2])) answer = lm[2];
+        return {
+          prompt: q.prompt, options: q.options, answer, context: q.context,
+          grade: aiCfg.grade, subject: aiCfg.subject,
+          type: (q.options && q.options.length >= 2 ? 'multiple_choice' : 'fill_blank') as WorksheetType,
+          difficulty: aiCfg.difficulty,
+          source: 'manual' as const, createdBy: teacherName,
+        };
+      });
+      const added = await bulkAddQuestions(news);
+      setItems(loadQuestions());
+      setAiPanel(false);
+      flash(added ? `បាននាំចូល ${added} សំណួរពី «${f.name}» (រក្សាសំណួរដើម) ✓` : 'សំណួរទាំងនេះមានក្នុងធនាគាររួចហើយ។');
+    } catch (err: any) {
+      flash(err?.message || 'អានឯកសារមិនបាន។', false);
     } finally { setBusy(false); }
   };
 
@@ -239,10 +275,11 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
         </h3>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <input ref={aiFileRef} type="file" accept=".txt,.csv,.pdf,.docx" onChange={onAiFile} className="hidden" />
+          <input ref={wordFileRef} type="file" accept=".docx,.txt,.pdf" onChange={onWordFile} className="hidden" />
           <input ref={xlsxFileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onXlsxFile} className="hidden" />
           {!draft && <>
             <button onClick={startNew} className="px-3 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-sm"><Plus size={13} /> សំណួរថ្មី</button>
-            <button onClick={() => setAiPanel(p => !p)} disabled={busy} title="Upload ឯកសារ → AI ស្រង់សំណួរ" className="px-3 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white flex items-center gap-1.5 shadow-sm">{busy ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} AI ពីឯកសារ</button>
+            <button onClick={() => setAiPanel(p => !p)} disabled={busy} title="Upload Word/PDF/TXT → នាំចូលផ្ទាល់ ឬ AI ស្រង់សំណួរ" className="px-3 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white flex items-center gap-1.5 shadow-sm">{busy ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Word / AI</button>
             <button onClick={() => xlsxFileRef.current?.click()} disabled={busy} title="នាំចូលពី Excel/CSV" className="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white flex items-center gap-1.5 shadow-sm"><Upload size={13} /> Excel/CSV</button>
           </>}
           <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5"><X size={13} /> បិទ</button>
@@ -253,7 +290,7 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
       {aiPanel && !draft && (
         <div className="bg-white rounded-2xl border border-indigo-100 shadow-sm p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-indigo-700 flex items-center gap-1.5"><Sparkles size={14} /> ស្រង់សំណួរពីឯកសារ (Word / PDF / TXT) ដោយ AI</span>
+            <span className="text-xs font-bold text-indigo-700 flex items-center gap-1.5"><Sparkles size={14} /> នាំចូលសំណួរពីឯកសារ (Word / PDF / TXT)</span>
             <button onClick={() => setAiPanel(false)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -263,7 +300,14 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
             <select value={aiCfg.difficulty} onChange={e => setAiCfg({ ...aiCfg, difficulty: e.target.value as Difficulty })} className={smallCls}>{(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map(d => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}</select>
             <input type="number" min={1} max={50} value={aiCfg.count} onChange={e => setAiCfg({ ...aiCfg, count: Math.max(1, Math.min(50, Number(e.target.value) || 1)) })} className={smallCls} />
           </div>
-          <button onClick={() => aiFileRef.current?.click()} disabled={busy} className="w-full px-4 py-2.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-sm">{busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} {busy ? 'កំពុងស្រង់…' : 'ជ្រើសឯកសារ រួចស្រង់សំណួរ'}</button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button onClick={() => wordFileRef.current?.click()} disabled={busy} className="px-4 py-2.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-sm">{busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} នាំចូលផ្ទាល់ — រក្សាសំណួរដើម (គ្មាន AI)</button>
+            <button onClick={() => aiFileRef.current?.click()} disabled={busy} className="px-4 py-2.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-sm">{busy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} {busy ? 'កំពុងស្រង់…' : 'ស្រង់/បង្កើតដោយ AI'}</button>
+          </div>
+          <p className="text-[10px] text-slate-400 leading-relaxed">
+            «នាំចូលផ្ទាល់» ត្រូវការសំណួរមានលេខរៀង៖ <span className="font-mono">១. សំណួរ… ក. ជម្រើស ខ. ជម្រើស … ចម្លើយ៖ ក</span> —
+            សំណួរគ្មានជម្រើសក្លាយជា «បំពេញចន្លោះ»។ «AI» ស្រង់ពីមេរៀន/អត្ថបទសេរី ប៉ុន្តែត្រូវការ Gemini/Ollama។
+          </p>
         </div>
       )}
 
