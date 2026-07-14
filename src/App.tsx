@@ -1438,13 +1438,15 @@ export default function App() {
   // The parent link (/parent) must open the report-card portal even when a staff
   // session is already saved on this device (otherwise a logged-in phone would
   // skip straight to the full app). So check parentMode BEFORE the login gate.
-  if (parentMode) {
-    return <ParentPortal grades={grades} onBack={() => setParentMode(false)} />;
-  }
   // Student online-test portal — like the parent link, it must open BEFORE the
-  // login gate so a shared join link works on any student/family phone.
+  // login gate so a shared join link works on any student/family phone. Checked
+  // BEFORE parentMode so the test button inside the Parent Portal wins; closing
+  // the quiz falls back to the portal when that's where the student came from.
   if (studentTestMode) {
     return <StudentQuiz initialCode={joinCode} onBack={() => setStudentTestMode(false)} />;
+  }
+  if (parentMode) {
+    return <ParentPortal grades={grades} onBack={() => setParentMode(false)} onStudentTest={() => setStudentTestMode(true)} />;
   }
   if (!currentUser) {
     return <LoginPortal onLoginSuccess={handleLoginSuccess} onParentAccess={() => setParentMode(true)} onStudentTest={() => setStudentTestMode(true)} />;

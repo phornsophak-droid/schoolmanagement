@@ -25,6 +25,9 @@ const meritLetterOf = (v: number | null | undefined): '' | 'A' | 'B' =>
 interface ParentPortalProps {
   grades: string[];
   onBack: () => void;
+  // Opens the online standardized-test portal (StudentQuiz) — students/parents
+  // reach the test from here too, not only from the login page.
+  onStudentTest?: () => void;
 }
 
 const EXTRA_CLASS_KEYWORDS = ['GRADE','គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
@@ -33,7 +36,7 @@ const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade ||
 // Khmer school-year month order, for sorting the months a child has records in.
 const MONTH_ORDER = ['កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
 
-export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
+export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPortalProps) {
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
   const [grade, setGrade] = useState('');
   const [loading, setLoading] = useState(false);
@@ -237,6 +240,16 @@ export default function ParentPortal({ grades, onBack }: ParentPortalProps) {
             </div>
           </div>
         </div>
+
+        {/* Online standardized test — students enter with the code their teacher gave */}
+        {onStudentTest && (
+          <button
+            onClick={onStudentTest}
+            className="w-full mb-4 px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all"
+          >
+            <span>📝</span> ចូលធ្វើតេស្តស្តង់ដា Online (មានកូដពីគ្រូ)
+          </button>
+        )}
 
         <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-5 space-y-4">
           {/* Step 1 — pick class */}
