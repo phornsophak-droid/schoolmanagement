@@ -598,13 +598,20 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     }
   };
 
+  // File name from the document type + class + subject, e.g.
+  // "វិញ្ញាសាប្រចាំឆមាស_ថ្នាក់ទី៦_គណិតវិទ្យា" or "សន្លឹកកិច្ចការ_ថ្នាក់ទី៣_ភាសាខ្មែរ".
+  const docFileName = () => {
+    const type = examPeriod ? `វិញ្ញាសា${EXAM_PERIOD_LABELS[examPeriod]}` : 'សន្លឹកកិច្ចការ';
+    return `${type}_${params.grade}_${params.subject}`.replace(/\s+/g, '');
+  };
+
   const handlePdf = async () => {
     const el = document.getElementById('worksheet-print');
     if (!el) return;
     setPdfBusy(true);
     // Multi-page A4: flow the worksheet onto as many pages as the questions need,
     // cutting at blank rows so no question/line is sliced at a page boundary.
-    try { await exportElementToMultipagePdf(el, `សន្លឹកលំហាត់_${params.subject}_${params.grade}`, A4_WIDTH); }
+    try { await exportElementToMultipagePdf(el, docFileName(), A4_WIDTH); }
     catch (e) { console.error(e); flash('មិនអាចបង្កើត PDF បានទេ', false); }
     finally { setPdfBusy(false); }
   };
@@ -621,7 +628,7 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${heading}.doc`;
+    a.download = `${docFileName()}.doc`;
     a.rel = 'noopener';
     document.body.appendChild(a);
     a.click();
