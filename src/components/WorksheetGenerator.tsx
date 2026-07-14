@@ -10,7 +10,7 @@ import SchoolLogo from './SchoolLogo';
 import logoPng from '../assets/logo.png';
 import FitToWidth from './FitToWidth';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
-import { extractTextFromFile, extractDocxHtml } from '../lib/extractText';
+import { extractDocxHtml } from '../lib/extractText';
 import {
   WorksheetParams, WorksheetType, Difficulty, WSLanguage, WSQuestion, Worksheet,
   TYPE_LABELS, DIFFICULTY_LABELS, LANGUAGE_LABELS, SUBJECTS,
@@ -329,7 +329,7 @@ const Lines: React.FC<{ n: number }> = ({ n }) => (
 
 // One printable question row — shared by the worksheet body and each exam section.
 const QRow: React.FC<{ q: WSQuestion; type: WorksheetType; num: number; showAns: boolean }> = ({ q, type, num, showAns }) => (
-  <li className="break-inside-avoid flex gap-2">
+  <li className="rc-keep break-inside-avoid flex gap-2">
     <span className="font-bold shrink-0">{toKh(num)}.</span>
     <div className="flex-1 min-w-0">
       {q.pairs ? (
@@ -548,40 +548,29 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
     if (!applyParsed(src, mode)) flash('រកសំណួរមិនឃើញ — ត្រូវឱ្យបន្ទាត់នីមួយៗចាប់ផ្ដើមដោយលេខ (១. ២. ៣. …)', false);
   };
 
-  // Import an existing exam FILE. For .docx we KEEP the original body formatting
-  // (tables, section headings, option layout) via mammoth→HTML and only swap the
-  // header for the school's. For .pdf/.txt (no reliable structure) we fall back to
-  // parsing the questions verbatim. Header type is auto-detected (ឆមាស/ឆ្នាំ/ខែ);
-  // switch it any time via «រក្សាសំណួរដើម».
+  // Import an existing exam from a Word (.docx) file: KEEP the original body
+  // formatting (tables, section headings, option layout) via mammoth→HTML and only
+  // swap the header for the school's. PDF import was dropped (its text layer is
+  // unreliable). Period auto-detected (ឆមាស/ឆ្នាំ/ខែ); switch via «រក្សាសំណួរដើម».
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ''; // allow re-picking the same file later
     if (!file) return;
+    if (!(file.name || '').toLowerCase().endsWith('.docx')) {
+      flash('សូមប្រើឯកសារ Word (.docx)។ ឯកសារ .doc ចាស់ ឬ PDF សូមរក្សាទុកជា .docx សិន។', false);
+      return;
+    }
     setImporting(true);
     try {
-      if ((file.name || '').toLowerCase().endsWith('.docx')) {
-        const rawHtml = await extractDocxHtml(file);
-        if (!rawHtml.trim()) { flash('រកមាតិកាក្នុងឯកសារ .docx មិនឃើញ។', false); return; }
-        const period = detectExamPeriod(rawHtml);
-        const body = stripImportedHeader(rawHtml);
-        setQuestions([]); setExamSections(null);
-        setExamPeriod(period);
-        setShowAnswers(false);
-        setImportedHtml(body);
-        flash(`បាននាំចូលវិញ្ញាសា${EXAM_PERIOD_LABELS[period]} — ក្បាលប្តូរជារបស់សាលា · រក្សាទម្រង់ដើម ✓`);
-        return;
-      }
-      // .pdf / .txt → verbatim parse (no reliable original layout to keep).
-      const text = await extractTextFromFile(file);
-      if (!text.trim()) { flash('រកអត្ថបទក្នុងឯកសារមិនឃើញ — PDF ស្កេនមិនមានស្រទាប់អក្សរ។', false); return; }
-      set('source', text);
-      setSelectedLessonId('');
-      setImportedHtml(null);
-      if (applyParsed(text, examPeriod || 'month', true)) {
-        flash('បាននាំចូលវិញ្ញាសា — ក្បាលប្តូរជារបស់សាលា ✓ (ប្តូរប្រភេទបាននៅ «រក្សាសំណួរដើម»)');
-      } else {
-        flash('បាននាំចូលអត្ថបទ — សូមចុច «រក្សាសំណួរដើម» ដើម្បីរៀបចំ', true);
-      }
+      const rawHtml = await extractDocxHtml(file);
+      if (!rawHtml.trim()) { flash('រកមាតិកាក្នុងឯកសារ .docx មិនឃើញ។', false); return; }
+      const period = detectExamPeriod(rawHtml);
+      const body = stripImportedHeader(rawHtml);
+      setQuestions([]); setExamSections(null);
+      setExamPeriod(period);
+      setShowAnswers(false);
+      setImportedHtml(body);
+      flash(`បាននាំចូលវិញ្ញាសា${EXAM_PERIOD_LABELS[period]} — ក្បាលប្តូរជារបស់សាលា · រក្សាទម្រង់ដើម ✓`);
     } catch (err: any) {
       flash(err?.message || 'នាំចូលឯកសារមិនបាន', false);
     } finally {
@@ -768,9 +757,9 @@ export default function WorksheetGenerator({ grades, currentUser, onClose, embed
               <div className="flex items-center gap-1.5">
                 {/* Import an existing exam file (.docx/.pdf/.txt) → extract text → lay
                     out with the school header, keeping the questions verbatim. */}
-                <input ref={importInputRef} type="file" accept=".docx,.pdf,.txt" className="hidden" onChange={handleImportFile} />
-                <button onClick={() => importInputRef.current?.click()} disabled={importing} title="នាំចូលវិញ្ញាសាពី Word (.docx) ឬ PDF — ក្បាលប្តូរជារបស់សាលា ហើយរក្សាសំណួរដើម" className="px-2 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1 disabled:opacity-60">
-                  {importing ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} className="rotate-180" />} នាំចូល Word/PDF
+                <input ref={importInputRef} type="file" accept=".docx" className="hidden" onChange={handleImportFile} />
+                <button onClick={() => importInputRef.current?.click()} disabled={importing} title="នាំចូលវិញ្ញាសាពី Word (.docx) — ក្បាលប្តូរជារបស់សាលា ហើយរក្សាទម្រង់ដើម" className="px-2 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1 disabled:opacity-60">
+                  {importing ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} className="rotate-180" />} នាំចូល Word
                 </button>
                 <select value={selectedLessonId} onChange={e => pickLesson(e.target.value)} className="px-2 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-600 font-semibold outline-none max-w-[180px]">
                   <option value="">📚 បណ្ណាល័យមេរៀន…</option>

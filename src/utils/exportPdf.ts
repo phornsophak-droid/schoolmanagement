@@ -115,6 +115,10 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
   // (see onclone) from elements marked `.rc-page-break`. buildMultipagePdf honours
   // them so a section can be forced onto a fresh page.
   const breaks: number[] = [];
+  // Canvas-Y ranges of blocks that must NOT be split across a page (a question +
+  // its answer options), measured from `.rc-keep` elements. buildMultipagePdf pulls
+  // a page cut up to a block's top rather than slicing through it.
+  const keeps: { top: number; bottom: number }[] = [];
   const options = {
     scale,
     useCORS: true,
@@ -232,6 +236,13 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
             const y = (n.getBoundingClientRect().top - rootTop) * scale;
             if (y > 1) breaks.push(y);
           });
+          // Keep-together blocks (a question + its options must stay on one page).
+          root.querySelectorAll<HTMLElement>('.rc-keep').forEach(n => {
+            const r = n.getBoundingClientRect();
+            const top = (r.top - rootTop) * scale;
+            const bottom = (r.bottom - rootTop) * scale;
+            if (bottom > top) keeps.push({ top, bottom });
+          });
         }
       } catch { /* no forced breaks — whitespace slicing still applies */ }
     },
@@ -247,9 +258,10 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
     try { await html2canvas(el, { ...options, scale: 0.5 }); } catch { /* warm-up only */ }
     await new Promise(resolve => setTimeout(resolve, 60));
   }
-  breaks.length = 0; // discard any warm-up measurements; keep only the real render's
+  breaks.length = 0; keeps.length = 0; // discard warm-up measurements; keep the real render's
   const canvas = await html2canvas(el, options);
   (canvas as any).__pageBreaks = breaks.slice();
+  (canvas as any).__keepBlocks = keeps.slice();
   return canvas;
 }
 
@@ -360,6 +372,8 @@ function buildMultipagePdf(canvas: HTMLCanvasElement): jsPDF {
   // must start on a fresh page. Ignore any within the top 8% of a page (already
   // near the top, so no break needed).
   const forced = (((canvas as any).__pageBreaks as number[]) || []).filter(b => b > 0 && b < ch).sort((a, b) => a - b);
+  // Keep-together blocks (question + its options) — never slice through one.
+  const keeps = (((canvas as any).__keepBlocks as { top: number; bottom: number }[]) || []);
 
   const tmp = document.createElement('canvas');
   const tctx = tmp.getContext('2d')!;
@@ -383,6 +397,18 @@ function buildMultipagePdf(canvas: HTMLCanvasElement): jsPDF {
         if (ink < bestInk) { bestInk = ink; bestY = y; if (ink === 0) break; }
       }
       sliceH = bestY - sy;
+    }
+    // If the chosen cut would slice THROUGH a keep-together block (a question and
+    // its options), pull the cut up to that block's top so the whole block moves to
+    // the next page. Skip if that would leave a nearly-empty page (block taller than
+    // a page → unavoidable split).
+    if (sy + sliceH < ch) {
+      let cut = sy + sliceH;
+      for (const k of keeps) {
+        if (k.top > sy + 2 && k.top < cut && k.bottom > cut) cut = Math.min(cut, k.top);
+      }
+      const newH = cut - sy;
+      if (newH > 0 && newH < sliceH && newH > pageContentPx * 0.15) sliceH = newH;
     }
     tmp.width = cw;
     tmp.height = sliceH;
