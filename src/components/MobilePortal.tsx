@@ -45,6 +45,7 @@ import Dashboard from './Dashboard';
 import WorksheetGenerator from './WorksheetGenerator';
 import { SchoolLogo } from './SchoolLogo';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
+import { Announcement, loadAnnouncements, refreshAnnouncementsFromCloud, saveAnnouncement, deleteAnnouncement, relativeKhmerDate } from '../lib/announcements';
 
 // Force-load the newest deployed build. A plain reload can return a cached page
 // (HTTP cache or a service worker), so first drop any service workers + Cache
@@ -388,11 +389,39 @@ export default function MobilePortal({
   ];
 
   // News announcement array
-  const noticesList = [
-    { id: 1, title: '📢 មហាសន្និបាតបូកសរុបលទ្ធផលការងារសិក្សាបឋមភាគ', snippet: 'សូមគោរពអញ្ជើញលោកគ្រូ-អ្នកគ្រូ និងអាណាព្យាបាលចូលរួមដកស្រង់ពិសោធន៍ការរៀនរបស់កុមារ...', date: 'ទើបតែផ្សាយ', views: '២៤ ដង', isHot: true },
-    { id: 2, title: '🎉 កីឡាឆ្នាំសិក្សាថ្មី និងពានរង្វាន់មិត្តភាពសហគមន៍', snippet: 'ការចុះឈ្មោះក្រុមកីឡាបាល់ទាត់ ការរត់ប្រណាំង និងអុកចត្រង្គនឹងចាប់ផ្តើមទទួលពីថ្ងៃស្អែកនេះទៅ!', date: 'ម្សិលមិញ', views: '៤៦ ដង', isHot: false },
-    { id: 3, title: '💧 យុទ្ធនាការថែរក្សាអនាម័យជុំវិញដងអូរសាលារៀន', snippet: 'សាលានឹងរៀបចំកម្មវិធីសម្អាតបរិស្ថានរួម ដើម្បីលើកកម្ពស់សុខភាពកុមារ។ សូមនាំយកសម្ភារសមស្របមកផង!', date: '៤ ថ្ងៃមុន', views: '៥០ ដង', isHot: false },
-  ];
+  // Real school announcements (cloud-synced KV). Principal writes them; every device
+  // sees the same list. Replaces the old hardcoded sample notices.
+  const [announcements, setAnnouncements] = useState<Announcement[]>(() => loadAnnouncements());
+  const [annTitle, setAnnTitle] = useState('');
+  const [annBody, setAnnBody] = useState('');
+  const [annHot, setAnnHot] = useState(false);
+  const [annBusy, setAnnBusy] = useState(false);
+  useEffect(() => { refreshAnnouncementsFromCloud().then(setAnnouncements); }, []);
+
+  const isPrincipal = currentUser?.role === 'principal';
+
+  const publishAnnouncement = async () => {
+    if (annBusy) return;
+    if (!annTitle.trim() && !annBody.trim()) return;
+    setAnnBusy(true);
+    try {
+      const a: Announcement = {
+        id: (crypto as any).randomUUID ? crypto.randomUUID() : `ann-${Date.now()}`,
+        title: annTitle.trim() || '📢 ជូនដំណឹង',
+        body: annBody.trim(),
+        isHot: annHot,
+        createdBy: currentUser?.name,
+        createdAt: new Date().toISOString(),
+      };
+      setAnnouncements(await saveAnnouncement(a));
+      setAnnTitle(''); setAnnBody(''); setAnnHot(false);
+    } finally { setAnnBusy(false); }
+  };
+
+  const removeAnnouncement = async (id: string) => {
+    if (!window.confirm('លុបជូនដំណឹងនេះ?')) return;
+    setAnnouncements(await deleteAnnouncement(id));
+  };
 
   // Digital Books arrays
   const booksCatalog = [
@@ -494,16 +523,16 @@ export default function MobilePortal({
               <RefreshCw size={16} className="text-emerald-800" />
             </button>
 
-            {/* Bell → opens the ជូនដំណឹង (notifications) panel. Badge = notice count. */}
+            {/* Bell → opens the ជូនដំណឹង (notifications) panel. Badge = announcement count. */}
             <button
-              onClick={() => setInnerView('notices')}
+              onClick={() => setInnerView('announcements')}
               title="ជូនដំណឹង"
               aria-label="ជូនដំណឹង"
               className="relative p-1.5 rounded-full bg-emerald-50 border border-emerald-200/50 hover:bg-emerald-100 transition-all cursor-pointer"
             >
-              {noticesList.length > 0 && (
-                <span className="w-4.5 h-4.5 absolute -top-1 -right-1 bg-red-500 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs border-2 border-white">
-                  {noticesList.length}
+              {announcements.length > 0 && (
+                <span className="min-w-4.5 h-4.5 px-0.5 absolute -top-1 -right-1 bg-red-500 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs border-2 border-white">
+                  {announcements.length}
                 </span>
               )}
               <span className="text-emerald-800 text-xs">🔔</span>
@@ -1440,32 +1469,74 @@ export default function MobilePortal({
               </motion.div>
             )}
 
-            {innerView === 'unused-notices' && (
+            {/* 7b. NOTIFICATIONS — real, cloud-synced school announcements. */}
+            {innerView === 'announcements' && (
               <motion.div
-                key="notices"
+                key="announcements"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-3"
+                className="space-y-3 text-left"
               >
-                <div className="flex items-center gap-2 border-b border-blue-900/50 pb-2 mb-2">
-                  <button onClick={() => setInnerView('home')} className="p-1 hover:bg-blue-900/55 rounded text-[#E2C785]">
+                <div className="flex items-center gap-2 border-b border-emerald-200/50 pb-2 mb-2">
+                  <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
                     <ArrowLeft size={16} />
                   </button>
-                  <h3 className="text-xs font-bold text-white">📢 សេចក្តីជូនដំណឹងសាលា</h3>
+                  <h3 className="text-xs font-bold text-emerald-950">🔔 ជូនដំណឹង</h3>
                 </div>
 
-                <div className="space-y-3">
-                  {noticesList.map((not, idx) => (
-                    <div key={idx} className="bg-[#111E38]/80 p-3 rounded-xl border border-slate-700/20 text-[9px] relative overflow-hidden">
-                      {not.isHot && (
-                        <div className="absolute top-0 right-0 bg-red-650 text-white font-extrabold text-[6.5px] uppercase px-1.5 py-0.5 rounded-bl">HOT</div>
+                {/* Principal composer — write & publish an announcement to every device. */}
+                {isPrincipal && (
+                  <div className="bg-white rounded-2xl p-3 border border-emerald-100 space-y-2">
+                    <input
+                      value={annTitle}
+                      onChange={e => setAnnTitle(e.target.value)}
+                      placeholder="ចំណងជើង (ឧ. 📢 ប្រកាសពីសាលា)"
+                      className="w-full px-2.5 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold outline-none focus:border-emerald-400"
+                    />
+                    <textarea
+                      value={annBody}
+                      onChange={e => setAnnBody(e.target.value)}
+                      rows={3}
+                      placeholder="សរសេរខ្លឹមសារជូនដំណឹង…"
+                      className="w-full px-2.5 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-emerald-400 resize-y leading-relaxed"
+                    />
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 cursor-pointer">
+                        <input type="checkbox" checked={annHot} onChange={e => setAnnHot(e.target.checked)} className="accent-red-500" />
+                        🔥 សំខាន់ (HOT)
+                      </label>
+                      <button
+                        onClick={publishAnnouncement}
+                        disabled={annBusy || (!annTitle.trim() && !annBody.trim())}
+                        className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white flex items-center gap-1.5"
+                      >
+                        <Send size={12} /> ផ្សាយ
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Announcement feed */}
+                <div className="space-y-2.5">
+                  {announcements.length === 0 ? (
+                    <div className="bg-white/70 rounded-2xl p-6 border border-dashed border-emerald-200 text-center text-[10px] text-slate-400">
+                      មិនទាន់មានជូនដំណឹងនៅឡើយ។{isPrincipal ? ' សរសេរខាងលើ ដើម្បីផ្សាយ។' : ''}
+                    </div>
+                  ) : announcements.map(a => (
+                    <div key={a.id} className="bg-white p-3 rounded-xl border border-emerald-100 text-[10px] relative overflow-hidden">
+                      {a.isHot && (
+                        <div className="absolute top-0 right-0 bg-red-500 text-white font-extrabold text-[6.5px] uppercase px-1.5 py-0.5 rounded-bl">HOT</div>
                       )}
-                      <p className="font-black text-slate-105">{not.title}</p>
-                      <p className="text-slate-400 mt-1 lines-clamp-2 leading-relaxed">{not.snippet}</p>
-                      <div className="flex justify-between items-center text-[7.5px] text-slate-500 mt-2">
-                        <span>🕒 {not.date}</span>
-                        <span>👁️ {not.views}</span>
+                      <p className="font-black text-slate-800 pr-8 leading-snug">{a.title}</p>
+                      {a.body && <p className="text-slate-500 mt-1 whitespace-pre-wrap leading-relaxed">{a.body}</p>}
+                      <div className="flex justify-between items-center text-[8px] text-slate-400 mt-2">
+                        <span>🕒 {relativeKhmerDate(a.createdAt)}{a.createdBy ? ` · ${a.createdBy}` : ''}</span>
+                        {isPrincipal && (
+                          <button onClick={() => removeAnnouncement(a.id)} className="text-rose-500 hover:text-rose-600 flex items-center gap-0.5 font-bold">
+                            <Trash2 size={11} /> លុប
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
