@@ -175,13 +175,21 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
 
       {toast && <div className={`text-center text-xs font-bold px-3 py-2 rounded-xl ${toast.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>{toast.msg}</div>}
 
-      {/* Draft form */}
-      {draft && (
+      {/* Draft form. Editing an OPEN test only exposes title + classes — the
+          question snapshot, duration, and join code must stay frozen mid-test. */}
+      {draft && (() => { const editingOpen = !!(draft.id && tests.find(x => x.id === draft.id)?.status === 'open'); return (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+          {editingOpen && (
+            <p className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+              តេស្តនេះកំពុងបើក — អាចកែបានតែ ចំណងជើង និងថ្នាក់ ប៉ុណ្ណោះ (សំណួរ រយៈពេល និងកូដ នៅដដែល)។
+            </p>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <label className="col-span-2 block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">ចំណងជើងតេស្ត</span><input value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder="ឧ. តេស្តស្តង់ដាអំណាន ឆមាសទី២" className={fieldCls} /></label>
-            <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">មុខវិជ្ជា</span><select value={draft.subject} onChange={e => setDraft({ ...draft, subject: e.target.value })} className={fieldCls}>{subjects.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
-            <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">រយៈពេល (នាទី)</span><input type="number" min={1} max={180} value={draft.durationMin} onChange={e => setDraft({ ...draft, durationMin: Math.max(1, Math.min(180, Number(e.target.value) || 1)) })} className={fieldCls} /></label>
+            {!editingOpen && <>
+              <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">មុខវិជ្ជា</span><select value={draft.subject} onChange={e => setDraft({ ...draft, subject: e.target.value })} className={fieldCls}>{subjects.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
+              <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">រយៈពេល (នាទី)</span><input type="number" min={1} max={180} value={draft.durationMin} onChange={e => setDraft({ ...draft, durationMin: Math.max(1, Math.min(180, Number(e.target.value) || 1)) })} className={fieldCls} /></label>
+            </>}
           </div>
 
           <div className="space-y-1">
@@ -193,13 +201,13 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
+          {!editingOpen && <div className="flex flex-wrap gap-1.5">
             <span onClick={() => setDraft({ ...draft, shuffleQuestions: !draft.shuffleQuestions })} className={chip(draft.shuffleQuestions)}>ច្របល់សំណួរ</span>
             <span onClick={() => setDraft({ ...draft, shuffleOptions: !draft.shuffleOptions })} className={chip(draft.shuffleOptions)}>ច្របល់ជម្រើស</span>
             <span onClick={() => setDraft({ ...draft, antiCheat: !draft.antiCheat })} className={chip(draft.antiCheat)}>កត់ត្រាការចាកចេញពី Tab</span>
-          </div>
+          </div>}
 
-          <div className="space-y-1">
+          {!editingOpen && <div className="space-y-1">
             <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">ជ្រើសសំណួរ ({toKh(draft.questionIds.length)} បានជ្រើស · MCQ / បំពេញចន្លោះ / ផ្គូផ្គង)</span>
             {pickable.length === 0 ? (
               <p className="text-xs text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-xl p-3">
@@ -221,14 +229,14 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
                 })}
               </div>
             )}
-          </div>
+          </div>}
 
           <div className="flex items-center justify-end gap-2">
             <button onClick={() => setDraft(null)} className="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200">បោះបង់</button>
             <button onClick={saveDraft} className="px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-sm"><Save size={13} /> រក្សាទុក</button>
           </div>
         </div>
-      )}
+      ); })()}
 
       {/* Results panel */}
       {resultsFor && !draft && (
@@ -301,7 +309,12 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
                       <button onClick={() => startEdit(t)} className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100">កែ</button>
                       <button onClick={() => onOpen(t.id)} disabled={busy} className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1"><PlayCircle size={12} /> បើក</button>
                     </>}
-                    {t.status === 'open' && <button onClick={() => onCloseTest(t.id)} className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1"><StopCircle size={12} /> បិទ</button>}
+                    {t.status === 'open' && <>
+                      {/* An OPEN test may still change its title/classes (e.g. let ២ខ
+                          join ២ក's test) — questions/duration/code stay frozen. */}
+                      <button onClick={() => startEdit(t)} title="កែចំណងជើង/ថ្នាក់ (សំណួរ និងកូដនៅដដែល)" className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100">កែ</button>
+                      <button onClick={() => onCloseTest(t.id)} className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1"><StopCircle size={12} /> បិទ</button>
+                    </>}
                     {t.status !== 'draft' && <button onClick={() => loadSubs(t)} className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 flex items-center gap-1"><BarChart3 size={12} /> លទ្ធផល</button>}
                     <button onClick={() => onDelete(t.id)} title="លុប" className="p-1.5 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100"><Trash2 size={12} /></button>
                   </div>
