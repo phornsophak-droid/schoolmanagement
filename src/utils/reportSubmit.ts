@@ -107,6 +107,29 @@ async function resolveAnnounceSecret(): Promise<string> {
   return secret;
 }
 
+// Post a TEXT announcement to the parent Telegram GROUP and — because these are
+// general notices — fan it out to each linked parent's private bot chat too
+// (alsoPrivate). Reuses the same secret resolution as report submission.
+export async function sendAnnouncementToTelegram(message: string): Promise<{ ok: boolean; error?: string }> {
+  const secret = await resolveAnnounceSecret();
+  if (!secret) return { ok: false, error: 'no-secret' };
+  try {
+    const res = await fetch('/api/telegram-announce', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target: 'parent', message, secret, alsoPrivate: true }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) return { ok: true };
+    if (data.error === 'unauthorized') {
+      try { localStorage.removeItem(SECRET_KEY); } catch { /* ignore */ }
+      Promise.resolve(syncUpsertSetting(SECRET_KEY, '')).catch(() => { /* offline */ });
+    }
+    return { ok: false, error: data.error || String(res.status) };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'failed' };
+  }
+}
+
 // Post a ready-made PNG data URL (e.g. a rendered on-screen panel) to a Telegram
 // group as a photo, so it keeps the exact on-screen look. Reuses the same secret
 // resolution as report submission.

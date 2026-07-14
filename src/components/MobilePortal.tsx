@@ -46,6 +46,7 @@ import WorksheetGenerator from './WorksheetGenerator';
 import { SchoolLogo } from './SchoolLogo';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 import { Announcement, loadAnnouncements, refreshAnnouncementsFromCloud, saveAnnouncement, deleteAnnouncement, relativeKhmerDate } from '../lib/announcements';
+import { sendAnnouncementToTelegram } from '../utils/reportSubmit';
 
 // Force-load the newest deployed build. A plain reload can return a cached page
 // (HTTP cache or a service worker), so first drop any service workers + Cache
@@ -395,7 +396,9 @@ export default function MobilePortal({
   const [annTitle, setAnnTitle] = useState('');
   const [annBody, setAnnBody] = useState('');
   const [annHot, setAnnHot] = useState(false);
+  const [annToTelegram, setAnnToTelegram] = useState(true); // also broadcast to parent Group + bot
   const [annBusy, setAnnBusy] = useState(false);
+  const [annStatus, setAnnStatus] = useState<string | null>(null);
   useEffect(() => { refreshAnnouncementsFromCloud().then(setAnnouncements); }, []);
 
   const isPrincipal = currentUser?.role === 'principal';
@@ -404,17 +407,28 @@ export default function MobilePortal({
     if (annBusy) return;
     if (!annTitle.trim() && !annBody.trim()) return;
     setAnnBusy(true);
+    setAnnStatus(null);
     try {
+      const title = annTitle.trim() || '📢 ជូនដំណឹង';
+      const body = annBody.trim();
       const a: Announcement = {
         id: (crypto as any).randomUUID ? crypto.randomUUID() : `ann-${Date.now()}`,
-        title: annTitle.trim() || '📢 ជូនដំណឹង',
-        body: annBody.trim(),
-        isHot: annHot,
+        title, body, isHot: annHot,
         createdBy: currentUser?.name,
         createdAt: new Date().toISOString(),
       };
       setAnnouncements(await saveAnnouncement(a));
+      // Also broadcast to the parent Telegram Group + each linked parent's bot chat.
+      let tg = '';
+      if (annToTelegram) {
+        const r = await sendAnnouncementToTelegram(`${title}${body ? `\n\n${body}` : ''}`);
+        tg = r.ok ? ' · ផ្ញើ Telegram (Group + Bot) ✓'
+          : r.error === 'no-secret' ? ' · Telegram មិនផ្ញើ (គ្មានពាក្យសម្ងាត់)'
+          : ` · Telegram មិនផ្ញើ (${r.error || 'error'})`;
+      }
+      setAnnStatus(`បានផ្សាយ ✓${tg}`);
       setAnnTitle(''); setAnnBody(''); setAnnHot(false);
+      setTimeout(() => setAnnStatus(null), 5000);
     } finally { setAnnBusy(false); }
   };
 
@@ -1501,19 +1515,26 @@ export default function MobilePortal({
                       placeholder="សរសេរខ្លឹមសារជូនដំណឹង…"
                       className="w-full px-2.5 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-emerald-400 resize-y leading-relaxed"
                     />
-                    <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 cursor-pointer">
-                        <input type="checkbox" checked={annHot} onChange={e => setAnnHot(e.target.checked)} className="accent-red-500" />
-                        🔥 សំខាន់ (HOT)
-                      </label>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-3">
+                        <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 cursor-pointer">
+                          <input type="checkbox" checked={annHot} onChange={e => setAnnHot(e.target.checked)} className="accent-red-500" />
+                          🔥 សំខាន់
+                        </label>
+                        <label className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 cursor-pointer">
+                          <input type="checkbox" checked={annToTelegram} onChange={e => setAnnToTelegram(e.target.checked)} className="accent-blue-500" />
+                          ✈️ Telegram (Group + Bot)
+                        </label>
+                      </div>
                       <button
                         onClick={publishAnnouncement}
                         disabled={annBusy || (!annTitle.trim() && !annBody.trim())}
                         className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white flex items-center gap-1.5"
                       >
-                        <Send size={12} /> ផ្សាយ
+                        <Send size={12} /> {annBusy ? 'កំពុងផ្សាយ…' : 'ផ្សាយ'}
                       </button>
                     </div>
+                    {annStatus && <p className="text-[9.5px] font-bold text-emerald-600 pt-0.5">{annStatus}</p>}
                   </div>
                 )}
 
