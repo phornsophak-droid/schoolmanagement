@@ -249,6 +249,53 @@ export function parsePastedQuestions(text: string): ParsedPaste {
 }
 
 // ---------------------------------------------------------------------------
+// Separate answer-key section support. Teachers often keep the key apart from
+// the questions ("អត្រាកំណែ"): a heading line followed by numbered answers
+// (១. ក  ២. ខ … or "1) B", one per line or inline). The key's numbers map onto
+// the questions IN DOCUMENT ORDER (question #1 = key #1).
+// ---------------------------------------------------------------------------
+
+// Split the document at an answer-key heading line ("អត្រាកំណែ…" / "Answer key…").
+export function splitAnswerKey(text: string): { body: string; keyText: string } {
+  const m = text.match(/(^|\n)[ \t]*(?:អត្រាកំណែ|answer\s*key)[^\n]*\n?/i);
+  if (!m || m.index === undefined) return { body: text, keyText: '' };
+  return { body: text.slice(0, m.index), keyText: text.slice(m.index + m[0].length) };
+}
+
+const KH_DIGITS = '០១២៣៤៥៦៧៨៩';
+const keyNum = (s: string): number => Number([...s].map(c => (KH_DIGITS.indexOf(c) >= 0 ? KH_DIGITS.indexOf(c) : c)).join(''));
+
+// "១. ក ២. ខ" / "1) B\n2) C" / "៣- សាលា" → Map(question number → raw answer).
+export function parseAnswerKey(keyText: string): Map<number, string> {
+  const out = new Map<number, string>();
+  const re = /(^|[\s\n])([0-9០-៩]{1,3})\s*[.)។៖:\-]\s*/g;
+  const marks: { num: number; start: number; end: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(keyText))) marks.push({ num: keyNum(m[2]), start: m.index + m[1].length, end: re.lastIndex });
+  for (let i = 0; i < marks.length; i++) {
+    const valEnd = i + 1 < marks.length ? marks[i + 1].start : keyText.length;
+    const val = keyText.slice(marks[i].end, valEnd).replace(/\s+/g, ' ').trim();
+    if (val) out.set(marks[i].num, val);
+  }
+  return out;
+}
+
+// Fill each question's answer from the key (an inline "ចម្លើយ៖" always wins).
+// Labels (ក/A) resolve to the option text; free text is kept verbatim.
+// Returns how many answers were applied.
+export function applyAnswerKey(questions: WSQuestion[], key: Map<number, string>): number {
+  let applied = 0;
+  questions.forEach((q, i) => {
+    if (q.answer) return;
+    const raw = key.get(i + 1);
+    if (!raw) return;
+    q.answer = resolveAnswer(raw, q.options || []) || raw;
+    applied++;
+  });
+  return applied;
+}
+
+// ---------------------------------------------------------------------------
 // Free offline generator — randomised arithmetic. Works with no AI key and is
 // unlimited/free, so daily math practice never depends on the network.
 // ---------------------------------------------------------------------------

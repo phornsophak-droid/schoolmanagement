@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { HelpCircle, Plus, Pencil, Trash2, Save, X, FileText, CheckCircle2, Clock, ShieldCheck, Upload, Loader2, Sparkles, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SchoolUser } from '../types';
-import { WorksheetType, Difficulty, TYPE_LABELS, DIFFICULTY_LABELS, generateQuestions, parsePastedQuestions } from '../lib/worksheets';
+import { WorksheetType, Difficulty, TYPE_LABELS, DIFFICULTY_LABELS, generateQuestions, parsePastedQuestions, splitAnswerKey, parseAnswerKey, applyAnswerKey } from '../lib/worksheets';
 import { BankQuestion, BankApi, questionBank } from '../lib/questionBank';
 import { curriculumSubjects, lessonsFor, refreshCurriculumFromCloud } from '../lib/curriculum';
 import { extractTextFromFile } from '../lib/extractText';
@@ -110,8 +110,12 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
     try {
       const text = await extractTextFromFile(f);
       if (!text) { flash('មិនរកឃើញអត្ថបទក្នុងឯកសារ (ស្កេន/រូបភាព)។ ប្រើ Word ដែលមានអក្សរ។', false); return; }
-      const parsed = parsePastedQuestions(text);
+      // A trailing "អត្រាកំណែ / Answer key" section fills in the answers by
+      // question number (an inline ចម្លើយ៖ under a question still wins).
+      const { body, keyText } = splitAnswerKey(text);
+      const parsed = parsePastedQuestions(body);
       if (!parsed.questions.length) { flash('រកមិនឃើញសំណួរ — ត្រូវការសំណួរមានលេខរៀង (១. ២. …)។', false); return; }
+      const keyApplied = keyText ? applyAnswerKey(parsed.questions, parseAnswerKey(keyText)) : 0;
       const news: NewQ[] = parsed.questions.map(q => {
         // The parser keys MCQ answers as "ក. <option>"; the bank stores the bare
         // option text (the radio/grader match on it), so strip the label prefix.
@@ -129,7 +133,9 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
       const added = await bulkAddQuestions(news);
       setItems(loadQuestions());
       setAiPanel(false);
-      flash(added ? `បាននាំចូល ${added} សំណួរពី «${f.name}» (រក្សាសំណួរដើម) ✓` : 'សំណួរទាំងនេះមានក្នុងធនាគាររួចហើយ។');
+      flash(added
+        ? `បាននាំចូល ${added} សំណួរពី «${f.name}»${keyApplied ? ` + ចម្លើយ ${keyApplied} ពីអត្រាកំណែ` : ''} ✓`
+        : 'សំណួរទាំងនេះមានក្នុងធនាគាររួចហើយ។');
     } catch (err: any) {
       flash(err?.message || 'អានឯកសារមិនបាន។', false);
     } finally { setBusy(false); }
@@ -316,7 +322,9 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
           </div>
           <p className="text-[10px] text-slate-400 leading-relaxed">
             «នាំចូលផ្ទាល់» ត្រូវការសំណួរមានលេខរៀង៖ <span className="font-mono">១. សំណួរ… ក. ជម្រើស ខ. ជម្រើស … ចម្លើយ៖ ក</span> —
-            សំណួរគ្មានជម្រើសក្លាយជា «បំពេញចន្លោះ»។ «AI» ស្រង់ពីមេរៀន/អត្ថបទសេរី ប៉ុន្តែត្រូវការ Gemini/Ollama។
+            សំណួរគ្មានជម្រើសក្លាយជា «បំពេញចន្លោះ»។ មានអត្រាកំណែដាច់ដោយឡែក? ដាក់នៅចុងឯកសារ ក្រោមបន្ទាត់
+            «<span className="font-mono">អត្រាកំណែ</span>» ជា <span className="font-mono">១. ក ២. ខ …</span> — ចម្លើយផ្គូផ្គងតាមលេខសំណួរស្វ័យប្រវត្តិ។
+            «AI» ស្រង់ពីមេរៀន/អត្ថបទសេរី ប៉ុន្តែត្រូវការ Gemini/Ollama។
           </p>
         </div>
       )}
