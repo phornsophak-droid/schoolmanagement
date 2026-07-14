@@ -150,7 +150,7 @@ export default function LessonLibrary({ grades, currentUser, onClose }: Props) {
         </div>
       )}
 
-      <p className="text-[11px] text-slate-400 text-center">មេរៀនទាំងនេះបង្ហាញក្នុង «គ្រប់គ្រងវិញ្ញាសារ» → ប្រអប់ «បណ្ណាល័យមេរៀន» ដើម្បីឱ្យ AI ប្រើបង្កើតលំហាត់។</p>
+      <p className="text-[11px] text-slate-400 text-center">មេរៀនទាំងនេះបង្ហាញក្នុង «គ្រប់គ្រងវិញ្ញាសា និងសន្លឹកកិច្ចការ» → ប្រអប់ «បណ្ណាល័យមេរៀន» ដើម្បីឱ្យ AI ប្រើបង្កើតលំហាត់។</p>
     </div>
   );
 }

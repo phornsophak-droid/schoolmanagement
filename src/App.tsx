@@ -170,7 +170,7 @@ export default function App() {
     return isMobile ? 'mobile-portal' : 'dashboard';
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  // Sub-tab inside គ្រប់គ្រងវិញ្ញាសារ: the worksheet generator vs the lesson library.
+  // Sub-tab inside គ្រប់គ្រងវិញ្ញាសា និងសន្លឹកកិច្ចការ: the worksheet generator vs the lesson library.
   const [worksheetTab, setWorksheetTab] = useState<'generate' | 'bank' | 'curriculum' | 'lessons'>('generate');
 
   // Supabase connection panel active states
@@ -1570,7 +1570,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <BookOpen size={16} className={activeView === 'worksheets' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>គ្រប់គ្រងវិញ្ញាសារ</span>
+              <span>គ្រប់គ្រងវិញ្ញាសា និងសន្លឹកកិច្ចការ</span>
             </div>
           </button>
 
@@ -1870,7 +1870,7 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <BookOpen size={16} />
-                    <span>គ្រប់គ្រងវិញ្ញាសារ</span>
+                    <span>គ្រប់គ្រងវិញ្ញាសា និងសន្លឹកកិច្ចការ</span>
                   </div>
                 </button>
 
