@@ -31,13 +31,31 @@ async function extractPdf(file: File): Promise<string> {
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
   const data = await file.arrayBuffer();
   const doc = await pdfjs.getDocument({ data }).promise;
-  let out = '';
+  const lines: string[] = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    out += content.items.map((it: any) => it.str).join(' ') + '\n';
+    // Reconstruct visual LINES: group items by their baseline Y (transform[5]),
+    // then order each line left→right by X. Without this every page collapsed onto
+    // one line and question numbers (which the parser keys on) were lost.
+    const rows: { y: number; items: { x: number; s: string }[] }[] = [];
+    for (const it of content.items as any[]) {
+      const s = it.str;
+      if (!s) continue;
+      const x = it.transform[4], y = it.transform[5];
+      let row = rows.find(r => Math.abs(r.y - y) <= 3);
+      if (!row) { row = { y, items: [] }; rows.push(row); }
+      row.items.push({ x, s });
+    }
+    rows.sort((a, b) => b.y - a.y); // PDF Y grows upward → top line first
+    for (const r of rows) {
+      r.items.sort((a, b) => a.x - b.x);
+      const line = r.items.map(it => it.s).join(' ').replace(/\s+/g, ' ').trim();
+      if (line) lines.push(line);
+    }
+    lines.push(''); // blank line between pages
   }
-  return out.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 // Returns the extracted text. Throws a Khmer-readable error for unsupported files.
