@@ -173,9 +173,10 @@ function bareLabelMarks(norm: string): { idx: number; end: number }[] {
 
 // Split one question block into prompt + options (+ answer).
 function splitQuestion(block: string): { prompt: string; options: string[]; answer: string } {
-  // An explicit "ចម្លើយ៖ X" marker is the strongest, most trustworthy answer signal.
+  // An explicit "ចម្លើយ៖ X" (or English "Answer: X") marker is the strongest,
+  // most trustworthy answer signal.
   let marker = '';
-  const am = block.match(/ចម្លើយ\s*[:៖]\s*([^\n|]+)/);
+  const am = block.match(/(?:ចម្លើយ|answer|ans)\s*[:៖]\s*([^\n|]+)/i);
   if (am) { marker = am[1].trim(); block = (block.slice(0, am.index) + block.slice(am.index! + am[0].length)).trim(); }
 
   // Pipe-separated inline options → newlines, so every option starts a "segment".
