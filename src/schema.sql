@@ -199,6 +199,41 @@ CREATE TABLE IF NOT EXISTS public.teacher_attendance (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- ------------------------------------------------------------------------------
+-- 9b. TABLE FOR STANDARDIZED TEST SUBMISSIONS (ចម្លើយតេស្តស្តង់ដារបស់សិស្ស)
+-- ------------------------------------------------------------------------------
+-- Self-contained block: safe to paste ALONE into the Supabase SQL editor when
+-- adding the online-test feature to an existing database.
+CREATE TABLE IF NOT EXISTS public.test_submissions (
+    -- id = testId::studentKey → natural upsert; one attempt per student per test
+    id VARCHAR(200) PRIMARY KEY,
+    test_id VARCHAR(100) NOT NULL,
+    grade VARCHAR(50) NOT NULL,
+    subject VARCHAR(100) NOT NULL,
+    student_name VARCHAR(200) NOT NULL,
+    student_key VARCHAR(200) NOT NULL,
+    answers JSONB NOT NULL DEFAULT '{}'::jsonb,
+    detail JSONB,
+    score NUMERIC,
+    max_score NUMERIC,
+    started_at TIMESTAMP WITH TIME ZONE,
+    submitted_at TIMESTAMP WITH TIME ZONE,
+    duration_used_sec INTEGER,
+    auto_submitted BOOLEAN DEFAULT FALSE,
+    tab_switches INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_test_submissions_test  ON public.test_submissions(test_id);
+CREATE INDEX IF NOT EXISTS idx_test_submissions_grade ON public.test_submissions(grade);
+
+ALTER TABLE public.test_submissions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow read to test_submissions" ON public.test_submissions;
+DROP POLICY IF EXISTS "Allow modify to test_submissions" ON public.test_submissions;
+-- Students submit WITHOUT logging in (anon key), so anon needs read+write —
+-- same public-access model as every other table in this schema.
+CREATE POLICY "Allow read to test_submissions" ON public.test_submissions FOR SELECT USING (true);
+CREATE POLICY "Allow modify to test_submissions" ON public.test_submissions FOR ALL USING (true) WITH CHECK (true);
+
 -- ==============================================================================
 -- 10. AUTO-STAMP updated_at ON EVERY CHANGE (powers low-egress incremental sync)
 -- ==============================================================================

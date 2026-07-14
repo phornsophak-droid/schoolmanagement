@@ -17,6 +17,8 @@ import {
 interface LoginPortalProps {
   onLoginSuccess: (user: SchoolUser) => void;
   onParentAccess?: () => void;
+  // Student online-test portal (no login) — opens the join-code screen.
+  onStudentTest?: () => void;
 }
 
 export const AVAILABLE_USERS: SchoolUser[] = [
@@ -179,7 +181,7 @@ try {
   console.error('Failed to load custom users', e);
 }
 
-export default function LoginPortal({ onLoginSuccess, onParentAccess }: LoginPortalProps) {
+export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentTest }: LoginPortalProps) {
   const [selectedUser, setSelectedUser] = useState<SchoolUser | null>(null);
   const [pinCode, setPinCode] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -396,7 +398,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess }: LoginPor
 
               {/* Parent access — view/download a child's report card (no login) */}
               {onParentAccess && (
-                <div className="pt-3 mt-1 border-t border-slate-200/60 flex justify-center">
+                <div className="pt-3 mt-1 border-t border-slate-200/60 flex justify-center gap-2 flex-wrap">
                   <button
                     onClick={onParentAccess}
                     className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md"
@@ -404,6 +406,15 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess }: LoginPor
                     <Users size={15} />
                     <span>មាតាបិតា — មើល/ទាញយកព្រឹត្តបត្រកូន</span>
                   </button>
+                  {onStudentTest && (
+                    <button
+                      onClick={onStudentTest}
+                      className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md"
+                    >
+                      <span>📝</span>
+                      <span>សិស្ស — ចូលធ្វើតេស្ត</span>
+                    </button>
+                  )}
                 </div>
               )}
 

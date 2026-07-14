@@ -144,7 +144,8 @@ import WorksheetGenerator from './components/WorksheetGenerator';
 import DocBank from './components/DocBank';
 import LessonLibrary from './components/LessonLibrary';
 import QuestionBank from './components/QuestionBank';
-import { standardTestBank } from './lib/questionBank';
+import StandardTests from './components/StandardTests';
+import StudentQuiz from './components/StudentQuiz';
 import CurriculumManager from './components/CurriculumManager';
 import { SchoolLogo } from './components/SchoolLogo';
 import { getPinForUser, setPinForUser } from './utils/auth';
@@ -190,6 +191,18 @@ export default function App() {
         || window.location.hash.toLowerCase().includes('parent');
     } catch { return false; }
   });
+  // Student online-test mode (no login): /test, ?join=CODE, or #test. A join
+  // link carries the test code so students skip typing it.
+  const [studentTestMode, setStudentTestMode] = useState(() => {
+    try {
+      return /\/test\b/i.test(window.location.pathname)
+        || new URLSearchParams(window.location.search).get('join') !== null
+        || window.location.hash.toLowerCase().includes('test');
+    } catch { return false; }
+  });
+  const joinCode = (() => {
+    try { return new URLSearchParams(window.location.search).get('join') || undefined; } catch { return undefined; }
+  })();
 
   // Shared Global Filter states
   const [selectedMonth, setSelectedMonth] = useState<string>('ទាំងអស់');
@@ -1428,8 +1441,13 @@ export default function App() {
   if (parentMode) {
     return <ParentPortal grades={grades} onBack={() => setParentMode(false)} />;
   }
+  // Student online-test portal — like the parent link, it must open BEFORE the
+  // login gate so a shared join link works on any student/family phone.
+  if (studentTestMode) {
+    return <StudentQuiz initialCode={joinCode} onBack={() => setStudentTestMode(false)} />;
+  }
   if (!currentUser) {
-    return <LoginPortal onLoginSuccess={handleLoginSuccess} onParentAccess={() => setParentMode(true)} />;
+    return <LoginPortal onLoginSuccess={handleLoginSuccess} onParentAccess={() => setParentMode(true)} onStudentTest={() => setStudentTestMode(true)} />;
   }
   // Wait for the attendance store (IndexedDB) to finish loading before the main
   // app renders, so no attendance reader runs against an empty cache. This is a
@@ -2195,11 +2213,9 @@ export default function App() {
                     exit={{ opacity: 0, y: -15 }}
                     transition={{ duration: 0.15 }}
                   >
-                    {/* Standardized tests — a SEPARATE question bank, distinct from the
-                        worksheet/exam bank above. (Phase 1: the test bank.) */}
-                    <QuestionBank
-                      bank={standardTestBank}
-                      title="ធនាគារសំណួរ តេស្តស្តង់ដា"
+                    {/* Standardized tests — online exam engine (tests + its own
+                        question bank, separate from the worksheet/exam bank). */}
+                    <StandardTests
                       grades={grades}
                       currentUser={currentUser}
                       onClose={() => setActiveView('dashboard')}
