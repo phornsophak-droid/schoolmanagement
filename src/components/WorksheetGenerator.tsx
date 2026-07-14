@@ -65,7 +65,9 @@ const qToWord = (q: WSQuestion, type: WorksheetType, num: number, showAns: boole
     const rights = [...q.pairs].map(p => p.right).sort(() => Math.random() - 0.5).map((r, j) => `<div>${OPT_LETTERS[j] || '•'}. ${esc(r)}</div>`).join('');
     return `<tr><td valign="top" style="width:24pt"><b>${n}.</b></td><td><table width="100%" cellspacing="0" cellpadding="0"><tr><td valign="top" width="50%">${lefts}</td><td valign="top" width="50%">${rights}</td></tr></table></td></tr>`;
   }
-  let inner = `<div style="font-weight:600">${esc(q.prompt)}</div>`;
+  let inner = '';
+  if (q.context) inner += `<div style="margin-bottom:5pt;padding:5pt 7pt;background:#f8fafc;border:1px solid #e2e8f0;line-height:1.6;white-space:pre-wrap">${esc(q.context)}</div>`;
+  inner += `<div style="font-weight:600">${esc(q.prompt)}</div>`;
   if (q.options) {
     const cells = q.options.map((o, j) => `${OPT_LETTERS[j]}. ${esc(o)}`);
     let rows = '';
@@ -339,6 +341,9 @@ const QRow: React.FC<{ q: WSQuestion; type: WorksheetType; num: number; showAns:
         </div>
       ) : (
         <>
+          {q.context && (
+            <div className="mb-2 text-[11pt] leading-relaxed whitespace-pre-wrap text-slate-800 bg-slate-50 border border-slate-200 rounded-lg p-2.5">{q.context}</div>
+          )}
           <div className="font-medium">{q.prompt}</div>
           {q.options ? (
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-1 pl-1">

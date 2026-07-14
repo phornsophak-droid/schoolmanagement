@@ -44,6 +44,9 @@ export interface WSQuestion {
   options?: string[];
   pairs?: { left: string; right: string }[];
   answer: string;
+  // A reading passage (អត្ថបទ) that precedes and belongs to this question —
+  // rendered full-width ABOVE it, never folded into the answer options.
+  context?: string;
 }
 
 export interface Worksheet {
@@ -217,15 +220,28 @@ export function parsePastedQuestions(text: string): ParsedPaste {
   }
 
   const instructions = lines.slice(0, firstQ).filter(Boolean).join(' ').trim();
-  const groups: string[][] = [];
+  // Group lines per question. A LONG standalone paragraph (a reading passage —
+  // ≥90 chars or starting with "អត្ថបទ") is NOT part of the current question's
+  // options; it becomes CONTEXT for the NEXT question. Short non-numbered lines
+  // (e.g. bare-label option rows) still belong to the current question.
+  const groups: { lines: string[]; context: string }[] = [];
+  let pending = '';
+  let inPassage = false;
+  const PASSAGE_MIN = 90;
   for (let i = firstQ; i < lines.length; i++) {
     const l = lines[i];
-    if (Q_NUM_RE.test(l)) groups.push([l.replace(Q_NUM_RE, '')]);
-    else if (groups.length && l) groups[groups.length - 1].push(l);
+    if (Q_NUM_RE.test(l)) {
+      groups.push({ lines: [l.replace(Q_NUM_RE, '')], context: pending });
+      pending = ''; inPassage = false;
+    } else if (l) {
+      if (!inPassage && (l.length >= PASSAGE_MIN || /^\s*អត្ថបទ/.test(l))) inPassage = true;
+      if (inPassage) pending = pending ? `${pending}\n${l}` : l;
+      else if (groups.length) groups[groups.length - 1].lines.push(l);
+    }
   }
   const questions: WSQuestion[] = groups.map(g => {
-    const s = splitQuestion(g.join('\n'));
-    return { prompt: s.prompt, options: s.options.length ? s.options : undefined, answer: s.answer } as WSQuestion;
+    const s = splitQuestion(g.lines.join('\n'));
+    return { prompt: s.prompt, options: s.options.length ? s.options : undefined, answer: s.answer, context: g.context || undefined } as WSQuestion;
   }).filter(q => q.prompt);
 
   return { instructions, questions, multipleChoice: questions.some(q => !!q.options?.length) };
