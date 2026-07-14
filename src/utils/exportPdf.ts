@@ -403,9 +403,13 @@ function buildMultipagePdf(canvas: HTMLCanvasElement): jsPDF {
     // the next page. Skip if that would leave a nearly-empty page (block taller than
     // a page → unavoidable split).
     if (sy + sliceH < ch) {
+      // Cut a little ABOVE the block's top so the next page starts with a small
+      // blank strip — Khmer upper vowels/diacritics render slightly above the box
+      // top and would otherwise be clipped ("អក្សរដាច់សក់") at the page start.
+      const pad = Math.round(pageContentPx * 0.02);
       let cut = sy + sliceH;
       for (const k of keeps) {
-        if (k.top > sy + 2 && k.top < cut && k.bottom > cut) cut = Math.min(cut, k.top);
+        if (k.top > sy + 2 && k.top < cut && k.bottom > cut) cut = Math.min(cut, k.top - pad);
       }
       const newH = cut - sy;
       if (newH > 0 && newH < sliceH && newH > pageContentPx * 0.15) sliceH = newH;
