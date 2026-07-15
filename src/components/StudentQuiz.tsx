@@ -24,6 +24,14 @@ import SchoolLogo from './SchoolLogo';
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 const fmtClock = (sec: number) => `${toKh(String(Math.floor(sec / 60)).padStart(2, '0'))}:${toKh(String(sec % 60).padStart(2, '0'))}`;
 
+// Render a prompt with dot/underscore blank runs ("……………" / "____") as a clean
+// styled gap instead of a ragged string of dots.
+const renderPrompt = (s: string): React.ReactNode[] =>
+  (s || '').split(/([…._]{4,})/g).map((part, i) =>
+    /^[…._]{4,}$/.test(part)
+      ? <span key={i} className="inline-block min-w-[80px] mx-1 border-b-2 border-dotted border-indigo-400 align-baseline">&nbsp;</span>
+      : <React.Fragment key={i}>{part}</React.Fragment>);
+
 // The module enforces a dedicated Khmer reading font for students.
 const KH_FONT = { fontFamily: "'Battambang', 'Kantumruy Pro', 'Hanuman', sans-serif" } as const;
 
@@ -361,17 +369,21 @@ function QuizRunner({ test, cls, studentName, onDone }: RunnerProps) {
         {q && (
           <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-4">
             {q.context && <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 text-[15px] leading-8 text-slate-700 whitespace-pre-wrap">{q.context}</div>}
-            <p className="text-[16px] leading-8 font-bold text-slate-800">{toKh(idx + 1)}. {q.prompt}</p>
+            <div className="flex items-start gap-2.5">
+              <span className="shrink-0 w-8 h-8 rounded-xl bg-indigo-600 text-white text-sm font-extrabold flex items-center justify-center shadow-sm">{toKh(idx + 1)}</span>
+              <p className="text-[16px] leading-8 font-bold text-slate-800 pt-0.5">{renderPrompt(q.prompt)}</p>
+            </div>
 
             {q.type === 'multiple_choice' && (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {(q.options || []).map((o, i) => {
                   const chosen = answers[q.id] === o;
                   return (
                     <button key={i} onClick={() => setAnswer(q.id, o)}
-                      className={`w-full text-left px-4 py-3.5 rounded-2xl border-2 text-[15px] font-semibold flex items-center gap-3 ${chosen ? 'bg-indigo-50 border-indigo-500 text-indigo-800' : 'bg-slate-50 border-slate-100 text-slate-700 hover:border-slate-300'}`}>
-                      <span className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${chosen ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>{'កខគឃ'[i] || toKh(i + 1)}</span>
-                      {o}
+                      className={`w-full text-left px-4 py-3.5 rounded-2xl border-2 text-[15px] font-semibold flex items-center gap-3 transition-all active:scale-[0.99] ${chosen ? 'bg-indigo-50 border-indigo-500 text-indigo-800 shadow-md' : 'bg-white border-slate-150 text-slate-700 shadow-sm hover:border-indigo-300 hover:bg-indigo-50/40'}`}>
+                      <span className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${chosen ? 'bg-indigo-600 text-white' : 'bg-slate-100 border border-slate-200 text-slate-500'}`}>{'កខគឃងចឆជ'[i] || toKh(i + 1)}</span>
+                      <span className="flex-1">{o}</span>
+                      {chosen && <CheckCircle2 size={18} className="shrink-0 text-indigo-600" />}
                     </button>
                   );
                 })}

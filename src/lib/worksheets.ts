@@ -150,6 +150,32 @@ function strictLabelMarks(norm: string): { idx: number; end: number }[] {
   return marks;
 }
 
+// GLUED labels: "…។A. ថ្ងៃB. ព្រឹកC. យប់" — Word/PDF extraction often loses the
+// space BEFORE an option label, so strictLabelMarks (which requires whitespace
+// there) misses some or all options and they stay glued inside the prompt.
+// Accept a label directly preceded by any NON-ASCII char (Khmer letter, ។, »,
+// …), but ONLY when the labels form a sequence starting at A/ក — that sequence
+// requirement keeps ordinary words from being mistaken for options.
+function gluedLabelMarks(norm: string): { idx: number; end: number }[] {
+  const re = /([^\x00-\x7F]|^|[\s\]])[(（]?((?:[A-Ha-h])|[ក-អ])[.)）．៖:]\s*/g;
+  const cands: { start: number; end: number; seq: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(norm))) {
+    const letter = m[2];
+    let seq = KH_OPT.indexOf(letter);
+    if (seq < 0 && /^[A-Ha-h]$/.test(letter)) seq = letter.toUpperCase().charCodeAt(0) - 65;
+    cands.push({ start: m.index + m[1].length, end: re.lastIndex, seq });
+    // Allow the NEXT label to sit right after this one (re.exec continues from
+    // lastIndex, which is fine — labels never overlap).
+  }
+  const marks: { idx: number; end: number }[] = [];
+  let expect = 0;
+  for (const c of cands) {
+    if (c.seq === expect) { marks.push({ idx: c.start, end: c.end }); expect++; }
+  }
+  return marks.length >= 2 ? marks : [];
+}
+
 // Bare labels: "ក … ខ … គ …" — single option letters with NO punctuation. Only
 // accepted when they appear IN SEQUENCE (ក,ខ,គ… or A,B,C… starting at the first),
 // so ordinary single-letter words aren't mistaken for options.
@@ -187,6 +213,11 @@ function splitQuestion(block: string): { prompt: string; options: string[]; answ
   // "|", line breaks, OR just spaces (the paren style "(A) … (B) …"). If no
   // PUNCTUATED labels are found, fall back to BARE labels ("ក … ខ … គ …").
   let marks = strictLabelMarks(norm);
+  // Glued labels are sequence-validated (high precision), so trust them whenever
+  // they recover MORE options than the strict pass — e.g. strict sees only B/C/D
+  // on their own lines while A is glued to the prompt.
+  const glued = gluedLabelMarks(norm);
+  if (glued.length > marks.length) marks = glued;
   if (marks.length < 2) marks = bareLabelMarks(norm);
 
   if (marks.length < 2) {
