@@ -23,6 +23,8 @@ export interface BankQuestion extends WSQuestion {
   subject: string;
   lesson?: string;        // free text or a curriculum lesson title
   objective?: string;     // learning objective (from the curriculum)
+  month?: string;         // ខែ (មករា…ធ្នូ) — tags an imported exam's questions
+  examType?: string;      // ប្រភេទតេស្ត (តេស្តប្រចាំខែ/ឆមាស…) for easy picking
   type: WorksheetType;
   difficulty: Difficulty;
   status?: 'draft' | 'approved'; // kept for backward compatibility with old data, but ignored
@@ -31,6 +33,11 @@ export interface BankQuestion extends WSQuestion {
   createdAt: string;
   updatedAt: string;
 }
+
+// Tag vocabularies for imported exams (shared by the bank UI and the test
+// composer's pick filters).
+export const BANK_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
+export const EXAM_TYPES = ['តេស្តប្រចាំខែ', 'ប្រឡងឆមាសទី១', 'ប្រឡងឆមាសទី២', 'ប្រឡងប្រចាំឆ្នាំ', 'តេស្តស្តង់ដា'];
 
 const uuid = (): string => ((crypto as any).randomUUID ? crypto.randomUUID() : `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 

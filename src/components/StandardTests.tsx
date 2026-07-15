@@ -13,7 +13,7 @@ import {
   BarChart3, RefreshCw, Copy, Loader2, Clock, Users, KeyRound, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { SchoolUser } from '../types';
-import { standardTestBank, BankQuestion } from '../lib/questionBank';
+import { standardTestBank, BankQuestion, BANK_MONTHS, EXAM_TYPES } from '../lib/questionBank';
 import { TYPE_LABELS } from '../lib/worksheets';
 import { curriculumSubjects, refreshCurriculumFromCloud } from '../lib/curriculum';
 import {
@@ -71,14 +71,29 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
   });
 
   // Only bank questions usable by the online engine (MCQ / fill-blank / matching)
-  // in the draft's subject+classes are offered.
+  // in the draft's subject+classes are offered; month/exam-type tags (set when an
+  // exam was imported) narrow the list further so picking a whole exam is one click.
+  const [pickMonth, setPickMonth] = useState('');
+  const [pickExamType, setPickExamType] = useState('');
   const pickable = useMemo(() => {
     if (!draft) return [] as BankQuestion[];
     return bankQuestions.filter(q =>
       ['multiple_choice', 'fill_blank', 'matching'].includes(q.type) &&
       q.subject === draft.subject &&
-      (!draft.grades.length || draft.grades.includes(q.grade)));
-  }, [bankQuestions, draft?.subject, draft?.grades]);
+      (!draft.grades.length || draft.grades.includes(q.grade)) &&
+      (!pickMonth || q.month === pickMonth) &&
+      (!pickExamType || q.examType === pickExamType));
+  }, [bankQuestions, draft?.subject, draft?.grades, pickMonth, pickExamType]);
+
+  // One click selects/deselects everything the pick filters currently show.
+  const allPicked = !!draft && pickable.length > 0 && pickable.every(q => draft.questionIds.includes(q.id));
+  const toggleAllPickable = () => {
+    if (!draft) return;
+    const ids = new Set(draft.questionIds);
+    if (allPicked) pickable.forEach(q => ids.delete(q.id));
+    else pickable.forEach(q => ids.add(q.id));
+    setDraft({ ...draft, questionIds: [...ids] });
+  };
 
   const saveDraft = async () => {
     if (!draft) return;
@@ -209,6 +224,15 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
 
           {!editingOpen && <div className="space-y-1">
             <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">ជ្រើសសំណួរ ({toKh(draft.questionIds.length)} បានជ្រើស · MCQ / បំពេញចន្លោះ / ផ្គូផ្គង)</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <select value={pickMonth} onChange={e => setPickMonth(e.target.value)} className="px-2 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-600 font-semibold outline-none"><option value="">ខែទាំងអស់</option>{BANK_MONTHS.map(m => <option key={m} value={m}>ខែ{m}</option>)}</select>
+              <select value={pickExamType} onChange={e => setPickExamType(e.target.value)} className="px-2 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-600 font-semibold outline-none"><option value="">ប្រភេទតេស្តទាំងអស់</option>{EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+              {pickable.length > 0 && (
+                <button onClick={toggleAllPickable} className={`px-2.5 py-1.5 text-xs font-bold rounded-lg border ${allPicked ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'}`}>
+                  {allPicked ? `ដកទាំង ${pickable.length}` : `ជ្រើសទាំង ${pickable.length}`}
+                </button>
+              )}
+            </div>
             {pickable.length === 0 ? (
               <p className="text-xs text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-xl p-3">
                 គ្មានសំណួរក្នុងធនាគារ សម្រាប់មុខវិជ្ជា/ថ្នាក់នេះទេ — បន្ថែមក្នុងផ្ទាំង «ធនាគារសំណួរ» សិន។
@@ -222,7 +246,7 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
                       <input type="checkbox" checked={on} onChange={() => setDraft({ ...draft, questionIds: on ? draft.questionIds.filter(x => x !== q.id) : [...draft.questionIds, q.id] })} className="mt-1" />
                       <span className="min-w-0">
                         <span className="block text-[13px] font-semibold text-slate-700 truncate">{q.type === 'matching' ? `ផ្គូផ្គង (${q.pairs?.length || 0} គូ)` : q.prompt}</span>
-                        <span className="block text-[10px] text-slate-400">{q.grade} · {TYPE_LABELS[q.type]}</span>
+                        <span className="block text-[10px] text-slate-400">{q.grade} · {TYPE_LABELS[q.type]}{q.month ? ` · ខែ${q.month}` : ''}{q.examType ? ` · ${q.examType}` : ''}</span>
                       </span>
                     </label>
                   );

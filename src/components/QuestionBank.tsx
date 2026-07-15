@@ -8,7 +8,7 @@ import { HelpCircle, Plus, Pencil, Trash2, Save, X, FileText, CheckCircle2, Cloc
 import * as XLSX from 'xlsx';
 import { SchoolUser } from '../types';
 import { WorksheetType, Difficulty, TYPE_LABELS, DIFFICULTY_LABELS, generateQuestions, parsePastedQuestions, splitAnswerKey, parseAnswerKey, applyAnswerKey } from '../lib/worksheets';
-import { BankQuestion, BankApi, questionBank } from '../lib/questionBank';
+import { BankQuestion, BankApi, questionBank, BANK_MONTHS, EXAM_TYPES } from '../lib/questionBank';
 import { curriculumSubjects, lessonsFor, refreshCurriculumFromCloud } from '../lib/curriculum';
 import { extractTextFromFile } from '../lib/extractText';
 
@@ -47,6 +47,7 @@ interface Props {
 type Draft = {
   id: string | null;
   grade: string; subject: string; lesson: string;
+  month: string; examType: string;
   type: WorksheetType; difficulty: Difficulty;
   prompt: string; options: string[]; pairs: { left: string; right: string }[]; answer: string;
 };
@@ -68,7 +69,7 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
 
   // ---- Import (A: document→AI, B: Excel/CSV) ----
   const [aiPanel, setAiPanel] = useState(false);
-  const [aiCfg, setAiCfg] = useState({ grade: gradeList[0], subject: subjects[0], type: 'multiple_choice' as WorksheetType, difficulty: 'medium' as Difficulty, count: 10 });
+  const [aiCfg, setAiCfg] = useState({ grade: gradeList[0], subject: subjects[0], type: 'multiple_choice' as WorksheetType, difficulty: 'medium' as Difficulty, count: 10, month: '', examType: '' });
   const [busy, setBusy] = useState(false);
   const aiFileRef = useRef<HTMLInputElement>(null);
   const wordFileRef = useRef<HTMLInputElement>(null);
@@ -90,6 +91,7 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
       const added = await bulkAddQuestions(qs.map(q => ({
         prompt: q.prompt, options: q.options, pairs: q.pairs, answer: q.answer,
         grade: aiCfg.grade, subject: aiCfg.subject, type: aiCfg.type, difficulty: aiCfg.difficulty,
+        month: aiCfg.month || undefined, examType: aiCfg.examType || undefined,
         source: 'ai' as const, createdBy: teacherName,
       })));
       setItems(loadQuestions());
@@ -127,6 +129,7 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
           grade: aiCfg.grade, subject: aiCfg.subject,
           type: (q.options && q.options.length >= 2 ? 'multiple_choice' : 'fill_blank') as WorksheetType,
           difficulty: aiCfg.difficulty,
+          month: aiCfg.month || undefined, examType: aiCfg.examType || undefined,
           source: 'manual' as const, createdBy: teacherName,
         };
       });
@@ -165,6 +168,8 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
         difficulty: colIndex(header, ['កម្រិត', 'difficult']),
         lesson: colIndex(header, ['មេរៀន', 'lesson']),
         objective: colIndex(header, ['គោលបំណង', 'objective']),
+        month: colIndex(header, ['ខែ', 'month']),
+        examType: colIndex(header, ['ប្រភេទតេស្ត', 'ប្រឡង', 'exam']),
         prompt: colIndex(header, ['សំណួរ', 'prompt', 'question']),
         answer: colIndex(header, ['ចម្លើយ', 'answer']),
       };
@@ -185,6 +190,8 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
           subject: ci.subject >= 0 && (row[ci.subject] ?? '').toString().trim() ? (row[ci.subject]).toString().trim() : subjects[0],
           lesson: ci.lesson >= 0 ? (row[ci.lesson] ?? '').toString().trim() || undefined : undefined,
           objective: ci.objective >= 0 ? (row[ci.objective] ?? '').toString().trim() || undefined : undefined,
+          month: ci.month >= 0 ? (row[ci.month] ?? '').toString().trim().replace(/^ខែ/, '') || undefined : undefined,
+          examType: ci.examType >= 0 ? (row[ci.examType] ?? '').toString().trim() || undefined : undefined,
           type,
           difficulty: ci.difficulty >= 0 ? resolveDiff((row[ci.difficulty] ?? '').toString()) : 'medium',
           source: 'manual', createdBy: teacherName,
@@ -200,8 +207,8 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
 
   // Download a filled-in Excel template so teachers know the column format.
   const downloadTemplate = () => {
-    const header = ['ថ្នាក់', 'មុខវិជ្ជា', 'ប្រភេទ', 'កម្រិត', 'មេរៀន', 'គោលបំណង', 'សំណួរ', 'ជម្រើសក', 'ជម្រើសខ', 'ជម្រើសគ', 'ជម្រើសឃ', 'ចម្លើយ'];
-    const example = [gradeList[0], subjects[0], 'multiple_choice', 'easy', 'មេរៀនទី ១', 'ស្គាល់ការបូក', '២ + ២ = ?', '៤', '៣', '៥', '៦', '៤'];
+    const header = ['ថ្នាក់', 'មុខវិជ្ជា', 'ប្រភេទ', 'កម្រិត', 'មេរៀន', 'គោលបំណង', 'ខែ', 'ប្រភេទតេស្ត', 'សំណួរ', 'ជម្រើសក', 'ជម្រើសខ', 'ជម្រើសគ', 'ជម្រើសឃ', 'ចម្លើយ'];
+    const example = [gradeList[0], subjects[0], 'multiple_choice', 'easy', 'មេរៀនទី ១', 'ស្គាល់ការបូក', 'កក្កដា', 'តេស្តប្រចាំខែ', '២ + ២ = ?', '៤', '៣', '៥', '៦', '៤'];
     const ws = XLSX.utils.aoa_to_sheet([header, example]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'សំណួរ');
@@ -212,6 +219,8 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
   const [fGrade, setFGrade] = useState('');
   const [fSubject, setFSubject] = useState('');
   const [fType, setFType] = useState<WorksheetType | ''>('');
+  const [fMonth, setFMonth] = useState('');
+  const [fExamType, setFExamType] = useState('');
   const [search, setSearch] = useState('');
 
   useEffect(() => { refreshFromCloud().then(setItems); }, [bank]);
@@ -220,17 +229,21 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
     (!fGrade || q.grade === fGrade) &&
     (!fSubject || q.subject === fSubject) &&
     (!fType || q.type === fType) &&
+    (!fMonth || q.month === fMonth) &&
+    (!fExamType || q.examType === fExamType) &&
     (!search || (q.prompt || '').toLowerCase().includes(search.toLowerCase()) || (q.answer || '').toLowerCase().includes(search.toLowerCase()))
   );
 
   const emptyDraft = (): Draft => ({
     id: null, grade: gradeList[0], subject: subjects[0], lesson: '',
+    month: '', examType: '',
     type: 'multiple_choice', difficulty: 'easy',
     prompt: '', options: ['', '', '', ''], pairs: [{ left: '', right: '' }], answer: '',
   });
   const startNew = () => setDraft(emptyDraft());
   const startEdit = (q: BankQuestion) => setDraft({
     id: q.id, grade: q.grade, subject: q.subject, lesson: q.lesson || '',
+    month: q.month || '', examType: q.examType || '',
     type: q.type, difficulty: q.difficulty,
     prompt: q.prompt || '',
     options: q.options && q.options.length ? [...q.options] : ['', '', '', ''],
@@ -246,6 +259,7 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
     const q: BankQuestion = {
       id: draft.id || uuid(),
       grade: draft.grade, subject: draft.subject, lesson: draft.lesson.trim() || undefined,
+      month: draft.month || undefined, examType: draft.examType || undefined,
       type: draft.type, difficulty: draft.difficulty,
       prompt: isMatching ? 'ផ្គូផ្គង' : draft.prompt.trim(),
       options: draft.type === 'multiple_choice' ? draft.options.map(o => o.trim()).filter(Boolean) : undefined,
@@ -309,12 +323,14 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
             <span className="text-xs font-bold text-indigo-700 flex items-center gap-1.5"><Sparkles size={14} /> នាំចូលសំណួរពីឯកសារ (Word / PDF / TXT)</span>
             <button onClick={() => setAiPanel(false)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <select value={aiCfg.grade} onChange={e => setAiCfg({ ...aiCfg, grade: e.target.value })} className={smallCls}>{gradeList.map(g => <option key={g} value={g}>{g}</option>)}</select>
             <select value={aiCfg.subject} onChange={e => setAiCfg({ ...aiCfg, subject: e.target.value })} className={smallCls}>{subjects.map(s => <option key={s} value={s}>{s}</option>)}</select>
             <select value={aiCfg.type} onChange={e => setAiCfg({ ...aiCfg, type: e.target.value as WorksheetType })} className={smallCls}>{(Object.keys(TYPE_LABELS) as WorksheetType[]).map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}</select>
             <select value={aiCfg.difficulty} onChange={e => setAiCfg({ ...aiCfg, difficulty: e.target.value as Difficulty })} className={smallCls}>{(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map(d => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}</select>
-            <input type="number" min={1} max={50} value={aiCfg.count} onChange={e => setAiCfg({ ...aiCfg, count: Math.max(1, Math.min(50, Number(e.target.value) || 1)) })} className={smallCls} />
+            <select value={aiCfg.month} onChange={e => setAiCfg({ ...aiCfg, month: e.target.value })} className={smallCls}><option value="">ខែ (មិនកំណត់)</option>{BANK_MONTHS.map(m => <option key={m} value={m}>ខែ{m}</option>)}</select>
+            <select value={aiCfg.examType} onChange={e => setAiCfg({ ...aiCfg, examType: e.target.value })} className={smallCls}><option value="">ប្រភេទតេស្ត (មិនកំណត់)</option>{EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+            <input type="number" min={1} max={50} value={aiCfg.count} onChange={e => setAiCfg({ ...aiCfg, count: Math.max(1, Math.min(50, Number(e.target.value) || 1)) })} className={smallCls} title="ចំនួនសំណួរ (សម្រាប់ AI)" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button onClick={() => wordFileRef.current?.click()} disabled={busy} className="px-4 py-2.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-sm">{busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} នាំចូលផ្ទាល់ — រក្សាសំណួរដើម (គ្មាន AI)</button>
@@ -341,11 +357,21 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
             <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">កម្រិត</span><select value={draft.difficulty} onChange={e => setDraft({ ...draft, difficulty: e.target.value as Difficulty })} className={fieldCls}>{(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map(d => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}</select></label>
           </div>
 
-          <label className="block space-y-1">
-            <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">មេរៀន (ស្រេចចិត្ត)</span>
-            <input list="qb-lessons" value={draft.lesson} onChange={e => setDraft({ ...draft, lesson: e.target.value })} placeholder="ឧ. មេរៀនទី ៣" className={fieldCls} />
-            <datalist id="qb-lessons">{lessonsFor(draft.grade, draft.subject).map(l => <option key={l.id} value={l.title} />)}</datalist>
-          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className="block space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">មេរៀន (ស្រេចចិត្ត)</span>
+              <input list="qb-lessons" value={draft.lesson} onChange={e => setDraft({ ...draft, lesson: e.target.value })} placeholder="ឧ. មេរៀនទី ៣" className={fieldCls} />
+              <datalist id="qb-lessons">{lessonsFor(draft.grade, draft.subject).map(l => <option key={l.id} value={l.title} />)}</datalist>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">ខែ (ស្រេចចិត្ត)</span>
+              <select value={draft.month} onChange={e => setDraft({ ...draft, month: e.target.value })} className={fieldCls}><option value="">មិនកំណត់</option>{BANK_MONTHS.map(m => <option key={m} value={m}>ខែ{m}</option>)}</select>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">ប្រភេទតេស្ត (ស្រេចចិត្ត)</span>
+              <select value={draft.examType} onChange={e => setDraft({ ...draft, examType: e.target.value })} className={fieldCls}><option value="">មិនកំណត់</option>{EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
+            </label>
+          </div>
 
           {draft.type !== 'matching' && (
             <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">សំណួរ</span><textarea value={draft.prompt} onChange={e => setDraft({ ...draft, prompt: e.target.value })} rows={2} className={`${fieldCls} resize-y`} /></label>
@@ -391,6 +417,8 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
           <select value={fGrade} onChange={e => setFGrade(e.target.value)} className={smallCls}><option value="">ថ្នាក់ទាំងអស់</option>{gradeList.map(g => <option key={g} value={g}>{g}</option>)}</select>
           <select value={fSubject} onChange={e => setFSubject(e.target.value)} className={smallCls}><option value="">មុខវិជ្ជាទាំងអស់</option>{subjects.map(s => <option key={s} value={s}>{s}</option>)}</select>
           <select value={fType} onChange={e => setFType(e.target.value as WorksheetType | '')} className={smallCls}><option value="">ប្រភេទទាំងអស់</option>{(Object.keys(TYPE_LABELS) as WorksheetType[]).map(t => <option key={t} value={t}>{TYPE_LABELS[t]}</option>)}</select>
+          <select value={fMonth} onChange={e => setFMonth(e.target.value)} className={smallCls}><option value="">ខែទាំងអស់</option>{BANK_MONTHS.map(m => <option key={m} value={m}>ខែ{m}</option>)}</select>
+          <select value={fExamType} onChange={e => setFExamType(e.target.value)} className={smallCls}><option value="">ប្រភេទតេស្តទាំងអស់</option>{EXAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ស្វែងរក…" className={`${smallCls} flex-1 min-w-[120px]`} />
           {filtered.length > 0 && (
             <button onClick={removeAllFiltered} title="លុបសំណួរទាំងអស់ដែលកំពុងបង្ហាញ" className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 flex items-center gap-1">
@@ -415,7 +443,7 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
                   {q.source === 'ai' && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-200">AI</span>}
                 </div>
                 <div className="font-semibold text-slate-800 text-sm truncate">{q.type === 'matching' ? `ផ្គូផ្គង (${q.pairs?.length || 0} គូ)` : q.prompt}</div>
-                <div className="text-[11px] text-slate-400 font-semibold">{q.subject} · {q.grade} · {TYPE_LABELS[q.type]} · {DIFFICULTY_LABELS[q.difficulty]}{q.lesson ? ` · ${q.lesson}` : ''}</div>
+                <div className="text-[11px] text-slate-400 font-semibold">{q.subject} · {q.grade} · {TYPE_LABELS[q.type]} · {DIFFICULTY_LABELS[q.difficulty]}{q.lesson ? ` · ${q.lesson}` : ''}{q.month ? ` · ខែ${q.month}` : ''}{q.examType ? ` · ${q.examType}` : ''}</div>
                 {q.answer && q.type !== 'matching' && <p className="text-[12px] text-emerald-700 mt-0.5">✔ {q.answer}</p>}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
