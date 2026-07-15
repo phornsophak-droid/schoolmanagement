@@ -4,10 +4,9 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  FileText, 
-  Users, 
-  Award, 
+import {
+  Users,
+  Award,
   AlertCircle, 
   Calendar, 
   FolderOpen, 
@@ -370,15 +369,21 @@ export default function Dashboard({
   // this month. Score metrics (average/pass/fail) use the month-filtered set.
   const stats = useMemo(() => {
     // Enrolment: unique students by name+grade in scope, across all months.
+    // A student counts as a DROPOUT if ANY of their records is marked 'បោះបង់'
+    // (the status may have been set in a later month than the first record).
     const enrolledMap = new Map<string, StudentScore>();
+    const droppedKeys = new Set<string>();
     students.forEach(s => {
       if (!inCat(s.grade)) return;
       if (selectedGrade !== 'ទាំងអស់' && selectedGrade !== 'boldsymbol' && s.grade !== selectedGrade) return;
       const key = distinctStudentKey(s.name, s.grade);
       if (!enrolledMap.has(key)) enrolledMap.set(key, s);
+      if (s.status === 'បោះបង់') droppedKeys.add(key);
     });
     const enrolled = Array.from(enrolledMap.values());
-    const totalCount = enrolled.length;
+    const totalCount = enrolled.length;              // ចំនួនសិស្សដើមឆ្នាំ (everyone enrolled)
+    const dropoutCount = droppedKeys.size;           // សិស្សបោះបង់ការសិក្សា
+    const currentCount = totalCount - dropoutCount;  // សិស្សបច្ចុប្បន្ន
     const femaleCount = enrolled.filter(s => s.gender === 'ស្រី').length;
     const maleCount = totalCount - femaleCount;
 
@@ -400,6 +405,8 @@ export default function Dashboard({
 
     return {
       totalCount,
+      dropoutCount,
+      currentCount,
       femaleCount,
       maleCount,
       averageScore,
@@ -954,28 +961,21 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {/* KPI 1: Reports Count */}
-        <div id="kpi_reports" className="relative overflow-hidden bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-            <FileText size={24} />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-slate-400">{t('dash.kpi.reports')}</p>
-            <h3 className="text-2xl font-bold text-slate-800 mt-1 font-mono">{filteredReports.length} <span className="text-sm font-normal text-slate-500">{t('common.copies')}</span></h3>
-            <p className="text-[10px] text-slate-400 mt-1.5">{t('dash.kpi.reportsSub')}</p>
-          </div>
-        </div>
-
-        {/* KPI 2: Total Students */}
+      {/* KPI: Total Students — enrolment at the start of the year, dropouts, and
+          the resulting current head-count. */}
+      <div className="grid grid-cols-1 gap-6">
         <div id="kpi_students" className="relative overflow-hidden bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
             <Users size={24} />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-slate-400">{t('dash.kpi.students')}</p>
-            <h3 className="text-2xl font-bold text-slate-800 mt-1 font-mono">{stats.totalCount} <span className="text-sm font-normal text-slate-500">{t('common.persons')}</span></h3>
+            <h3 className="text-2xl font-bold text-slate-800 mt-1 font-mono">{stats.currentCount} <span className="text-sm font-normal text-slate-500">{t('common.persons')}</span></h3>
+            <div className="flex items-center gap-x-5 gap-y-1.5 mt-2.5 flex-wrap">
+              <span className="text-xs text-slate-500">សិស្សដើមឆ្នាំ៖ <span className="font-bold text-slate-700">{stats.totalCount}</span> {t('common.persons')}</span>
+              <span className="text-xs text-slate-500">បោះបង់ការសិក្សា៖ <span className="font-bold text-amber-600">{stats.dropoutCount}</span> {t('common.persons')}</span>
+              <span className="text-xs text-slate-500">សិស្សបច្ចុប្បន្ន៖ <span className="font-bold text-emerald-600">{stats.currentCount}</span> {t('common.persons')}</span>
+            </div>
             <div className="flex items-center gap-2 mt-1.5">
               <span className="text-xs text-slate-500">{t('common.female')}៖ <span className="font-bold text-rose-500">{stats.femaleCount}</span> {t('common.persons')}</span>
               <span className="text-slate-300">|</span>
