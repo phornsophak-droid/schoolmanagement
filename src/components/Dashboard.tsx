@@ -381,11 +381,20 @@ export default function Dashboard({
       if (s.status === 'បោះបង់') droppedKeys.add(key);
     });
     const enrolled = Array.from(enrolledMap.values());
-    const totalCount = enrolled.length;              // ចំនួនសិស្សដើមឆ្នាំ (everyone enrolled)
-    const dropoutCount = droppedKeys.size;           // សិស្សបោះបង់ការសិក្សា
-    const currentCount = totalCount - dropoutCount;  // សិស្សបច្ចុប្បន្ន
-    const femaleCount = enrolled.filter(s => s.gender === 'ស្រី').length;
+    const isDropped = (s: StudentScore) => droppedKeys.has(distinctStudentKey(s.name, s.grade));
+    const dropped = enrolled.filter(isDropped);        // សិស្សបោះបង់ការសិក្សា
+    const current = enrolled.filter(s => !isDropped(s)); // សិស្សបច្ចុប្បន្ន
+    const fem = (arr: StudentScore[]) => arr.filter(s => s.gender === 'ស្រី').length;
+
+    const totalCount = enrolled.length;                // ចំនួនសិស្សដើមឆ្នាំ (everyone enrolled)
+    const dropoutCount = dropped.length;
+    const currentCount = current.length;
+    const femaleCount = fem(enrolled);
     const maleCount = totalCount - femaleCount;
+    const dropoutFemale = fem(dropped);
+    const dropoutMale = dropoutCount - dropoutFemale;
+    const currentFemale = fem(current);
+    const currentMale = currentCount - currentFemale;
 
     // Score metrics: this month's results only.
     const uniqueStudentsMap = new Map<string, StudentScore>();
@@ -409,6 +418,10 @@ export default function Dashboard({
       currentCount,
       femaleCount,
       maleCount,
+      dropoutFemale,
+      dropoutMale,
+      currentFemale,
+      currentMale,
       averageScore,
       failCount,
       passCount,
@@ -961,28 +974,27 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* KPI: Total Students — enrolment at the start of the year, dropouts, and
-          the resulting current head-count. */}
-      <div className="grid grid-cols-1 gap-6">
-        <div id="kpi_students" className="relative overflow-hidden bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-            <Users size={24} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-slate-400">{t('dash.kpi.students')}</p>
-            <h3 className="text-2xl font-bold text-slate-800 mt-1 font-mono">{stats.currentCount} <span className="text-sm font-normal text-slate-500">{t('common.persons')}</span></h3>
-            <div className="flex items-center gap-x-5 gap-y-1.5 mt-2.5 flex-wrap">
-              <span className="text-xs text-slate-500">សិស្សដើមឆ្នាំ៖ <span className="font-bold text-slate-700">{stats.totalCount}</span> {t('common.persons')}</span>
-              <span className="text-xs text-slate-500">បោះបង់ការសិក្សា៖ <span className="font-bold text-amber-600">{stats.dropoutCount}</span> {t('common.persons')}</span>
-              <span className="text-xs text-slate-500">សិស្សបច្ចុប្បន្ន៖ <span className="font-bold text-emerald-600">{stats.currentCount}</span> {t('common.persons')}</span>
+      {/* KPI Cards — enrolment at the start of the year, dropouts, and the
+          resulting current head-count; each with its own ស្រី/ប្រុស split. */}
+      <div id="kpi_students" className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {([
+          { id: 'kpi_enrolled', label: 'សិស្សដើមឆ្នាំ', icon: <Users size={22} />, tone: 'bg-blue-50 text-blue-600', value: stats.totalCount, num: 'text-slate-800', f: stats.femaleCount, m: stats.maleCount },
+          { id: 'kpi_dropout', label: 'សិស្សបោះបង់ការសិក្សា', icon: <AlertCircle size={22} />, tone: 'bg-amber-50 text-amber-600', value: stats.dropoutCount, num: 'text-amber-600', f: stats.dropoutFemale, m: stats.dropoutMale },
+          { id: 'kpi_current', label: 'សិស្សបច្ចុប្បន្ន', icon: <UserCheck size={22} />, tone: 'bg-emerald-50 text-emerald-600', value: stats.currentCount, num: 'text-emerald-600', f: stats.currentFemale, m: stats.currentMale },
+        ]).map(c => (
+          <div key={c.id} id={c.id} className="relative overflow-hidden bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3.5">
+            <div className={`p-3 rounded-xl shrink-0 ${c.tone}`}>{c.icon}</div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-slate-400">{c.label}</p>
+              <h3 className={`text-2xl font-bold mt-1 font-mono ${c.num}`}>{c.value} <span className="text-sm font-normal text-slate-400">{t('common.persons')}</span></h3>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-[11px] text-slate-500">{t('common.female')}៖ <span className="font-bold text-rose-500">{c.f}</span></span>
+                <span className="text-slate-300">|</span>
+                <span className="text-[11px] text-slate-500">{t('common.male')}៖ <span className="font-bold text-blue-600">{c.m}</span></span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-xs text-slate-500">{t('common.female')}៖ <span className="font-bold text-rose-500">{stats.femaleCount}</span> {t('common.persons')}</span>
-              <span className="text-slate-300">|</span>
-              <span className="text-xs text-slate-500">{t('common.male')}៖ <span className="font-bold text-blue-600">{stats.maleCount}</span> {t('common.persons')}</span>
-            </div>
           </div>
-        </div>
+        ))}
       </div>
 
       {/* Main Analytics Layout */}
