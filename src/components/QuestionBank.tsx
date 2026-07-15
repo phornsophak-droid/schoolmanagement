@@ -96,7 +96,7 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
       })));
       setItems(loadQuestions());
       setAiPanel(false);
-      flash(`បានស្រង់ ${qs.length} សំណួរពី «${f.name}» → បន្ថែម ${added} ចូលធនាគារ (ព្រាង) ✓`);
+      flash(`«${f.name}» — AI ស្រង់បាន ${qs.length} · បន្ថែម ${added}${qs.length - added ? ` · រំលង ${qs.length - added} (ស្ទួន)` : ''} ✓`);
     } catch (err: any) {
       flash(err?.message || 'ស្រង់សំណួរមិនបាន — ត្រូវការ AI (Gemini/Ollama) សម្រាប់មុខវិជ្ជានេះ។', false);
     } finally { setBusy(false); }
@@ -137,8 +137,8 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
       setItems(loadQuestions());
       setAiPanel(false);
       flash(added
-        ? `បាននាំចូល ${added} សំណួរពី «${f.name}»${keyApplied ? ` + ចម្លើយ ${keyApplied} ពីអត្រាកំណែ` : ''} ✓`
-        : 'សំណួរទាំងនេះមានក្នុងធនាគាររួចហើយ។');
+        ? `«${f.name}» — រកឃើញ ${news.length} · បន្ថែម ${added}${news.length - added ? ` · រំលង ${news.length - added} (ស្ទួន)` : ''}${keyApplied ? ` · ចម្លើយ ${keyApplied} ពីអត្រាកំណែ` : ''} ✓`
+        : `រកឃើញ ${news.length} សំណួរ តែមានក្នុងធនាគាររួចហើយទាំងអស់។`);
     } catch (err: any) {
       flash(err?.message || 'អានឯកសារមិនបាន។', false);
     } finally { setBusy(false); }
@@ -199,7 +199,9 @@ export default function QuestionBank({ grades, currentUser, onClose, bank = ques
       }
       const added = await bulkAddQuestions(news);
       setItems(loadQuestions());
-      flash(added ? `បាននាំចូល ${added} សំណួរ (ព្រាង) ✓` : 'សំណួរទាំងនេះមានក្នុងធនាគាររួចហើយ ឬឯកសារគ្មានទិន្នន័យ។');
+      flash(added
+        ? `រកឃើញ ${news.length} · បន្ថែម ${added}${news.length - added ? ` · រំលង ${news.length - added} (ស្ទួន)` : ''} ✓`
+        : 'សំណួរទាំងនេះមានក្នុងធនាគាររួចហើយ ឬឯកសារគ្មានទិន្នន័យ។');
     } catch (err: any) {
       flash(err?.message || 'អានឯកសារ Excel/CSV មិនបាន។', false);
     } finally { setBusy(false); }

@@ -298,12 +298,21 @@ const KH_DIGITS = '០១២៣៤៥៦៧៨៩';
 const keyNum = (s: string): number => Number([...s].map(c => (KH_DIGITS.indexOf(c) >= 0 ? KH_DIGITS.indexOf(c) : c)).join(''));
 
 // "១. ក ២. ខ" / "1) B\n2) C" / "៣- សាលា" → Map(question number → raw answer).
+//
+// Real keys glue each entry onto the previous answer's text —
+// "១. មាតុភូមិ - A. [មា-តុ-ភូម]២. សេវាកម្ម - B. …" — so whitespace before the
+// number cannot be required. Instead the numbers must COUNT UP 1,2,3,…: a digit
+// inside an answer ("រូបភាពទី៥)") doesn't fit the running sequence and is
+// ignored, which is what keeps the glued scan honest.
 export function parseAnswerKey(keyText: string): Map<number, string> {
   const out = new Map<number, string>();
-  const re = /(^|[\s\n])([0-9០-៩]{1,3})\s*[.)។៖:\-]\s*/g;
-  const marks: { num: number; start: number; end: number }[] = [];
+  const re = /([0-9០-៩]{1,3})\s*[.)។៖:\-]\s*/g;
+  const cands: { num: number; start: number; end: number }[] = [];
   let m: RegExpExecArray | null;
-  while ((m = re.exec(keyText))) marks.push({ num: keyNum(m[2]), start: m.index + m[1].length, end: re.lastIndex });
+  while ((m = re.exec(keyText))) cands.push({ num: keyNum(m[1]), start: m.index, end: re.lastIndex });
+  const marks: { num: number; start: number; end: number }[] = [];
+  let expect = 1;
+  for (const c of cands) if (c.num === expect) { marks.push(c); expect++; }
   for (let i = 0; i < marks.length; i++) {
     const valEnd = i + 1 < marks.length ? marks[i + 1].start : keyText.length;
     const val = keyText.slice(marks[i].end, valEnd).replace(/\s+/g, ' ').trim();
@@ -311,6 +320,10 @@ export function parseAnswerKey(keyText: string): Map<number, string> {
   }
   return out;
 }
+
+// A key entry is often more than a bare label — "មាតុភូមិ - A. [មា-តុ-ភូម]"
+// recaps the question, then gives the label AND the option text. Pull both out.
+const KEY_ENTRY_RE = /[-–—]\s*[(（]?([A-Ha-hក-អ])[)）]?\s*[.)．៖:]\s*(.*)$/;
 
 // Fill each question's answer from the key (an inline "ចម្លើយ៖" always wins).
 // Labels (ក/A) resolve to the option text; free text is kept verbatim.
@@ -321,7 +334,17 @@ export function applyAnswerKey(questions: WSQuestion[], key: Map<number, string>
     if (q.answer) return;
     const raw = key.get(i + 1);
     if (!raw) return;
-    q.answer = resolveAnswer(raw, q.options || []) || raw;
+    const opts = q.options || [];
+    const m = raw.match(KEY_ENTRY_RE);
+    if (m) {
+      // Multiple choice: trust the label and resolve it against this question's
+      // own options (their order may differ from the key's). With no options the
+      // text after the label IS the answer — the recap before it is not.
+      const [, label, tail] = m;
+      q.answer = (opts.length >= 2 ? resolveAnswer(label, opts) : '') || tail.trim() || raw;
+    } else {
+      q.answer = resolveAnswer(raw, opts) || raw;
+    }
     applied++;
   });
   return applied;

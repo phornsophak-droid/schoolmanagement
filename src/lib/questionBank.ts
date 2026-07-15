@@ -41,6 +41,17 @@ export const EXAM_TYPES = ['តេស្តប្រចាំខែ', 'ប្រ
 
 const uuid = (): string => ((crypto as any).randomUUID ? crypto.randomUUID() : `q-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 
+// Identity of a question for duplicate detection. The OPTIONS (and matching
+// pairs) are part of it, not just the prompt: real exams reuse one generic stem
+// — "ចូរជ្រើសរើសចម្លើយត្រឹមត្រូវ។" — across many questions that differ only in
+// their choices, and keying on the prompt alone silently swallowed those.
+const dupKey = (q: Pick<BankQuestion, 'grade' | 'subject' | 'type' | 'prompt' | 'options' | 'pairs'>): string => [
+  q.grade, q.subject, q.type,
+  (q.prompt || '').trim(),
+  (q.options || []).map(o => (o || '').trim()).join('~'),
+  (q.pairs || []).map(p => `${(p.left || '').trim()}>${(p.right || '').trim()}`).join('~'),
+].join('|');
+
 const shuffle = <T>(a: T[]): T[] => {
   const out = [...a];
   for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
@@ -105,16 +116,16 @@ function makeBank(KEY: string): BankApi {
     return persistAll(loadQuestions().filter(q => !drop.has(q.id)));
   };
 
-  // Add many AI/imported questions at once. De-dupes on identical prompt within the
-  // same grade+subject+type. Returns how many were actually added.
+  // Add many AI/imported questions at once, skipping exact duplicates. Returns how
+  // many were actually added (callers report qs.length - added as skipped).
   const bulkAddQuestions = async (qs: Omit<BankQuestion, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<number> => {
     if (!qs.length) return 0;
     const list = loadQuestions();
-    const seen = new Set(list.map(q => `${q.grade}|${q.subject}|${q.type}|${(q.prompt || '').trim()}`));
+    const seen = new Set(list.map(dupKey));
     const now = new Date().toISOString();
     let added = 0;
     for (const q of qs) {
-      const key = `${q.grade}|${q.subject}|${q.type}|${(q.prompt || '').trim()}`;
+      const key = dupKey(q);
       if (q.prompt && seen.has(key)) continue;
       seen.add(key);
       list.unshift({ ...q, id: uuid(), createdAt: now, updatedAt: now });
