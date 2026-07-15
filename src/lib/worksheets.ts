@@ -150,23 +150,24 @@ function strictLabelMarks(norm: string): { idx: number; end: number }[] {
   return marks;
 }
 
-// GLUED labels: "…។A. ថ្ងៃB. ព្រឹកC. យប់" — Word/PDF extraction often loses the
-// space BEFORE an option label, so strictLabelMarks (which requires whitespace
-// there) misses some or all options and they stay glued inside the prompt.
-// Accept a label directly preceded by any NON-ASCII char (Khmer letter, ។, »,
-// …), but ONLY when the labels form a sequence starting at A/ក — that sequence
-// requirement keeps ordinary words from being mistaken for options.
+// GLUED labels: "…ស្មើនឹង៖A. 0.9 kgB. 0.9 gC. 9.0 g" — Word/PDF extraction often
+// loses the space BEFORE an option label, so strictLabelMarks (which requires
+// whitespace there) misses some or all options and they stay glued inside the
+// prompt. Here a label may be preceded by ANYTHING — a Khmer letter, ។, ៖, or a
+// latin unit like "kg" — because real papers glue after both scripts.
+//
+// The safety net is the SEQUENCE requirement below: candidates only become
+// options when their letters run ក,ខ,គ… / A,B,C… starting at the first, so a
+// stray letter+punctuation inside the prompt (e.g. "…នឹង៖" → ង) is dropped.
 function gluedLabelMarks(norm: string): { idx: number; end: number }[] {
-  const re = /([^\x00-\x7F]|^|[\s\]])[(（]?((?:[A-Ha-h])|[ក-អ])[.)）．៖:]\s*/g;
+  const re = /[(（]?((?:[A-Ha-h])|[ក-អ])[.)）．៖:]\s*/g;
   const cands: { start: number; end: number; seq: number }[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(norm))) {
-    const letter = m[2];
+    const letter = m[1];
     let seq = KH_OPT.indexOf(letter);
     if (seq < 0 && /^[A-Ha-h]$/.test(letter)) seq = letter.toUpperCase().charCodeAt(0) - 65;
-    cands.push({ start: m.index + m[1].length, end: re.lastIndex, seq });
-    // Allow the NEXT label to sit right after this one (re.exec continues from
-    // lastIndex, which is fine — labels never overlap).
+    cands.push({ start: m.index, end: re.lastIndex, seq });
   }
   const marks: { idx: number; end: number }[] = [];
   let expect = 0;

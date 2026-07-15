@@ -24,6 +24,11 @@ import SchoolLogo from './SchoolLogo';
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 const fmtClock = (sec: number) => `${toKh(String(Math.floor(sec / 60)).padStart(2, '0'))}:${toKh(String(sec % 60).padStart(2, '0'))}`;
 
+// The printed exam lays short choices out in two columns. Follow it only when
+// EVERY option is short, so nothing wraps mid-answer.
+const twoColumnOptions = (options?: string[]): boolean =>
+  !!options && options.length >= 3 && options.every(o => (o || '').length <= 24);
+
 // Render a prompt with dot/underscore blank runs ("……………" / "____") as a clean
 // styled gap instead of a ragged string of dots.
 const renderPrompt = (s: string): React.ReactNode[] =>
@@ -375,13 +380,16 @@ function QuizRunner({ test, cls, studentName, onDone }: RunnerProps) {
             </div>
 
             {q.type === 'multiple_choice' && (
-              <div className="space-y-2.5">
+              // Mirror the printed exam: short answers (15 g / 1500 g) sit in TWO
+              // columns — ក ខ on the first row, គ ឃ on the second. Long options
+              // would be cramped side by side, so those stay full width.
+              <div className={`grid gap-2.5 ${twoColumnOptions(q.options) ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
                 {(q.options || []).map((o, i) => {
                   const chosen = answers[q.id] === o;
                   return (
                     <button key={i} onClick={() => setAnswer(q.id, o)}
                       className={`w-full text-left px-4 py-3.5 rounded-2xl border-2 text-[15px] font-semibold flex items-center gap-3 transition-all active:scale-[0.99] ${chosen ? 'bg-indigo-50 border-indigo-500 text-indigo-800 shadow-md' : 'bg-white border-slate-150 text-slate-700 shadow-sm hover:border-indigo-300 hover:bg-indigo-50/40'}`}>
-                      <span className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${chosen ? 'bg-indigo-600 text-white' : 'bg-slate-100 border border-slate-200 text-slate-500'}`}>{'កខគឃងចឆជ'[i] || toKh(i + 1)}</span>
+                      <span className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${chosen ? 'bg-indigo-600 text-white' : 'bg-white border-2 border-slate-300 text-slate-500'}`}>{'កខគឃងចឆជ'[i] || toKh(i + 1)}</span>
                       <span className="flex-1">{o}</span>
                       {chosen && <CheckCircle2 size={18} className="shrink-0 text-indigo-600" />}
                     </button>
