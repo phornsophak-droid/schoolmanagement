@@ -1606,7 +1606,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <ClipboardCheck size={16} className={activeView === 'standardtests' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>តេស្តស្តង់ដា</span>
+              <span>តេស្តអនឡាញ (Online)</span>
             </div>
           </button>
 
@@ -1923,7 +1923,7 @@ export default function App() {
                 >
                   <div className="flex items-center gap-3">
                     <ClipboardCheck size={16} />
-                    <span>តេស្តស្តង់ដា</span>
+                    <span>តេស្តអនឡាញ (Online)</span>
                   </div>
                 </button>
 
