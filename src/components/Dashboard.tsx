@@ -649,21 +649,28 @@ export default function Dashboard({
       : d.slice(0, 4) === yearKey;
     const scopeLabel = reasonChartMode === 'daily' ? (effectiveDailyDate || '—')
       : reasonChartMode === 'monthly' ? monthKey : yearKey;
-    const counts: Record<string, number> = {};
-    let total = 0;
+    // Each reason is split by shift (វេនព្រឹក / វេនរសៀល). Only general classes have
+    // two shifts — extra classes are single-session, so their split is not shown.
+    const counts: Record<string, { count: number; morning: number; afternoon: number }> = {};
+    let total = 0, totalMorning = 0, totalAfternoon = 0;
     attendanceRecords.forEach(rec => {
       if (!rec.studentStates || !inScope(rec.date) || !inCat(rec.grade) || !inSession(rec) || !inGradeScope(rec.grade)) return;
+      const sess = recSession(rec);
       Object.entries(rec.studentStates).forEach(([sId, status]) => {
         if (sId.endsWith('_reason')) return;
         if (status !== 'late' && status !== 'permission' && status !== 'absent') return;
         const reason = (((rec.studentStates as any)[sId + '_reason'] as string) || '').trim() || 'មិនបានបញ្ជាក់មូលហេតុ';
-        counts[reason] = (counts[reason] || 0) + 1;
+        const c = counts[reason] || (counts[reason] = { count: 0, morning: 0, afternoon: 0 });
+        c.count++; c[sess]++;
         total++;
+        if (sess === 'morning') totalMorning++; else totalAfternoon++;
       });
     });
-    const rows = Object.entries(counts).map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count);
+    const rows = Object.entries(counts)
+      .map(([reason, c]) => ({ reason, count: c.count, morning: c.morning, afternoon: c.afternoon }))
+      .sort((a, b) => b.count - a.count);
     const max = rows.reduce((m, r) => Math.max(m, r.count), 0);
-    return { rows, total, max, monthKey, scopeLabel };
+    return { rows, total, totalMorning, totalAfternoon, max, monthKey, scopeLabel };
   }, [attendanceRecords, effectiveDailyDate, reasonChartMode, classCategory, selectedDashSession, selectedGrade]);
 
   // Generate a clean, branded printable daily-absentee report (Save as PDF) via a hidden iframe.
@@ -1294,23 +1301,56 @@ export default function Dashboard({
 
           {absenceReasonStats.rows.length > 0 ? (
             <div className="space-y-3">
+              {/* Shift legend — general classes only (extra classes are single-session). */}
+              {classCategory === 'general' && (
+                <div className="flex items-center justify-end gap-4 pb-1 text-[11px] font-bold">
+                  <span className="flex items-center gap-1.5 text-slate-500">
+                    <span className="w-3 h-3 rounded-sm" style={{ background: '#6366f1' }} /> វេនព្រឹក
+                    <span className="text-slate-400 font-semibold">({absenceReasonStats.totalMorning})</span>
+                  </span>
+                  <span className="flex items-center gap-1.5 text-slate-500">
+                    <span className="w-3 h-3 rounded-sm" style={{ background: '#f59e0b' }} /> វេនរសៀល
+                    <span className="text-slate-400 font-semibold">({absenceReasonStats.totalAfternoon})</span>
+                  </span>
+                </div>
+              )}
               {absenceReasonStats.rows.map((row, idx) => {
                 const palette = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#14b8a6'];
                 const color = palette[idx % palette.length];
                 const pct = absenceReasonStats.max > 0 ? (row.count / absenceReasonStats.max) * 100 : 0;
                 const pctTotal = absenceReasonStats.total > 0 ? Math.round((row.count / absenceReasonStats.total) * 100) : 0;
+                const bySession = classCategory === 'general';
                 return (
                   <div key={row.reason} className="flex items-center gap-3">
                     <div className="w-[44%] md:w-[34%] shrink-0 text-[11.5px] font-semibold text-slate-700 text-right truncate" title={row.reason}>{row.reason}</div>
                     <div className="flex-1 bg-slate-100 rounded-full h-6 overflow-hidden">
-                      <div
-                        className="h-full rounded-full flex items-center justify-end px-2 transition-all duration-500"
-                        style={{ width: `${Math.max(pct, 9)}%`, background: color }}
-                      >
-                        <span className="text-[11px] font-black text-white">{row.count}</span>
-                      </div>
+                      {bySession ? (
+                        // Stacked: morning + afternoon segments make up the reason's total.
+                        <div className="h-full rounded-full overflow-hidden flex transition-all duration-500" style={{ width: `${Math.max(pct, 9)}%` }}>
+                          {row.morning > 0 && (
+                            <div className="h-full flex items-center justify-center" style={{ width: `${(row.morning / row.count) * 100}%`, background: '#6366f1' }} title={`វេនព្រឹក៖ ${row.morning}`}>
+                              <span className="text-[10.5px] font-black text-white px-1">{row.morning}</span>
+                            </div>
+                          )}
+                          {row.afternoon > 0 && (
+                            <div className="h-full flex items-center justify-center" style={{ width: `${(row.afternoon / row.count) * 100}%`, background: '#f59e0b' }} title={`វេនរសៀល៖ ${row.afternoon}`}>
+                              <span className="text-[10.5px] font-black text-white px-1">{row.afternoon}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div
+                          className="h-full rounded-full flex items-center justify-end px-2 transition-all duration-500"
+                          style={{ width: `${Math.max(pct, 9)}%`, background: color }}
+                        >
+                          <span className="text-[11px] font-black text-white">{row.count}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="w-10 shrink-0 text-[11px] font-bold text-slate-500 text-right">{pctTotal}%</div>
+                    <div className="w-16 shrink-0 text-right">
+                      <span className="text-[11px] font-black text-slate-700">{row.count}</span>
+                      <span className="text-[11px] font-bold text-slate-400"> · {pctTotal}%</span>
+                    </div>
                   </div>
                 );
               })}
