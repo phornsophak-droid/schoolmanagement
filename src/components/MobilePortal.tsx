@@ -34,7 +34,8 @@ import {
   ChevronRight,
   Shield,
   Upload,
-  RefreshCw
+  RefreshCw,
+  ClipboardCheck
 } from 'lucide-react';
 import { StudentScore, SchoolUser, SchoolReport } from '../types';
 import ClassStudentMgmt from './ClassStudentMgmt';
@@ -43,6 +44,7 @@ import Gradebook from './Gradebook';
 import DailyAttendance from './DailyAttendance';
 import Dashboard from './Dashboard';
 import WorksheetGenerator from './WorksheetGenerator';
+import StandardTests from './StandardTests';
 import { SchoolLogo } from './SchoolLogo';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 import { Announcement, loadAnnouncements, refreshAnnouncementsFromCloud, saveAnnouncement, deleteAnnouncement, relativeKhmerDate } from '../lib/announcements';
@@ -806,6 +808,35 @@ export default function MobilePortal({
                     </span>
                   </button>
 
+                  {/* Button 9: តេស្តអនឡាញ (Online) */}
+                  <button
+                    onClick={() => setInnerView('standardtests')}
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 shadow-sm hover:bg-emerald-50/50 hover:border-emerald-200 active:scale-97 transition-all cursor-pointer min-h-[115px] relative"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <ClipboardCheck className="w-4.5 h-4.5 text-blue-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG Illustration — tablet with a ticked answer sheet */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="28" y="22" width="64" height="76" rx="7" fill="#FFFFFF" stroke="#2563EB" strokeWidth="1.5" />
+                        <rect x="34" y="30" width="52" height="52" rx="3" fill="#EFF6FF" />
+                        <circle cx="44" cy="42" r="4" fill="#FFFFFF" stroke="#2563EB" strokeWidth="1.5" />
+                        <path d="M42,42 L43.5,44 L46.5,40" stroke="#16A34A" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        <line x1="53" y1="42" x2="78" y2="42" stroke="#93C5FD" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="44" cy="56" r="4" fill="#FFFFFF" stroke="#2563EB" strokeWidth="1.5" />
+                        <line x1="53" y1="56" x2="78" y2="56" stroke="#93C5FD" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="44" cy="70" r="4" fill="#FFFFFF" stroke="#2563EB" strokeWidth="1.5" />
+                        <path d="M42,70 L43.5,72 L46.5,68" stroke="#16A34A" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        <line x1="53" y1="70" x2="70" y2="70" stroke="#93C5FD" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="60" cy="90" r="3.5" fill="#BFDBFE" />
+                      </svg>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-blue-950 leading-tight">
+                      តេស្តអនឡាញ
+                    </span>
+                  </button>
+
                 </div>
 
                 {/* Khmer Traditional Custom Footer inside Home Dashboard view */}
@@ -1449,6 +1480,35 @@ export default function MobilePortal({
                   >
                     ត្រឡប់ក្រោយ
                   </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ONLINE TEST VIEW (តេស្តអនឡាញ) */}
+            {innerView === 'standardtests' && (
+              <motion.div
+                key="standardtests"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-10 bg-[#F8FAFC] flex flex-col p-3 overflow-hidden"
+              >
+                <div className="border-b border-emerald-250/50 pb-2 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-emerald-950">តេស្តអនឡាញ (Online)</h3>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-0 border border-emerald-100 text-slate-800 overflow-auto w-full flex-1 mt-2 relative">
+                  <StandardTests
+                    grades={grades}
+                    currentUser={currentUser}
+                    onClose={() => setInnerView('home')}
+                  />
                 </div>
               </motion.div>
             )}
