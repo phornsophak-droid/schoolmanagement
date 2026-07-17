@@ -48,7 +48,8 @@ import StandardTests from './StandardTests';
 import { SchoolLogo } from './SchoolLogo';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 import { Announcement, loadAnnouncements, refreshAnnouncementsFromCloud, saveAnnouncement, deleteAnnouncement, relativeKhmerDate } from '../lib/announcements';
-import { sendAnnouncementToTelegram } from '../utils/reportSubmit';
+import { sendAnnouncementToTelegram, sendClassNoticeToTelegram } from '../utils/reportSubmit';
+import { toKh } from '../utils/schoolSummary';
 
 // Force-load the newest deployed build. A plain reload can return a cached page
 // (HTTP cache or a service worker), so first drop any service workers + Cache
@@ -404,6 +405,31 @@ export default function MobilePortal({
   useEffect(() => { refreshAnnouncementsFromCloud().then(setAnnouncements); }, []);
 
   const isPrincipal = currentUser?.role === 'principal';
+
+  // ---- Class notice (teacher → their OWN class's parents, via the bot only) ----
+  const isClassTeacher = currentUser?.role === 'teacher' && !!currentUser?.grade && currentUser.grade !== 'ទាំងអស់';
+  const [noticeText, setNoticeText] = useState('');
+  const [noticeBusy, setNoticeBusy] = useState(false);
+  const [noticeStatus, setNoticeStatus] = useState<{ msg: string; ok: boolean } | null>(null);
+  const sendClassNotice = async () => {
+    const msg = noticeText.trim();
+    if (!msg || noticeBusy || !currentUser?.grade) return;
+    setNoticeBusy(true); setNoticeStatus(null);
+    try {
+      const r = await sendClassNoticeToTelegram(msg, [currentUser.grade]);
+      if (r.ok) {
+        setNoticeStatus({ msg: `បានផ្ញើទៅមាតាបិតា ${toKh(r.sent ?? 0)} នាក់ ✓`, ok: true });
+        setNoticeText('');
+      } else {
+        setNoticeStatus({
+          msg: r.error === 'no-linked-parents' ? 'គ្មានមាតាបិតាណាភ្ជាប់ Bot ក្នុងថ្នាក់នេះទេ។'
+            : r.error === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram។'
+            : `ផ្ញើមិនបាន៖ ${r.error || ''}`,
+          ok: false,
+        });
+      }
+    } finally { setNoticeBusy(false); }
+  };
 
   const publishAnnouncement = async () => {
     if (annBusy) return;
@@ -1558,6 +1584,34 @@ export default function MobilePortal({
                   </button>
                   <h3 className="text-xs font-bold text-emerald-950">🔔 ជូនដំណឹង</h3>
                 </div>
+
+                {/* Class-teacher composer — a private message to THIS class's parents
+                    via the bot. Never posts to the school-wide group. */}
+                {isClassTeacher && (
+                  <div className="bg-white rounded-2xl p-3 border border-blue-100 space-y-2">
+                    <p className="text-[10px] font-bold text-blue-700 flex items-center gap-1.5">
+                      <Send size={11} /> ជូនដំណឹងដល់មាតាបិតា — {currentUser?.grade}
+                    </p>
+                    <textarea
+                      value={noticeText}
+                      onChange={e => setNoticeText(e.target.value)}
+                      rows={3}
+                      placeholder="សរសេរសារជូនមាតាបិតាថ្នាក់របស់អ្នក…"
+                      className="w-full px-2.5 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-blue-400 resize-y leading-relaxed"
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[9px] text-slate-400">📩 ផ្ញើតាម Chat Bot ឯកជន (មិនចូល Group)</span>
+                      <button
+                        onClick={sendClassNotice}
+                        disabled={noticeBusy || !noticeText.trim()}
+                        className="px-3 py-1.5 text-[11px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white flex items-center gap-1.5"
+                      >
+                        <Send size={12} /> {noticeBusy ? 'កំពុងផ្ញើ…' : 'ផ្ញើ'}
+                      </button>
+                    </div>
+                    {noticeStatus && <p className={`text-[9.5px] font-bold pt-0.5 ${noticeStatus.ok ? 'text-emerald-600' : 'text-rose-600'}`}>{noticeStatus.msg}</p>}
+                  </div>
+                )}
 
                 {/* Principal composer — write & publish an announcement to every device. */}
                 {isPrincipal && (

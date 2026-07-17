@@ -49,11 +49,19 @@ export default async function handler(req: Req, res: Res) {
 
   // target=teacher → the TEACHERS' group (work reports); default = parent group.
   const target = body.target === 'teacher' ? 'teacher' : 'parent';
+  // A CLASS notice: a teacher messaging only their own class's parents. It goes to
+  // those parents' private bot chats and NEVER to the school-wide group, so one
+  // class's notice can't reach every parent. `grades` scopes the fan-out.
+  const grades: string[] = Array.isArray(body.grades) ? body.grades.map((g: any) => String(g)).filter(Boolean) : [];
+  const privateOnly = body.privateOnly === true && target === 'parent';
+  if (privateOnly && !grades.length) { res.status(400).json({ error: 'class notice needs grades' }); return; }
+
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const groupId = target === 'teacher'
     ? process.env.TELEGRAM_TEACHER_GROUP_CHAT_ID
     : process.env.TELEGRAM_GROUP_CHAT_ID;
-  if (!token || !groupId) { res.status(500).json({ error: 'bot token / group id not configured' }); return; }
+  if (!token) { res.status(500).json({ error: 'bot token not configured' }); return; }
+  if (!privateOnly && !groupId) { res.status(500).json({ error: 'bot token / group id not configured' }); return; }
 
   // Robustly extract the base64 payload from a data URL. jsPDF's datauristring is
   // "data:application/pdf;filename=generated.pdf;base64,..." — a strict prefix
@@ -98,7 +106,9 @@ export default async function handler(req: Req, res: Res) {
       const r = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: 'POST', body: form });
       return r.json();
     }
-    const header = target === 'teacher' ? '📋 <b>របាយការណ៍ការងារគ្រូ</b>' : '📢 <b>សេចក្តីជូនដំណឹង</b>';
+    const header = target === 'teacher' ? '📋 <b>របាយការណ៍ការងារគ្រូ</b>'
+      : privateOnly ? `📢 <b>ជូនដំណឹងពីគ្រូបន្ទុកថ្នាក់</b>\n<i>${escapeHtml(grades.join(', '))}</i>`
+      : '📢 <b>សេចក្តីជូនដំណឹង</b>';
     const text = `${header}\n\n${escapeHtml(message)}\n\n— សាលាសហគមន៍ច្បារច្រុះ`;
     const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
@@ -109,31 +119,44 @@ export default async function handler(req: Req, res: Res) {
   };
 
   try {
-    // If a plain group was upgraded to a SUPERGROUP its chat id changed; Telegram
-    // rejects the old id and returns the new one in parameters.migrate_to_chat_id.
-    // Retry once with the migrated id so the send still lands (env var can stay).
-    let data = await sendTo(String(groupId));
-    const migrated = data?.parameters?.migrate_to_chat_id;
-    if (!data.ok && migrated) data = await sendTo(String(migrated));
-    if (!data.ok) { res.status(502).json({ error: data.description || 'telegram error' }); return; }
+    // A class notice never touches the school-wide group — it only fans out to that
+    // class's parents below. Everything else posts to the group first.
+    let data: any = { ok: true };
+    if (!privateOnly) {
+      // If a plain group was upgraded to a SUPERGROUP its chat id changed; Telegram
+      // rejects the old id and returns the new one in parameters.migrate_to_chat_id.
+      // Retry once with the migrated id so the send still lands (env var can stay).
+      data = await sendTo(String(groupId));
+      const migrated = data?.parameters?.migrate_to_chat_id;
+      if (!data.ok && migrated) data = await sendTo(String(migrated));
+      if (!data.ok) { res.status(502).json({ error: data.description || 'telegram error' }); return; }
+    }
 
-    // Also deliver to each linked parent's PRIVATE chat with the bot, so parents
-    // who don't watch the group still receive it — but ONLY for general notices
-    // (the composer sets alsoPrivate). Per-student data (absence records / reasons)
-    // must NOT fan out privately, or one child's data reaches every parent. Parents
-    // only; teacher reports stay group-only. Best-effort — the group send already
-    // succeeded, so a fan-out failure doesn't fail the request.
+    // Deliver to each linked parent's PRIVATE chat with the bot, so parents who
+    // don't watch the group still receive it — but ONLY for general notices (the
+    // composer sets alsoPrivate) or a class notice. Per-student data (absence
+    // records / reasons) must NOT fan out privately, or one child's data reaches
+    // every parent. Parents only; teacher reports stay group-only. When `grades` is
+    // set the fan-out is limited to parents whose linked child is in those classes.
     let privateSent = 0;
-    if (target === 'parent' && body.alsoPrivate === true) {
+    if (target === 'parent' && (body.alsoPrivate === true || privateOnly)) {
       try {
         const db = getAdmin();
         if (db) {
-          const { data: links } = await db.from('telegram_links').select('chat_id');
-          const groupIdStr = String(groupId);
+          let q = db.from('telegram_links').select('chat_id, grade');
+          if (grades.length) q = q.in('grade', grades);
+          const { data: links } = await q;
+          const groupIdStr = String(groupId || '');
           const chatIds = [...new Set((links || []).map((l: any) => String(l.chat_id)).filter(Boolean))]
             .filter(id => id !== groupIdStr);
           const results = await Promise.allSettled(chatIds.map(id => sendTo(id)));
           privateSent = results.filter(r => r.status === 'fulfilled' && (r.value as any)?.ok).length;
+          // A class notice that reached nobody is a real failure — tell the teacher
+          // rather than silently reporting success.
+          if (privateOnly && privateSent === 0) {
+            res.status(200).json({ ok: false, error: 'no-linked-parents', privateSent: 0 });
+            return;
+          }
         }
       } catch { /* private fan-out is best-effort */ }
     }

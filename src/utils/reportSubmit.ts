@@ -130,6 +130,30 @@ export async function sendAnnouncementToTelegram(message: string): Promise<{ ok:
   }
 }
 
+// A CLASS notice: a teacher messaging only their OWN class's parents. It reaches
+// those parents' private bot chats and never the school-wide group. `grades` scopes
+// the fan-out server-side (parents whose linked child is in one of those classes).
+export async function sendClassNoticeToTelegram(message: string, grades: string[]): Promise<{ ok: boolean; error?: string; sent?: number }> {
+  if (!grades.length) return { ok: false, error: 'no-grades' };
+  const secret = await resolveAnnounceSecret();
+  if (!secret) return { ok: false, error: 'no-secret' };
+  try {
+    const res = await fetch('/api/telegram-announce', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target: 'parent', message, secret, privateOnly: true, grades }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) return { ok: true, sent: data.privateSent };
+    if (data.error === 'unauthorized') {
+      try { localStorage.removeItem(SECRET_KEY); } catch { /* ignore */ }
+      Promise.resolve(syncUpsertSetting(SECRET_KEY, '')).catch(() => { /* offline */ });
+    }
+    return { ok: false, error: data.error || String(res.status) };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'failed' };
+  }
+}
+
 // Post a ready-made PNG data URL (e.g. a rendered on-screen panel) to a Telegram
 // group as a photo, so it keeps the exact on-screen look. Reuses the same secret
 // resolution as report submission.
