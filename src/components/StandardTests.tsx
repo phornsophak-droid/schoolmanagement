@@ -15,6 +15,7 @@ import {
 import { SchoolUser } from '../types';
 import { standardTestBank, BankQuestion, BANK_MONTHS, EXAM_TYPES } from '../lib/questionBank';
 import { TYPE_LABELS } from '../lib/worksheets';
+import { niddesColor } from '../utils/scoring';
 import { curriculumSubjects, refreshCurriculumFromCloud } from '../lib/curriculum';
 import {
   StandardTest, TestSubmission, uuid,
@@ -38,6 +39,19 @@ const STATUS_UI: Record<StandardTest['status'], { label: string; cls: string }> 
 
 // Used when the (blank-able) រយៈពេល field is left empty.
 const DEFAULT_DURATION_MIN = 10;
+
+// Official niddes scale (A≥9 … F<5 on /10) — the score is a fraction of maxScore,
+// so scale it to /10 first. Mirrors the bands used by the report cards/rankings.
+const NIDDES_BAND: Record<string, string> = { A: 'ល្អប្រសើរ', B: 'ល្អណាស់', C: 'ល្អ', D: 'ល្អបង្គួរ', E: 'មធ្យម', F: 'ខ្សោយ' };
+const letterOfPct = (pct: number): string => {
+  const v = pct / 10; // percent → /10 scale
+  if (v >= 9) return 'A';
+  if (v >= 8) return 'B';
+  if (v >= 7) return 'C';
+  if (v >= 6) return 'D';
+  if (v >= 5) return 'E';
+  return 'F';
+};
 
 export default function StandardTests({ grades, currentUser, onClose }: Props) {
   const [tab, setTab] = useState<'tests' | 'bank'>('tests');
@@ -284,22 +298,34 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
                   <table className="w-full text-[12px]">
                     <thead><tr className="text-left text-slate-400 border-b border-slate-100">
                       <th className="py-1.5 pr-2">ឈ្មោះ</th><th className="py-1.5 pr-2">ថ្នាក់</th>
-                      <th className="py-1.5 pr-2 text-right">ពិន្ទុ</th><th className="py-1.5 pr-2 text-right">រយៈពេល</th>
+                      <th className="py-1.5 pr-2 text-right">ពិន្ទុ</th>
+                      <th className="py-1.5 pr-2 text-right">ភាគរយ</th>
+                      <th className="py-1.5 pr-2 text-center">និទ្ទេស</th>
+                      <th className="py-1.5 pr-2 text-right">រយៈពេល</th>
                       <th className="py-1.5 pr-2 text-center" title="ចំនួនដងចាកចេញពី Tab">⚠ Tab</th><th className="py-1.5 text-center">ស្ថានភាព</th>
                     </tr></thead>
                     <tbody>
-                      {subs.map(s => (
+                      {subs.map(s => {
+                        const pct = s.maxScore > 0 ? Math.round((s.score / s.maxScore) * 100) : 0;
+                        const letter = letterOfPct(pct);
+                        return (
                         <tr key={s.id} className="border-b border-slate-50">
                           <td className="py-2 pr-2 font-semibold text-slate-700">{s.studentName}</td>
                           <td className="py-2 pr-2 text-slate-500">{s.grade}</td>
                           <td className="py-2 pr-2 text-right font-bold text-slate-800">{toKh(s.score)}/{toKh(s.maxScore)}</td>
+                          <td className="py-2 pr-2 text-right font-bold text-slate-600">{toKh(pct)}%</td>
+                          <td className="py-2 pr-2 text-center">
+                            <span className="font-black" style={{ color: niddesColor(letter) }}>{letter}</span>
+                            <span className="text-[10px] text-slate-400 ml-1">{NIDDES_BAND[letter]}</span>
+                          </td>
                           <td className="py-2 pr-2 text-right text-slate-500">{toKh(Math.floor(s.durationUsedSec / 60))}:{toKh(String(s.durationUsedSec % 60).padStart(2, '0'))}</td>
                           <td className={`py-2 pr-2 text-center font-bold ${s.tabSwitches > 0 ? 'text-rose-600' : 'text-slate-300'}`}>{toKh(s.tabSwitches)}</td>
                           <td className="py-2 text-center">{s.autoSubmitted
                             ? <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">អស់ម៉ោង</span>
                             : <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">បានប្រគល់</span>}</td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
