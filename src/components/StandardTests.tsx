@@ -12,7 +12,7 @@ import {
   ClipboardCheck, HelpCircle, Plus, Trash2, X, Save, PlayCircle, StopCircle,
   BarChart3, RefreshCw, Copy, Loader2, Clock, Users, KeyRound, AlertTriangle, CheckCircle2, Download,
 } from 'lucide-react';
-import { SchoolUser } from '../types';
+import { SchoolUser, afterHoursSubject } from '../types';
 import { standardTestBank, BankQuestion, BANK_MONTHS, EXAM_TYPES } from '../lib/questionBank';
 import { TYPE_LABELS } from '../lib/worksheets';
 import { niddesColor } from '../utils/scoring';
@@ -41,6 +41,10 @@ const STATUS_UI: Record<StandardTest['status'], { label: string; cls: string }> 
 // Used when the (blank-able) រយៈពេល field is left empty.
 const DEFAULT_DURATION_MIN = 10;
 
+// After-hours classes are named by keyword (same list the rest of the app uses).
+const EXTRA_CLASS_KEYWORDS = ['GRADE', 'គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
+const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+
 // Official niddes scale (A≥9 … F<5 on /10) — the score is a fraction of maxScore,
 // so scale it to /10 first. Mirrors the bands used by the report cards/rankings.
 const NIDDES_BAND: Record<string, string> = { A: 'ល្អប្រសើរ', B: 'ល្អណាស់', C: 'ល្អ', D: 'ល្អបង្គួរ', E: 'មធ្យម', F: 'ខ្សោយ' };
@@ -66,6 +70,27 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
     refreshTestsFromCloud().then(setTests);
     refreshCurriculumFromCloud().then(() => setSubjects(curriculumSubjects()));
   }, []);
+
+  // ---- Teacher scope ----
+  // A class teacher only ever sees their OWN class's tests; the principal sees all.
+  // Same rule the rest of the app uses (Dashboard/ClassStudentMgmt): an after-hours
+  // teacher is scoped to their subject's sections, a general teacher to their class.
+  const isTeacher = currentUser?.role === 'teacher';
+  const teacherGrade = isTeacher ? (currentUser?.grade || '') : '';
+  const teacherLocked = isTeacher && !!teacherGrade && teacherGrade !== 'ទាំងអស់';
+  const canSeeGrade = (g: string) => {
+    if (!teacherLocked) return true;
+    return isExtraClass(teacherGrade)
+      ? afterHoursSubject(g) === afterHoursSubject(teacherGrade)
+      : g === teacherGrade;
+  };
+  // Classes this user may attach a test to.
+  const gradeChoices = useMemo(() => grades.filter(canSeeGrade), [grades, teacherLocked, teacherGrade]);
+  // Tests visible to this user — a test is visible if it covers a class they own.
+  const visibleTests = useMemo(
+    () => (teacherLocked ? tests.filter(t => t.grades.some(canSeeGrade)) : tests),
+    [tests, teacherLocked, teacherGrade]
+  );
 
   // ---- Create/edit draft ----
   type Draft = {
@@ -178,8 +203,12 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
   const [loadingSubs, setLoadingSubs] = useState(false);
   const loadSubs = async (t: StandardTest) => {
     setResultsFor(t); setLoadingSubs(true);
-    try { setSubs(await fetchSubmissionsFor(t.id)); }
-    catch { flash('ទាញលទ្ធផលមិនបាន', false); }
+    try {
+      const all = await fetchSubmissionsFor(t.id);
+      // A test may cover several classes; a class teacher only sees their own
+      // students' results, never another class's.
+      setSubs(teacherLocked ? all.filter(s => canSeeGrade(s.grade)) : all);
+    } catch { flash('ទាញលទ្ធផលមិនបាន', false); }
     finally { setLoadingSubs(false); }
   };
 
@@ -233,7 +262,7 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
       <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
           <ClipboardCheck size={16} className="text-blue-500" /> តេស្តស្តង់ដា Online
-          <span className="text-[11px] font-semibold text-slate-400">· {tests.length} តេស្ត</span>
+          <span className="text-[11px] font-semibold text-slate-400">· {visibleTests.length} តេស្ត{teacherLocked ? ` · ${teacherGrade}` : ''}</span>
         </h3>
         <div className="flex items-center gap-2">
           {!draft && <button onClick={startNew} className="px-3 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 shadow-sm"><Plus size={13} /> តេស្តថ្មី</button>}
@@ -263,7 +292,7 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-slate-400 font-mono uppercase">ថ្នាក់ដែលធ្វើតេស្តនេះ</span>
             <div className="flex flex-wrap gap-1.5">
-              {grades.map(g => (
+              {gradeChoices.map(g => (
                 <span key={g} onClick={() => setDraft({ ...draft, grades: draft.grades.includes(g) ? draft.grades.filter(x => x !== g) : [...draft.grades, g] })} className={chip(draft.grades.includes(g))}>{g}</span>
               ))}
             </div>
@@ -408,14 +437,18 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
       )}
 
       {/* Test list */}
-      {!draft && tests.length === 0 ? (
+      {!draft && visibleTests.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-400 flex flex-col items-center gap-2">
           <ClipboardCheck size={28} className="opacity-50" />
-          <p className="text-sm font-medium">មិនទាន់មានតេស្តទេ។ ចុច «តេស្តថ្មី» — សំណួរយកពីធនាគារសំណួរតេស្តស្តង់ដា។</p>
+          <p className="text-sm font-medium">
+            {teacherLocked
+              ? `មិនទាន់មានតេស្តសម្រាប់ ${teacherGrade} ទេ។ ចុច «តេស្តថ្មី» — សំណួរយកពីធនាគារសំណួរតេស្តស្តង់ដា។`
+              : 'មិនទាន់មានតេស្តទេ។ ចុច «តេស្តថ្មី» — សំណួរយកពីធនាគារសំណួរតេស្តស្តង់ដា។'}
+          </p>
         </div>
       ) : !draft && (
         <div className="space-y-2">
-          {tests.map(t => {
+          {visibleTests.map(t => {
             const st = STATUS_UI[t.status];
             return (
               <div key={t.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-3.5 space-y-2.5">
