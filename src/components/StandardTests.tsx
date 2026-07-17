@@ -36,6 +36,9 @@ const STATUS_UI: Record<StandardTest['status'], { label: string; cls: string }> 
   closed: { label: 'បានបិទ', cls: 'bg-rose-50 text-rose-600 border-rose-200' },
 };
 
+// Used when the (blank-able) រយៈពេល field is left empty.
+const DEFAULT_DURATION_MIN = 10;
+
 export default function StandardTests({ grades, currentUser, onClose }: Props) {
   const [tab, setTab] = useState<'tests' | 'bank'>('tests');
   const [tests, setTests] = useState<StandardTest[]>(() => loadTests());
@@ -52,7 +55,9 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
   // ---- Create/edit draft ----
   type Draft = {
     id: string | null; title: string; subject: string; grades: string[];
-    durationMin: number; shuffleQuestions: boolean; shuffleOptions: boolean;
+    // Kept as a STRING so the field can be left blank while typing (a number would
+    // coerce '' back to a value). Falls back to DEFAULT_DURATION_MIN on save.
+    durationMin: string; shuffleQuestions: boolean; shuffleOptions: boolean;
     antiCheat: boolean; pointsPerQuestion: number; questionIds: string[];
   };
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -60,12 +65,12 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
 
   const startNew = () => setDraft({
     id: null, title: '', subject: subjects[0] || 'ភាសាខ្មែរ', grades: [],
-    durationMin: 10, shuffleQuestions: true, shuffleOptions: true,
+    durationMin: '', shuffleQuestions: true, shuffleOptions: true,
     antiCheat: true, pointsPerQuestion: 1, questionIds: [],
   });
   const startEdit = (t: StandardTest) => setDraft({
     id: t.id, title: t.title, subject: t.subject, grades: [...t.grades],
-    durationMin: Math.round(t.durationSec / 60), shuffleQuestions: t.shuffleQuestions,
+    durationMin: String(Math.round(t.durationSec / 60)), shuffleQuestions: t.shuffleQuestions,
     shuffleOptions: t.shuffleOptions, antiCheat: t.antiCheat,
     pointsPerQuestion: t.pointsPerQuestion, questionIds: [...t.questionIds],
   });
@@ -107,7 +112,7 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
       title: draft.title.trim(),
       grades: draft.grades,
       subject: draft.subject,
-      durationSec: Math.max(1, draft.durationMin) * 60,
+      durationSec: Math.max(1, Math.min(180, Number(draft.durationMin) || DEFAULT_DURATION_MIN)) * 60,
       status: existing?.status || 'draft',
       questionIds: draft.questionIds,
       questions: existing?.questions,
@@ -203,7 +208,7 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
             <label className="col-span-2 block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">ចំណងជើងតេស្ត</span><input value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} placeholder="ឧ. តេស្តស្តង់ដាអំណាន ឆមាសទី២" className={fieldCls} /></label>
             {!editingOpen && <>
               <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">មុខវិជ្ជា</span><select value={draft.subject} onChange={e => setDraft({ ...draft, subject: e.target.value })} className={fieldCls}>{subjects.map(s => <option key={s} value={s}>{s}</option>)}</select></label>
-              <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">រយៈពេល (នាទី)</span><input type="number" min={1} max={180} value={draft.durationMin} onChange={e => setDraft({ ...draft, durationMin: Math.max(1, Math.min(180, Number(e.target.value) || 1)) })} className={fieldCls} /></label>
+              <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 font-mono uppercase">រយៈពេល (នាទី)</span><input type="number" min={1} max={180} value={draft.durationMin} placeholder={`ឧ. ${DEFAULT_DURATION_MIN}`} onChange={e => setDraft({ ...draft, durationMin: e.target.value })} className={fieldCls} /></label>
             </>}
           </div>
 
