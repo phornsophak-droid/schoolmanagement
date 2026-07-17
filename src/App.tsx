@@ -28,7 +28,8 @@ import {
   RefreshCw,
   AlertTriangle,
   CheckCircle,
-  ClipboardCheck
+  ClipboardCheck,
+  Bell
 } from 'lucide-react';
 
 import { StudentScore, SchoolReport, SchoolUser } from './types';
@@ -145,6 +146,8 @@ import DocBank from './components/DocBank';
 import LessonLibrary from './components/LessonLibrary';
 import QuestionBank from './components/QuestionBank';
 import StandardTests from './components/StandardTests';
+import Announcements from './components/Announcements';
+import { loadAnnouncements } from './lib/announcements';
 import StudentQuiz from './components/StudentQuiz';
 import CurriculumManager from './components/CurriculumManager';
 import { SchoolLogo } from './components/SchoolLogo';
@@ -164,7 +167,7 @@ const IS_PHONE = typeof navigator !== 'undefined' &&
 export default function App() {
   const { t } = useT();
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'docbank' | 'lessons' | 'timetable'>(() => {
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'announcements' | 'docbank' | 'lessons' | 'timetable'>(() => {
     const isMobile = typeof window !== 'undefined' && (
       window.innerWidth < 768 || 
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -172,6 +175,9 @@ export default function App() {
     return isMobile ? 'mobile-portal' : 'dashboard';
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // Live announcement count for the sidebar's ជូនដំណឹង badge (<Announcements/> owns
+  // the list and reports the count back).
+  const [annCount, setAnnCount] = useState(() => loadAnnouncements().length);
   // Sub-tab inside គ្រប់គ្រងវិញ្ញាសា និងសន្លឹកកិច្ចការ: the worksheet generator vs the lesson library.
   const [worksheetTab, setWorksheetTab] = useState<'generate' | 'bank' | 'curriculum' | 'lessons'>('generate');
 
@@ -1611,6 +1617,24 @@ export default function App() {
           </button>
 
           <button
+            id="nav_announcements_tab"
+            onClick={() => setActiveView('announcements')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'announcements'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Bell size={16} className={activeView === 'announcements' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>ជូនដំណឹង</span>
+            </div>
+            {annCount > 0 && (
+              <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">{annCount}</span>
+            )}
+          </button>
+
+          <button
             id="nav_timetable_tab"
             onClick={() => setActiveView('timetable')}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -1929,6 +1953,26 @@ export default function App() {
 
                 <button
                   onClick={() => {
+                    setActiveView('announcements');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
+                    activeView === 'announcements'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
+                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Bell size={16} />
+                    <span>ជូនដំណឹង</span>
+                  </div>
+                  {annCount > 0 && (
+                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">{annCount}</span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
                     setActiveView('timetable');
                     setIsMobileMenuOpen(false);
                   }}
@@ -2222,6 +2266,33 @@ export default function App() {
                       currentUser={currentUser}
                       onClose={() => setActiveView('dashboard')}
                     />
+                  </motion.div>
+                )}
+
+                {activeView === 'announcements' && (
+                  <motion.div
+                    key="announcements"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <div className="max-w-3xl mx-auto space-y-3">
+                      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                          <Bell size={16} className="text-amber-500" /> ជូនដំណឹង
+                        </h3>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          {currentUser?.role === 'principal'
+                            ? 'សរសេរសេចក្តីជូនដំណឹងសាលា — បង្ហាញលើគ្រប់ឧបករណ៍ និងផ្ញើទៅ Telegram (Group + Bot)។'
+                            : currentUser?.grade && currentUser.grade !== 'ទាំងអស់'
+                              ? `ផ្ញើសារជូនមាតាបិតាថ្នាក់ ${currentUser.grade} តាម Chat Bot ឯកជន។`
+                              : 'សេចក្តីជូនដំណឹងពីសាលា។'}
+                        </p>
+                      </div>
+                      {/* Same panel the Mobile Portal's bell opens. */}
+                      <Announcements currentUser={currentUser} onCountChange={setAnnCount} />
+                    </div>
                   </motion.div>
                 )}
 
