@@ -10,12 +10,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ClipboardCheck, HelpCircle, Plus, Trash2, X, Save, PlayCircle, StopCircle,
-  BarChart3, RefreshCw, Copy, Loader2, Clock, Users, KeyRound, AlertTriangle, CheckCircle2,
+  BarChart3, RefreshCw, Copy, Loader2, Clock, Users, KeyRound, AlertTriangle, CheckCircle2, Download,
 } from 'lucide-react';
 import { SchoolUser } from '../types';
 import { standardTestBank, BankQuestion, BANK_MONTHS, EXAM_TYPES } from '../lib/questionBank';
 import { TYPE_LABELS } from '../lib/worksheets';
 import { niddesColor } from '../utils/scoring';
+import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import { curriculumSubjects, refreshCurriculumFromCloud } from '../lib/curriculum';
 import {
   StandardTest, TestSubmission, uuid,
@@ -182,6 +183,26 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
     finally { setLoadingSubs(false); }
   };
 
+  // A submission's percent → the school's /10 មធ្យមភាគ, which is what the niddes
+  // letter is banded on (A>=9 … F<5), so the two always agree.
+  const pctOf = (s: TestSubmission) => (s.maxScore > 0 ? (s.score / s.maxScore) * 100 : 0);
+  const resultSummary = useMemo(() => {
+    if (!subs.length) return null;
+    const avgPct = subs.reduce((sum, s) => sum + pctOf(s), 0) / subs.length;
+    return { avgPct: Math.round(avgPct), avg10: (avgPct / 10).toFixed(2), letter: letterOfPct(avgPct) };
+  }, [subs]);
+
+  const [resultsPdfBusy, setResultsPdfBusy] = useState(false);
+  const downloadResults = async () => {
+    const el = document.getElementById('standardtest-results-print');
+    if (!el || !resultsFor) return;
+    setResultsPdfBusy(true);
+    try {
+      await exportElementToMultipagePdf(el, `លទ្ធផល_${resultsFor.subject}_${resultsFor.title}`.replace(/\s+/g, '_'), 900);
+    } catch { flash('ទាញយករបាយការណ៍មិនបាន', false); }
+    finally { setResultsPdfBusy(false); }
+  };
+
   const copyJoin = (t: StandardTest) => {
     const url = `${window.location.origin}/?join=${t.code}`;
     navigator.clipboard?.writeText(url).then(() => flash('បានចម្លងតំណភ្ជាប់ ✓')).catch(() => flash(url));
@@ -291,10 +312,32 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
 
       {/* Results panel */}
       {resultsFor && !draft && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><BarChart3 size={14} className="text-blue-500" /> លទ្ធផល — {resultsFor.title}</span>
-            <div className="flex items-center gap-2">
+        <div id="standardtest-results-print" className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5"><BarChart3 size={14} className="text-blue-500" /> លទ្ធផល — {resultsFor.title}</span>
+              {/* The subject + class average are constant for the test, so they head
+                  the panel instead of repeating on every row. */}
+              <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-x-2 gap-y-1 flex-wrap">
+                <span>មុខវិជ្ជា <b className="text-slate-600">{resultsFor.subject}</b></span>
+                <span className="text-slate-300">·</span>
+                <span>{resultsFor.grades.join(', ')}</span>
+                <span className="text-slate-300">·</span>
+                <span>សិស្ស <b className="text-slate-600">{toKh(subs.length)}</b> នាក់</span>
+                {resultSummary && <>
+                  <span className="text-slate-300">·</span>
+                  <span>មធ្យមភាគ <b className="text-slate-700">{toKh(resultSummary.avg10)}</b>/១០</span>
+                  <span className="text-slate-300">·</span>
+                  <span>{toKh(resultSummary.avgPct)}%</span>
+                  <span className="text-slate-300">·</span>
+                  <span>និទ្ទេស <b style={{ color: niddesColor(resultSummary.letter) }}>{resultSummary.letter}</b></span>
+                </>}
+              </p>
+            </div>
+            <div className="rc-no-print flex items-center gap-2 shrink-0">
+              <button onClick={downloadResults} disabled={resultsPdfBusy || !subs.length} title="ទាញយករបាយការណ៍លទ្ធផល (PDF)" className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 flex items-center gap-1">
+                {resultsPdfBusy ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />} ទាញយករបាយការណ៍
+              </button>
               <button onClick={() => loadSubs(resultsFor)} disabled={loadingSubs} className="p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:text-slate-700"><RefreshCw size={13} className={loadingSubs ? 'animate-spin' : ''} /></button>
               <button onClick={() => setResultsFor(null)} className="p-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 hover:text-slate-700"><X size={13} /></button>
             </div>
@@ -308,6 +351,7 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
                       <th className="py-1.5 pr-2">ឈ្មោះ</th><th className="py-1.5 pr-2">ថ្នាក់</th>
                       <th className="py-1.5 pr-2 text-right">ពិន្ទុ</th>
                       <th className="py-1.5 pr-2 text-right">ភាគរយ</th>
+                      <th className="py-1.5 pr-2 text-right">មធ្យមភាគ</th>
                       <th className="py-1.5 pr-2 text-center">និទ្ទេស</th>
                       <th className="py-1.5 pr-2 text-right">រយៈពេល</th>
                       <th className="py-1.5 pr-2 text-center" title="ចំនួនដងចាកចេញពី Tab">⚠ Tab</th><th className="py-1.5 text-center">ស្ថានភាព</th>
@@ -322,6 +366,7 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
                           <td className="py-2 pr-2 text-slate-500">{s.grade}</td>
                           <td className="py-2 pr-2 text-right font-bold text-slate-800">{toKh(s.score)}/{toKh(s.maxScore)}</td>
                           <td className="py-2 pr-2 text-right font-bold text-slate-600">{toKh(pct)}%</td>
+                          <td className="py-2 pr-2 text-right font-bold text-slate-700">{toKh((pct / 10).toFixed(2))}</td>
                           <td className="py-2 pr-2 text-center">
                             <span className="font-black" style={{ color: niddesColor(letter) }}>{letter}</span>
                             <span className="text-[10px] text-slate-400 ml-1">{NIDDES_BAND[letter]}</span>
