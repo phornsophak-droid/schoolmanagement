@@ -304,19 +304,33 @@ const keyNum = (s: string): number => Number([...s].map(c => (KH_DIGITS.indexOf(
 // number cannot be required. Instead the numbers must COUNT UP 1,2,3,…: a digit
 // inside an answer ("រូបភាពទី៥)") doesn't fit the running sequence and is
 // ignored, which is what keeps the glued scan honest.
+// A single key entry is short ("ខ", "C. 7 (ព្រោះ 28 ÷ 4 = 7)"). Anything far longer
+// means the scan lost the sequence and one entry swallowed the rest of the key —
+// drop it rather than store a glob of every remaining answer as one question's.
+const MAX_KEY_ENTRY_LEN = 200;
+
 export function parseAnswerKey(keyText: string): Map<number, string> {
   const out = new Map<number, string>();
-  const re = /([0-9០-៩]{1,3})\s*[.)។៖:\-]\s*/g;
+  // A number is EITHER all-Latin or all-Khmer digits — never a mix. Keys glue the
+  // next entry straight onto the previous answer, so an answer ending in a Latin
+  // digit ran into the following Khmer number ("…=45" + "៤." → "45៤" = 454), which
+  // hid that entry, stalled the sequence, and made the previous answer swallow the
+  // rest of the key.
+  const re = /([0-9]{1,3}|[០-៩]{1,3})\s*[.)។៖:\-]\s*/g;
   const cands: { num: number; start: number; end: number }[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(keyText))) cands.push({ num: keyNum(m[1]), start: m.index, end: re.lastIndex });
+  // Walk the numbers upward. Tolerate a SMALL gap so one garbled entry can't stall
+  // the scan (a stall let the last match run to the end of the document).
   const marks: { num: number; start: number; end: number }[] = [];
   let expect = 1;
-  for (const c of cands) if (c.num === expect) { marks.push(c); expect++; }
+  for (const c of cands) {
+    if (c.num >= expect && c.num <= expect + 2) { marks.push(c); expect = c.num + 1; }
+  }
   for (let i = 0; i < marks.length; i++) {
     const valEnd = i + 1 < marks.length ? marks[i + 1].start : keyText.length;
     const val = keyText.slice(marks[i].end, valEnd).replace(/\s+/g, ' ').trim();
-    if (val) out.set(marks[i].num, val);
+    if (val && val.length <= MAX_KEY_ENTRY_LEN) out.set(marks[i].num, val);
   }
   return out;
 }
