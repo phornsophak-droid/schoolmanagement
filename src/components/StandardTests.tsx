@@ -79,7 +79,9 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
 
   const startNew = () => setDraft({
     id: null, title: '', subject: subjects[0] || 'ភាសាខ្មែរ', grades: [],
-    durationMin: '', shuffleQuestions: true, shuffleOptions: true,
+    // Questions stay in the imported exam's original numbering by default; the
+    // teacher can still turn «ច្របល់សំណួរ» on. Option shuffling stays on.
+    durationMin: '', shuffleQuestions: false, shuffleOptions: true,
     antiCheat: true, pointsPerQuestion: 1, questionIds: [],
   });
   const startEdit = (t: StandardTest) => setDraft({
@@ -119,6 +121,12 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
     if (!draft.title.trim()) { flash('សូមបញ្ចូលចំណងជើងតេស្ត', false); return; }
     if (!draft.grades.length) { flash('សូមជ្រើសថ្នាក់យ៉ាងតិចមួយ', false); return; }
     if (!draft.questionIds.length) { flash('សូមជ្រើសសំណួរយ៉ាងតិចមួយ', false); return; }
+    // Keep the questions in the BANK's order (= the order the exam was imported in),
+    // not the order the teacher happened to tick the boxes.
+    const bankOrder = new Map<string, number>(bankQuestions.map((q, i) => [q.id, i] as [string, number]));
+    const orderedIds = [...draft.questionIds].sort(
+      (a, b) => (bankOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (bankOrder.get(b) ?? Number.MAX_SAFE_INTEGER)
+    );
     const existing = draft.id ? tests.find(t => t.id === draft.id) : null;
     const t: StandardTest = {
       id: draft.id || uuid(),
@@ -128,7 +136,7 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
       subject: draft.subject,
       durationSec: Math.max(1, Math.min(180, Number(draft.durationMin) || DEFAULT_DURATION_MIN)) * 60,
       status: existing?.status || 'draft',
-      questionIds: draft.questionIds,
+      questionIds: orderedIds,
       questions: existing?.questions,
       shuffleQuestions: draft.shuffleQuestions,
       shuffleOptions: draft.shuffleOptions,

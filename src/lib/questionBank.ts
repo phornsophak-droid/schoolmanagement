@@ -118,21 +118,24 @@ function makeBank(KEY: string): BankApi {
 
   // Add many AI/imported questions at once, skipping exact duplicates. Returns how
   // many were actually added (callers report qs.length - added as skipped).
+  //
+  // The batch is collected first and inserted as ONE block, so the questions keep
+  // the ORDER they arrived in (an imported exam stays in its original numbering).
+  // Unshifting them one-by-one reversed the whole import.
   const bulkAddQuestions = async (qs: Omit<BankQuestion, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<number> => {
     if (!qs.length) return 0;
     const list = loadQuestions();
     const seen = new Set(list.map(dupKey));
     const now = new Date().toISOString();
-    let added = 0;
+    const batch: BankQuestion[] = [];
     for (const q of qs) {
       const key = dupKey(q);
       if (q.prompt && seen.has(key)) continue;
       seen.add(key);
-      list.unshift({ ...q, id: uuid(), createdAt: now, updatedAt: now });
-      added++;
+      batch.push({ ...q, id: uuid(), createdAt: now, updatedAt: now });
     }
-    if (added) await persistAll(list);
-    return added;
+    if (batch.length) await persistAll([...batch, ...list]);
+    return batch.length;
   };
 
   // Pick up to `count` questions matching the params (grade+subject+type; difficulty
