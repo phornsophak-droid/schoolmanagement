@@ -287,9 +287,13 @@ export function parsePastedQuestions(text: string): ParsedPaste {
 // the questions IN DOCUMENT ORDER (question #1 = key #1).
 // ---------------------------------------------------------------------------
 
-// Split the document at an answer-key heading line ("អត្រាកំណែ…" / "Answer key…").
+// Split the document at an answer-key heading line. Papers title this section
+// several ways — "អត្រាកំណែ", "ចម្លើយសង្ខេប", "កូនសោចម្លើយ", "Answer key" — and it may
+// carry a leading emoji/bullet, so allow a little decoration before the word.
 export function splitAnswerKey(text: string): { body: string; keyText: string } {
-  const m = text.match(/(^|\n)[ \t]*(?:អត្រាកំណែ|answer\s*key)[^\n]*\n?/i);
+  const m = text.match(
+    /(^|\n)[ \t]*[^\p{L}\n]{0,3}[ \t]*(?:អត្រាកំណែ|ចម្លើយសង្ខេប|កូនសោចម្លើយ|answer\s*key)[^\n]*\n?/iu
+  );
   if (!m || m.index === undefined) return { body: text, keyText: '' };
   return { body: text.slice(0, m.index), keyText: text.slice(m.index + m[0].length) };
 }
@@ -329,7 +333,13 @@ export function parseAnswerKey(keyText: string): Map<number, string> {
   }
   for (let i = 0; i < marks.length; i++) {
     const valEnd = i + 1 < marks.length ? marks[i + 1].start : keyText.length;
-    const val = keyText.slice(marks[i].end, valEnd).replace(/\s+/g, ' ').trim();
+    // Compact keys list entries inline — "១. A, ២. B, ៣. A" — so each value keeps
+    // the separator that led into the next entry. Trim those edges, or the label
+    // ("A,") no longer resolves to an option.
+    const val = keyText.slice(marks[i].end, valEnd)
+      .replace(/\s+/g, ' ')
+      .replace(/^[\s,;،៖។|/]+|[\s,;،៖។|/]+$/g, '')
+      .trim();
     if (val && val.length <= MAX_KEY_ENTRY_LEN) out.set(marks[i].num, val);
   }
   return out;
