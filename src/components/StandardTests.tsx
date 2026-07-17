@@ -189,7 +189,12 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
   const resultSummary = useMemo(() => {
     if (!subs.length) return null;
     const avgPct = subs.reduce((sum, s) => sum + pctOf(s), 0) / subs.length;
-    return { avgPct: Math.round(avgPct), avg10: (avgPct / 10).toFixed(2), letter: letterOfPct(avgPct) };
+    // How many students landed in each niddes band, and what share of the class.
+    const dist = (Object.keys(NIDDES_BAND) as string[]).map(letter => {
+      const count = subs.filter(s => letterOfPct(pctOf(s)) === letter).length;
+      return { letter, count, pct: Math.round((count / subs.length) * 100) };
+    });
+    return { avgPct: Math.round(avgPct), avg10: (avgPct / 10).toFixed(2), letter: letterOfPct(avgPct), dist };
   }, [subs]);
 
   const [resultsPdfBusy, setResultsPdfBusy] = useState(false);
@@ -333,6 +338,22 @@ export default function StandardTests({ grades, currentUser, onClose }: Props) {
                   <span>និទ្ទេស <b style={{ color: niddesColor(resultSummary.letter) }}>{resultSummary.letter}</b></span>
                 </>}
               </p>
+              {/* Niddes distribution — how many students in each band, and its share. */}
+              {resultSummary && (
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  {resultSummary.dist.map(d => (
+                    <span
+                      key={d.letter}
+                      title={`និទ្ទេស ${d.letter} (${NIDDES_BAND[d.letter]}) — ${d.count} នាក់`}
+                      className={`inline-flex items-baseline gap-1 px-2 py-1 rounded-lg border text-[10.5px] font-bold ${d.count ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100 opacity-45'}`}
+                    >
+                      <b style={{ color: niddesColor(d.letter) }}>{d.letter}</b>
+                      <span className="text-slate-700">{toKh(d.count)}</span>
+                      <span className="text-slate-400 font-semibold">({toKh(d.pct)}%)</span>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="rc-no-print flex items-center gap-2 shrink-0">
               <button onClick={downloadResults} disabled={resultsPdfBusy || !subs.length} title="ទាញយករបាយការណ៍លទ្ធផល (PDF)" className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50 flex items-center gap-1">
