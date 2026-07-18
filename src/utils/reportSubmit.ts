@@ -130,18 +130,23 @@ export async function sendAnnouncementToTelegram(message: string): Promise<{ ok:
   }
 }
 
-// How many parents have linked the bot. Counted server-side (the raw links never
-// reach the browser); `byGrade` is keyed by class name.
-export async function fetchLinkedParentStats(): Promise<{ ok: boolean; total?: number; byGrade?: Record<string, number>; error?: string }> {
+export interface LinkedStudent { name: string; grade: string; parents: number }
+
+// Which students' parents have linked the bot. Counted/listed server-side (the raw
+// links and the parents' chat ids never reach the browser). `grades` scopes the
+// result to those classes — a class teacher only ever sees their own.
+export async function fetchLinkedParentStats(grades?: string[]): Promise<{
+  ok: boolean; total?: number; byGrade?: Record<string, number>; students?: LinkedStudent[]; error?: string;
+}> {
   const secret = await resolveAnnounceSecret();
   if (!secret) return { ok: false, error: 'no-secret' };
   try {
     const res = await fetch('/api/telegram-link-stats', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret }),
+      body: JSON.stringify({ secret, ...(grades?.length ? { grades } : {}) }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok && data.ok) return { ok: true, total: data.total, byGrade: data.byGrade };
+    if (res.ok && data.ok) return { ok: true, total: data.total, byGrade: data.byGrade, students: data.students };
     return { ok: false, error: data.error || String(res.status) };
   } catch (e: any) {
     return { ok: false, error: e?.message || 'failed' };

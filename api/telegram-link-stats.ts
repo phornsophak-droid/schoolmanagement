@@ -39,24 +39,46 @@ export default async function handler(req: Req, res: Res) {
   const db = getAdmin();
   if (!db) { res.status(500).json({ error: 'supabase service role not configured' }); return; }
 
+  // Optional class scope — a class teacher may only see their own classes. Enforced
+  // HERE (server-side), not just hidden in the UI.
+  const grades: string[] = Array.isArray(body.grades) ? body.grades.map((g: any) => String(g)).filter(Boolean) : [];
+
   try {
-    const { data, error } = await db.from('telegram_links').select('chat_id, grade');
+    let q = db.from('telegram_links').select('chat_id, student_name, grade');
+    if (grades.length) q = q.in('grade', grades);
+    const { data, error } = await q;
     if (error) { res.status(502).json({ error: error.message }); return; }
     const rows = data || [];
     // One parent can have several children, so count DISTINCT chat ids — both
     // overall and within each class.
     const all = new Set<string>();
     const perGrade = new Map<string, Set<string>>();
+    // Linked STUDENTS, deduped by name+class. chat_id is deliberately NOT returned:
+    // the UI only needs to show which students are covered, and the parent's
+    // Telegram identity has no business leaving the server.
+    const seen = new Set<string>();
+    const students: { name: string; grade: string; parents: number }[] = [];
+    const parentsPerStudent = new Map<string, Set<string>>();
+
     for (const r of rows as any[]) {
       const chat = String(r.chat_id || '');
       if (!chat) continue;
       all.add(chat);
       const g = String(r.grade || '').trim() || '(គ្មានថ្នាក់)';
       (perGrade.get(g) || perGrade.set(g, new Set()).get(g)!).add(chat);
+
+      const name = String(r.student_name || '').trim();
+      if (!name) continue;
+      const key = `${name}||${g}`;
+      (parentsPerStudent.get(key) || parentsPerStudent.set(key, new Set()).get(key)!).add(chat);
+      if (!seen.has(key)) { seen.add(key); students.push({ name, grade: g, parents: 0 }); }
     }
+    for (const s of students) s.parents = parentsPerStudent.get(`${s.name}||${s.grade}`)?.size || 0;
+    students.sort((a, b) => a.grade.localeCompare(b.grade, 'km') || a.name.localeCompare(b.name, 'km'));
+
     const byGrade: Record<string, number> = {};
     for (const [g, s] of perGrade) byGrade[g] = s.size;
-    res.status(200).json({ ok: true, total: all.size, links: rows.length, byGrade });
+    res.status(200).json({ ok: true, total: all.size, links: rows.length, byGrade, students });
   } catch (e: any) {
     res.status(500).json({ error: e?.message || 'failed' });
   }

@@ -18,7 +18,7 @@ import {
   Announcement, loadAnnouncements, refreshAnnouncementsFromCloud,
   saveAnnouncement, deleteAnnouncement, relativeKhmerDate,
 } from '../lib/announcements';
-import { sendAnnouncementToTelegram, sendClassNoticeToTelegram, fetchLinkedParentStats } from '../utils/reportSubmit';
+import { sendAnnouncementToTelegram, sendClassNoticeToTelegram, fetchLinkedParentStats, LinkedStudent } from '../utils/reportSubmit';
 import { toKh } from '../utils/schoolSummary';
 
 interface Props {
@@ -44,16 +44,51 @@ export default function Announcements({ currentUser, onCountChange }: Props) {
 
   // How many parents have linked the bot — so a sender knows the reach BEFORE
   // sending, instead of finding out afterwards that nobody was linked.
-  const [linkStats, setLinkStats] = useState<{ total: number; byGrade: Record<string, number> } | null>(null);
+  const [linkStats, setLinkStats] = useState<{ total: number; byGrade: Record<string, number>; students: LinkedStudent[] } | null>(null);
   const [linkErr, setLinkErr] = useState<string | null>(null);
+  const [showLinked, setShowLinked] = useState(false);
   useEffect(() => {
     if (!isPrincipal && !isClassTeacher) return;
-    fetchLinkedParentStats().then(r => {
-      if (r.ok) setLinkStats({ total: r.total || 0, byGrade: r.byGrade || {} });
+    // A class teacher's request is scoped to their own class server-side.
+    const scope = isClassTeacher && currentUser?.grade ? [currentUser.grade] : undefined;
+    fetchLinkedParentStats(scope).then(r => {
+      if (r.ok) setLinkStats({ total: r.total || 0, byGrade: r.byGrade || {}, students: r.students || [] });
       else setLinkErr(r.error || 'failed');
     });
-  }, [isPrincipal, isClassTeacher]);
+  }, [isPrincipal, isClassTeacher, currentUser?.grade]);
   const myClassLinked = linkStats && currentUser?.grade ? (linkStats.byGrade[currentUser.grade] || 0) : 0;
+
+  // The linked-students table, shared by both composers.
+  const linkedTable = linkStats && showLinked && (
+    <div className="mt-2 border border-slate-200 rounded-xl overflow-hidden">
+      {linkStats.students.length === 0 ? (
+        <p className="text-[10px] text-slate-400 text-center py-3">មិនទាន់មានសិស្សណាដែលមាតាបិតាភ្ជាប់ Bot ទេ។</p>
+      ) : (
+        <div className="max-h-64 overflow-y-auto">
+          <table className="w-full text-[10.5px]">
+            <thead className="bg-slate-50 sticky top-0">
+              <tr className="text-left text-slate-400">
+                <th className="py-1.5 px-2 font-bold">ល.រ</th>
+                <th className="py-1.5 px-2 font-bold">ឈ្មោះសិស្ស</th>
+                <th className="py-1.5 px-2 font-bold">ថ្នាក់</th>
+                <th className="py-1.5 px-2 font-bold text-center">មាតាបិតា</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linkStats.students.map((s, i) => (
+                <tr key={`${s.name}|${s.grade}`} className="border-t border-slate-100">
+                  <td className="py-1.5 px-2 text-slate-400">{toKh(i + 1)}</td>
+                  <td className="py-1.5 px-2 font-semibold text-slate-700">{s.name}</td>
+                  <td className="py-1.5 px-2 text-slate-500">{s.grade}</td>
+                  <td className="py-1.5 px-2 text-center font-bold text-emerald-600">{toKh(s.parents)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
 
   // ---- Class notice (teacher → their OWN class's parents, bot only) ----
   const [noticeText, setNoticeText] = useState('');
@@ -121,11 +156,17 @@ export default function Announcements({ currentUser, onCountChange }: Props) {
               <Send size={11} /> ជូនដំណឹងដល់មាតាបិតា — {currentUser?.grade}
             </p>
             {linkStats && (
-              <span className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded border ${myClassLinked > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+              <button
+                onClick={() => setShowLinked(v => !v)}
+                title="មើលបញ្ជីឈ្មោះសិស្សដែលបានភ្ជាប់"
+                className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded border ${myClassLinked > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}
+              >
                 {myClassLinked > 0 ? `📩 ភ្ជាប់ Bot ${toKh(myClassLinked)} នាក់` : '⚠️ គ្មានមាតាបិតាភ្ជាប់ Bot'}
-              </span>
+                <span className="ml-1 text-slate-400">{showLinked ? '▲' : '▼'}</span>
+              </button>
             )}
           </div>
+          {linkedTable}
           <textarea
             value={noticeText}
             onChange={e => setNoticeText(e.target.value)}
@@ -152,13 +193,18 @@ export default function Announcements({ currentUser, onCountChange }: Props) {
         <div className="bg-white rounded-2xl p-3 border border-emerald-100 space-y-2">
           {/* Reach: how many parents will receive the Telegram broadcast. */}
           {linkStats && (
-            <details className="text-[10px]">
-              <summary className="cursor-pointer font-bold text-slate-500 list-none flex items-center gap-1.5">
-                <span className={`px-1.5 py-0.5 rounded border ${linkStats.total > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+            <div className="text-[10px]">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={`px-1.5 py-0.5 rounded border font-bold ${linkStats.total > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                   📩 មាតាបិតាភ្ជាប់ Bot៖ {toKh(linkStats.total)} នាក់
                 </span>
-                <span className="text-slate-400 font-semibold">(មើលតាមថ្នាក់)</span>
-              </summary>
+                <button
+                  onClick={() => setShowLinked(v => !v)}
+                  className="px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600 font-bold hover:bg-slate-100"
+                >
+                  {showLinked ? '▲ លាក់បញ្ជីឈ្មោះ' : `▼ បញ្ជីឈ្មោះសិស្ស (${toKh(linkStats.students.length)})`}
+                </button>
+              </div>
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {(Object.entries(linkStats.byGrade) as [string, number][]).sort((a, b) => b[1] - a[1]).map(([g, n]) => (
                   <span key={g} className="px-1.5 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-600 font-semibold">
@@ -166,7 +212,8 @@ export default function Announcements({ currentUser, onCountChange }: Props) {
                   </span>
                 ))}
               </div>
-            </details>
+              {linkedTable}
+            </div>
           )}
           {linkErr === 'no-secret' && (
             <p className="text-[9.5px] font-bold text-slate-400">ចំនួនមាតាបិតាភ្ជាប់ Bot — មិនអាចទាញបាន (គ្មានពាក្យសម្ងាត់ Telegram)។</p>
