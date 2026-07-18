@@ -130,6 +130,24 @@ export async function sendAnnouncementToTelegram(message: string): Promise<{ ok:
   }
 }
 
+// How many parents have linked the bot. Counted server-side (the raw links never
+// reach the browser); `byGrade` is keyed by class name.
+export async function fetchLinkedParentStats(): Promise<{ ok: boolean; total?: number; byGrade?: Record<string, number>; error?: string }> {
+  const secret = await resolveAnnounceSecret();
+  if (!secret) return { ok: false, error: 'no-secret' };
+  try {
+    const res = await fetch('/api/telegram-link-stats', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) return { ok: true, total: data.total, byGrade: data.byGrade };
+    return { ok: false, error: data.error || String(res.status) };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'failed' };
+  }
+}
+
 // A CLASS notice: a teacher messaging only their OWN class's parents. It reaches
 // those parents' private bot chats and never the school-wide group. `grades` scopes
 // the fan-out server-side (parents whose linked child is in one of those classes).

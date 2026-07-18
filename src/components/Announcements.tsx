@@ -18,7 +18,7 @@ import {
   Announcement, loadAnnouncements, refreshAnnouncementsFromCloud,
   saveAnnouncement, deleteAnnouncement, relativeKhmerDate,
 } from '../lib/announcements';
-import { sendAnnouncementToTelegram, sendClassNoticeToTelegram } from '../utils/reportSubmit';
+import { sendAnnouncementToTelegram, sendClassNoticeToTelegram, fetchLinkedParentStats } from '../utils/reportSubmit';
 import { toKh } from '../utils/schoolSummary';
 
 interface Props {
@@ -41,6 +41,19 @@ export default function Announcements({ currentUser, onCountChange }: Props) {
 
   const isPrincipal = currentUser?.role === 'principal';
   const isClassTeacher = currentUser?.role === 'teacher' && !!currentUser?.grade && currentUser.grade !== 'ទាំងអស់';
+
+  // How many parents have linked the bot — so a sender knows the reach BEFORE
+  // sending, instead of finding out afterwards that nobody was linked.
+  const [linkStats, setLinkStats] = useState<{ total: number; byGrade: Record<string, number> } | null>(null);
+  const [linkErr, setLinkErr] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isPrincipal && !isClassTeacher) return;
+    fetchLinkedParentStats().then(r => {
+      if (r.ok) setLinkStats({ total: r.total || 0, byGrade: r.byGrade || {} });
+      else setLinkErr(r.error || 'failed');
+    });
+  }, [isPrincipal, isClassTeacher]);
+  const myClassLinked = linkStats && currentUser?.grade ? (linkStats.byGrade[currentUser.grade] || 0) : 0;
 
   // ---- Class notice (teacher → their OWN class's parents, bot only) ----
   const [noticeText, setNoticeText] = useState('');
@@ -103,9 +116,16 @@ export default function Announcements({ currentUser, onCountChange }: Props) {
       {/* Class-teacher composer — private message to THIS class's parents via the bot. */}
       {isClassTeacher && (
         <div className="bg-white rounded-2xl p-3 border border-blue-100 space-y-2">
-          <p className="text-[10px] font-bold text-blue-700 flex items-center gap-1.5">
-            <Send size={11} /> ជូនដំណឹងដល់មាតាបិតា — {currentUser?.grade}
-          </p>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-[10px] font-bold text-blue-700 flex items-center gap-1.5">
+              <Send size={11} /> ជូនដំណឹងដល់មាតាបិតា — {currentUser?.grade}
+            </p>
+            {linkStats && (
+              <span className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded border ${myClassLinked > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                {myClassLinked > 0 ? `📩 ភ្ជាប់ Bot ${toKh(myClassLinked)} នាក់` : '⚠️ គ្មានមាតាបិតាភ្ជាប់ Bot'}
+              </span>
+            )}
+          </div>
           <textarea
             value={noticeText}
             onChange={e => setNoticeText(e.target.value)}
@@ -130,6 +150,27 @@ export default function Announcements({ currentUser, onCountChange }: Props) {
       {/* Principal composer — publish to every device (+ optional Telegram). */}
       {isPrincipal && (
         <div className="bg-white rounded-2xl p-3 border border-emerald-100 space-y-2">
+          {/* Reach: how many parents will receive the Telegram broadcast. */}
+          {linkStats && (
+            <details className="text-[10px]">
+              <summary className="cursor-pointer font-bold text-slate-500 list-none flex items-center gap-1.5">
+                <span className={`px-1.5 py-0.5 rounded border ${linkStats.total > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                  📩 មាតាបិតាភ្ជាប់ Bot៖ {toKh(linkStats.total)} នាក់
+                </span>
+                <span className="text-slate-400 font-semibold">(មើលតាមថ្នាក់)</span>
+              </summary>
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {(Object.entries(linkStats.byGrade) as [string, number][]).sort((a, b) => b[1] - a[1]).map(([g, n]) => (
+                  <span key={g} className="px-1.5 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-600 font-semibold">
+                    {g} <b className="text-slate-800">{toKh(n)}</b>
+                  </span>
+                ))}
+              </div>
+            </details>
+          )}
+          {linkErr === 'no-secret' && (
+            <p className="text-[9.5px] font-bold text-slate-400">ចំនួនមាតាបិតាភ្ជាប់ Bot — មិនអាចទាញបាន (គ្មានពាក្យសម្ងាត់ Telegram)។</p>
+          )}
           <input
             value={annTitle}
             onChange={e => setAnnTitle(e.target.value)}
