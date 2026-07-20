@@ -1295,28 +1295,37 @@ export default function Dashboard({
           </div>
 
           {absenceReasonStats.rows.length > 0 ? (
-            <div className="space-y-3">
-              {absenceReasonStats.rows.map((row, idx) => {
-                const palette = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#14b8a6'];
-                const color = palette[idx % palette.length];
-                const pct = absenceReasonStats.max > 0 ? (row.count / absenceReasonStats.max) * 100 : 0;
-                const pctTotal = absenceReasonStats.total > 0 ? Math.round((row.count / absenceReasonStats.total) * 100) : 0;
-                return (
-                  <div key={row.reason} className="flex items-center gap-3">
-                    <div className="w-[44%] md:w-[34%] shrink-0 text-[11.5px] font-semibold text-slate-700 text-right truncate" title={row.reason}>{row.reason}</div>
-                    <div className="flex-1 bg-slate-100 rounded-full h-6 overflow-hidden">
-                      <div
-                        className="h-full rounded-full flex items-center justify-end px-2 transition-all duration-500"
-                        style={{ width: `${Math.max(pct, 9)}%`, background: color }}
-                      >
-                        <span className="text-[11px] font-black text-white">{row.count}</span>
-                      </div>
-                    </div>
-                    <div className="w-10 shrink-0 text-[11px] font-bold text-slate-500 text-right">{pctTotal}%</div>
-                  </div>
-                );
-              })}
-            </div>
+            /* Laid out as a TABLE with INLINE styles on purpose: html2canvas (used by
+               "បញ្ជូន Telegram") drops Tailwind class-based flex/width on mobile, which
+               collapsed this chart into stacked labels and full-width bars in the sent
+               image. A table + inline styles survives the capture. */
+            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
+              <tbody>
+                {absenceReasonStats.rows.map((row, idx) => {
+                  const palette = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#14b8a6'];
+                  const color = palette[idx % palette.length];
+                  const pct = absenceReasonStats.max > 0 ? (row.count / absenceReasonStats.max) * 100 : 0;
+                  const pctTotal = absenceReasonStats.total > 0 ? Math.round((row.count / absenceReasonStats.total) * 100) : 0;
+                  return (
+                    <tr key={row.reason}>
+                      <td style={{ width: '34%', textAlign: 'right', paddingRight: '12px', fontSize: '11.5px', fontWeight: 600, color: '#334155', verticalAlign: 'middle' }} title={row.reason}>
+                        {row.reason}
+                      </td>
+                      <td style={{ verticalAlign: 'middle' }}>
+                        <div style={{ background: '#f1f5f9', borderRadius: '9999px', height: '24px', width: '100%', overflow: 'hidden' }}>
+                          <div style={{ width: `${Math.max(pct, 9)}%`, background: color, height: '24px', borderRadius: '9999px', textAlign: 'right', paddingRight: '8px', boxSizing: 'border-box', lineHeight: '24px', fontSize: '11px', fontWeight: 900, color: '#ffffff' }}>
+                            {row.count}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ width: '46px', textAlign: 'right', paddingLeft: '12px', fontSize: '11px', fontWeight: 700, color: '#64748b', verticalAlign: 'middle' }}>
+                        {pctTotal}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           ) : (
             <div className="py-12 flex flex-col items-center justify-center text-slate-400 text-xs">
               <CheckCircle size={36} className="text-emerald-300 mb-2" />
