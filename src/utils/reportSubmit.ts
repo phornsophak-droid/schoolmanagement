@@ -100,9 +100,19 @@ async function resolveAnnounceSecret(): Promise<string> {
   if (secret) return secret;
   try { const cloud = await fetchSetting(SECRET_KEY); if (typeof cloud === 'string' && cloud) secret = cloud; } catch { /* offline */ }
   if (secret) { try { localStorage.setItem(SECRET_KEY, secret); } catch { /* ignore */ } return secret; }
-  secret = (window.prompt('ពាក្យសម្ងាត់ផ្ញើ Telegram (ANNOUNCE_SECRET) — បញ្ចូលម្ដងគត់៖') || '').trim();
+  // Last resort: ask. MUST be guarded — several mobile browsers and in-app
+  // webviews either throw ("prompt() is not supported") or silently suppress
+  // prompt(), and by now the tap gesture has expired anyway (we already awaited a
+  // render + a cloud read). An unguarded throw here killed the whole send and
+  // surfaced as "the button does nothing" on phones. Fall through to '' instead so
+  // the caller reports a clean no-secret and tells the user what to do.
+  try {
+    secret = (window.prompt('ពាក្យសម្ងាត់ផ្ញើ Telegram (ANNOUNCE_SECRET) — បញ្ចូលម្ដងគត់៖') || '').trim();
+  } catch { return ''; }
   if (!secret) return '';
   try { localStorage.setItem(SECRET_KEY, secret); } catch { /* ignore */ }
+  // Share it so OTHER devices (phones, where prompt() can't run) pick it up from
+  // the cloud instead of needing to ask.
   Promise.resolve(syncUpsertSetting(SECRET_KEY, secret)).catch(() => { /* stays local */ });
   return secret;
 }

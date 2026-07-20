@@ -794,10 +794,13 @@ export default function Dashboard({
       const firstErr = (!rt.ok && rt.error) || (!rp.ok && rp.error) || '';
       alert(okCount === 2 ? 'បានផ្ញើទៅគ្រុបគ្រូ និងអាណាព្យាបាល ✓'
         : okCount === 1 ? `បានផ្ញើតែ ${rt.ok ? 'គ្រុបគ្រូ' : 'គ្រុបអាណាព្យាបាល'} — មួយទៀតមិនបាន៖ ${firstErr}`
-        : firstErr === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram។'
+        : firstErr === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram នៅលើឧបករណ៍នេះ។\n\nទូរស័ព្ទមិនអាចសួរពាក្យសម្ងាត់បានទេ។ សូមផ្ញើម្ដងពីកុំព្យូទ័រជាមុនសិន — វានឹងរក្សាទុកទៅ Cloud ហើយទូរស័ព្ទនឹងប្រើវាដោយស្វ័យប្រវត្តិ។'
         : firstErr === 'unauthorized' ? 'ពាក្យសម្ងាត់ Telegram មិនត្រឹមត្រូវ — សូមព្យាយាមម្ដងទៀត។'
         : 'ផ្ញើមិនបាន៖ ' + (firstErr || ''));
-    } catch { alert('បង្កើតរូបភាពមិនបាន — សូមព្យាយាមម្ដងទៀត។'); }
+    } catch (e: any) {
+      console.error('send daily image failed', e);
+      alert(`បង្កើត/ផ្ញើរូបភាពមិនបាន៖ ${e?.message || e}`);
+    }
     finally { setSendingDaily(false); }
   };
 
@@ -807,7 +810,8 @@ export default function Dashboard({
   const handleSendReasonsImage = async () => {
     if (sendingReasons) return;
     const el = document.getElementById('panel_absence_reasons');
-    if (!el) return;
+    // Don't fail silently — a bare `return` here looked exactly like a dead button.
+    if (!el) { alert('រកផ្ទាំងស្ថិតិមិនឃើញ — សូមផ្ទុកទំព័រឡើងវិញ។'); return; }
     setSendingReasons(true);
     try {
       const png = await renderElementToPngDataUrl(el, 1240);
@@ -821,10 +825,14 @@ export default function Dashboard({
       const firstErr = (!rt.ok && rt.error) || (!rp.ok && rp.error) || '';
       alert(okCount === 2 ? 'បានផ្ញើទៅគ្រុបគ្រូ និងអាណាព្យាបាល ✓'
         : okCount === 1 ? `បានផ្ញើតែ ${rt.ok ? 'គ្រុបគ្រូ' : 'គ្រុបអាណាព្យាបាល'} — មួយទៀតមិនបាន៖ ${firstErr}`
-        : firstErr === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram។'
+        : firstErr === 'no-secret' ? 'ផ្ញើមិនបាន — គ្មានពាក្យសម្ងាត់ Telegram នៅលើឧបករណ៍នេះ។\n\nទូរស័ព្ទមិនអាចសួរពាក្យសម្ងាត់បានទេ។ សូមផ្ញើម្ដងពីកុំព្យូទ័រជាមុនសិន — វានឹងរក្សាទុកទៅ Cloud ហើយទូរស័ព្ទនឹងប្រើវាដោយស្វ័យប្រវត្តិ។'
         : firstErr === 'unauthorized' ? 'ពាក្យសម្ងាត់ Telegram មិនត្រឹមត្រូវ — សូមព្យាយាមម្ដងទៀត។'
         : 'ផ្ញើមិនបាន៖ ' + (firstErr || ''));
-    } catch { alert('បង្កើតរូបភាពមិនបាន — សូមព្យាយាមម្ដងទៀត។'); }
+    } catch (e: any) {
+      // Show the real reason — the old generic message hid why phone sends failed.
+      console.error('send reasons image failed', e);
+      alert(`បង្កើត/ផ្ញើរូបភាពមិនបាន៖ ${e?.message || e}`);
+    }
     finally { setSendingReasons(false); }
   };
 

@@ -143,6 +143,20 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
           for (let i = 0; p && i < 5; i++, p = p.parentElement) { p.style.maxWidth = 'none'; }
         }
       }
+      // Open up every SCROLLABLE ancestor of the export root. On mobile the shell
+      // mounts panels inside a capped scroll box (e.g. max-h-[620px] overflow-y-auto),
+      // and capturing through it clipped the output to the visible slice — the
+      // phone's "send to Telegram" came out cut/blank. Same idea as the @media print
+      // rule, but applied in the clone so it also covers html2canvas.
+      if (el.id) {
+        const root = doc.getElementById(el.id);
+        let p = root?.parentElement;
+        for (let i = 0; p && i < 12; i++, p = p.parentElement) {
+          p.style.maxHeight = 'none';
+          p.style.height = 'auto';
+          p.style.overflow = 'visible';
+        }
+      }
       doc.querySelectorAll<HTMLElement>('.rc-fit-outer, .rc-fit-frame').forEach(n => {
         n.style.transform = 'none';
         n.style.width = 'auto';
