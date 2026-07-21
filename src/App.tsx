@@ -29,7 +29,8 @@ import {
   AlertTriangle,
   CheckCircle,
   ClipboardCheck,
-  Bell
+  Bell,
+  ExternalLink
 } from 'lucide-react';
 
 import { StudentScore, SchoolReport, SchoolUser } from './types';
@@ -1634,6 +1635,21 @@ export default function App() {
             )}
           </button>
 
+          {/* External link to the MoEYS primary-learning platform (ថ្នាលបឋម PLP).
+              Opens in a new tab — a government site can't be reliably iframed. */}
+          <a
+            href="https://plp.moeys.gov.kh/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+          >
+            <div className="flex items-center gap-3">
+              <BookOpen size={16} className="text-slate-400" />
+              <span>ថ្នាលបឋម (PLP)</span>
+            </div>
+            <ExternalLink size={13} className="text-slate-500" />
+          </a>
+
           <button
             id="nav_timetable_tab"
             onClick={() => setActiveView('timetable')}
@@ -1970,6 +1986,20 @@ export default function App() {
                     <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">{annCount}</span>
                   )}
                 </button>
+
+                <a
+                  href="https://plp.moeys.gov.kh/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium text-slate-400 hover:bg-slate-800/40 hover:text-slate-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <BookOpen size={16} />
+                    <span>ថ្នាលបឋម (PLP)</span>
+                  </div>
+                  <ExternalLink size={13} className="text-slate-500" />
+                </a>
 
                 <button
                   onClick={() => {
