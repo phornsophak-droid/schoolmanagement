@@ -148,6 +148,7 @@ import LessonLibrary from './components/LessonLibrary';
 import QuestionBank from './components/QuestionBank';
 import StandardTests from './components/StandardTests';
 import Announcements from './components/Announcements';
+import Handbook from './components/Handbook';
 import { loadAnnouncements } from './lib/announcements';
 import StudentQuiz from './components/StudentQuiz';
 import CurriculumManager from './components/CurriculumManager';
@@ -168,7 +169,7 @@ const IS_PHONE = typeof navigator !== 'undefined' &&
 export default function App() {
   const { t } = useT();
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'announcements' | 'docbank' | 'lessons' | 'timetable'>(() => {
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'docbank' | 'lessons' | 'timetable'>(() => {
     const isMobile = typeof window !== 'undefined' && (
       window.innerWidth < 768 || 
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -1635,6 +1636,21 @@ export default function App() {
             )}
           </button>
 
+          <button
+            id="nav_handbook_tab"
+            onClick={() => setActiveView('handbook')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'handbook'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <BookOpen size={16} className={activeView === 'handbook' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>សៀវភៅសិក្ខាគារិក</span>
+            </div>
+          </button>
+
           {/* External link to the MoEYS primary-learning platform (ថ្នាលបឋម PLP).
               Opens in a new tab — a government site can't be reliably iframed. */}
           <a
@@ -1987,6 +2003,23 @@ export default function App() {
                   )}
                 </button>
 
+                <button
+                  onClick={() => {
+                    setActiveView('handbook');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
+                    activeView === 'handbook'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
+                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <BookOpen size={16} />
+                    <span>សៀវភៅសិក្ខាគារិក</span>
+                  </div>
+                </button>
+
                 <a
                   href="https://plp.moeys.gov.kh/login"
                   target="_blank"
@@ -2323,6 +2356,18 @@ export default function App() {
                       {/* Same panel the Mobile Portal's bell opens. */}
                       <Announcements currentUser={currentUser} onCountChange={setAnnCount} />
                     </div>
+                  </motion.div>
+                )}
+
+                {activeView === 'handbook' && (
+                  <motion.div
+                    key="handbook"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Handbook onClose={() => setActiveView('dashboard')} />
                   </motion.div>
                 )}
 
