@@ -241,26 +241,6 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           </div>
         </div>
 
-        {/* Online standardized test — students enter with the code their teacher gave */}
-        {onStudentTest && (
-          <button
-            onClick={onStudentTest}
-            className="w-full mb-4 px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md transition-all"
-          >
-            <span>📝</span> ចូលធ្វើតេស្តស្តង់ដា Online (មានកូដពីគ្រូ)
-          </button>
-        )}
-
-        {/* MoEYS primary-learning platform — opens in a new tab. */}
-        <a
-          href="https://plp.moeys.gov.kh/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full mb-4 px-4 py-3 rounded-2xl bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-800 text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
-        >
-          <span>📚</span> ថ្នាលបឋម (PLP) — សិក្សាបន្ថែម
-          <ExternalLink size={14} className="text-emerald-500" />
-        </a>
 
         <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-5 space-y-4">
           {/* Step 1 — pick class */}
@@ -409,6 +389,28 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
             <TimetableView tt={timetable} />
           </div>
         )}
+
+        {/* Extra links, numbered — moved below the report lookup. */}
+        <div className="mt-4 space-y-2.5">
+          {onStudentTest && (
+            <button
+              onClick={onStudentTest}
+              className="w-full px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white text-sm font-bold flex items-center gap-3 shadow-md transition-all"
+            >
+              <span className="w-6 h-6 rounded-full bg-white/25 flex items-center justify-center text-[13px] shrink-0">២</span>
+              <span className="flex-1 text-center">📝 ចូលធ្វើតេស្តស្តង់ដា Online (មានកូដពីគ្រូ)</span>
+            </button>
+          )}
+          <a
+            href="https://plp.moeys.gov.kh/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full px-4 py-3 rounded-2xl bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-800 text-sm font-bold flex items-center gap-3 shadow-sm transition-all"
+          >
+            <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[13px] shrink-0">{onStudentTest ? '៣' : '២'}</span>
+            <span className="flex-1 text-center flex items-center justify-center gap-1.5">📚 ថ្នាលបឋម (PLP) — សិក្សាបន្ថែម <ExternalLink size={14} className="text-emerald-500" /></span>
+          </a>
+        </div>
 
         <p className="text-[10px] text-slate-400 text-center mt-4 leading-relaxed">
           ផ្ទាំងនេះសម្រាប់មាតាបិតាមើល និងទាញយកព្រឹត្តបត្រពិន្ទុរបស់កូនជា PDF តែប៉ុណ្ណោះ។
