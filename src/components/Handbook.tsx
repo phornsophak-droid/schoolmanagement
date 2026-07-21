@@ -7,11 +7,33 @@
 // reference. The .docx is converted to HTML once at build time (handbook.html,
 // imported raw) and rendered here; a button exports it as a multi-page A4 PDF.
 
-import React, { useState } from 'react';
-import { BookOpen, Download, Loader2, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { BookOpen, Download, Loader2, X, Trash2 } from 'lucide-react';
 import handbookHtml from '../assets/handbook.html?raw';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
+import { kvReadSync, kvWrite, kvHydrate } from '../lib/kvStore';
 import FitToWidth from './FitToWidth';
+
+const PHOTO_KEY = 'handbook_photo';
+
+// Shrink the chosen photo before storing it. A phone camera shot is several MB —
+// far more than the box needs — and the app has hit localStorage quota before, so
+// cap the long edge and re-encode as JPEG.
+const downscale = (file: File, maxEdge = 600): Promise<string> => new Promise((resolve, reject) => {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d')!.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+    resolve(c.toDataURL('image/jpeg', 0.85));
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('bad image')); };
+  img.src = url;
+});
 
 // A4 landscape at 96dpi — 297mm wide. The sheets are laid out at this exact size
 // (matching the .docx page setup) and scaled down on screen by FitToWidth.
@@ -21,6 +43,49 @@ interface Props { onClose?: () => void; }
 
 export default function Handbook({ onClose }: Props) {
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [photo, setPhoto] = useState('');
+  const rootRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { kvHydrate(PHOTO_KEY).then(() => setPhoto(kvReadSync<string>(PHOTO_KEY, ''))); }, []);
+
+  // The sheets come from a static HTML string, so wire the photo frame after it
+  // renders: clicking it opens the picker, and the chosen image fills the box.
+  useEffect(() => {
+    const box = rootRef.current?.querySelector('.photo') as HTMLElement | null;
+    if (!box) return;
+    box.style.cursor = 'pointer';
+    box.title = photo ? 'ចុចដើម្បីប្ដូររូបថត' : 'ចុចដើម្បីដាក់រូបថត ៤×៦';
+    const labels = box.querySelectorAll('span');
+    if (photo) {
+      box.style.backgroundImage = `url("${photo}")`;
+      box.style.backgroundSize = 'cover';
+      box.style.backgroundPosition = 'center';
+      labels.forEach(s => { (s as HTMLElement).style.display = 'none'; });
+    } else {
+      box.style.backgroundImage = '';
+      labels.forEach(s => { (s as HTMLElement).style.display = ''; });
+    }
+    const open = () => fileRef.current?.click();
+    box.addEventListener('click', open);
+    return () => box.removeEventListener('click', open);
+  }, [photo]);
+
+  const onPickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    try {
+      const dataUrl = await downscale(f);
+      setPhoto(dataUrl);
+      await kvWrite(PHOTO_KEY, dataUrl);
+    } catch { /* unreadable image — keep the previous one */ }
+  };
+
+  const removePhoto = async () => {
+    setPhoto('');
+    await kvWrite(PHOTO_KEY, '');
+  };
 
   const downloadPdf = async () => {
     const el = document.getElementById('handbook-print');
@@ -100,8 +165,19 @@ export default function Handbook({ onClose }: Props) {
       <div className="rc-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
           <BookOpen size={16} className="text-emerald-600" /> សៀវភៅសិក្ខាគារិក
+          <span className="text-[10px] font-semibold text-slate-400">· ចុចប្រអប់រូបថត ដើម្បីដាក់រូប ៤×៦</span>
         </h3>
         <div className="flex items-center gap-2">
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
+          {photo && (
+            <button
+              onClick={removePhoto}
+              title="លុបរូបថត"
+              className="px-3 py-2 text-xs font-bold rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 flex items-center gap-1.5"
+            >
+              <Trash2 size={13} /> លុបរូបថត
+            </button>
+          )}
           <button
             onClick={downloadPdf}
             disabled={pdfBusy}
@@ -121,7 +197,7 @@ export default function Handbook({ onClose }: Props) {
           screen without reflowing (print/PDF still use the full size). */}
       <div className="bg-slate-100 rounded-2xl border border-slate-200 p-3 overflow-hidden">
         <FitToWidth designWidth={SHEET_W} fitHeight={false}>
-          <div id="handbook-print" className="handbook-body" style={{ width: SHEET_W }} dangerouslySetInnerHTML={{ __html: handbookHtml }} />
+          <div ref={rootRef} id="handbook-print" className="handbook-body" style={{ width: SHEET_W }} dangerouslySetInnerHTML={{ __html: handbookHtml }} />
         </FitToWidth>
       </div>
     </div>
