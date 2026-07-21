@@ -222,22 +222,23 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50/40 flex flex-col items-center px-4 py-6">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_20%_15%,#E9FDF0,transparent_45%),radial-gradient(circle_at_80%_35%,#FEF9E7,transparent_55%),radial-gradient(circle_at_30%_85%,#ECFDF5,transparent_50%),#E4F4E9] flex flex-col items-center px-4 py-5">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
+        {/* App-style header bar */}
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-3xl bg-gradient-to-br from-emerald-600 to-green-600 shadow-lg shadow-emerald-600/20">
           <button
             onClick={onBack}
-            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors shadow-sm"
+            aria-label="ត្រឡប់ក្រោយ"
+            className="p-2 rounded-2xl bg-white/15 text-white hover:bg-white/25 transition-colors shrink-0"
           >
             <ArrowLeft size={18} />
           </button>
-          <div className="flex items-center gap-2">
-            <SchoolLogo size={40} />
-            <div>
-              <h1 className="text-sm font-bold text-slate-800 leading-tight">សាលាសហគមន៍ច្បារច្រុះ</h1>
-              <p className="text-[11px] text-emerald-700 font-semibold">ព្រឹត្តបត្រពិន្ទុសម្រាប់មាតាបិតា</p>
-            </div>
+          <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-sm">
+            <SchoolLogo size={30} />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-sm font-extrabold text-white leading-tight truncate">សាលាសហគមន៍ច្បារច្រុះ</h1>
+            <p className="text-[11px] text-emerald-50/90 font-semibold">ព្រឹត្តបត្រពិន្ទុសម្រាប់មាតាបិតា</p>
           </div>
         </div>
 
@@ -246,7 +247,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           {/* Step 1 — pick class */}
           <div>
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
-              <GraduationCap size={14} className="text-emerald-600" /> ១. ជ្រើសរើសថ្នាក់រៀនរបស់កូន
+              <GraduationCap size={14} className="text-emerald-600" /> ១. លទ្ធផលសិក្សា
             </label>
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl mb-3">
               <button
