@@ -2367,7 +2367,7 @@ export default function App() {
                     exit={{ opacity: 0, y: -15 }}
                     transition={{ duration: 0.15 }}
                   >
-                    <Handbook onClose={() => setActiveView('dashboard')} />
+                    <Handbook students={students} grades={grades} onClose={() => setActiveView('dashboard')} />
                   </motion.div>
                 )}
 

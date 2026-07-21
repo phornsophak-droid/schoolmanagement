@@ -7,14 +7,34 @@
 // reference. The .docx is converted to HTML once at build time (handbook.html,
 // imported raw) and rendered here; a button exports it as a multi-page A4 PDF.
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Download, Loader2, X, Trash2 } from 'lucide-react';
 import handbookHtml from '../assets/handbook.html?raw';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import { kvReadSync, kvWrite, kvHydrate } from '../lib/kvStore';
+import { StudentScore } from '../types';
+import { distinctStudentKey } from '../utils/studentKey';
+import {
+  SEM_SUBJECTS, SEM1_MONTHS, SEM2_MONTHS,
+  examAvgOf, monthlyAvgOf, semesterAvgOf, annualAcademicRaw, readAnnualExtra,
+} from '../utils/scoring';
 import FitToWidth from './FitToWidth';
 
 const PHOTO_KEY = 'handbook_photo';
+const SCHOOL = 'សាលាបឋមសិក្សាសហគមន៍ច្បារច្រុះ';
+const YEAR = '២០២៥-២០២៦';
+
+const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
+const fx = (v: number | null | undefined) => (v === null || v === undefined ? '' : toKh(v.toFixed(2)));
+
+// Fill the layout's {{key|width}} slots. An empty value keeps the original dotted
+// rule, so an unfilled book still prints exactly like the blank form.
+const fillTokens = (html: string, values: Record<string, string>) =>
+  html.replace(/\{\{([a-z0-9_]+)(?:\|(\d+))?\}\}/g, (_m, key: string, width?: string) => {
+    const v = (values[key] ?? '').trim();
+    if (v) return `<span class="fill">${v}</span>`;
+    return width ? '.'.repeat(Number(width)) : '';
+  });
 
 // Shrink the chosen photo before storing it. A phone camera shot is several MB —
 // far more than the box needs — and the app has hit localStorage quota before, so
@@ -39,13 +59,83 @@ const downscale = (file: File, maxEdge = 600): Promise<string> => new Promise((r
 // (matching the .docx page setup) and scaled down on screen by FitToWidth.
 const SHEET_W = Math.round((297 / 25.4) * 96); // 1123px
 
-interface Props { onClose?: () => void; }
+interface Props {
+  students?: StudentScore[];
+  grades?: string[];
+  onClose?: () => void;
+}
 
-export default function Handbook({ onClose }: Props) {
+export default function Handbook({ students = [], grades = [], onClose }: Props) {
   const [pdfBusy, setPdfBusy] = useState(false);
   const [photo, setPhoto] = useState('');
+  const [grade, setGrade] = useState('');
+  const [studentKey, setStudentKey] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // ---- Who this book is for ----
+  const roster = useMemo(() => {
+    const seen = new Map<string, StudentScore>();
+    for (const s of students) {
+      if (grade && s.grade !== grade) continue;
+      const k = distinctStudentKey(s.name, s.grade);
+      if (!seen.has(k)) seen.set(k, s);
+    }
+    return [...seen.entries()]
+      .map(([k, s]) => ({ key: k, name: s.name, grade: s.grade }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'km'));
+  }, [students, grade]);
+
+  // Every monthly/exam record for the chosen student — the score source.
+  const records = useMemo(
+    () => (studentKey ? students.filter(s => distinctStudentKey(s.name, s.grade) === studentKey) : []),
+    [students, studentKey]
+  );
+  const student = records[0];
+
+  // Map the student's data onto the layout's fill slots.
+  const values = useMemo<Record<string, string>>(() => {
+    if (!student) return {};
+    const v: Record<string, string> = {
+      school: SCHOOL, year: YEAR,
+      name: student.name,
+      class: student.grade,
+      dob: student.dob || '',
+      father: student.fatherName || '',
+      mother: student.motherName || '',
+      address: student.address || '',
+      remark: student.remark || '',
+    };
+    // The identity table's first row = this year's enrolment.
+    v.y_0 = YEAR; v.g_0 = student.grade; v.sch_0 = SCHOOL; v.sid_0 = student.studentId || '';
+
+    // Per-subject semester-exam scores.
+    const examOf = (sem: 1 | 2) => records.find(s => s.month === (sem === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២'));
+    ([1, 2] as const).forEach(sem => {
+      const exam = examOf(sem);
+      SEM_SUBJECTS.forEach((sub, i) => {
+        const raw = exam ? sub.get(exam) : null;
+        v[`s${sem}_${i}`] = raw === null || raw === undefined ? '' : fx(raw as number);
+      });
+      // Totals block: sum, exam mean, monthly mean, semester mean.
+      const nums = SEM_SUBJECTS.map(s => (exam ? s.get(exam) : null)).filter((x): x is number => typeof x === 'number' && x > 0);
+      v[`t${sem}_0`] = nums.length ? fx(nums.reduce((a, b) => a + b, 0)) : '';
+      v[`t${sem}_1`] = fx(examAvgOf(records, sem));
+      v[`t${sem}_2`] = fx(monthlyAvgOf(records, sem));
+      v[`t${sem}_3`] = fx(semesterAvgOf(records, sem));
+    });
+
+    // Competences + the annual result.
+    const extra = readAnnualExtra(student.grade, student.name);
+    v.c_0 = fx(annualAcademicRaw(records));
+    v.c_1 = extra.skills ? fx(extra.skills) : '';
+    v.c_2 = extra.conduct ? fx(extra.conduct) : '';
+    const annual = annualAcademicRaw(records);
+    v.c_3 = annual === null ? '' : fx(annual * 0.8 + (extra.skills || 0) * 0.1 + (extra.conduct || 0) * 0.1);
+    return v;
+  }, [student, records]);
+
+  const filledHtml = useMemo(() => fillTokens(handbookHtml, values), [values]);
 
   useEffect(() => { kvHydrate(PHOTO_KEY).then(() => setPhoto(kvReadSync<string>(PHOTO_KEY, ''))); }, []);
 
@@ -153,6 +243,11 @@ export default function Handbook({ onClose }: Props) {
         .handbook-body table.grid td.sec { text-align: center; font-weight: 800; font-size: 10pt; }
         .handbook-body table.grid td.hd { text-align: center; font-weight: 700; }
         .handbook-body table.grid td.lbl { text-align: left; }
+        .handbook-body table.grid td.v { text-align: center; }
+        .handbook-body table.grid td.b { font-weight: 700; }
+        /* Auto-filled values sit on the form's rule, like handwriting on the line. */
+        .handbook-body .fill { font-weight: 700; border-bottom: 1px solid #0000FF; padding: 0 1.5mm; }
+        .handbook-body table.grid td .fill { border-bottom: none; padding: 0; }
         .handbook-body table.grid td.dot, .handbook-body table.grid td.pad { vertical-align: top; height: auto; padding: 2mm; }
         @media print {
           @page { size: A4 landscape; margin: 0; }
@@ -163,10 +258,28 @@ export default function Handbook({ onClose }: Props) {
 
       {/* Toolbar */}
       <div className="rc-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-          <BookOpen size={16} className="text-emerald-600" /> សៀវភៅសិក្ខាគារិក
-          <span className="text-[10px] font-semibold text-slate-400">· ចុចប្រអប់រូបថត ដើម្បីដាក់រូប ៤×៦</span>
-        </h3>
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5 shrink-0">
+            <BookOpen size={16} className="text-emerald-600" /> សៀវភៅសិក្ខាគារិក
+          </h3>
+          {/* Pick a student → the book fills from their records. */}
+          <select
+            value={grade}
+            onChange={e => { setGrade(e.target.value); setStudentKey(''); }}
+            className="px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold outline-none focus:border-emerald-500"
+          >
+            <option value="">— គ្រប់ថ្នាក់ —</option>
+            {grades.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+          <select
+            value={studentKey}
+            onChange={e => setStudentKey(e.target.value)}
+            className="px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold outline-none focus:border-emerald-500 max-w-[190px]"
+          >
+            <option value="">— ទម្រង់ទទេ (មិនបំពេញ) —</option>
+            {roster.map(r => <option key={r.key} value={r.key}>{r.name}{grade ? '' : ` · ${r.grade}`}</option>)}
+          </select>
+        </div>
         <div className="flex items-center gap-2">
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
           {photo && (
@@ -197,7 +310,7 @@ export default function Handbook({ onClose }: Props) {
           screen without reflowing (print/PDF still use the full size). */}
       <div className="bg-slate-100 rounded-2xl border border-slate-200 p-3 overflow-hidden">
         <FitToWidth designWidth={SHEET_W} fitHeight={false}>
-          <div ref={rootRef} id="handbook-print" className="handbook-body" style={{ width: SHEET_W }} dangerouslySetInnerHTML={{ __html: handbookHtml }} />
+          <div ref={rootRef} id="handbook-print" className="handbook-body" style={{ width: SHEET_W }} dangerouslySetInnerHTML={{ __html: filledHtml }} />
         </FitToWidth>
       </div>
     </div>

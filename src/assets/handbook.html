@@ -1,6 +1,4 @@
 <div class="book">
-
-<!-- ============ SHEET 1 ============ -->
 <section class="sheet">
   <div class="panel blank"></div>
   <div class="panel cover">
@@ -11,17 +9,16 @@
     <p class="ctr title">សៀវភៅសិក្ខាគារិក</p>
     <p class="ctr big mt2 uline">សាលាបឋមសិក្សាចំណេះទូទៅ</p>
     <div class="fields">
-      <p>សាលាបឋមសិក្សាៈ............................................................</p>
-      <p>ឃុំ/សង្កាត់..................ស្រុក/ខ័ណ្ឌ...............ខេត្ត/ក្រុង...............</p>
-      <p>នាមត្រកូល និងនាមខ្លួន................................................</p>
-      <p>ថ្ងៃ ខែ ឆ្នាំកំណើត....................................................</p>
-      <p>ទីកន្លែងកំណើត........................................................</p>
+      <p>សាលាបឋមសិក្សាៈ {{school|52}}</p>
+      <p>ឃុំ/សង្កាត់................ស្រុក/ខ័ណ្ឌ..............ខេត្ត/ក្រុង..............</p>
+      <p>នាមត្រកូល និងនាមខ្លួន {{name|40}}</p>
+      <p>ថ្ងៃ ខែ ឆ្នាំកំណើត {{dob|44}}</p>
+      <p>ទីកន្លែងកំណើត....................................................</p>
     </div>
     <p class="ctr deco btm">∧∧∧∧∧</p>
   </div>
 </section>
 
-<!-- ============ SHEET 2 ============ -->
 <section class="sheet">
   <div class="panel instr">
     <p class="ctr title2 uline">សេចក្ដីណែនាំ</p>
@@ -44,33 +41,32 @@
       <div class="photo"><span>រូបថត</span><span>៤×៦</span></div>
     </div>
     <div class="fields2">
-      <p>នាមត្រកូល និងនាមខ្លួន : ............................................</p>
-      <p>ថ្ងៃ ខែ ឆ្នាំកំណើត : ................................................</p>
-      <p>ឈ្មោះ និងមុខរបរឪពុក : ............................................</p>
-      <p>ឈ្មោះ និងមុខរបរម្ដាយ : ............................................</p>
-      <p>អាសយដ្ឋានបច្ចុប្បន្ន : ..............................................</p>
+      <p>នាមត្រកូល និងនាមខ្លួន : {{name|36}}</p>
+      <p>ថ្ងៃ ខែ ឆ្នាំកំណើត : {{dob|40}}</p>
+      <p>ឈ្មោះ និងមុខរបរឪពុក : {{father|36}}</p>
+      <p>ឈ្មោះ និងមុខរបរម្ដាយ : {{mother|36}}</p>
+      <p>អាសយដ្ឋានបច្ចុប្បន្ន : {{address|38}}</p>
     </div>
     <div class="sig"><div>ថ្ងៃទី.......ខែ.........ឆ្នាំ២០...........</div><div class="who">នាយកសាលា</div></div>
     <table class="grid mt3">
       <tr><td class="hd">ឆ្នាំសិក្សា</td><td class="hd">ថ្នាក់ទី</td><td class="hd">គ្រឹះស្ថានសិក្សា</td><td class="hd">ថ្ងៃ ខែ ឆ្នាំចូលរៀន</td><td class="hd">ថ្ងៃ ខែ ឆ្នាំ ចេញ</td><td class="hd">អត្តលេខ</td></tr>
-      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td class="v">{{y_0}}</td><td class="v">{{g_0}}</td><td class="v">{{sch_0}}</td><td class="v"></td><td class="v"></td><td class="v">{{sid_0}}</td></tr><tr><td class="v">{{y_1}}</td><td class="v">{{g_1}}</td><td class="v">{{sch_1}}</td><td class="v"></td><td class="v"></td><td class="v">{{sid_1}}</td></tr><tr><td class="v">{{y_2}}</td><td class="v">{{g_2}}</td><td class="v">{{sch_2}}</td><td class="v"></td><td class="v"></td><td class="v">{{sid_2}}</td></tr><tr><td class="v">{{y_3}}</td><td class="v">{{g_3}}</td><td class="v">{{sch_3}}</td><td class="v"></td><td class="v"></td><td class="v">{{sid_3}}</td></tr><tr><td class="v">{{y_4}}</td><td class="v">{{g_4}}</td><td class="v">{{sch_4}}</td><td class="v"></td><td class="v"></td><td class="v">{{sid_4}}</td></tr><tr><td class="v">{{y_5}}</td><td class="v">{{g_5}}</td><td class="v">{{sch_5}}</td><td class="v"></td><td class="v"></td><td class="v">{{sid_5}}</td></tr>
     </table>
   </div>
 </section>
 
-<!-- ============ SHEET 3 ============ -->
 <section class="sheet">
   <div class="panel">
-    <p class="hdr">នាមត្រកូល និងនាមខ្លួន..............................ថ្នាក់ទី..........ចំនួនសិស្ស......នាក់</p>
+    <p class="hdr">នាមត្រកូល និងនាមខ្លួន {{name|24}} ថ្នាក់ទី {{class|8}}</p>
     <table class="grid"><tr><td colspan="8" class="sec">ក- លទ្ធផលនៃការប្រឡងឆមាស</td></tr>
 <tr><td rowspan="2" colspan="2" class="hd">មុខវិជ្ជា</td><td colspan="3" class="hd">ឆមាសទី១</td><td colspan="3" class="hd">ឆមាសទី២</td></tr>
-<tr><td colspan="2" class="hd">ពិន្ទុ</td><td class="hd">ចំណាត់ថ្នាក់</td><td class="hd">ពិន្ទុ</td><td colspan="2" class="hd">ចំណាត់ថ្នាក់</td></tr><tr><td colspan="2" class="lbl">អំណាន</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">អំណានស្ទាត់</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">សរសេរតាមអាន</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">តែងសេចក្ដី</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">គណិតវិទ្យា</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">វិទ្យាសាស្ដ្រ</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">សីលធម៌- ពលរដ្ឋវិជ្ជា</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">ភូមិវិទ្យា</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">ប្រវិត្តវិទ្យា</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">គេហៈវិទ្យា-អប់រំសិល្បៈ</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">អប់រំកាយ-កីឡា</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">សុខភាព-អនាម័យ</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">អប់រំបំណិតជីវិត</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">ភាសាបរទេស</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">សរុបពិន្ទុ</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">មធ្យមភាគ</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">មធ្យមភាគប្រចាំខែ</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="2" class="lbl">មធ្យមភាគប្រចាំឆមាស</td><td colspan="2"></td><td></td><td></td><td colspan="2"></td></tr><tr><td colspan="5" class="lbl">វិជ្ជាសម្បទា</td><td></td><td colspan="2"></td></tr><tr><td colspan="5" class="lbl">បំណិនសម្បទា</td><td></td><td colspan="2"></td></tr><tr><td colspan="5" class="lbl">ចរិយាសម្បទា</td><td></td><td colspan="2"></td></tr><tr><td colspan="5" class="lbl">លទ្ធផលដំណាច់ឆ្នាំ (មធ្យមភាគ-ចំណាត់ថ្នាក់)</td><td></td><td colspan="2"></td></tr><tr><td colspan="8" class="sec">ខ- ចំនួនពេលអវត្តមាន</td></tr>
+<tr><td colspan="2" class="hd">ពិន្ទុ</td><td class="hd">ចំណាត់ថ្នាក់</td><td class="hd">ពិន្ទុ</td><td colspan="2" class="hd">ចំណាត់ថ្នាក់</td></tr><tr><td colspan="2" class="lbl">អំណាន</td><td colspan="2" class="v">{{s1_0}}</td><td class="v"></td><td class="v">{{s2_0}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">ស្តាប់ និងនិយាយ</td><td colspan="2" class="v">{{s1_1}}</td><td class="v"></td><td class="v">{{s2_1}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">សរសេរតាមអាន</td><td colspan="2" class="v">{{s1_2}}</td><td class="v"></td><td class="v">{{s2_2}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">តែងសេចក្តី</td><td colspan="2" class="v">{{s1_3}}</td><td class="v"></td><td class="v">{{s2_3}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">គណិតវិទ្យា</td><td colspan="2" class="v">{{s1_4}}</td><td class="v"></td><td class="v">{{s2_4}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">វិទ្យាសាស្ត្រ</td><td colspan="2" class="v">{{s1_5}}</td><td class="v"></td><td class="v">{{s2_5}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">សីលធម៌-ពលរដ្ឋវិទ្យា</td><td colspan="2" class="v">{{s1_6}}</td><td class="v"></td><td class="v">{{s2_6}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">ភូមិវិទ្យា</td><td colspan="2" class="v">{{s1_7}}</td><td class="v"></td><td class="v">{{s2_7}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">ប្រវត្តិវិទ្យា</td><td colspan="2" class="v">{{s1_8}}</td><td class="v"></td><td class="v">{{s2_8}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">គេហៈវិទ្យា-អប់រំសិល្បៈ</td><td colspan="2" class="v">{{s1_9}}</td><td class="v"></td><td class="v">{{s2_9}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">អប់រំកាយ-កីឡា</td><td colspan="2" class="v">{{s1_10}}</td><td class="v"></td><td class="v">{{s2_10}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">សុខភាព-អនាម័យ</td><td colspan="2" class="v">{{s1_11}}</td><td class="v"></td><td class="v">{{s2_11}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">បំណិនជីវិត</td><td colspan="2" class="v">{{s1_12}}</td><td class="v"></td><td class="v">{{s2_12}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl">ភាសាបរទេស</td><td colspan="2" class="v">{{s1_13}}</td><td class="v"></td><td class="v">{{s2_13}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl b">សរុបពិន្ទុ</td><td colspan="2" class="v b">{{t1_0}}</td><td class="v"></td><td class="v b">{{t2_0}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl b">មធ្យមភាគ</td><td colspan="2" class="v b">{{t1_1}}</td><td class="v"></td><td class="v b">{{t2_1}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl b">មធ្យមភាគប្រចាំខែ</td><td colspan="2" class="v b">{{t1_2}}</td><td class="v"></td><td class="v b">{{t2_2}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="2" class="lbl b">មធ្យមភាគប្រចាំឆមាស</td><td colspan="2" class="v b">{{t1_3}}</td><td class="v"></td><td class="v b">{{t2_3}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="5" class="lbl">វិជ្ជាសម្បទា</td><td class="v">{{c_0}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="5" class="lbl">បំណិនសម្បទា</td><td class="v">{{c_1}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="5" class="lbl">ចរិយាសម្បទា</td><td class="v">{{c_2}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="5" class="lbl">លទ្ធផលដំណាច់ឆ្នាំ (មធ្យមភាគ-ចំណាត់ថ្នាក់)</td><td class="v">{{c_3}}</td><td colspan="2" class="v"></td></tr><tr><td colspan="8" class="sec">ខ- ចំនួនពេលអវត្តមាន</td></tr>
 <tr><td colspan="3" class="hd">ឆមាសទី១</td><td colspan="4" class="hd">ឆមាសទី២</td><td rowspan="2" class="hd">សរុប</td></tr>
 <tr><td class="hd">មានច្បាប់</td><td colspan="2" class="hd">គ្មានច្បាប់</td><td colspan="2" class="hd">មានច្បាប់</td><td colspan="2" class="hd">គ្មានច្បាប់</td></tr>
-<tr><td style="height:14mm"></td><td colspan="2"></td><td colspan="2"></td><td colspan="2"></td><td></td></tr></table>
+<tr><td class="v">{{a1p}}</td><td colspan="2" class="v">{{a1a}}</td><td colspan="2" class="v">{{a2p}}</td><td colspan="2" class="v">{{a2a}}</td><td class="v">{{atot}}</td></tr></table>
   </div>
   <div class="panel">
-    <p class="hdr">សាលា..................................ឆ្នាំសិក្សា................</p>
+    <p class="hdr">សាលា {{school|26}} ឆ្នាំសិក្សា {{year|12}}</p>
     <table class="grid">
       <tr><td colspan="3" class="sec">គ- វាយតម្លៃសិស្សលើការសិក្សា</td></tr>
       <tr><td class="hd">ឆមាសទី១</td><td class="hd">ឆមាសទី២</td><td class="hd">ប្រចាំឆ្នាំ</td></tr>
@@ -78,9 +74,9 @@
       <tr><td colspan="3" class="sec">ឃ- លទ្ធផលប្រចាំឆ្នាំ</td></tr>
       <tr><td colspan="3" class="pad">
         <p>ត្រូវបានឡើងថ្នាក់ទី....................................................</p>
-        <p>ត្រូវប្រឡងឡើងថ្នាក់ : មុខវិជ្ជាដែលត្រូវប្រឡង..............................</p>
-        <p>............................................................................</p>
-        <p>ត្រូវបានឡើងថ្នាក់ទី....................ត្រូវរៀនត្រួតថ្នាក់ទី..................</p>
+        <p>ត្រូវប្រឡងឡើងថ្នាក់ : មុខវិជ្ជាដែលត្រូវប្រឡង............................</p>
+        <p>..........................................................................</p>
+        <p>ត្រូវបានឡើងថ្នាក់ទី..................ត្រូវរៀនត្រួតថ្នាក់ទី................</p>
       </td></tr>
       <tr><td colspan="3" class="sec">ង- ការសរសើរ និងកំណែលម្អ</td></tr>
       <tr><td colspan="3" class="pad">
@@ -89,8 +85,8 @@
       </td></tr>
       <tr><td colspan="3" class="sec">ច- មូលវិចាររបស់នាយកសាលា</td></tr>
       <tr><td colspan="3" class="pad">
-        <p>............................................................................</p>
-        <p>............................................................................</p>
+        <p>{{remark|74}}</p>
+        <p>..........................................................................</p>
         <div class="two"><div class="sig"><div>ថ្ងៃទី.......ខែ.........ឆ្នាំ២០...........</div><div class="who">នាយកសាលា</div></div><div class="sig"><div>ថ្ងៃទី.......ខែ.........ឆ្នាំ២០...........</div><div class="who">នាយកសាលា</div></div></div>
       </td></tr>
     </table>
