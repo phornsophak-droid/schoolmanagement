@@ -1988,7 +1988,7 @@ export default function App() {
                 </button>
 
                 <a
-                  href="https://plp.moeys.gov.kh/"
+                  href="https://plp.moeys.gov.kh/login"
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setIsMobileMenuOpen(false)}
