@@ -73,8 +73,8 @@ export default function Handbook({ onClose }: Props) {
         .handbook-body .frac { display: inline-block; text-align: center; vertical-align: middle; }
         .handbook-body .frac .num { display: block; border-bottom: 1.5px solid #0000FF; padding: 0 2mm; }
         .handbook-body .frac .den { display: block; }
-        /* Identity panel: title left, photo box right */
-        .handbook-body .idhead { display: flex; align-items: flex-start; gap: 4mm; }
+        /* Identity panel: photo box on the LEFT, title beside it. */
+        .handbook-body .idhead { display: flex; flex-direction: row-reverse; align-items: flex-start; gap: 4mm; }
         .handbook-body .idtitle { flex: 1; }
         .handbook-body .photo { width: 26mm; height: 34mm; border: 1.5px solid #0000FF; display: flex; flex-direction: column;
           align-items: center; justify-content: center; font-size: 10pt; shrink: 0; }
