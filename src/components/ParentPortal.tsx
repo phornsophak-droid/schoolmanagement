@@ -238,7 +238,6 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           </div>
           <div className="min-w-0">
             <h1 className="text-sm font-extrabold text-white leading-tight truncate">សាលាសហគមន៍ច្បារច្រុះ</h1>
-            <p className="text-[11px] text-emerald-50/90 font-semibold">ព្រឹត្តបត្រពិន្ទុសម្រាប់មាតាបិតា</p>
           </div>
         </div>
 
