@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award } from 'lucide-react';
+import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award, ExternalLink } from 'lucide-react';
 import { StudentScore } from '../types';
 import { fetchClassStudents, fetchSetting, fetchStudentDobByName } from '../lib/supabase';
 import { semesterAvgOf, readAnnualExtra } from '../utils/scoring';
@@ -250,6 +250,17 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
             <span>📝</span> ចូលធ្វើតេស្តស្តង់ដា Online (មានកូដពីគ្រូ)
           </button>
         )}
+
+        {/* MoEYS primary-learning platform — opens in a new tab. */}
+        <a
+          href="https://plp.moeys.gov.kh/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full mb-4 px-4 py-3 rounded-2xl bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-800 text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
+        >
+          <span>📚</span> ថ្នាលបឋម (PLP) — សិក្សាបន្ថែម
+          <ExternalLink size={14} className="text-emerald-500" />
+        </a>
 
         <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-5 space-y-4">
           {/* Step 1 — pick class */}
