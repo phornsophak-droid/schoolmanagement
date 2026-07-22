@@ -241,6 +241,16 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     v.n1 = gradeBand(semesterAvgOf(records, 1)).km;
     v.n2 = gradeBand(semesterAvgOf(records, 2)).km;
     v.ny = gradeBand(finalAvg).km;
+
+    // ឃ- លទ្ធផលប្រចាំឆ្នាំ: a pupil moves up when the annual average is a pass
+    // (>= 5, the same threshold the gradebook uses for ជាប់/ធ្លាក់) and unexcused
+    // absences for the year stay under 35. Only the promotion is filled in — a
+    // pupil who misses either test is left for the teacher to decide and write,
+    // since holding a child back is not a call this form should make on its own.
+    const unexcused = a1.absent + a2.absent;
+    if (finalAvg !== null && finalAvg >= 5 && unexcused < 35 && lvl >= 1 && lvl < 6) {
+      v.promote = `${toKh(lvl + 1)}`;
+    }
     return v;
   }, [student, records, students, yearDates]);
 
