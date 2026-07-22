@@ -34,6 +34,48 @@ const TOOLS: Tool[] = [
   { name: 'Perplexity',   mark: 'P',  color: '#20808D', url: 'https://www.perplexity.ai',      km: 'ស្វែងរក និងដកស្រង់ប្រភព' },
 ];
 
+// Tools that build the slides themselves — type the lesson topic and they lay out
+// a deck, which is the slow part of preparing a lesson.
+const SLIDE_TOOLS: Tool[] = [
+  { name: 'Gamma',              mark: 'Gm', color: '#7C3AED', url: 'https://gamma.app',                 km: 'បង្កើតស្លាយពីប្រធានបទ' },
+  { name: 'Canva',              mark: 'Cv', color: '#00C4CC', url: 'https://www.canva.com',             km: 'រចនាស្លាយ និងសម្ភារបង្រៀន' },
+  { name: 'Microsoft Designer', mark: 'Ds', color: '#0F6CBD', url: 'https://designer.microsoft.com',    km: 'រចនាស្លាយ និងរូបភាព' },
+  { name: 'Beautiful.ai',       mark: 'Ba', color: '#111827', url: 'https://www.beautiful.ai',          km: 'ស្លាយរៀបចំទ្រង់ទ្រាយស្វ័យប្រវត្តិ' },
+  { name: 'SlidesAI',           mark: 'Sl', color: '#F59E0B', url: 'https://www.slidesai.io',           km: 'បង្កើតស្លាយក្នុង Google Slides' },
+  { name: 'Napkin AI',          mark: 'Np', color: '#EC4899', url: 'https://www.napkin.ai',             km: 'បម្លែងអត្ថបទជារូបភាពពន្យល់' },
+];
+
+function Section({ title, tools }: { title: string; tools: Tool[] }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-bold text-slate-400 px-1">{title}</p>
+      <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {tools.map(t => (
+          <a
+            key={t.name}
+            href={t.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group bg-white rounded-2xl border border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 shadow-sm p-3 flex items-center gap-3 transition-all no-underline"
+          >
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold shrink-0 text-[13px]"
+              style={{ background: t.color }}
+            >
+              {t.mark}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-bold text-slate-700 truncate">{t.name}</p>
+              <p className="text-[11px] text-slate-400 font-semibold truncate">{t.km}</p>
+            </div>
+            <ExternalLink size={13} className="text-slate-300 group-hover:text-violet-500 shrink-0" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   onClose?: () => void;
 }
@@ -59,29 +101,8 @@ export default function AiTools({ onClose }: Props) {
         )}
       </div>
 
-      <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {TOOLS.map(t => (
-          <a
-            key={t.name}
-            href={t.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group bg-white rounded-2xl border border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 shadow-sm p-3 flex items-center gap-3 transition-all no-underline"
-          >
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold shrink-0 text-[13px]"
-              style={{ background: t.color }}
-            >
-              {t.mark}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-bold text-slate-700 truncate">{t.name}</p>
-              <p className="text-[11px] text-slate-400 font-semibold truncate">{t.km}</p>
-            </div>
-            <ExternalLink size={13} className="text-slate-300 group-hover:text-violet-500 shrink-0" />
-          </a>
-        ))}
-      </div>
+      <Section title="ជំនួយការទូទៅ" tools={TOOLS} />
+      <Section title="បង្កើតបទបង្ហាញ និងស្លាយមេរៀន" tools={SLIDE_TOOLS} />
 
       <p className="text-[11px] text-slate-400 font-semibold text-center px-3 pb-1">
         គេហទំព័រទាំងនេះជារបស់ក្រុមហ៊ុនខាងក្រៅ។ សូមកុំបញ្ចូលព័ត៌មានផ្ទាល់ខ្លួនរបស់សិស្ស។
