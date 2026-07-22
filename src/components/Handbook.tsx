@@ -10,7 +10,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Download, Loader2, X, Trash2, Upload, CalendarDays, Plus, MessageSquare, Printer } from 'lucide-react';
 import handbookHtml from '../assets/handbook.html?raw';
-import { exportElementToMultipagePdf } from '../utils/exportPdf';
+import { exportLandscapeSheetsToPdf } from '../utils/exportPdf';
 import { kvReadSync, kvWrite, kvHydrate } from '../lib/kvStore';
 import { StudentScore } from '../types';
 import { distinctStudentKey } from '../utils/studentKey';
@@ -446,8 +446,14 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     const el = document.getElementById('handbook-print');
     if (!el) return;
     setPdfBusy(true);
-    try { await exportElementToMultipagePdf(el, 'សៀវភៅសិក្ខាគារិក', SHEET_W); }
-    catch { /* ignore — user can retry */ }
+    // One landscape page per sheet — the sheets are already drawn at A4 landscape,
+    // so they must not go through the portrait slicer.
+    try { await exportLandscapeSheetsToPdf(el, '.sheet', 'សៀវភៅសិក្ខាគារិក', SHEET_W); }
+    catch (err) {
+      // Don't fail silently: a swallowed error here looks like the button doing nothing.
+      console.error('Handbook PDF export failed', err);
+      alert('ទាញយក PDF មិនបានសម្រេច។ សូមព្យាយាមម្តងទៀត។');
+    }
     finally { setPdfBusy(false); }
   };
 

@@ -456,6 +456,50 @@ export async function exportElementToMultipagePdf(el: HTMLElement, filename: str
   deliverBlob(pdf.output('blob'), name);
 }
 
+// Export pages that are ALREADY laid out at A4-landscape size — one element per
+// page, each filling its page exactly. Unlike exportElementToMultipagePdf, which
+// slices one tall canvas into portrait pages, nothing here is measured or cut: the
+// handbook's three sheets are drawn at 297x210mm, so each simply becomes a page.
+// The container is captured once — html2canvas needs the element it is given to be
+// findable in its clone, which it does by id, so capturing each sheet on its own
+// fails ("Unable to find element in cloned iframe"). One capture is also faster.
+// Each sheet's band is then cut out using its position measured in the live DOM as
+// a fraction of the container, which the preview's transform scales uniformly and
+// so cancels out. The gaps between sheets fall away with it.
+export async function exportLandscapeSheetsToPdf(
+  container: HTMLElement, sheetSelector: string, filename: string, fixedWidth?: number,
+): Promise<void> {
+  if (container.querySelector(sheetSelector) === null) return;
+  const canvas = await renderElementToCanvas(container, fixedWidth);
+  // Measure only now: the container's children are re-rendered while the capture
+  // awaits, so anything collected beforehand is detached by this point and every
+  // rect reads zero.
+  const sheets = Array.from(container.querySelectorAll<HTMLElement>(sheetSelector));
+  const box = container.getBoundingClientRect();
+  if (sheets.length === 0 || box.height <= 0) return;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+
+  const band = document.createElement('canvas');
+  const ctx = band.getContext('2d')!;
+  sheets.forEach((sheet, i) => {
+    const r = sheet.getBoundingClientRect();
+    const top = Math.round(((r.top - box.top) / box.height) * canvas.height);
+    const height = Math.round((r.height / box.height) * canvas.height);
+    if (height <= 0) return;
+    band.width = canvas.width;
+    band.height = height;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, band.width, band.height);
+    ctx.drawImage(canvas, 0, top, canvas.width, height, 0, 0, canvas.width, height);
+    if (i > 0) pdf.addPage('a4', 'landscape');
+    pdf.addImage(band.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
+  });
+  const name = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+  deliverBlob(pdf.output('blob'), name);
+}
+
 // Render an element to a downloadable PNG image (lossless — keeps Khmer text and
 // the certificate frame crisp).
 export async function exportElementToImage(el: HTMLElement, filename: string, fixedWidth?: number): Promise<void> {
