@@ -19,6 +19,7 @@ import {
   examAvgOf, monthlyAvgOf, semesterAvgOf, annualAcademicRaw, readAnnualExtra,
 } from '../utils/scoring';
 import { tallyAbsences } from '../utils/attendance';
+import { formatDobKh } from '../utils/khmerDate';
 import { parseRosterRows, mergeRoster } from '../lib/rosterImport';
 import FitToWidth from './FitToWidth';
 
@@ -158,7 +159,7 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
       sch_commune: SCHOOL_COMMUNE, sch_district: SCHOOL_DISTRICT, sch_province: SCHOOL_PROVINCE,
       name: student.name,
       class: student.grade,
-      dob: student.dob || '',
+      dob: formatDobKh(student.dob || ''),
       birthplace: student.birthPlace || '',
       // The form asks for "ឈ្មោះ និងមុខរបរ" — name and occupation together.
       father: [student.fatherName, student.fatherJob].filter(Boolean).join(' — '),

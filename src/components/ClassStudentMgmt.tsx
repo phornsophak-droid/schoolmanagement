@@ -26,6 +26,7 @@ import { StudentScore, SchoolUser, afterHoursSubject } from '../types';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
 import { distinctStudentKey, findPhantomGrades, baseStudentName } from '../utils/studentKey';
 import { syncUpsertSetting } from '../lib/supabase';
+import { formatDobKh as formatDobKhShared } from '../utils/khmerDate';
 import { useT } from '../i18n';
 import * as XLSX from 'xlsx';
 
@@ -59,21 +60,8 @@ interface ClassStudentMgmtProps {
   currentUser?: SchoolUser | null;
 }
 
-// Display a date of birth as "០១ កក្កដា ២០២៦" (Khmer day · month name · year).
-// Accepts dd/mm/yyyy, dd-mm-yyyy or yyyy-mm-dd (Khmer or Arabic digits); if it
-// can't be parsed the original text is shown unchanged.
-const DOB_KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
-const dobToKhNum = (s: string | number) => String(s).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
-function formatDobKh(raw: string): string {
-  if (!raw) return '';
-  const s = raw.trim().replace(/[០-៩]/g, d => String('០១២៣៤៥៦៧៨៩'.indexOf(d))); // Khmer → Arabic
-  let d = 0, mo = 0, y = 0;
-  let m = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/); // dd/mm/yyyy
-  if (m) { d = +m[1]; mo = +m[2]; y = +m[3]; }
-  else { m = s.match(/^(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})$/); if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; } } // yyyy-mm-dd
-  if (!d || !mo || !y || mo < 1 || mo > 12) return raw; // unrecognised — leave as-is
-  return `${dobToKhNum(String(d).padStart(2, '0'))} ${DOB_KH_MONTHS[mo - 1]} ${dobToKhNum(y)}`;
-}
+// Display a date of birth as "០១ កក្កដា ២០២៦" — shared with the handbook.
+const formatDobKh = formatDobKhShared;
 
 export default function ClassStudentMgmt({
   students,

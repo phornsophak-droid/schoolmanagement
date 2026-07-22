@@ -30,3 +30,17 @@ export function khmerMonthEnd(monthName: string): { day: string; year: string; l
   const date = new Date(yearNum, idx, MONTH_LAST_DAY[idx]);
   return { day: toKh(MONTH_LAST_DAY[idx]), year: toKh(yearNum), lunar: khmerLunarFull(date) };
 }
+
+// A date of birth as "០១ កក្កដា ២០២៦" (Khmer day · month name · year). Accepts
+// dd/mm/yyyy, dd-mm-yyyy or yyyy-mm-dd in Khmer or Arabic digits; text it can't
+// parse is returned unchanged, so an odd roster entry still shows something.
+export function formatDobKh(raw: string): string {
+  if (!raw) return '';
+  const s = raw.trim().replace(/[០-៩]/g, d => String('០១២៣៤៥៦៧៨៩'.indexOf(d))); // Khmer → Arabic
+  let d = 0, mo = 0, y = 0;
+  let m = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/); // dd/mm/yyyy
+  if (m) { d = +m[1]; mo = +m[2]; y = +m[3]; }
+  else { m = s.match(/^(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})$/); if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; } } // yyyy-mm-dd
+  if (!d || !mo || !y || mo < 1 || mo > 12) return raw; // unrecognised — leave as-is
+  return `${toKh(String(d).padStart(2, '0'))} ${KH_MONTHS[mo - 1]} ${toKh(y)}`;
+}
