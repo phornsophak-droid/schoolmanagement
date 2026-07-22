@@ -16,7 +16,7 @@ import { StudentScore } from '../types';
 import { distinctStudentKey } from '../utils/studentKey';
 import {
   SEM_SUBJECTS, SEM1_MONTHS, SEM2_MONTHS,
-  examAvgOf, monthlyAvgOf, semesterAvgOf, annualAcademicRaw, readAnnualExtra,
+  examAvgOf, monthlyAvgOf, semesterAvgOf, annualAcademicRaw, readAnnualExtra, gradeBand,
 } from '../utils/scoring';
 import { tallyAbsences } from '../utils/attendance';
 import { formatDobKh } from '../utils/khmerDate';
@@ -233,7 +233,14 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     v.c_0 = fx(academic);
     v.c_1 = fx(0.1 * extra.skills);
     v.c_2 = fx(0.1 * extra.conduct);
-    v.c_3 = academic === null ? '' : fx(academic + 0.1 * extra.skills + 0.1 * extra.conduct);
+    const finalAvg = academic === null ? null : academic + 0.1 * extra.skills + 0.1 * extra.conduct;
+    v.c_3 = fx(finalAvg);
+
+    // គ- វាយតម្លៃសិស្សលើការសិក្សា: the niddes band for each semester and for the
+    // year, off the same averages printed above.
+    v.n1 = gradeBand(semesterAvgOf(records, 1)).km;
+    v.n2 = gradeBand(semesterAvgOf(records, 2)).km;
+    v.ny = gradeBand(finalAvg).km;
     return v;
   }, [student, records, students, yearDates]);
 
@@ -423,6 +430,10 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
         .handbook-body .fill { font-weight: 700; border-bottom: 1px solid #0000FF; padding: 0 1.5mm; }
         .handbook-body table.grid td .fill { border-bottom: none; padding: 0; }
         .handbook-body table.grid td.dot, .handbook-body table.grid td.pad { vertical-align: top; height: auto; padding: 2mm; }
+        /* A ruled line inside a cell: keeps the blank form's line when there is
+           nothing to print, and carries the value centred on it when there is. */
+        .handbook-body .rule { display: block; min-height: 1.4em; text-align: center;
+          font-weight: 700; border-bottom: 1px dotted #0000FF; }
         @media print {
           @page { size: A4 landscape; margin: 0; }
           .handbook-body .sheet { margin: 0; page-break-after: always; break-after: page; box-shadow: none; }

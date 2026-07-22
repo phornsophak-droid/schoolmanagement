@@ -14,6 +14,18 @@ import { StudentScore } from '../types';
 // Official niddes colours by letter, shared by the score tables, report cards
 // and ranking reports so they always match: A brown-red, B red, C orange-brown,
 // D green, E blue, F black. Returns '' (inherit) for an unknown/blank grade.
+// The official niddes scale. The report cards and the merit certificate each
+// carry their own copy of this; new callers should use this one.
+export const gradeBand = (v: number | null | undefined): { km: string; en: string } => {
+  if (v === null || v === undefined || v <= 0) return { km: '', en: '' };
+  if (v >= 9) return { km: 'ល្អប្រសើរ', en: 'A' };
+  if (v >= 8) return { km: 'ល្អណាស់', en: 'B' };
+  if (v >= 7) return { km: 'ល្អ', en: 'C' };
+  if (v >= 6) return { km: 'ល្អបង្គួរ', en: 'D' };
+  if (v >= 5) return { km: 'មធ្យម', en: 'E' };
+  return { km: 'ខ្សោយ', en: 'F' };
+};
+
 export const niddesColor = (letter: string | null | undefined): string => {
   switch ((letter || '').trim().toUpperCase()) {
     case 'A': return '#a52a2a';
