@@ -77,8 +77,11 @@ const fx = (v: number | null | undefined) => (v === null || v === undefined ? ''
 const fillTokens = (html: string, values: Record<string, string>) =>
   html.replace(/\{\{([a-z0-9_]+)(?:\|(\d+))?\}\}/g, (_m, key: string, width?: string) => {
     const v = (values[key] ?? '').trim();
-    if (v) return `<span class="fill">${v}</span>`;
-    return width ? '.'.repeat(Number(width)) : '';
+    // A slot with a width is a ruled line on the form: draw it as a leader that
+    // stretches to the edge, sharing the room in proportion to that width when a
+    // line carries several. Slots without one sit inside a table cell.
+    if (width) return `<span class="lead" style="flex-grow:${Number(width)}">${v}</span>`;
+    return v ? `<span class="fill">${v}</span>` : '';
   });
 
 // Shrink the chosen photo before storing it. A phone camera shot is several MB —
@@ -334,7 +337,13 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
           width: 297mm; height: 210mm; padding: 10mm; margin: 0 auto 14px;
           display: flex; gap: 12.7mm; background: #fff; box-sizing: border-box; overflow: hidden;
         }
-        .handbook-body .panel { flex: 1 1 0; min-width: 0; border: 2.5px double #0000FF; padding: 4mm 5mm; box-sizing: border-box; overflow: hidden; }
+        /* Column layout so the panel's content can be spread over its full height
+           instead of bunching at the top and leaving the box half empty. */
+        .handbook-body .panel { flex: 1 1 0; min-width: 0; border: 2.5px double #0000FF; padding: 4mm 5mm; box-sizing: border-box; overflow: hidden;
+          display: flex; flex-direction: column; }
+        /* A panel's main grid takes the height left over, so its rows breathe and
+           the table reaches the bottom rule as it does on the printed form. */
+        .handbook-body .panel > table.grid:last-child { flex: 1 1 auto; height: 100%; }
         .handbook-body .panel.blank { border: none; }
         .handbook-body p { margin: 3px 0; overflow-wrap: anywhere; }
         .handbook-body .ctr { text-align: center; }
@@ -344,9 +353,21 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
         .handbook-body .uline { text-decoration: underline; text-underline-offset: 4px; }
         .handbook-body .deco { letter-spacing: 2px; }
         .handbook-body .mt { margin-top: 8mm; } .handbook-body .mt2 { margin-top: 10mm; } .handbook-body .mt3 { margin-top: 5mm; }
-        .handbook-body .fields { margin-top: 12mm; } .handbook-body .fields p { margin: 2.5mm 0; }
+        .handbook-body .fields p { margin: 2.5mm 0; }
         .handbook-body .fields2 p { margin: 2.5mm 0; }
+        /* Cover: title block at the top, the fields in the lower half and the
+           closing mark on the bottom rule — the spacing of the printed cover. */
+        .handbook-body .panel.cover .fields { margin-top: auto; }
+        .handbook-body .panel.cover .btm { margin-top: auto; margin-bottom: 2mm; }
         .handbook-body .btm { margin-top: 8mm; }
+        /* Ruled lines are leaders: the label sits at the left and the rule runs on
+           to the panel edge, so a short answer never leaves a stub of a line. */
+        .handbook-body .fields p, .handbook-body .fields2 p,
+        .handbook-body .hdr, .handbook-body td.pad p { display: flex; align-items: baseline; gap: 2mm; white-space: nowrap; }
+        /* Basis auto: a rule is never narrower than the answer written on it, and
+           only the leftover room is shared out by the slot's width. */
+        .handbook-body .lead { flex: 1 1 auto; min-width: 0; border-bottom: 1px dotted #0000FF;
+          font-weight: 700; text-align: center; padding: 0 1.5mm; white-space: normal; }
         .handbook-body .ind { text-indent: 8mm; margin: 2mm 0; }
         .handbook-body .item { margin: 1.8mm 0; text-align: justify; }
         /* The instructions run long; give that panel a tighter scale so all seven
