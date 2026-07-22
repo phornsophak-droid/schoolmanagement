@@ -247,8 +247,9 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     // absences for the year stay under 35. Only the promotion is filled in — a
     // pupil who misses either test is left for the teacher to decide and write,
     // since holding a child back is not a call this form should make on its own.
+    // ថ្នាក់ទី៦ moves up to ថ្នាក់ទី៧ — on to lower secondary.
     const unexcused = a1.absent + a2.absent;
-    if (finalAvg !== null && finalAvg >= 5 && unexcused < 35 && lvl >= 1 && lvl < 6) {
+    if (finalAvg !== null && finalAvg >= 5 && unexcused < 35 && lvl >= 1 && lvl <= 6) {
       v.promote = `${toKh(lvl + 1)}`;
     }
     return v;
