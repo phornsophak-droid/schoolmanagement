@@ -48,6 +48,7 @@ import StandardTests from './StandardTests';
 import Handbook from './Handbook';
 import TimetableManager from './TimetableManager';
 import DocBank from './DocBank';
+import AiTools from './AiTools';
 import { SchoolLogo } from './SchoolLogo';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 import { loadAnnouncements } from '../lib/announcements';
@@ -134,7 +135,7 @@ export default function MobilePortal({
   onRenameGrade
 }: MobilePortalProps) {
   // Mobile active navigation view
-  const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook'>('home');
+  const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'aitools'>('home');
   const [showMenuOverlay, setShowMenuOverlay] = useState(false);
   const [showAiHelper, setShowAiHelper] = useState(false);
   // Gradebook month/class filters on phone — must be real state, else the dropdowns
@@ -881,6 +882,30 @@ export default function MobilePortal({
                     </span>
                   </a>
 
+                  {/* Button 14: AI assistants */}
+                  <button
+                    onClick={() => setInnerView('aitools')}
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all cursor-pointer min-h-[115px] relative border-fuchsia-500/10 hover:bg-fuchsia-50/50 hover:border-fuchsia-200"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center">
+                        <Sparkles className="w-4.5 h-4.5 text-fuchsia-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG - a chat bubble with a spark, for an AI assistant */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <path d="M24,34 Q24,26 32,26 L88,26 Q96,26 96,34 L96,72 Q96,80 88,80 L52,80 L36,94 L36,80 L32,80 Q24,80 24,72 Z" fill="#FFFFFF" stroke="#A21CAF" strokeWidth="1.5" />
+                        <line x1="36" y1="42" x2="72" y2="42" stroke="#F0ABFC" strokeWidth="2.5" strokeLinecap="round" />
+                        <line x1="36" y1="54" x2="64" y2="54" stroke="#F0ABFC" strokeWidth="2.5" strokeLinecap="round" />
+                        <line x1="36" y1="66" x2="56" y2="66" stroke="#F0ABFC" strokeWidth="2.5" strokeLinecap="round" />
+                        <path d="M82,44 L85,53 L94,56 L85,59 L82,68 L79,59 L70,56 L79,53 Z" fill="#D946EF" />
+                        <circle cx="94" cy="38" r="3.5" fill="#F0ABFC" />
+                      </svg>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-fuchsia-950 leading-tight">
+                      ជំនួយការ AI
+                    </span>
+                  </button>
+
                 </div>
 
                 {/* Khmer Traditional Custom Footer inside Home Dashboard view */}
@@ -893,6 +918,30 @@ export default function MobilePortal({
             )}
 
             {/* 1. TIMETABLE VIEW */}
+            {innerView === 'aitools' && (
+              <motion.div
+                key="aitools"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-10 bg-[#F8FAFC] flex flex-col p-3 overflow-hidden"
+              >
+                <div className="border-b border-emerald-250/50 pb-2 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-emerald-950">ជំនួយការ AI</h3>
+                  </div>
+                </div>
+
+                <div className="bg-[#F8FAFC] rounded-2xl p-2 text-slate-800 overflow-auto w-full flex-1 mt-2 relative">
+                  <AiTools />
+                </div>
+              </motion.div>
+            )}
+
             {innerView === 'handbook' && (
               <motion.div
                 key="handbook"
