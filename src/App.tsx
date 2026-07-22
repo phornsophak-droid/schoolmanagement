@@ -12,6 +12,7 @@ import {
   Clock, 
   BookOpen, 
   Sparkles,
+  Library,
   HelpCircle,
   Menu,
   X,
@@ -145,6 +146,7 @@ import DailyAttendance from './components/DailyAttendance';
 import WorksheetGenerator from './components/WorksheetGenerator';
 import DocBank from './components/DocBank';
 import AiTools from './components/AiTools';
+import LibraryManager from './components/LibraryManager';
 import LessonLibrary from './components/LessonLibrary';
 import QuestionBank from './components/QuestionBank';
 import StandardTests from './components/StandardTests';
@@ -170,7 +172,7 @@ const IS_PHONE = typeof navigator !== 'undefined' &&
 export default function App() {
   const { t } = useT();
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'docbank' | 'lessons' | 'timetable' | 'aitools'>(() => {
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'docbank' | 'lessons' | 'timetable' | 'aitools' | 'library'>(() => {
     const isMobile = typeof window !== 'undefined' && (
       window.innerWidth < 768 || 
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -1713,6 +1715,21 @@ export default function App() {
           </button>
 
           <button
+            id="nav_library_tab"
+            onClick={() => setActiveView('library')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'library'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Library size={16} className={activeView === 'library' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>គ្រប់គ្រងបណ្ណាល័យ</span>
+            </div>
+          </button>
+
+          <button
             id="nav_mobile_portal_tab"
             onClick={() => setActiveView('mobile-portal')}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -2423,6 +2440,23 @@ export default function App() {
                     transition={{ duration: 0.15 }}
                   >
                     <AiTools onClose={() => setActiveView('dashboard')} />
+                  </motion.div>
+                )}
+
+                {activeView === 'library' && (
+                  <motion.div
+                    key="library"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <LibraryManager
+                      students={students}
+                      grades={grades}
+                      currentUser={currentUser}
+                      onClose={() => setActiveView('dashboard')}
+                    />
                   </motion.div>
                 )}
 

@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   Send,
   Sparkles,
+  Library,
   Search,
   Book,
   Plus,
@@ -49,6 +50,7 @@ import Handbook from './Handbook';
 import TimetableManager from './TimetableManager';
 import DocBank from './DocBank';
 import AiTools from './AiTools';
+import LibraryManager from './LibraryManager';
 import { SchoolLogo } from './SchoolLogo';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 import { loadAnnouncements } from '../lib/announcements';
@@ -135,7 +137,7 @@ export default function MobilePortal({
   onRenameGrade
 }: MobilePortalProps) {
   // Mobile active navigation view
-  const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'aitools'>('home');
+  const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'aitools' | 'librarymgmt'>('home');
   const [showMenuOverlay, setShowMenuOverlay] = useState(false);
   const [showAiHelper, setShowAiHelper] = useState(false);
   // Gradebook month/class filters on phone — must be real state, else the dropdowns
@@ -882,6 +884,38 @@ export default function MobilePortal({
                     </span>
                   </a>
 
+
+                  {/* Button 15: library management */}
+                  <button
+                    onClick={() => setInnerView('librarymgmt')}
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all cursor-pointer min-h-[115px] relative border-teal-500/10 hover:bg-teal-50/50 hover:border-teal-200"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+                        <Library className="w-4.5 h-4.5 text-teal-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG - a shelf of books with a borrower's card */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="22" y="26" width="76" height="58" rx="5" fill="#FFFFFF" stroke="#0F766E" strokeWidth="1.5" />
+                        <line x1="22" y1="56" x2="98" y2="56" stroke="#0F766E" strokeWidth="1.5" />
+                        <rect x="29" y="33" width="8" height="18" rx="1.5" fill="#5EEAD4" />
+                        <rect x="40" y="33" width="8" height="18" rx="1.5" fill="#14B8A6" />
+                        <rect x="51" y="33" width="8" height="18" rx="1.5" fill="#99F6E4" />
+                        <rect x="62" y="33" width="8" height="18" rx="1.5" fill="#14B8A6" />
+                        <rect x="29" y="62" width="8" height="16" rx="1.5" fill="#14B8A6" />
+                        <rect x="40" y="62" width="8" height="16" rx="1.5" fill="#99F6E4" />
+                        <rect x="51" y="62" width="8" height="16" rx="1.5" fill="#5EEAD4" />
+                        <rect x="70" y="62" width="26" height="20" rx="3" fill="#F0FDFA" stroke="#0F766E" strokeWidth="1.3" />
+                        <line x1="75" y1="69" x2="91" y2="69" stroke="#5EEAD4" strokeWidth="2" strokeLinecap="round" />
+                        <line x1="75" y1="75" x2="86" y2="75" stroke="#5EEAD4" strokeWidth="2" strokeLinecap="round" />
+                        <path d="M78,36 L82,44 L90,45 L84,50 L86,58 L78,54 L70,58 L72,50 L66,45 L74,44 Z" fill="#FDE047" opacity="0.55" />
+                      </svg>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-teal-950 leading-tight">
+                      គ្រប់គ្រងបណ្ណាល័យ
+                    </span>
+                  </button>
+
                   {/* Button 14: AI assistants */}
                   <button
                     onClick={() => setInnerView('aitools')}
@@ -918,6 +952,30 @@ export default function MobilePortal({
             )}
 
             {/* 1. TIMETABLE VIEW */}
+            {innerView === 'librarymgmt' && (
+              <motion.div
+                key="librarymgmt"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-10 bg-[#F8FAFC] flex flex-col p-3 overflow-hidden"
+              >
+                <div className="border-b border-emerald-250/50 pb-2 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-emerald-950">គ្រប់គ្រងបណ្ណាល័យ</h3>
+                  </div>
+                </div>
+
+                <div className="bg-[#F8FAFC] rounded-2xl p-2 text-slate-800 overflow-auto w-full flex-1 mt-2 relative">
+                  <LibraryManager students={students} grades={grades} currentUser={currentUser} />
+                </div>
+              </motion.div>
+            )}
+
             {innerView === 'aitools' && (
               <motion.div
                 key="aitools"
