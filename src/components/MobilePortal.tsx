@@ -45,6 +45,9 @@ import DailyAttendance from './DailyAttendance';
 import Dashboard from './Dashboard';
 import WorksheetGenerator from './WorksheetGenerator';
 import StandardTests from './StandardTests';
+import Handbook from './Handbook';
+import TimetableManager from './TimetableManager';
+import DocBank from './DocBank';
 import { SchoolLogo } from './SchoolLogo';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 import { loadAnnouncements } from '../lib/announcements';
@@ -131,7 +134,7 @@ export default function MobilePortal({
   onRenameGrade
 }: MobilePortalProps) {
   // Mobile active navigation view
-  const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat' | 'worksheets'>('home');
+  const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook'>('home');
   const [showMenuOverlay, setShowMenuOverlay] = useState(false);
   const [showAiHelper, setShowAiHelper] = useState(false);
   // Gradebook month/class filters on phone — must be real state, else the dropdowns
@@ -365,31 +368,6 @@ export default function MobilePortal({
     }, 2200);
   };
 
-  // Custom study timetable mock data
-  const studyDays = [
-    {
-      day: 'ថ្ងៃចន្ទ (Monday)',
-      subjects: [
-        { time: '08:00 - 09:30', name: 'ភាសាខ្មែរ (អំណាន)', room: 'បន្ទប់ ១០១', status: 'completed' },
-        { time: '09:45 - 11:00', name: 'គណិតវិទ្យា', room: 'បន្ទប់ ១០១', status: 'completed' },
-        { time: '01:30 - 03:00', name: 'ភាសាអង់គ្លេស', room: 'បណ្ណាល័យឌីជីថល', status: 'active' },
-      ]
-    },
-    {
-      day: 'ថ្ងៃអង្គារ (Tuesday)',
-      subjects: [
-        { time: '08:00 - 09:30', name: 'វិទ្យាសាស្ត្រសង្គម', room: 'បន្ទប់ ១០២', status: 'upcoming' },
-        { time: '09:45 - 11:00', name: 'គំនូរ និងសិល្បៈ', room: 'សាលទស្សនីយភាព', status: 'upcoming' },
-      ]
-    },
-    {
-      day: 'ថ្ងៃពុធ (Wednesday)',
-      subjects: [
-        { time: '08:00 - 09:30', name: 'គណិតវិទ្យា (លំហាត់)', room: 'បន្ទប់ ១០១', status: 'upcoming' },
-        { time: '10:00 - 11:15', name: 'កីឡា និងអប់រំកាយ', room: 'តារាងបាល់ទាត់', status: 'upcoming' },
-      ]
-    }
-  ];
 
   // School announcements live in <Announcements/> (shared with the desktop shell);
   // here we only track the count for the bell badge.
@@ -793,6 +771,116 @@ export default function MobilePortal({
                     </span>
                   </button>
 
+                  {/* Button 10: sievphow */}
+                  <button
+                    onClick={() => setInnerView('handbook')}
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all cursor-pointer min-h-[115px] relative border-blue-500/10 hover:bg-blue-50/50 hover:border-blue-200"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <BookOpen className="w-4.5 h-4.5 text-blue-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG - an open record book with a photo box and ruled lines */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <path d="M18,30 Q60,20 60,30 L60,95 Q60,85 18,95 Z" fill="#FFFFFF" stroke="#2563EB" strokeWidth="1.5" />
+                        <path d="M102,30 Q60,20 60,30 L60,95 Q60,85 102,95 Z" fill="#EFF6FF" stroke="#2563EB" strokeWidth="1.5" />
+                        <rect x="26" y="38" width="16" height="20" rx="2" fill="#DBEAFE" stroke="#2563EB" strokeWidth="1.2" />
+                        <line x1="48" y1="42" x2="55" y2="41" stroke="#93C5FD" strokeWidth="2.2" strokeLinecap="round" />
+                        <line x1="48" y1="52" x2="55" y2="51" stroke="#93C5FD" strokeWidth="2.2" strokeLinecap="round" />
+                        <line x1="26" y1="66" x2="55" y2="63" stroke="#93C5FD" strokeWidth="2.2" strokeLinecap="round" />
+                        <line x1="26" y1="76" x2="55" y2="73" stroke="#93C5FD" strokeWidth="2.2" strokeLinecap="round" />
+                        <line x1="66" y1="41" x2="94" y2="44" stroke="#93C5FD" strokeWidth="2.2" strokeLinecap="round" />
+                        <line x1="66" y1="53" x2="94" y2="56" stroke="#93C5FD" strokeWidth="2.2" strokeLinecap="round" />
+                        <line x1="66" y1="65" x2="86" y2="67" stroke="#93C5FD" strokeWidth="2.2" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-blue-950 leading-tight">
+                      សៀវភៅសិក្ខាគារិក
+                    </span>
+                  </button>
+
+                  {/* Button 11: timetable */}
+                  <button
+                    onClick={() => setInnerView('timetable')}
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all cursor-pointer min-h-[115px] relative border-amber-500/10 hover:bg-amber-50/50 hover:border-amber-200"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                        <Clock className="w-4.5 h-4.5 text-amber-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG - a weekly grid with a clock */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="24" y="26" width="72" height="66" rx="6" fill="#FFFFFF" stroke="#D97706" strokeWidth="1.5" />
+                        <rect x="24" y="26" width="72" height="14" rx="6" fill="#FEF3C7" />
+                        <line x1="48" y1="40" x2="48" y2="92" stroke="#FDE68A" strokeWidth="1.5" />
+                        <line x1="72" y1="40" x2="72" y2="92" stroke="#FDE68A" strokeWidth="1.5" />
+                        <line x1="24" y1="57" x2="96" y2="57" stroke="#FDE68A" strokeWidth="1.5" />
+                        <line x1="24" y1="74" x2="96" y2="74" stroke="#FDE68A" strokeWidth="1.5" />
+                        <rect x="28" y="44" width="16" height="9" rx="2" fill="#FCD34D" />
+                        <rect x="52" y="61" width="16" height="9" rx="2" fill="#FCD34D" />
+                        <circle cx="86" cy="86" r="15" fill="#FFFFFF" stroke="#D97706" strokeWidth="2" />
+                        <path d="M86,78 L86,86 L92,89" stroke="#D97706" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-amber-950 leading-tight">
+                      កាលវិភាគសិក្សា
+                    </span>
+                  </button>
+
+                  {/* Button 12: document library */}
+                  <button
+                    onClick={() => setInnerView('library')}
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all cursor-pointer min-h-[115px] relative border-violet-500/10 hover:bg-violet-50/50 hover:border-violet-200"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                        <Database className="w-4.5 h-4.5 text-violet-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG - stacked folders of documents */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <path d="M22,44 L22,90 Q22,96 28,96 L92,96 Q98,96 98,90 L98,50 Q98,44 92,44 L58,44 L52,36 L28,36 Q22,36 22,42 Z" fill="#EDE9FE" stroke="#7C3AED" strokeWidth="1.5" />
+                        <rect x="40" y="30" width="40" height="30" rx="3" fill="#FFFFFF" stroke="#7C3AED" strokeWidth="1.4" />
+                        <line x1="46" y1="38" x2="74" y2="38" stroke="#C4B5FD" strokeWidth="2.2" strokeLinecap="round" />
+                        <line x1="46" y1="46" x2="74" y2="46" stroke="#C4B5FD" strokeWidth="2.2" strokeLinecap="round" />
+                        <line x1="46" y1="54" x2="64" y2="54" stroke="#C4B5FD" strokeWidth="2.2" strokeLinecap="round" />
+                        <path d="M22,58 L98,58" stroke="#DDD6FE" strokeWidth="1.5" />
+                        <circle cx="60" cy="78" r="10" fill="#FFFFFF" stroke="#7C3AED" strokeWidth="1.6" />
+                        <path d="M56,78 L64,78 M60,74 L60,82" stroke="#7C3AED" strokeWidth="1.8" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-violet-950 leading-tight">
+                      បណ្ណាល័យឯកសារ
+                    </span>
+                  </button>
+
+                  {/* Button 13: PLP - a government site cannot be reliably iframed,
+                      so it opens in a new tab as it does on the desktop. */}
+                  <a
+                    href="https://plp.moeys.gov.kh/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all cursor-pointer min-h-[115px] relative border-teal-500/10 hover:bg-teal-50/50 hover:border-teal-200 no-underline"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+                        <BookOpen className="w-4.5 h-4.5 text-teal-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG - a laptop showing a lesson, with a link marker */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="26" y="30" width="68" height="46" rx="5" fill="#FFFFFF" stroke="#0D9488" strokeWidth="1.5" />
+                        <rect x="32" y="36" width="56" height="34" rx="3" fill="#CCFBF1" />
+                        <path d="M18,84 L102,84 Q102,92 94,92 L26,92 Q18,92 18,84 Z" fill="#F0FDFA" stroke="#0D9488" strokeWidth="1.5" />
+                        <line x1="40" y1="46" x2="72" y2="46" stroke="#5EEAD4" strokeWidth="2.5" strokeLinecap="round" />
+                        <line x1="40" y1="56" x2="64" y2="56" stroke="#5EEAD4" strokeWidth="2.5" strokeLinecap="round" />
+                        <circle cx="82" cy="58" r="9" fill="#FFFFFF" stroke="#0D9488" strokeWidth="1.6" />
+                        <path d="M78,58 L86,58 M83,54 L87,58 L83,62" stroke="#0D9488" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-teal-950 leading-tight">
+                      ថ្នាលបឋម (PLP)
+                    </span>
+                  </a>
+
                 </div>
 
                 {/* Khmer Traditional Custom Footer inside Home Dashboard view */}
@@ -805,44 +893,55 @@ export default function MobilePortal({
             )}
 
             {/* 1. TIMETABLE VIEW */}
+            {innerView === 'handbook' && (
+              <motion.div
+                key="handbook"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-10 bg-[#F8FAFC] flex flex-col p-3 overflow-hidden"
+              >
+                <div className="border-b border-emerald-250/50 pb-2 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-emerald-950">សៀវភៅសិក្ខាគារិក</h3>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-0 border border-emerald-100 text-slate-800 overflow-auto w-full flex-1 mt-2 relative">
+                  <Handbook
+                    students={students}
+                    grades={grades}
+                    onSaveStudents={onSaveStudents}
+                    onClose={() => setInnerView('home')}
+                  />
+                </div>
+              </motion.div>
+            )}
+
             {innerView === 'timetable' && (
               <motion.div
                 key="timetable"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-4"
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-10 bg-[#F8FAFC] flex flex-col p-3 overflow-hidden"
               >
-                <div className="flex items-center gap-2 border-b border-blue-900/50 pb-2 mb-2">
-                  <button onClick={() => setInnerView('home')} className="p-1 hover:bg-blue-900/55 rounded text-[#E2C785]">
-                    <ArrowLeft size={16} />
-                  </button>
-                  <h3 className="text-xs font-bold text-white">📅 កាលវិភាគសិក្សា (Weekly Schedule)</h3>
+                <div className="border-b border-emerald-250/50 pb-2 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-emerald-950">កាលវិភាគសិក្សា</h3>
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  {studyDays.map((dayData, idx) => (
-                    <div key={idx} className="bg-blue-950/50 rounded-xl p-3 border border-blue-900/30">
-                      <p className="text-[10px] font-bold text-[#E2C785] mb-2">{dayData.day}</p>
-                      <div className="space-y-2">
-                        {dayData.subjects.map((sub, sIdx) => (
-                          <div key={sIdx} className="flex justify-between items-center bg-[#111E38]/50 p-2 rounded-lg border border-slate-700/25">
-                            <div>
-                              <p className="text-[9.5px] font-black text-slate-205">{sub.name}</p>
-                              <p className="text-[8px] text-slate-400 mt-0.5">{sub.time} | {sub.room}</p>
-                            </div>
-                            <span className={`text-[7px] font-extrabold px-1.5 py-0.5 rounded-md ${
-                              sub.status === 'completed' ? 'bg-[#10B981]/20 text-[#10B981]' : 
-                              sub.status === 'active' ? 'bg-amber-500/20 text-amber-300 animate-pulse' : 
-                              'bg-slate-700/30 text-slate-350'
-                            }`}>
-                              {sub.status === 'completed' ? 'រួចរាល់' : sub.status === 'active' ? 'កំពុងរៀន' : 'បន្ទាប់'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                <div className="bg-white rounded-2xl p-0 border border-emerald-100 text-slate-800 overflow-auto w-full flex-1 mt-2 relative">
+                  <TimetableManager grades={grades} currentUser={currentUser} />
                 </div>
               </motion.div>
             )}
@@ -1333,36 +1432,20 @@ export default function MobilePortal({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-3"
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-10 bg-[#F8FAFC] flex flex-col p-3 overflow-hidden"
               >
-                <div className="flex items-center gap-2 border-b border-blue-900/50 pb-2 mb-2">
-                  <button onClick={() => setInnerView('home')} className="p-1 hover:bg-blue-900/55 rounded text-[#E2C785]">
-                    <ArrowLeft size={16} />
-                  </button>
-                  <h3 className="text-xs font-bold text-white">📖 បណ្ណាល័យឌីជីថល (Khmer Library)</h3>
+                <div className="border-b border-emerald-250/50 pb-2 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
+                      <ArrowLeft size={16} />
+                    </button>
+                    <h3 className="text-xs font-bold text-emerald-950">បណ្ណាល័យឯកសារ</h3>
+                  </div>
                 </div>
 
-                <div className="bg-blue-950/20 p-3 rounded-xl border border-blue-900/25 flex items-center gap-2 text-[9.5px]">
-                  <span>🔍</span>
-                  <input
-                    type="text"
-                    placeholder="ស្វែងរកសៀវភៅអានអេឡិចត្រូនិច..."
-                    className="bg-transparent border-none text-slate-100 flex-1 outline-none text-[8.5px]"
-                  />
-                </div>
-
-                <div className="space-y-2 mt-3">
-                  {booksCatalog.map((bk, i) => (
-                    <div key={i} className="p-2.5 bg-[#111E38]/70 border border-slate-700/20 rounded-xl flex items-center justify-between text-[9px]">
-                      <div>
-                        <p className="font-bold text-[#E2C785]">{bk.title}</p>
-                        <p className="text-[7.5px] text-slate-400 mt-1">និពន្ធដោយ៖ {bk.author} | {bk.category}</p>
-                      </div>
-                      <span className="text-[7px] bg-[#E2C785]/20 text-[#E2C785] px-1 rounded font-black">
-                        {bk.popularity}
-                      </span>
-                    </div>
-                  ))}
+                <div className="bg-white rounded-2xl p-0 border border-emerald-100 text-slate-800 overflow-auto w-full flex-1 mt-2 relative">
+                  <DocBank currentUser={currentUser} onClose={() => setInnerView('home')} />
                 </div>
               </motion.div>
             )}
