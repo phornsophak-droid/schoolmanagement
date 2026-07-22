@@ -8,7 +8,7 @@
 // imported raw) and rendered here; a button exports it as a multi-page A4 PDF.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Download, Loader2, X, Trash2 } from 'lucide-react';
+import { BookOpen, Download, Loader2, X, Trash2, Upload } from 'lucide-react';
 import handbookHtml from '../assets/handbook.html?raw';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import { kvReadSync, kvWrite, kvHydrate } from '../lib/kvStore';
@@ -19,6 +19,7 @@ import {
   examAvgOf, monthlyAvgOf, semesterAvgOf, annualAcademicRaw, readAnnualExtra,
 } from '../utils/scoring';
 import { tallyAbsences } from '../utils/attendance';
+import { parseRosterRows, mergeRoster } from '../lib/rosterImport';
 import FitToWidth from './FitToWidth';
 
 const PHOTO_KEY = 'handbook_photo';
@@ -63,10 +64,11 @@ const SHEET_W = Math.round((297 / 25.4) * 96); // 1123px
 interface Props {
   students?: StudentScore[];
   grades?: string[];
+  onSaveStudents?: (students: StudentScore[]) => void;
   onClose?: () => void;
 }
 
-export default function Handbook({ students = [], grades = [], onClose }: Props) {
+export default function Handbook({ students = [], grades = [], onSaveStudents, onClose }: Props) {
   const [pdfBusy, setPdfBusy] = useState(false);
   const [photo, setPhoto] = useState('');
   const [grade, setGrade] = useState('');
@@ -102,8 +104,10 @@ export default function Handbook({ students = [], grades = [], onClose }: Props)
       name: student.name,
       class: student.grade,
       dob: student.dob || '',
-      father: student.fatherName || '',
-      mother: student.motherName || '',
+      birthplace: student.birthPlace || '',
+      // The form asks for "ឈ្មោះ និងមុខរបរ" — name and occupation together.
+      father: [student.fatherName, student.fatherJob].filter(Boolean).join(' — '),
+      mother: [student.motherName, student.motherJob].filter(Boolean).join(' — '),
       address: student.address || '',
       remark: student.remark || '',
     };
@@ -182,6 +186,46 @@ export default function Handbook({ students = [], grades = [], onClose }: Props)
       setPhoto(dataUrl);
       await kvWrite(PHOTO_KEY, dataUrl);
     } catch { /* unreadable image — keep the previous one */ }
+  };
+
+  // ---- Import the official roster workbook to fill in what the app lacks ----
+  const rosterRef = useRef<HTMLInputElement>(null);
+  const [importMsg, setImportMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const onRosterFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f || !onSaveStudents) return;
+    setImportMsg({ text: 'កំពុងអាន…', ok: true });
+    try {
+      const XLSX = await import('xlsx');
+      const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+      const sheets = wb.SheetNames.map(n => ({
+        name: n,
+        rows: XLSX.utils.sheet_to_json<any[]>(wb.Sheets[n], { header: 1, blankrows: false, raw: false }),
+      }));
+      const rows = parseRosterRows(sheets);
+      if (!rows.length) { setImportMsg({ text: 'រកជួរសិស្សមិនឃើញក្នុងឯកសារនេះ។', ok: false }); return; }
+      // Work on a copy so React sees a new array and the save is explicit.
+      const copy = students.map(s => ({ ...s }));
+      const res = mergeRoster(copy, rows);
+      // Nothing matched is a FAILURE, not "already complete" — say so plainly.
+      if (res.matchedStudents === 0) {
+        setImportMsg({ text: `រកឃើញ ${toKh(rows.length)} ជួរ តែរកសិស្សត្រូវគ្នាក្នុង App មិនឃើញសោះ — សូមពិនិត្យថាបញ្ជីឈ្មោះត្រូវនឹងឆ្នាំសិក្សានេះ។`, ok: false });
+        return;
+      }
+      if (res.fieldsFilled === 0) {
+        setImportMsg({ text: `រកឃើញ ${toKh(rows.length)} ជួរ · ផ្គូផ្គង ${toKh(res.matchedStudents)} — ព័ត៌មានពេញរួចហើយ គ្មានអ្វីត្រូវបំពេញ។`, ok: true });
+        return;
+      }
+      onSaveStudents(copy);
+      const miss = res.unmatched.length ? ` · រកមិនឃើញក្នុង App ${toKh(res.unmatched.length)}` : '';
+      setImportMsg({
+        text: `នាំចូល ${toKh(rows.length)} ជួរ · ផ្គូផ្គង ${toKh(res.matchedStudents)} · បំពេញ ${toKh(res.fieldsFilled)} ព័ត៌មាន${miss} ✓`,
+        ok: true,
+      });
+    } catch (err: any) {
+      setImportMsg({ text: `អានឯកសារមិនបាន៖ ${err?.message || ''}`, ok: false });
+    }
   };
 
   const removePhoto = async () => {
@@ -294,6 +338,18 @@ export default function Handbook({ students = [], grades = [], onClose }: Props)
         </div>
         <div className="flex items-center gap-2">
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
+          {onSaveStudents && (
+            <>
+              <input ref={rosterRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={onRosterFile} />
+              <button
+                onClick={() => rosterRef.current?.click()}
+                title="នាំចូលបញ្ជីឈ្មោះសិស្ស (.xlsx) — បំពេញ ទីកន្លែងកំណើត និងមុខរបរឪពុក/ម្ដាយ"
+                className="px-3 py-2 text-xs font-bold rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 flex items-center gap-1.5"
+              >
+                <Upload size={13} /> នាំចូលបញ្ជីឈ្មោះ
+              </button>
+            </>
+          )}
           {photo && (
             <button
               onClick={removePhoto}
@@ -317,6 +373,12 @@ export default function Handbook({ students = [], grades = [], onClose }: Props)
           )}
         </div>
       </div>
+
+      {importMsg && (
+        <p className={`rc-no-print text-[11px] font-bold px-3 py-2 rounded-xl border ${importMsg.ok ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+          {importMsg.text}
+        </p>
+      )}
 
       {/* Document — fixed at the real A4-landscape width and scaled down to fit the
           screen without reflowing (print/PDF still use the full size). */}

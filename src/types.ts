@@ -135,7 +135,10 @@ export interface StudentScore {
   note?: string;  // ផ្សេងៗ (free-text notes)
   remark?: string;  // មូលវិចារគ្រូបន្ទុកថ្នាក់ (class-teacher remark shown on the report card)
   fatherName?: string;  // ឈ្មោះឪពុក
+  fatherJob?: string;   // មុខរបរឪពុក
   motherName?: string;  // ឈ្មោះម្តាយ
+  motherJob?: string;   // មុខរបរម្តាយ
+  birthPlace?: string;  // ទីកន្លែងកំណើត (ភូមិ ឃុំ ស្រុក ខេត្ត)
   address?: string;     // អាសយដ្ឋាន
   phone?: string;       // លេខទំនាក់ទំនង (parent/guardian contact)
   physicalEducation: number | null; // កាយ-កីឡា (0-10)
