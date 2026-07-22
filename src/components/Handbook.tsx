@@ -23,7 +23,7 @@ import { parseRosterRows, mergeRoster } from '../lib/rosterImport';
 import FitToWidth from './FitToWidth';
 
 const PHOTO_KEY = 'handbook_photo';
-const SCHOOL = 'សាលាបឋមសិក្សាសហគមន៍ច្បារច្រុះ';
+const SCHOOL = 'សាលាសហគមន៍ច្បារច្រុះ';
 const YEAR = '២០២៥-២០២៦';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
