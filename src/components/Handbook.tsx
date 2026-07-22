@@ -27,6 +27,19 @@ const SCHOOL = 'សាលាសហគមន៍ច្បារច្រុះ';
 const YEAR_START = 2025;                 // the current school year runs 2025-2026
 const YEAR = `${'២០២៥'}-${'២០២៦'}`;
 
+// Opening/closing dates of each school year, keyed by the year it starts. These are
+// the school's own calendar (the 2020-21 and 2021-22 years opened late because of
+// COVID), taken from the completed grade-6 book — they're the same for every student,
+// so the history rows can be filled from here.
+const SCHOOL_YEAR_DATES: Record<number, { open: string; close: string }> = {
+  2020: { open: '១១ មករា ២០២១', close: '១៧ ធ្នូ ២០២១' },
+  2021: { open: '១០ មករា ២០២២', close: '៣០ វិច្ឆិកា ២០២២' },
+  2022: { open: '០២ មករា ២០២៣', close: '១៧ វិច្ឆិកា ២០២៣' },
+  2023: { open: '០១ ធ្នូ ២០២៣', close: '៣០ កញ្ញា ២០២៤' },
+  2024: { open: '០១ វិច្ឆិកា ២០២៤', close: '៣១ សីហា ២០២៥' },
+  2025: { open: '០១ វិច្ឆិកា ២០២៥', close: '៣១ សីហា ២០២៦' },
+};
+
 // Grade level out of a class name: "ថ្នាក់ទី ៣ក" → 3, "ថ្នាក់ទី៦" → 6.
 // Returns 0 for មត្តេយ្យ and anything else without a ថ្នាក់ទី number.
 const KH_D = '០១២៣៤៥៦៧៨៩';
@@ -134,11 +147,16 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
         v[`y_${i}`] = `${toKh(y)}-${toKh(y + 1)}`;
         v[`g_${i}`] = toKh(g);
         v[`sch_${i}`] = SCHOOL;
+        // Same calendar for everyone; the ID follows the student through every year.
+        const cal = SCHOOL_YEAR_DATES[y];
+        if (cal) { v[`in_${i}`] = cal.open; v[`out_${i}`] = cal.close; }
+        v[`sid_${i}`] = student.studentId || '';
       }
-      v[`sid_${Math.min(lvl, 6) - 1}`] = student.studentId || ''; // ID on the current year
     } else {
       // មត្តេយ្យ / unnumbered class — just this year.
+      const cal = SCHOOL_YEAR_DATES[YEAR_START];
       v.y_0 = YEAR; v.g_0 = student.grade; v.sch_0 = SCHOOL; v.sid_0 = student.studentId || '';
+      if (cal) { v.in_0 = cal.open; v.out_0 = cal.close; }
     }
 
     // Per-subject semester-exam scores.
