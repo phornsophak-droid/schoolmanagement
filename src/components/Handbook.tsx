@@ -174,7 +174,14 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
       // the teacher typed themselves can't be sorted, so it stays in the ច block
       // rather than being guessed into one column or silently dropped.
       ...(() => {
-        const text = (student.remark || '').trim();
+        // Resolve the remark the way the annual report card does — semester 2's exam
+        // record first, then semester 1's — and then the first regular month record,
+        // which is where the gradebook's annual-remark box actually writes. Reading
+        // records[0] picked whichever record happened to come first.
+        const EXAMS = ['ប្រឡងឆមាសទី១', 'ប្រឡងឆមាសទី២'];
+        const onMonth = (m: string) => records.find(s => s.month === m)?.remark;
+        const text = (onMonth(EXAMS[1]) || onMonth(EXAMS[0])
+          || records.find(s => !EXAMS.includes(s.month))?.remark || '').trim();
         const pick = (side: 'praise' | 'improve') =>
           REMARK_PRESETS.filter(g => g.side === side).flatMap(g => g.items).filter(t => text.includes(t));
         const praise = pick('praise'), improve = pick('improve');
