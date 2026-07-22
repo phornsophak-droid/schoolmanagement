@@ -25,6 +25,10 @@ import FitToWidth from './FitToWidth';
 const PHOTO_KEY = 'handbook_photo';
 const YEAR_DATES_KEY = 'handbook_year_dates';
 const SCHOOL = 'សាលាសហគមន៍ច្បារច្រុះ';
+// Where the school sits — the cover asks for ឃុំ / ស្រុក / ខេត្ត.
+const SCHOOL_COMMUNE = 'ក្រាំងចេក';
+const SCHOOL_DISTRICT = 'សាមគ្គីមុនីជ័យ';
+const SCHOOL_PROVINCE = 'កំពង់ស្ពឺ';
 const YEAR_START = 2025;                 // the current school year runs 2025-2026
 const YEAR = `${'២០២៥'}-${'២០២៦'}`;
 
@@ -151,6 +155,7 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     if (!student) return {};
     const v: Record<string, string> = {
       school: SCHOOL, year: YEAR,
+      sch_commune: SCHOOL_COMMUNE, sch_district: SCHOOL_DISTRICT, sch_province: SCHOOL_PROVINCE,
       name: student.name,
       class: student.grade,
       dob: student.dob || '',
