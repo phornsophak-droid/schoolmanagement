@@ -8,7 +8,7 @@
 // imported raw) and rendered here; a button exports it as a multi-page A4 PDF.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Download, Loader2, X, Trash2, Upload } from 'lucide-react';
+import { BookOpen, Download, Loader2, X, Trash2, Upload, CalendarDays, Plus } from 'lucide-react';
 import handbookHtml from '../assets/handbook.html?raw';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import { kvReadSync, kvWrite, kvHydrate } from '../lib/kvStore';
@@ -23,21 +23,35 @@ import { parseRosterRows, mergeRoster } from '../lib/rosterImport';
 import FitToWidth from './FitToWidth';
 
 const PHOTO_KEY = 'handbook_photo';
+const YEAR_DATES_KEY = 'handbook_year_dates';
 const SCHOOL = 'សាលាសហគមន៍ច្បារច្រុះ';
 const YEAR_START = 2025;                 // the current school year runs 2025-2026
 const YEAR = `${'២០២៥'}-${'២០២៦'}`;
 
+export interface YearDates { open: string; close: string }
+
 // Opening/closing dates of each school year, keyed by the year it starts. These are
 // the school's own calendar (the 2020-21 and 2021-22 years opened late because of
 // COVID), taken from the completed grade-6 book — they're the same for every student,
-// so the history rows can be filled from here.
-const SCHOOL_YEAR_DATES: Record<number, { open: string; close: string }> = {
+// so the history rows can be filled from here. Shipped as DEFAULTS: the panel lets the
+// principal correct them and add each new year, and those edits win (see mergedYearDates).
+const SCHOOL_YEAR_DATES: Record<number, YearDates> = {
   2020: { open: '១១ មករា ២០២១', close: '១៧ ធ្នូ ២០២១' },
   2021: { open: '១០ មករា ២០២២', close: '៣០ វិច្ឆិកា ២០២២' },
   2022: { open: '០២ មករា ២០២៣', close: '១៧ វិច្ឆិកា ២០២៣' },
   2023: { open: '០១ ធ្នូ ២០២៣', close: '៣០ កញ្ញា ២០២៤' },
   2024: { open: '០១ វិច្ឆិកា ២០២៤', close: '៣១ សីហា ២០២៥' },
   2025: { open: '០១ វិច្ឆិកា ២០២៥', close: '៣១ សីហា ២០២៦' },
+};
+
+// Saved edits override the shipped defaults, year by year.
+export const mergedYearDates = (saved: Record<string, YearDates>): Record<number, YearDates> => {
+  const out: Record<number, YearDates> = { ...SCHOOL_YEAR_DATES };
+  for (const [y, d] of Object.entries(saved || {})) {
+    const n = Number(y);
+    if (Number.isFinite(n) && d && (d.open || d.close)) out[n] = { open: d.open || '', close: d.close || '' };
+  }
+  return out;
 };
 
 // Grade level out of a class name: "ថ្នាក់ទី ៣ក" → 3, "ថ្នាក់ទី៦" → 6.
@@ -100,6 +114,18 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
   const rootRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // School-year opening/closing dates: shipped defaults + the principal's edits.
+  const [savedDates, setSavedDates] = useState<Record<string, YearDates>>({});
+  const [showDates, setShowDates] = useState(false);
+  useEffect(() => { kvHydrate(YEAR_DATES_KEY).then(() => setSavedDates(kvReadSync<Record<string, YearDates>>(YEAR_DATES_KEY, {}))); }, []);
+  const yearDates = useMemo(() => mergedYearDates(savedDates), [savedDates]);
+  const editDate = async (year: number, field: keyof YearDates, val: string) => {
+    const base = yearDates[year] || { open: '', close: '' };
+    const next = { ...savedDates, [year]: { ...base, [field]: val } };
+    setSavedDates(next);
+    await kvWrite(YEAR_DATES_KEY, next);
+  };
+
   // ---- Who this book is for ----
   const roster = useMemo(() => {
     const seen = new Map<string, StudentScore>();
@@ -148,13 +174,13 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
         v[`g_${i}`] = toKh(g);
         v[`sch_${i}`] = SCHOOL;
         // Same calendar for everyone; the ID follows the student through every year.
-        const cal = SCHOOL_YEAR_DATES[y];
+        const cal = yearDates[y];
         if (cal) { v[`in_${i}`] = cal.open; v[`out_${i}`] = cal.close; }
         v[`sid_${i}`] = student.studentId || '';
       }
     } else {
       // មត្តេយ្យ / unnumbered class — just this year.
-      const cal = SCHOOL_YEAR_DATES[YEAR_START];
+      const cal = yearDates[YEAR_START];
       v.y_0 = YEAR; v.g_0 = student.grade; v.sch_0 = SCHOOL; v.sid_0 = student.studentId || '';
       if (cal) { v.in_0 = cal.open; v.out_0 = cal.close; }
     }
@@ -194,11 +220,12 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     const annual = annualAcademicRaw(records);
     v.c_3 = annual === null ? '' : fx(annual * 0.8 + (extra.skills || 0) * 0.1 + (extra.conduct || 0) * 0.1);
     return v;
-  }, [student, records, students]);
+  }, [student, records, students, yearDates]);
 
   const filledHtml = useMemo(() => fillTokens(handbookHtml, values), [values]);
 
   useEffect(() => { kvHydrate(PHOTO_KEY).then(() => setPhoto(kvReadSync<string>(PHOTO_KEY, ''))); }, []);
+
 
   // The sheets come from a static HTML string, so wire the photo frame after it
   // renders: clicking it opens the picker, and the chosen image fills the box.
@@ -405,6 +432,13 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
             </button>
           )}
           <button
+            onClick={() => setShowDates(v => !v)}
+            title="កែថ្ងៃចូលរៀន / ចេញ របស់ឆ្នាំសិក្សានីមួយៗ"
+            className="px-3 py-2 text-xs font-bold rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 flex items-center gap-1.5"
+          >
+            <CalendarDays size={13} /> ថ្ងៃចូល/ចេញ
+          </button>
+          <button
             onClick={downloadPdf}
             disabled={pdfBusy}
             className="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white flex items-center gap-1.5 shadow-sm"
@@ -418,6 +452,59 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
           )}
         </div>
       </div>
+
+      {/* School-year calendar — shipped defaults, editable, saved locally. */}
+      {showDates && (
+        <div className="rc-no-print bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
+          <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+            <CalendarDays size={13} className="text-slate-400" /> ថ្ងៃចូលរៀន និងថ្ងៃចេញ តាមឆ្នាំសិក្សា
+            <span className="font-semibold text-slate-400">— កែបាន និងបន្ថែមឆ្នាំថ្មី</span>
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="text-left text-slate-400">
+                  <th className="py-1 pr-2 font-bold">ឆ្នាំសិក្សា</th>
+                  <th className="py-1 pr-2 font-bold">ថ្ងៃ ខែ ឆ្នាំចូលរៀន</th>
+                  <th className="py-1 font-bold">ថ្ងៃ ខែ ឆ្នាំចេញ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(yearDates).map(Number).sort((a, b) => a - b).map(y => (
+                  <tr key={y} className="border-t border-slate-100">
+                    <td className="py-1 pr-2 font-semibold text-slate-600 whitespace-nowrap">{toKh(y)}-{toKh(y + 1)}</td>
+                    <td className="py-1 pr-2">
+                      <input
+                        value={yearDates[y]?.open || ''}
+                        onChange={e => editDate(y, 'open', e.target.value)}
+                        placeholder="ឧ. ០១ វិច្ឆិកា ២០២៥"
+                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-emerald-500"
+                      />
+                    </td>
+                    <td className="py-1">
+                      <input
+                        value={yearDates[y]?.close || ''}
+                        onChange={e => editDate(y, 'close', e.target.value)}
+                        placeholder="ឧ. ៣១ សីហា ២០២៦"
+                        className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-emerald-500"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button
+            onClick={() => {
+              const next = Math.max(...Object.keys(yearDates).map(Number)) + 1;
+              editDate(next, 'open', '');
+            }}
+            className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 flex items-center gap-1"
+          >
+            <Plus size={12} /> បន្ថែមឆ្នាំសិក្សាថ្មី
+          </button>
+        </div>
+      )}
 
       {importMsg && (
         <p className={`rc-no-print text-[11px] font-bold px-3 py-2 rounded-xl border ${importMsg.ok ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
