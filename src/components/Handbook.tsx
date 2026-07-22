@@ -18,6 +18,7 @@ import {
   SEM_SUBJECTS, SEM1_MONTHS, SEM2_MONTHS,
   examAvgOf, monthlyAvgOf, semesterAvgOf, annualAcademicRaw, readAnnualExtra,
 } from '../utils/scoring';
+import { tallyAbsences } from '../utils/attendance';
 import FitToWidth from './FitToWidth';
 
 const PHOTO_KEY = 'handbook_photo';
@@ -125,6 +126,17 @@ export default function Handbook({ students = [], grades = [], onClose }: Props)
       v[`t${sem}_3`] = fx(semesterAvgOf(records, sem));
     });
 
+    // ខ- ចំនួនពេលអវត្តមាន, from the saved attendance. tallyAbsences maps the Khmer
+    // semester months onto dates and matches every id this person has, so the counts
+    // agree with the attendance module (មានច្បាប់ = permission, គ្មានច្បាប់ = absent).
+    const roll = students.map(s => ({ id: s.id, name: s.name, grade: s.grade }));
+    const a1 = tallyAbsences(student.name, student.grade, SEM1_MONTHS, roll);
+    const a2 = tallyAbsences(student.name, student.grade, SEM2_MONTHS, roll);
+    const num = (n: number) => (n ? toKh(n) : '');
+    v.a1p = num(a1.permission); v.a1a = num(a1.absent);
+    v.a2p = num(a2.permission); v.a2a = num(a2.absent);
+    v.atot = num(a1.total + a2.total);
+
     // Competences + the annual result.
     const extra = readAnnualExtra(student.grade, student.name);
     v.c_0 = fx(annualAcademicRaw(records));
@@ -133,7 +145,7 @@ export default function Handbook({ students = [], grades = [], onClose }: Props)
     const annual = annualAcademicRaw(records);
     v.c_3 = annual === null ? '' : fx(annual * 0.8 + (extra.skills || 0) * 0.1 + (extra.conduct || 0) * 0.1);
     return v;
-  }, [student, records]);
+  }, [student, records, students]);
 
   const filledHtml = useMemo(() => fillTokens(handbookHtml, values), [values]);
 
