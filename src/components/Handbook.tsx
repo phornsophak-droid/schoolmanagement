@@ -242,14 +242,35 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     v.n2 = gradeBand(semesterAvgOf(records, 2)).km;
     v.ny = gradeBand(finalAvg).km;
 
+    // ភាសាខ្មែរ and គណិតវិទ្យា are the two subjects a pupil must re-sit to move up.
+    // A subject's mark for the year is the mean of its semester-exam marks; ភាសាខ្មែរ
+    // is itself the mean of the four components the table lists separately.
+    const yearMark = (idxs: number[]): number | null => {
+      const perSem: number[] = [];
+      ([1, 2] as const).forEach(sem => {
+        const exam = examOf(sem);
+        if (!exam) return;
+        const got = idxs.map(i => SEM_SUBJECTS[i].get(exam)).filter((x): x is number => typeof x === 'number' && x > 0);
+        if (got.length) perSem.push(got.reduce((a, b) => a + b, 0) / got.length);
+      });
+      return perSem.length ? perSem.reduce((a, b) => a + b, 0) / perSem.length : null;
+    };
+    const resit: string[] = [];
+    const khMark = yearMark([0, 1, 2, 3]);   // អំណាន · ស្តាប់និយាយ · សរសេរតាមអាន · តែងសេចក្តី
+    const mathMark = yearMark([4]);          // គណិតវិទ្យា
+    if (khMark !== null && khMark < 5) resit.push('ភាសាខ្មែរ');
+    if (mathMark !== null && mathMark < 5) resit.push('គណិតវិទ្យា');
+    v.resit = resit.join(' និង ');
+
     // ឃ- លទ្ធផលប្រចាំឆ្នាំ: a pupil moves up when the annual average is a pass
     // (>= 5, the same threshold the gradebook uses for ជាប់/ធ្លាក់) and unexcused
     // absences for the year stay under 35. Only the promotion is filled in — a
     // pupil who misses either test is left for the teacher to decide and write,
     // since holding a child back is not a call this form should make on its own.
     // ថ្នាក់ទី៦ moves up to ថ្នាក់ទី៧ — on to lower secondary.
+    // A pupil owing a re-sit is not promoted outright — that line is theirs instead.
     const unexcused = a1.absent + a2.absent;
-    if (finalAvg !== null && finalAvg >= 5 && unexcused < 35 && lvl >= 1 && lvl <= 6) {
+    if (finalAvg !== null && finalAvg >= 5 && unexcused < 35 && resit.length === 0 && lvl >= 1 && lvl <= 6) {
       v.promote = `${toKh(lvl + 1)}`;
     }
     return v;
