@@ -21,6 +21,7 @@ import {
 import { tallyAbsences } from '../utils/attendance';
 import { formatDobKh } from '../utils/khmerDate';
 import { parseRosterRows, mergeRoster } from '../lib/rosterImport';
+import { REMARK_PRESETS } from '../utils/remarkPresets';
 import FitToWidth from './FitToWidth';
 
 const PHOTO_KEY = 'handbook_photo';
@@ -168,7 +169,19 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
       father: [student.fatherName, student.fatherJob].filter(Boolean).join(' — '),
       mother: [student.motherName, student.motherJob].filter(Boolean).join(' — '),
       address: student.address || '',
-      remark: student.remark || '',
+      // ង- ការសរសើរ និងកំណែលម្អ is the class teacher's remark from the report card,
+      // split by which side of the presets each ticked sentence came from. Anything
+      // the teacher typed themselves can't be sorted, so it stays in the ច block
+      // rather than being guessed into one column or silently dropped.
+      ...(() => {
+        const text = (student.remark || '').trim();
+        const pick = (side: 'praise' | 'improve') =>
+          REMARK_PRESETS.filter(g => g.side === side).flatMap(g => g.items).filter(t => text.includes(t));
+        const praise = pick('praise'), improve = pick('improve');
+        let rest = text;
+        [...praise, ...improve].forEach(t => { rest = rest.replace(t, ''); });
+        return { praise: praise.join(' '), improve: improve.join(' '), remark: rest.replace(/\s{2,}/g, ' ').trim() };
+      })(),
     };
     // The identity table is the student's schooling history: one row per grade from
     // ១ up to the grade they're in now, with the school year stepping back to match
@@ -437,6 +450,10 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
         .handbook-body .sig { text-align: center; margin-top: 4mm; font-size: 9.5pt; }
         .handbook-body .sig .who { font-weight: 700; margin-top: 8mm; }
         .handbook-body .two { display: flex; gap: 4mm; } .handbook-body .two > * { flex: 1; text-align: center; }
+        /* The remark sentences are long, so give them room to wrap and a little air
+           above the signature. */
+        .handbook-body .note-two { margin-top: 1.5mm; font-size: 8.5pt; line-height: 1.35; text-align: left; }
+        .handbook-body .note-two > * { text-align: left; }
         /* Tables — fixed layout so wide grids never push the sheet wider. */
         /* The form's tables are marked class="grid", which collides with Tailwind's
            .grid utility (display: grid) and stops the cells from filling the row —
