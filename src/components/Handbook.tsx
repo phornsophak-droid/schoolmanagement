@@ -24,7 +24,18 @@ import FitToWidth from './FitToWidth';
 
 const PHOTO_KEY = 'handbook_photo';
 const SCHOOL = 'សាលាសហគមន៍ច្បារច្រុះ';
-const YEAR = '២០២៥-២០២៦';
+const YEAR_START = 2025;                 // the current school year runs 2025-2026
+const YEAR = `${'២០២៥'}-${'២០២៦'}`;
+
+// Grade level out of a class name: "ថ្នាក់ទី ៣ក" → 3, "ថ្នាក់ទី៦" → 6.
+// Returns 0 for មត្តេយ្យ and anything else without a ថ្នាក់ទី number.
+const KH_D = '០១២៣៤៥៦៧៨៩';
+export const gradeLevelOf = (className: string): number => {
+  const m = (className || '').match(/ថ្នាក់ទី\s*([០-៩0-9]+)/);
+  if (!m) return 0;
+  const n = Number([...m[1]].map(c => (KH_D.indexOf(c) >= 0 ? String(KH_D.indexOf(c)) : c)).join(''));
+  return Number.isFinite(n) ? n : 0;
+};
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 const fx = (v: number | null | undefined) => (v === null || v === undefined ? '' : toKh(v.toFixed(2)));
@@ -111,8 +122,24 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
       address: student.address || '',
       remark: student.remark || '',
     };
-    // The identity table's first row = this year's enrolment.
-    v.y_0 = YEAR; v.g_0 = student.grade; v.sch_0 = SCHOOL; v.sid_0 = student.studentId || '';
+    // The identity table is the student's schooling history: one row per grade from
+    // ១ up to the grade they're in now, with the school year stepping back to match
+    // (a ថ្នាក់ទី៦ this year started ថ្នាក់ទី១ five years ago). Entry/exit dates aren't
+    // held anywhere, so those columns stay blank to be written in.
+    const lvl = gradeLevelOf(student.grade);
+    if (lvl >= 1) {
+      for (let g = 1; g <= Math.min(lvl, 6); g++) {
+        const i = g - 1;
+        const y = YEAR_START - (lvl - g);
+        v[`y_${i}`] = `${toKh(y)}-${toKh(y + 1)}`;
+        v[`g_${i}`] = toKh(g);
+        v[`sch_${i}`] = SCHOOL;
+      }
+      v[`sid_${Math.min(lvl, 6) - 1}`] = student.studentId || ''; // ID on the current year
+    } else {
+      // មត្តេយ្យ / unnumbered class — just this year.
+      v.y_0 = YEAR; v.g_0 = student.grade; v.sch_0 = SCHOOL; v.sid_0 = student.studentId || '';
+    }
 
     // Per-subject semester-exam scores.
     const examOf = (sem: 1 | 2) => records.find(s => s.month === (sem === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២'));
