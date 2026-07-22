@@ -9,8 +9,9 @@
 // The principal and anyone they name as a librarian can edit; everyone else sees
 // the same screens read-only, so a teacher can still look a book up.
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Upload, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { SchoolUser, StudentScore } from '../types';
 import {
   Book, Loan, Visit, LibrarySettings,
@@ -20,6 +21,18 @@ import {
 } from '../lib/library';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
+
+// Match a spreadsheet column by any of its names, so a sheet typed by hand still
+// imports. Same helper the question bank's import uses.
+const colIndex = (header: string[], aliases: string[]): number =>
+  header.findIndex(h => aliases.some(a => (h || '').toString().trim().toLowerCase().includes(a)));
+
+// Khmer numerals back to Latin, so "២០" in a copies column still reads as 20.
+const khToNum = (s: string): number => {
+  const latin = (s || '').replace(/[០-៩]/g, d => String('០១២៣៤៥៦៧៨៩'.indexOf(d)));
+  const n = parseInt(latin.replace(/[^0-9]/g, ''), 10);
+  return Number.isFinite(n) ? n : 0;
+};
 
 // "2026-07-22" → "២២/០៧/២០២៦"
 const khDate = (iso?: string) => {
@@ -78,6 +91,68 @@ export default function LibraryManager({ students = [], grades = [], currentUser
     setBDraft({ code: '', title: '', author: '', category: '', total: '' });
     flash('បន្ថែមសៀវភៅរួចរាល់ ✓');
   };
+  // Import a book list from Excel/CSV. A row whose លេខកូដ already exists UPDATES that
+  // book rather than adding a second copy of the same title, so re-importing a
+  // corrected sheet is safe. Rows without a title are skipped, not guessed at.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const importBooks = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    setBusy(true);
+    try {
+      // A UTF-8 CSV must be read as TEXT — reading it as bytes makes XLSX decode
+      // Khmer as Latin-1 (mojibake). Binary .xlsx reads fine as an array.
+      const isCsv = /\.csv$/i.test(f.name) || (f.type || '').includes('csv') || (f.type || '').startsWith('text/');
+      const wb = isCsv
+        ? XLSX.read(await f.text(), { type: 'string' })
+        : XLSX.read(await f.arrayBuffer(), { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, blankrows: false, raw: false });
+      if (rows.length < 2) { flash('ឯកសារទទេ ឬគ្មានទិន្នន័យ'); return; }
+      const header = (rows[0] as any[]).map(x => (x ?? '').toString());
+      const ci = {
+        code: colIndex(header, ['លេខកូដ', 'code']),
+        title: colIndex(header, ['ចំណងជើង', 'title']),
+        author: colIndex(header, ['អ្នកនិពន្ធ', 'author']),
+        category: colIndex(header, ['ប្រភេទ', 'category']),
+        total: colIndex(header, ['ចំនួន', 'total', 'qty']),
+      };
+      if (ci.title < 0) { flash('រកមិនឃើញជួរ «ចំណងជើង» — សូមប្រើគំរូ'); return; }
+      const cell = (row: any[], i: number) => (i >= 0 ? (row?.[i] ?? '').toString().trim() : '');
+
+      const next = [...books];
+      let added = 0, updated = 0, skipped = 0;
+      for (let r = 1; r < rows.length; r++) {
+        const row = rows[r] as any[];
+        const title = cell(row, ci.title);
+        if (!title) { skipped++; continue; }
+        const code = cell(row, ci.code);
+        const total = Math.max(1, khToNum(cell(row, ci.total)) || 1);
+        const fields = { code, title, author: cell(row, ci.author), category: cell(row, ci.category), total };
+        const at = code ? next.findIndex(b => b.code && b.code === code) : -1;
+        if (at >= 0) { next[at] = { ...next[at], ...fields }; updated++; }
+        else { next.unshift({ id: newId(), ...fields, createdAt: new Date().toISOString() }); added++; }
+      }
+      if (added === 0 && updated === 0) { flash('គ្មានជួរណាដែលនាំចូលបានទេ'); return; }
+      setBooks(next); await saveBooks(next);
+      flash(`នាំចូល៖ ថ្មី ${toKh(added)} · កែ ${toKh(updated)}${skipped ? ` · រំលង ${toKh(skipped)}` : ''} ✓`);
+    } catch (err: any) {
+      flash(err?.message || 'អានឯកសារ Excel/CSV មិនបាន');
+    } finally { setBusy(false); }
+  };
+
+  // A filled-in template so the columns are never in doubt.
+  const downloadTemplate = () => {
+    const header = ['លេខកូដ', 'ចំណងជើង', 'អ្នកនិពន្ធ', 'ប្រភេទ', 'ចំនួនច្បាប់'];
+    const example = ['B-001', 'រឿងព្រេងខ្មែរ', 'ក្រសួងអប់រំ', 'អក្សរសាស្ត្រ', '2'];
+    const ws = XLSX.utils.aoa_to_sheet([header, example]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'បញ្ជីសៀវភៅ');
+    XLSX.writeFile(wb, 'template_បញ្ជីសៀវភៅ.xlsx');
+  };
+
   const removeBook = async (id: string) => {
     if (outCount(id, loans) > 0) { flash('សៀវភៅនេះកំពុងខ្ចី — មិនអាចលុបបានទេ'); return; }
     if (!confirm('លុបសៀវភៅនេះ?')) return;
@@ -202,7 +277,19 @@ export default function LibraryManager({ students = [], grades = [], currentUser
         <div className="space-y-3">
           {canEdit && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
-              <p className="text-[11px] font-bold text-slate-500">បន្ថែមសៀវភៅថ្មី</p>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="text-[11px] font-bold text-slate-500">បន្ថែមសៀវភៅថ្មី</p>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={downloadTemplate} className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1.5">
+                    <Download size={12} /> គំរូ
+                  </button>
+                  <button onClick={() => fileRef.current?.click()} disabled={busy}
+                    className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-blue-50 hover:bg-blue-100 disabled:opacity-60 text-blue-600 border border-blue-200 flex items-center gap-1.5">
+                    <Upload size={12} /> {busy ? 'កំពុងនាំចូល…' : 'នាំចូល Excel'}
+                  </button>
+                  <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={importBooks} className="hidden" />
+                </div>
+              </div>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                 <input className={input} placeholder="លេខកូដ" value={bDraft.code} onChange={e => setBDraft({ ...bDraft, code: e.target.value })} />
                 <input className={`${input} lg:col-span-2`} placeholder="ចំណងជើង *" value={bDraft.title} onChange={e => setBDraft({ ...bDraft, title: e.target.value })} />
