@@ -8,7 +8,7 @@
 // imported raw) and rendered here; a button exports it as a multi-page A4 PDF.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Download, Loader2, X, Trash2, Upload, CalendarDays, Plus, MessageSquare } from 'lucide-react';
+import { BookOpen, Download, Loader2, X, Trash2, Upload, CalendarDays, Plus, MessageSquare, Printer } from 'lucide-react';
 import handbookHtml from '../assets/handbook.html?raw';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import { kvReadSync, kvWrite, kvHydrate } from '../lib/kvStore';
@@ -410,6 +410,38 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     await kvWrite(PHOTO_KEY, '');
   };
 
+  // Print through a hidden iframe, as the other printable screens here do: the app's
+  // own layout never reaches the page, so the sheets go out at their true A4 size.
+  // #handbook-print sits inside FitToWidth, so its markup carries no preview scaling.
+  const handlePrint = () => {
+    const el = document.getElementById('handbook-print');
+    if (!el) return;
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map(n => n.outerHTML).join('\n');
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (!doc) { iframe.remove(); return; }
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head><title>សៀវភៅសិក្ខាគារិក</title>${styles}
+      <style>
+        @page { size: A4 landscape; margin: 0; }
+        body { margin: 0; padding: 0; background: #fff; }
+        .rc-no-print { display: none !important; }
+      </style></head><body>${el.outerHTML}</body></html>`);
+    doc.close();
+    let printed = false;
+    const go = () => {
+      if (printed) return;
+      printed = true;
+      try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); }
+      catch (err) { console.error('Handbook print failed', err); }
+      setTimeout(() => iframe.remove(), 1000);
+    };
+    setTimeout(go, 500);   // give the copied styles and Khmer fonts a moment
+  };
+
   const downloadPdf = async () => {
     const el = document.getElementById('handbook-print');
     if (!el) return;
@@ -589,6 +621,13 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
             className="px-3 py-2 text-xs font-bold rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 disabled:opacity-40 border border-slate-200 flex items-center gap-1.5"
           >
             <MessageSquare size={13} /> មូលវិចារនាយក
+          </button>
+          <button
+            onClick={handlePrint}
+            title="បោះពុម្ព សៀវភៅសិក្ខាគារិក"
+            className="px-3 py-2 text-xs font-bold rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 flex items-center gap-1.5"
+          >
+            <Printer size={13} /> បោះពុម្ព
           </button>
           <button
             onClick={downloadPdf}
