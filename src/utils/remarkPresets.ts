@@ -44,3 +44,21 @@ export const REMARK_PRESETS: RemarkGroup[] = [
     'ត្រូវខិតខំប្រឹងប្រែងបន្ថែម ដើម្បីសម្រេចបានលទ្ធផលល្អប្រសើរ។',
   ] },
 ];
+
+// Ready-made remarks for the principal's own comment (ច- មូលវិចាររបស់នាយកសាលា in
+// the handbook). Separate from the teacher's list above: these are written from
+// the school's side, addressing the pupil and the parents.
+export const PRINCIPAL_REMARK_PRESETS: RemarkGroup[] = [
+  { side: 'praise', label: '១. សរសើរ និងទទួលស្គាល់', items: [
+    'សាលាសូមកោតសរសើរចំពោះការខិតខំប្រឹងប្រែងរបស់សិស្ស។',
+    'សិស្សមានលទ្ធផលសិក្សាល្អ គួរធ្វើជាគំរូសម្រាប់មិត្តភក្តិ។',
+    'សិស្សគោរពវិន័យសាលា និងចូលរួមសកម្មភាពបានល្អ។',
+    'សូមបន្តរក្សាលទ្ធផលល្អនេះនៅឆ្នាំសិក្សាបន្ទាប់។',
+  ] },
+  { side: 'improve', label: '២. ណែនាំ និងលើកទឹកចិត្ត', items: [
+    'សូមមាតាបិតាជួយតាមដានការសិក្សារបស់កូននៅផ្ទះបន្ថែម។',
+    'សិស្សត្រូវខិតខំបន្ថែមលើមុខវិជ្ជាដែលនៅខ្សោយ។',
+    'សូមសិស្សបង្កើនវត្តមាន និងភាពទៀងទាត់ក្នុងការចូលរៀន។',
+    'សាលានឹងបន្តតាមដាន និងគាំទ្រការសិក្សារបស់សិស្ស។',
+  ] },
+];

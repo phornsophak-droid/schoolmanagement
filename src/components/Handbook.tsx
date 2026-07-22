@@ -8,7 +8,7 @@
 // imported raw) and rendered here; a button exports it as a multi-page A4 PDF.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Download, Loader2, X, Trash2, Upload, CalendarDays, Plus } from 'lucide-react';
+import { BookOpen, Download, Loader2, X, Trash2, Upload, CalendarDays, Plus, MessageSquare } from 'lucide-react';
 import handbookHtml from '../assets/handbook.html?raw';
 import { exportElementToMultipagePdf } from '../utils/exportPdf';
 import { kvReadSync, kvWrite, kvHydrate } from '../lib/kvStore';
@@ -21,11 +21,12 @@ import {
 import { tallyAbsences } from '../utils/attendance';
 import { formatDobKh } from '../utils/khmerDate';
 import { parseRosterRows, mergeRoster } from '../lib/rosterImport';
-import { REMARK_PRESETS } from '../utils/remarkPresets';
+import { REMARK_PRESETS, PRINCIPAL_REMARK_PRESETS } from '../utils/remarkPresets';
 import FitToWidth from './FitToWidth';
 
 const PHOTO_KEY = 'handbook_photo';
 const YEAR_DATES_KEY = 'handbook_year_dates';
+const PRINCIPAL_REMARK_KEY = 'handbook_principal_remark';   // { [studentKey]: text }
 const SCHOOL = 'សាលាសហគមន៍ច្បារច្រុះ';
 // Where the school sits — the cover asks for ឃុំ / ស្រុក / ខេត្ត.
 const SCHOOL_COMMUNE = 'ក្រាំងចេក';
@@ -128,6 +129,29 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
   const [showDates, setShowDates] = useState(false);
   useEffect(() => { kvHydrate(YEAR_DATES_KEY).then(() => setSavedDates(kvReadSync<Record<string, YearDates>>(YEAR_DATES_KEY, {}))); }, []);
   const yearDates = useMemo(() => mergedYearDates(savedDates), [savedDates]);
+  // The principal's own comment for the ច block, ticked from presets and kept per
+  // student. Stored here rather than on the score rows: it is the principal's note
+  // about the year, not part of the marks the teachers enter.
+  const [principalRemarks, setPrincipalRemarks] = useState<Record<string, string>>({});
+  const [showRemark, setShowRemark] = useState(false);
+  useEffect(() => { kvHydrate(PRINCIPAL_REMARK_KEY).then(() => setPrincipalRemarks(kvReadSync<Record<string, string>>(PRINCIPAL_REMARK_KEY, {}))); }, []);
+  const setPrincipalRemark = async (text: string) => {
+    if (!studentKey) return;
+    const next = { ...principalRemarks, [studentKey]: text };
+    if (!text.trim()) delete next[studentKey];
+    setPrincipalRemarks(next);
+    await kvWrite(PRINCIPAL_REMARK_KEY, next);
+  };
+  const principalRemark = principalRemarks[studentKey] || '';
+  // Tick appends the sentence, untick removes that exact sentence — the same
+  // behaviour as the gradebook's remark picker.
+  const togglePrincipalPreset = (sentence: string) => {
+    const cur = principalRemark.trim();
+    setPrincipalRemark(cur.includes(sentence)
+      ? cur.replace(sentence, '').replace(/\s{2,}/g, ' ').trim()
+      : (cur ? `${cur} ${sentence}` : sentence));
+  };
+
   const editDate = async (year: number, field: keyof YearDates, val: string) => {
     const base = yearDates[year] || { open: '', close: '' };
     const next = { ...savedDates, [year]: { ...base, [field]: val } };
@@ -187,7 +211,14 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
         const praise = pick('praise'), improve = pick('improve');
         let rest = text;
         [...praise, ...improve].forEach(t => { rest = rest.replace(t, ''); });
-        return { praise: praise.join(' '), improve: improve.join(' '), remark: rest.replace(/\s{2,}/g, ' ').trim() };
+        // ច- មូលវិចាររបស់នាយកសាលា is the principal's own note. Where none has been
+        // written, fall back to whatever the teacher typed by hand — that text used
+        // to print here, and dropping it silently would lose what they wrote.
+        return {
+          praise: praise.join(' '),
+          improve: improve.join(' '),
+          remark: principalRemark.trim() || rest.replace(/\s{2,}/g, ' ').trim(),
+        };
       })(),
     };
     // The identity table is the student's schooling history: one row per grade from
@@ -294,7 +325,7 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
       v.promote = `${toKh(lvl + 1)}`;
     }
     return v;
-  }, [student, records, students, yearDates]);
+  }, [student, records, students, yearDates, principalRemark]);
 
   const filledHtml = useMemo(() => fillTokens(handbookHtml, values), [values]);
 
@@ -552,6 +583,14 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
             <CalendarDays size={13} /> ថ្ងៃចូល/ចេញ
           </button>
           <button
+            onClick={() => setShowRemark(v => !v)}
+            disabled={!student}
+            title={student ? 'ជ្រើសមូលវិចាររបស់នាយកសាលា' : 'ជ្រើសរើសសិស្សសិន'}
+            className="px-3 py-2 text-xs font-bold rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 disabled:opacity-40 border border-slate-200 flex items-center gap-1.5"
+          >
+            <MessageSquare size={13} /> មូលវិចារនាយក
+          </button>
+          <button
             onClick={downloadPdf}
             disabled={pdfBusy}
             className="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white flex items-center gap-1.5 shadow-sm"
@@ -565,6 +604,41 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
           )}
         </div>
       </div>
+
+      {/* Principal's comment for the ច block — tick presets or type freely. */}
+      {showRemark && student && (
+        <div className="rc-no-print bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
+          <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+            <MessageSquare size={13} className="text-slate-400" /> មូលវិចាររបស់នាយកសាលា
+            <span className="font-semibold text-slate-400">— {student.name}</span>
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {PRINCIPAL_REMARK_PRESETS.map(g => (
+              <div key={g.label}>
+                <div className="text-[11px] font-bold text-slate-400 mb-1">{g.label}</div>
+                {g.items.map(it => (
+                  <label key={it} className="flex items-start gap-1.5 text-[11px] text-slate-600 py-0.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={principalRemark.includes(it)}
+                      onChange={() => togglePrincipalPreset(it)}
+                      className="mt-0.5 accent-emerald-600"
+                    />
+                    <span>{it}</span>
+                  </label>
+                ))}
+              </div>
+            ))}
+          </div>
+          <textarea
+            value={principalRemark}
+            onChange={e => setPrincipalRemark(e.target.value)}
+            rows={2}
+            placeholder="មូលវិចារ... (ធិចជម្រើសខាងលើ ឬវាយបញ្ចូលដោយផ្ទាល់)"
+            className="w-full px-2 py-1.5 text-[11px] bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none focus:border-emerald-500"
+          />
+        </div>
+      )}
 
       {/* School-year calendar — shipped defaults, editable, saved locally. */}
       {showDates && (
