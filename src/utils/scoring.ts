@@ -91,7 +91,9 @@ export function annualAcademicRaw(records: StudentScore[]): number | null {
 }
 
 // Teacher-entered annual skills (បំណិន) & conduct (ចរិយា), persisted per student.
-export const extraKey = (grade: string, name: string) => `annualextra::${grade}::${name}`;
+// The gradebook saves these under the trimmed name, so trim here too — reading
+// with an untrimmed name silently returned 0 and looked like "not entered yet".
+export const extraKey = (grade: string, name: string) => `annualextra::${grade}::${name.trim()}`;
 export function readAnnualExtra(grade: string, name: string): { skills: number; conduct: number } {
   try {
     const e = JSON.parse(localStorage.getItem(extraKey(grade, name)) || '{}');

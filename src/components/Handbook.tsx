@@ -223,13 +223,17 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     v.a2p = num(a2.permission); v.a2a = num(a2.absent);
     v.atot = num(a1.total + a2.total);
 
-    // Competences + the annual result.
+    // Competences + the annual result, taken from the same figures as the annual
+    // report card so the two documents agree: ចំណេះវិជ្ជា is 80% of the academic
+    // average, បំណិន and ចរិយា are 10% each of the marks entered in the gradebook.
+    // The card prints the weighted shares, not the raw 0-10 marks.
     const extra = readAnnualExtra(student.grade, student.name);
-    v.c_0 = fx(annualAcademicRaw(records));
-    v.c_1 = extra.skills ? fx(extra.skills) : '';
-    v.c_2 = extra.conduct ? fx(extra.conduct) : '';
     const annual = annualAcademicRaw(records);
-    v.c_3 = annual === null ? '' : fx(annual * 0.8 + (extra.skills || 0) * 0.1 + (extra.conduct || 0) * 0.1);
+    const academic = annual === null ? null : annual * 0.8;
+    v.c_0 = fx(academic);
+    v.c_1 = fx(0.1 * extra.skills);
+    v.c_2 = fx(0.1 * extra.conduct);
+    v.c_3 = academic === null ? '' : fx(academic + 0.1 * extra.skills + 0.1 * extra.conduct);
     return v;
   }, [student, records, students, yearDates]);
 
