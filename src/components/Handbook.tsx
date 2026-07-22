@@ -401,7 +401,13 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
         .handbook-body table.grid tr { display: table-row; }
         .handbook-body table.grid td { display: table-cell; }
         .handbook-body table.grid { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 8pt; line-height: 1.25; }
-        .handbook-body table.grid td { border: 1px solid #0000FF; padding: 0.6mm 1.2mm; vertical-align: middle; word-wrap: break-word; }
+        .handbook-body table.grid td { border: 1px solid #0000FF; padding: 0.6mm 1mm; vertical-align: middle; word-wrap: break-word; }
+        /* The schooling-history table holds text of very different lengths (a school
+           name against a class number), so equal columns force the long ones to wrap.
+           Size these by content instead — they still add up to the full width. The
+           scores table stays on fixed columns, which is what keeps its ruled grid in
+           the proportions of the printed form. */
+        .handbook-body table.grid.mt3 { table-layout: auto; }
         .handbook-body table.grid td.sec { text-align: center; font-weight: 800; font-size: 10pt; }
         .handbook-body table.grid td.hd { text-align: center; font-weight: 700; }
         .handbook-body table.grid td.lbl { text-align: left; }
