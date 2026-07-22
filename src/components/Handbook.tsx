@@ -216,7 +216,9 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     const roll = students.map(s => ({ id: s.id, name: s.name, grade: s.grade }));
     const a1 = tallyAbsences(student.name, student.grade, SEM1_MONTHS, roll);
     const a2 = tallyAbsences(student.name, student.grade, SEM2_MONTHS, roll);
-    const num = (n: number) => (n ? toKh(n) : '');
+    // A tally of nothing is a real ០, not a missing value — the form is meant to
+    // read "no absences", not to look unfilled.
+    const num = (n: number) => toKh(n);
     v.a1p = num(a1.permission); v.a1a = num(a1.absent);
     v.a2p = num(a2.permission); v.a2a = num(a2.absent);
     v.atot = num(a1.total + a2.total);
