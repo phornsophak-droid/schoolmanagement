@@ -393,6 +393,13 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
         .handbook-body .sig .who { font-weight: 700; margin-top: 8mm; }
         .handbook-body .two { display: flex; gap: 4mm; } .handbook-body .two > * { flex: 1; text-align: center; }
         /* Tables — fixed layout so wide grids never push the sheet wider. */
+        /* The form's tables are marked class="grid", which collides with Tailwind's
+           .grid utility (display: grid) and stops the cells from filling the row —
+           the table ends up a narrow column inside its box. Pin the table display
+           back so the widths and the stretched height apply. */
+        .handbook-body table.grid { display: table; }
+        .handbook-body table.grid tr { display: table-row; }
+        .handbook-body table.grid td { display: table-cell; }
         .handbook-body table.grid { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 8pt; line-height: 1.25; }
         .handbook-body table.grid td { border: 1px solid #0000FF; padding: 0.6mm 1.2mm; vertical-align: middle; word-wrap: break-word; }
         .handbook-body table.grid td.sec { text-align: center; font-weight: 800; font-size: 10pt; }
