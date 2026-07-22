@@ -16,7 +16,7 @@ import { StudentScore } from '../types';
 import { distinctStudentKey } from '../utils/studentKey';
 import {
   SEM_SUBJECTS, SEM1_MONTHS, SEM2_MONTHS,
-  examAvgOf, monthlyAvgOf, semesterAvgOf, annualAcademicRaw, readAnnualExtra, gradeBand,
+  examAvgOf, monthlyAvgOf, semesterAvgOf, annualAcademicRaw, annualFinalOf, readAnnualExtra, gradeBand,
 } from '../utils/scoring';
 import { tallyAbsences } from '../utils/attendance';
 import { formatDobKh } from '../utils/khmerDate';
@@ -246,19 +246,57 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     }
 
     // Per-subject semester-exam scores.
-    const examOf = (sem: 1 | 2) => records.find(s => s.month === (sem === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២'));
+    const EXAM_OF = { 1: 'ប្រឡងឆមាសទី១', 2: 'ប្រឡងឆមាសទី២' } as const;
+    const examOf = (sem: 1 | 2) => records.find(s => s.month === EXAM_OF[sem]);
+
+    // ចំណាត់ថ្នាក់ — each classmate's records, so a figure can be placed against the
+    // rest of the class. Ranked as the report cards do it: the number of classmates
+    // scoring higher, plus one, so equal marks share a rank.
+    const peers = new Map<string, StudentScore[]>();
+    for (const s of students) {
+      if (s.grade !== student.grade) continue;
+      const k = distinctStudentKey(s.name, s.grade);
+      const got = peers.get(k);
+      if (got) got.push(s); else peers.set(k, [s]);
+    }
+    const peerRecs = [...peers.values()];
+    const rankOf = (mine: number | null | undefined, valueOf: (recs: StudentScore[]) => number | null | undefined): string => {
+      if (typeof mine !== 'number' || mine <= 0) return '';
+      const higher = peerRecs.filter(recs => {
+        const v2 = valueOf(recs);
+        return typeof v2 === 'number' && v2 > mine;
+      }).length;
+      return toKh(higher + 1);
+    };
+    const examTotalOf = (recs: StudentScore[], sem: 1 | 2): number | null => {
+      const e = recs.find(s => s.month === EXAM_OF[sem]);
+      const nums = SEM_SUBJECTS.map(s => (e ? s.get(e) : null)).filter((x): x is number => typeof x === 'number' && x > 0);
+      return nums.length ? nums.reduce((a, b) => a + b, 0) : null;
+    };
+
     ([1, 2] as const).forEach(sem => {
       const exam = examOf(sem);
       SEM_SUBJECTS.forEach((sub, i) => {
         const raw = exam ? sub.get(exam) : null;
         v[`s${sem}_${i}`] = raw === null || raw === undefined ? '' : fx(raw as number);
+        v[`r${sem}_${i}`] = rankOf(raw, recs => {
+          const e = recs.find(s => s.month === EXAM_OF[sem]);
+          return e ? sub.get(e) : null;
+        });
       });
-      // Totals block: sum, exam mean, monthly mean, semester mean.
-      const nums = SEM_SUBJECTS.map(s => (exam ? s.get(exam) : null)).filter((x): x is number => typeof x === 'number' && x > 0);
-      v[`t${sem}_0`] = nums.length ? fx(nums.reduce((a, b) => a + b, 0)) : '';
-      v[`t${sem}_1`] = fx(examAvgOf(records, sem));
-      v[`t${sem}_2`] = fx(monthlyAvgOf(records, sem));
-      v[`t${sem}_3`] = fx(semesterAvgOf(records, sem));
+      // Totals block: sum, exam mean, monthly mean, semester mean — each with its rank.
+      const total = examTotalOf(records, sem);
+      const exAvg = examAvgOf(records, sem);
+      const moAvg = monthlyAvgOf(records, sem);
+      const semAvg = semesterAvgOf(records, sem);
+      v[`t${sem}_0`] = fx(total);
+      v[`t${sem}_1`] = fx(exAvg);
+      v[`t${sem}_2`] = fx(moAvg);
+      v[`t${sem}_3`] = fx(semAvg);
+      v[`q${sem}_0`] = rankOf(total, recs => examTotalOf(recs, sem));
+      v[`q${sem}_1`] = rankOf(exAvg, recs => examAvgOf(recs, sem));
+      v[`q${sem}_2`] = rankOf(moAvg, recs => monthlyAvgOf(recs, sem));
+      v[`q${sem}_3`] = rankOf(semAvg, recs => semesterAvgOf(recs, sem));
     });
 
     // ខ- ចំនួនពេលអវត្តមាន, from the saved attendance. tallyAbsences maps the Khmer
@@ -286,6 +324,9 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     v.c_2 = fx(0.1 * extra.conduct);
     const finalAvg = academic === null ? null : academic + 0.1 * extra.skills + 0.1 * extra.conduct;
     v.c_3 = fx(finalAvg);
+    // annualFinalOf is the same figure for a classmate — the shared helper, so the
+    // ranking cannot drift from the number printed beside it.
+    v.rc_3 = rankOf(finalAvg, recs => annualFinalOf(recs, recs[0].grade, recs[0].name));
 
     // គ- វាយតម្លៃសិស្សលើការសិក្សា: the niddes band for each semester and for the
     // year, off the same averages printed above.
