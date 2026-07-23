@@ -10,7 +10,7 @@
 // the same screens read-only, so a teacher can still look a book up.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Upload, Download, AlertTriangle } from 'lucide-react';
+import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Upload, Download, AlertTriangle, Pencil } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SchoolUser, StudentScore, afterHoursSubject } from '../types';
 import {
@@ -194,6 +194,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
 
   // ---- loans ----
   const [lDraft, setLDraft] = useState({ bookSearch: '', student: '', gender: '', grade: '', dueAt: '', days: '' });
+  const [editingLoanId, setEditingLoanId] = useState<string | null>(null);
 
   const handleDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dStr = e.target.value;
@@ -223,14 +224,48 @@ export default function LibraryManager({ students = [], grades = [], currentUser
     const student = lDraft.student.trim();
     if (!book) { flash('សូមវាយបញ្ចូលលេខកូដ ឬចំណងជើងសៀវភៅឱ្យបានត្រឹមត្រូវ'); return; }
     if (!student) { flash('សូមបញ្ចូលឈ្មោះសិស្ស'); return; }
-    if (availableCount(book, loans) <= 0) { flash('សៀវភៅនេះអស់ហើយ'); return; }
-    const next = [{
-      id: newId(), bookId: book.id, bookTitle: book.title, student, gender: lDraft.gender, grade: lDraft.grade,
-      borrowedAt: todayISO(), dueAt: lDraft.dueAt || undefined,
-    }, ...loans];
+    
+    // allow saving edit even if book has 0 available if they didn't change the book
+    const originalLoan = editingLoanId ? loans.find(l => l.id === editingLoanId) : null;
+    const isSameBook = originalLoan && originalLoan.bookId === book.id;
+    if (!isSameBook && availableCount(book, loans) <= 0) { flash('សៀវភៅនេះអស់ហើយ'); return; }
+    
+    let next;
+    if (editingLoanId) {
+      next = loans.map(l => l.id === editingLoanId ? {
+        ...l, bookId: book.id, bookTitle: book.title, student, gender: lDraft.gender, grade: lDraft.grade, dueAt: lDraft.dueAt || undefined
+      } : l);
+      flash('កែប្រែការខ្ចីរួចរាល់ ✓');
+    } else {
+      next = [{
+        id: newId(), bookId: book.id, bookTitle: book.title, student, gender: lDraft.gender, grade: lDraft.grade,
+        borrowedAt: todayISO(), dueAt: lDraft.dueAt || undefined,
+      }, ...loans];
+      flash('កត់ត្រាការខ្ចីរួចរាល់ ✓');
+    }
+    
     setLoans(next); await saveLoans(next);
     setLDraft({ bookSearch: '', student: '', gender: '', grade: '', dueAt: '', days: '' });
-    flash('កត់ត្រាការខ្ចីរួចរាល់ ✓');
+    setEditingLoanId(null);
+  };
+
+  const deleteLoan = async (id: string) => {
+    if (!confirm('លុបកំណត់ត្រាខ្ចីនេះ?')) return;
+    const next = loans.filter(l => l.id !== id);
+    setLoans(next); await saveLoans(next);
+  };
+
+  const editLoan = (l: Loan) => {
+    const book = books.find(b => b.id === l.bookId);
+    const bookSearch = book ? (book.code ? `${book.code} - ${book.title}` : book.title) : l.bookTitle;
+    let days = '';
+    if (l.dueAt) {
+       const diff = Math.round((new Date(l.dueAt).getTime() - new Date(l.borrowedAt).getTime()) / (1000 * 60 * 60 * 24));
+       days = diff > 0 ? diff.toString() : '';
+    }
+    setLDraft({ bookSearch, student: l.student, gender: l.gender || '', grade: l.grade || '', dueAt: l.dueAt || '', days });
+    setEditingLoanId(l.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const giveBack = async (id: string) => {
     const next = loans.map(l => (l.id === id ? { ...l, returnedAt: todayISO() } : l));
@@ -517,9 +552,16 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                   <input className={`w-16 ${input} px-1.5`} type="number" min="1" placeholder="ថ្ងៃ" title="ចំនួនថ្ងៃខ្ចី" value={lDraft.days} onChange={handleDaysChange} />
                   <input className={`flex-1 ${input} px-1.5`} type="date" title="ថ្ងៃត្រូវសង" value={lDraft.dueAt} onChange={handleDueAtChange} />
                 </div>
-                <button onClick={lend} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 lg:col-span-6">
-                  <Plus size={13} /> ខ្ចី
-                </button>
+                <div className="flex gap-2 lg:col-span-6">
+                  <button onClick={lend} className="flex-1 px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5">
+                    {editingLoanId ? <Check size={13} /> : <Plus size={13} />} {editingLoanId ? 'រក្សាទុក' : 'ខ្ចី'}
+                  </button>
+                  {editingLoanId && (
+                    <button onClick={() => { setLDraft({ bookSearch: '', student: '', gender: '', grade: '', dueAt: '', days: '' }); setEditingLoanId(null); }} className="px-3 py-2 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center gap-1.5">
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -566,9 +608,17 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                       </td>
                       {canEdit && (
                         <td className="py-2 text-right">
-                          <button onClick={() => giveBack(l.id)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1 ml-auto">
-                            <Check size={12} /> សង
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button onClick={() => editLoan(l)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" title="កែប្រែ">
+                              <Pencil size={13} />
+                            </button>
+                            <button onClick={() => deleteLoan(l.id)} className="p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 mr-2" title="លុប">
+                              <Trash2 size={13} />
+                            </button>
+                            <button onClick={() => giveBack(l.id)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1">
+                              <Check size={12} /> សង
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
