@@ -274,9 +274,9 @@ export default function LibraryManager({ students = [], grades = [], currentUser
       cur.sessions += 1;
       stats.set(key, cur);
     }
-    // The classes to show, in the order they were configured.
-    const gradesToShow = (summaryGrade ? [summaryGrade] : generalGrades)
-      .filter(g => namesByGrade.has(g));
+    // The classes to show, in the order they were configured. Include 'ផ្សេងៗ' if there are visits.
+    const gradesToShow = (summaryGrade ? [summaryGrade] : [...generalGrades, 'ផ្សេងៗ'])
+      .filter(g => namesByGrade.has(g) || inMonth.some(v => v.grade === g));
 
     return gradesToShow.map(grade => {
       // Every enrolled pupil, plus anyone who read under this class but isn't on the
@@ -552,12 +552,17 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                 <select className={input} value={vDraft.grade} onChange={e => setVDraft({ ...vDraft, grade: e.target.value, student: '' })}>
                   <option value="">— ជ្រើសថ្នាក់ * —</option>
                   {generalGrades.map(g => <option key={g} value={g}>{g}</option>)}
+                  <option value="ផ្សេងៗ">ផ្សេងៗ (ក្រៅបញ្ជី)</option>
                 </select>
-                <select className={input} value={vDraft.student} disabled={!vDraft.grade}
-                  onChange={e => setVDraft({ ...vDraft, student: e.target.value })}>
-                  <option value="">{vDraft.grade ? '— ជ្រើសសិស្ស * —' : '— ជ្រើសថ្នាក់សិន —'}</option>
-                  {(namesByGrade.get(vDraft.grade) || []).map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
+                {vDraft.grade === 'ផ្សេងៗ' ? (
+                  <input className={input} placeholder="ឈ្មោះសិស្ស *" value={vDraft.student} onChange={e => setVDraft({ ...vDraft, student: e.target.value })} />
+                ) : (
+                  <select className={input} value={vDraft.student} disabled={!vDraft.grade}
+                    onChange={e => setVDraft({ ...vDraft, student: e.target.value })}>
+                    <option value="">{vDraft.grade ? '— ជ្រើសសិស្ស * —' : '— ជ្រើសថ្នាក់សិន —'}</option>
+                    {(namesByGrade.get(vDraft.grade) || []).map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                )}
                 <input className={input} placeholder="គោលបំណង (អាន / ស្រាវជ្រាវ)" value={vDraft.purpose} onChange={e => setVDraft({ ...vDraft, purpose: e.target.value })} />
                 <button onClick={checkIn} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5">
                   <Plus size={13} /> ចូល
@@ -644,6 +649,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
             <select className={input} value={summaryGrade} onChange={e => setSummaryGrade(e.target.value)}>
               <option value="">គ្រប់ថ្នាក់</option>
               {generalGrades.map(g => <option key={g} value={g}>{g}</option>)}
+              <option value="ផ្សេងៗ">ផ្សេងៗ</option>
             </select>
             <select className={input} value={summaryMonth} onChange={e => setSummaryMonth(e.target.value)}>
               <option value="">គ្រប់ខែ</option>
