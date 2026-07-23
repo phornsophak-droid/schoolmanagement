@@ -125,6 +125,16 @@ export async function refreshLibraryFromCloud(): Promise<void> {
   }));
 }
 
+// Just the e-library links from the cloud — for the Parent Portal, which needs only
+// these and shouldn't pull the whole library (books/loans/visits) it can't show.
+export async function fetchELinksFromCloud(): Promise<ELink[]> {
+  try {
+    const v = await fetchSetting(ELINKS_KEY);
+    if (Array.isArray(v)) return v as ELink[];
+  } catch { /* offline — fall through */ }
+  return loadELinks();
+}
+
 export const saveBooks = (list: Book[]) => writeList(BOOKS_KEY, list);
 export const saveLoans = (list: Loan[]) => writeList(LOANS_KEY, list);
 export const saveVisits = (list: Visit[]) => writeList(VISITS_KEY, list);

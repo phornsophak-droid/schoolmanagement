@@ -5,7 +5,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award, ExternalLink, Monitor } from 'lucide-react';
-import { CURATED_ELIBRARY } from '../lib/library';
+import { CURATED_ELIBRARY, fetchELinksFromCloud, ELink } from '../lib/library';
 import { StudentScore } from '../types';
 import { fetchClassStudents, fetchSetting, fetchStudentDobByName } from '../lib/supabase';
 import { semesterAvgOf, readAnnualExtra } from '../utils/scoring';
@@ -45,6 +45,8 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   const [classStudents, setClassStudents] = useState<StudentScore[]>([]);
   const [timetable, setTimetable] = useState<Timetable>(emptyTimetable());
   const [showELibrary, setShowELibrary] = useState(false);
+  const [schoolElinks, setSchoolElinks] = useState<ELink[]>([]);
+  useEffect(() => { fetchELinksFromCloud().then(setSchoolElinks).catch(() => {}); }, []);
   const [nameQuery, setNameQuery] = useState('');
   const [childName, setChildName] = useState('');
   const [nameError, setNameError] = useState('');
@@ -423,25 +425,29 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
             <span className="text-[11px] text-violet-400 shrink-0">{showELibrary ? '▲' : '▼'}</span>
           </button>
           {showELibrary && (
-            <div className="grid gap-2 sm:grid-cols-2 px-0.5">
-              {CURATED_ELIBRARY.map(e => (
-                <a
-                  key={e.url}
-                  href={e.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group bg-white border border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm transition-all no-underline"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                    <Monitor size={15} className="text-violet-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-700 truncate">{e.title}</p>
-                    <p className="text-[10px] text-slate-400 font-semibold truncate">{e.category}</p>
-                  </div>
-                  <ExternalLink size={12} className="text-slate-300 group-hover:text-violet-500 shrink-0" />
-                </a>
-              ))}
+            <div className="space-y-2 px-0.5">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[...CURATED_ELIBRARY.map(e => ({ title: e.title, url: e.url, category: e.category })),
+                  ...schoolElinks.map(e => ({ title: e.title, url: e.url, category: e.category || 'សៀវភៅសាលា' }))]
+                  .map(e => (
+                    <a
+                      key={e.url + e.title}
+                      href={e.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group bg-white border border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm transition-all no-underline"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                        <Monitor size={15} className="text-violet-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-slate-700 truncate">{e.title}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold truncate">{e.category}</p>
+                      </div>
+                      <ExternalLink size={12} className="text-slate-300 group-hover:text-violet-500 shrink-0" />
+                    </a>
+                  ))}
+              </div>
             </div>
           )}
         </div>
