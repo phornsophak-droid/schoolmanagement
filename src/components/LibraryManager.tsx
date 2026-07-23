@@ -84,15 +84,30 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   // Reading is tracked for general classes only, so the visit form offers those.
   const generalGrades = useMemo(() => grades.filter(g => afterHoursSubject(g) === ''), [grades]);
 
-  // Distinct pupil names for the lend/visit form suggestions — general classes
-  // only, so the after-hours duplicates a pupil carries (their name tagged (A),
-  // (E), (PE)…) don't clutter the list.
+  // Distinct pupil names for the lend form suggestions — general classes only, so
+  // the after-hours duplicates a pupil carries (their name tagged (A), (E), (PE)…)
+  // don't clutter the list.
   const studentNames = useMemo(
     () => [...new Set(
       students.filter(s => afterHoursSubject(s.grade) === '').map(s => s.name.trim()).filter(Boolean),
     )].sort((a, b) => a.localeCompare(b, 'km')),
     [students],
   );
+
+  // Pupils in each general class, so the reading form can offer the class's roster
+  // once a class is chosen.
+  const namesByGrade = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const s of students) {
+      if (afterHoursSubject(s.grade) !== '') continue;
+      const name = s.name.trim();
+      if (!name) continue;
+      const list = m.get(s.grade) || m.set(s.grade, []).get(s.grade)!;
+      if (!list.includes(name)) list.push(name);
+    }
+    for (const list of m.values()) list.sort((a, b) => a.localeCompare(b, 'km'));
+    return m;
+  }, [students]);
 
   // ---- books ----
   const [bDraft, setBDraft] = useState({ code: '', title: '', author: '', category: '', total: '' });
@@ -212,8 +227,9 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   // are worked out on check-out, so the librarian never types a time.
   const [vDraft, setVDraft] = useState({ student: '', grade: '', purpose: '' });
   const checkIn = async () => {
+    if (!vDraft.grade) { flash('សូមជ្រើសថ្នាក់សិន'); return; }
     const student = vDraft.student.trim();
-    if (!student) { flash('សូមបញ្ចូលឈ្មោះសិស្ស'); return; }
+    if (!student) { flash('សូមជ្រើសសិស្ស'); return; }
     const now = new Date();
     const next = [{
       id: newId(), student, grade: vDraft.grade, purpose: vDraft.purpose.trim(),
@@ -534,12 +550,16 @@ export default function LibraryManager({ students = [], grades = [], currentUser
         <div className="space-y-3">
           {canEdit && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
-              <p className="text-[11px] font-bold text-slate-500">កត់ត្រាសិស្សចូលអាន — ចុច «ចូល» ម្តងពេលមកដល់</p>
+              <p className="text-[11px] font-bold text-slate-500">កត់ត្រាសិស្សចូលអាន — ជ្រើសថ្នាក់សិន រួចជ្រើសសិស្ស</p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <input className={input} list="lib-students" placeholder="ឈ្មោះសិស្ស *" value={vDraft.student} onChange={e => setVDraft({ ...vDraft, student: e.target.value })} />
-                <select className={input} value={vDraft.grade} onChange={e => setVDraft({ ...vDraft, grade: e.target.value })}>
-                  <option value="">— ថ្នាក់ —</option>
+                <select className={input} value={vDraft.grade} onChange={e => setVDraft({ ...vDraft, grade: e.target.value, student: '' })}>
+                  <option value="">— ជ្រើសថ្នាក់ * —</option>
                   {generalGrades.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+                <select className={input} value={vDraft.student} disabled={!vDraft.grade}
+                  onChange={e => setVDraft({ ...vDraft, student: e.target.value })}>
+                  <option value="">{vDraft.grade ? '— ជ្រើសសិស្ស * —' : '— ជ្រើសថ្នាក់សិន —'}</option>
+                  {(namesByGrade.get(vDraft.grade) || []).map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
                 <input className={input} placeholder="គោលបំណង (អាន / ស្រាវជ្រាវ)" value={vDraft.purpose} onChange={e => setVDraft({ ...vDraft, purpose: e.target.value })} />
                 <button onClick={checkIn} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5">
