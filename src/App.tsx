@@ -1253,6 +1253,48 @@ export default function App() {
     })();
   }, [currentUser, students, grades]);
 
+  // One-time cleanup for accidental "បណ្ណាល័យ" duplicate students
+  const libraryCleanupRan = useRef(false);
+  useEffect(() => {
+    if (libraryCleanupRan.current) return;
+    if (students.length === 0) return;
+    
+    const libraryStudents = students.filter(s => s.grade === 'បណ្ណាល័យ');
+    if (libraryStudents.length > 0) {
+      libraryCleanupRan.current = true;
+      const originalsExist = students.some(s => s.grade === 'ថ្នាក់ភាសាអង់គ្លេស 1A' || s.grade === 'ថ្នាក់ភាសាអង់គ្លេស');
+      
+      if (originalsExist) {
+        // Safe to delete duplicates
+        (async () => {
+          try {
+            const client = getSupabaseClient();
+            if (client) {
+              for (const s of libraryStudents) {
+                await client.from('student_scores').delete().eq('id', s.id);
+              }
+            }
+            const cleanStudents = students.filter(s => s.grade !== 'បណ្ណាល័យ');
+            setStudents(cleanStudents);
+            persistScores(cleanStudents);
+            
+            const cleanGrades = grades.filter(g => g !== 'បណ្ណាល័យ');
+            setGrades(cleanGrades);
+            localStorage.setItem('school_grades_v2', JSON.stringify(cleanGrades));
+            
+            showCloudToast(`បានសម្អាតសិស្សស្ទួនក្នុងបណ្ណាល័យរួចរាល់ ✓`, true);
+            setTimeout(() => window.location.reload(), 1500);
+          } catch (e) {
+            console.error(e);
+          }
+        })();
+      } else {
+        // Just rename them back to avoid data loss
+        handleRenameGrade('បណ្ណាល័យ', 'ថ្នាក់ភាសាអង់គ្លេស 1A');
+      }
+    }
+  }, [students, grades]);
+
   const handleSaveReport = async (report: SchoolReport) => {
     let updatedReportsList: SchoolReport[];
     const isEditing = reports.some(r => r.id === report.id);
