@@ -394,63 +394,83 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           </div>
         )}
 
-        {/* Extra links, numbered — moved below the report lookup. */}
-        <div className="mt-4 space-y-2.5">
+        {/* Extra links as Mobile-Portal-style tiles — a 2-column card grid. */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
           {onStudentTest && (
             <button
               onClick={onStudentTest}
-              className="w-full px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white text-sm font-bold flex items-center gap-3 shadow-md transition-all"
+              className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-indigo-500/10 hover:bg-indigo-50/50 hover:border-indigo-200 shadow-sm active:scale-97 transition-all min-h-[112px] relative"
             >
-              <span className="w-6 h-6 rounded-full bg-white/25 flex items-center justify-center text-[13px] shrink-0">២</span>
-              <span className="flex-1 text-center">📝 ចូលធ្វើតេស្តស្តង់ដា Online (មានកូដពីគ្រូ)</span>
+              <div className="flex justify-between items-start w-full">
+                <div className="w-9 h-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                  <FileText className="w-4.5 h-4.5 text-indigo-600 stroke-[2.5]" />
+                </div>
+                <span className="text-2xl leading-none">📝</span>
+              </div>
+              <span className="text-[13px] font-extrabold text-left text-indigo-950 leading-tight">តេស្តអនឡាញ (Online)</span>
+              <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">២</span>
             </button>
           )}
+
           <a
             href="https://plp.moeys.gov.kh/"
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full px-4 py-3 rounded-2xl bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-800 text-sm font-bold flex items-center gap-3 shadow-sm transition-all"
+            className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 hover:bg-emerald-50/50 hover:border-emerald-200 shadow-sm active:scale-97 transition-all min-h-[112px] relative no-underline"
           >
-            <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[13px] shrink-0">{onStudentTest ? '៣' : '២'}</span>
-            <span className="flex-1 text-center flex items-center justify-center gap-1.5">📚 ថ្នាលបឋម (PLP) — សិក្សាបន្ថែម <ExternalLink size={14} className="text-emerald-500" /></span>
+            <div className="flex justify-between items-start w-full">
+              <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <ExternalLink className="w-4.5 h-4.5 text-emerald-600 stroke-[2.5]" />
+              </div>
+              <span className="text-2xl leading-none">📚</span>
+            </div>
+            <span className="text-[13px] font-extrabold text-left text-emerald-950 leading-tight">ថ្នាលបឋម (PLP)</span>
+            <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">{onStudentTest ? '៣' : '២'}</span>
           </a>
 
-          {/* E-Library — a collection, so it opens a panel of reading links. */}
+          {/* E-Library — a collection, so its tile toggles the panel of links below. */}
           <button
             onClick={() => setShowELibrary(v => !v)}
-            className="w-full px-4 py-3 rounded-2xl bg-white border border-violet-200 hover:bg-violet-50 text-violet-800 text-sm font-bold flex items-center gap-3 shadow-sm transition-all"
+            className={`flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all min-h-[112px] relative ${showELibrary ? 'border-violet-300 bg-violet-50/40' : 'border-violet-500/10 hover:bg-violet-50/50 hover:border-violet-200'}`}
           >
-            <span className="w-6 h-6 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-[13px] shrink-0">{onStudentTest ? '៤' : '៣'}</span>
-            <span className="flex-1 text-center">📖 បណ្ណាល័យអេឡិចត្រូនិច (E-Library)</span>
-            <span className="text-[11px] text-violet-400 shrink-0">{showELibrary ? '▲' : '▼'}</span>
-          </button>
-          {showELibrary && (
-            <div className="space-y-2 px-0.5">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {[...CURATED_ELIBRARY.map(e => ({ title: e.title, url: e.url, category: e.category })),
-                  ...schoolElinks.map(e => ({ title: e.title, url: e.url, category: e.category || 'សៀវភៅសាលា' }))]
-                  .map(e => (
-                    <a
-                      key={e.url + e.title}
-                      href={e.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group bg-white border border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm transition-all no-underline"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                        <Monitor size={15} className="text-violet-600" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-slate-700 truncate">{e.title}</p>
-                        <p className="text-[10px] text-slate-400 font-semibold truncate">{e.category}</p>
-                      </div>
-                      <ExternalLink size={12} className="text-slate-300 group-hover:text-violet-500 shrink-0" />
-                    </a>
-                  ))}
+            <div className="flex justify-between items-start w-full">
+              <div className="w-9 h-9 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                <Monitor className="w-4.5 h-4.5 text-violet-600 stroke-[2.5]" />
               </div>
+              <span className="text-2xl leading-none">📖</span>
             </div>
-          )}
+            <span className="text-[13px] font-extrabold text-left text-violet-950 leading-tight flex items-center gap-1">
+              បណ្ណាល័យអេឡិចត្រូនិច <span className="text-[10px] text-violet-400">{showELibrary ? '▲' : '▼'}</span>
+            </span>
+            <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-[10px] font-bold">{onStudentTest ? '៤' : '៣'}</span>
+          </button>
         </div>
+
+        {/* E-Library links, revealed below the grid when its tile is active. */}
+        {showELibrary && (
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {[...CURATED_ELIBRARY.map(e => ({ title: e.title, url: e.url, category: e.category })),
+              ...schoolElinks.map(e => ({ title: e.title, url: e.url, category: e.category || 'សៀវភៅសាលា' }))]
+              .map(e => (
+                <a
+                  key={e.url + e.title}
+                  href={e.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group bg-white border border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm transition-all no-underline"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                    <Monitor size={15} className="text-violet-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-700 truncate">{e.title}</p>
+                    <p className="text-[10px] text-slate-400 font-semibold truncate">{e.category}</p>
+                  </div>
+                  <ExternalLink size={12} className="text-slate-300 group-hover:text-violet-500 shrink-0" />
+                </a>
+              ))}
+          </div>
+        )}
 
         <p className="text-[10px] text-slate-400 text-center mt-4 leading-relaxed">
           ផ្ទាំងនេះសម្រាប់មាតាបិតាមើល និងទាញយកព្រឹត្តបត្រពិន្ទុរបស់កូនជា PDF តែប៉ុណ្ណោះ។
