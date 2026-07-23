@@ -30,6 +30,7 @@ export interface Loan {
   bookId: string;
   bookTitle: string;   // kept on the row so the ledger still reads if a book is removed
   student: string;     // ឈ្មោះសិស្ស
+  gender?: string;     // ភេទ
   grade?: string;      // ថ្នាក់
   borrowedAt: string;  // ISO date
   dueAt?: string;      // ថ្ងៃត្រូវសង

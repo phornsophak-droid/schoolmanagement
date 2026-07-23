@@ -193,7 +193,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   };
 
   // ---- loans ----
-  const [lDraft, setLDraft] = useState({ bookId: '', student: '', grade: '', dueAt: '', days: '' });
+  const [lDraft, setLDraft] = useState({ bookId: '', student: '', gender: '', grade: '', dueAt: '', days: '' });
 
   const handleDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dStr = e.target.value;
@@ -221,11 +221,11 @@ export default function LibraryManager({ students = [], grades = [], currentUser
     if (!student) { flash('សូមបញ្ចូលឈ្មោះសិស្ស'); return; }
     if (availableCount(book, loans) <= 0) { flash('សៀវភៅនេះអស់ហើយ'); return; }
     const next = [{
-      id: newId(), bookId: book.id, bookTitle: book.title, student, grade: lDraft.grade,
+      id: newId(), bookId: book.id, bookTitle: book.title, student, gender: lDraft.gender, grade: lDraft.grade,
       borrowedAt: todayISO(), dueAt: lDraft.dueAt || undefined,
     }, ...loans];
     setLoans(next); await saveLoans(next);
-    setLDraft({ bookId: '', student: '', grade: '', dueAt: '', days: '' });
+    setLDraft({ bookId: '', student: '', gender: '', grade: '', dueAt: '', days: '' });
     flash('កត់ត្រាការខ្ចីរួចរាល់ ✓');
   };
   const giveBack = async (id: string) => {
@@ -484,7 +484,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
           {canEdit && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
               <p className="text-[11px] font-bold text-slate-500">កត់ត្រាការខ្ចី</p>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
                 <select className={`${input} lg:col-span-2`} value={lDraft.bookId} onChange={e => setLDraft({ ...lDraft, bookId: e.target.value })}>
                   <option value="">— ជ្រើសសៀវភៅ —</option>
                   {books.map(b => (
@@ -494,6 +494,11 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                   ))}
                 </select>
                 <input className={input} list="lib-students" placeholder="ឈ្មោះសិស្ស *" value={lDraft.student} onChange={e => setLDraft({ ...lDraft, student: e.target.value })} />
+                <select className={input} value={lDraft.gender} onChange={e => setLDraft({ ...lDraft, gender: e.target.value })}>
+                  <option value="">— ភេទ —</option>
+                  <option value="ប្រុស">ប្រុស (M)</option>
+                  <option value="ស្រី">ស្រី (F)</option>
+                </select>
                 <select className={input} value={lDraft.grade} onChange={e => setLDraft({ ...lDraft, grade: e.target.value })}>
                   <option value="">— ថ្នាក់ —</option>
                   {grades.map(g => <option key={g} value={g}>{g}</option>)}
@@ -502,7 +507,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                   <input className={`w-16 ${input} px-1.5`} type="number" min="1" placeholder="ថ្ងៃ" title="ចំនួនថ្ងៃខ្ចី" value={lDraft.days} onChange={handleDaysChange} />
                   <input className={`flex-1 ${input} px-1.5`} type="date" title="ថ្ងៃត្រូវសង" value={lDraft.dueAt} onChange={handleDueAtChange} />
                 </div>
-                <button onClick={lend} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5">
+                <button onClick={lend} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 lg:col-span-6">
                   <Plus size={13} /> ខ្ចី
                 </button>
               </div>
@@ -515,7 +520,9 @@ export default function LibraryManager({ students = [], grades = [], currentUser
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-slate-400 border-b border-slate-100">
-                    <th className="py-2 pr-2 font-bold">ឈ្មោះសិស្ស</th>
+                    <th className="py-2 pr-2 font-bold">ល.រ</th>
+                    <th className="py-2 pr-2 font-bold">ឈ្មោះសិស្សខ្ចីសៀវភៅ</th>
+                    <th className="py-2 pr-2 font-bold">ភេទ</th>
                     <th className="py-2 pr-2 font-bold">ថ្នាក់</th>
                     <th className="py-2 pr-2 font-bold">ចំណងជើងសៀវភៅ</th>
                     <th className="py-2 pr-2 font-bold whitespace-nowrap">កាលបរិច្ឆេទខ្ចី</th>
@@ -526,9 +533,11 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                   </tr>
                 </thead>
                 <tbody>
-                  {openLoans.map(l => (
+                  {openLoans.map((l, i) => (
                     <tr key={l.id} className={`border-b border-slate-50 ${overdue(l) ? 'bg-rose-50/50' : ''}`}>
+                      <td className="py-2 pr-2 text-slate-400">{toKh(i + 1)}</td>
                       <td className="py-2 pr-2 font-bold text-slate-700">{l.student}</td>
+                      <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{l.gender || '—'}</td>
                       <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{l.grade}</td>
                       <td className="py-2 pr-2 text-slate-600">{l.bookTitle}</td>
                       <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{khDate(l.borrowedAt)}</td>
@@ -555,7 +564,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                     </tr>
                   ))}
                   {openLoans.length === 0 && (
-                    <tr><td colSpan={canEdit ? 8 : 7} className="py-6 text-center text-slate-400 font-semibold">គ្មានសៀវភៅកំពុងខ្ចីទេ</td></tr>
+                    <tr><td colSpan={canEdit ? 10 : 9} className="py-6 text-center text-slate-400 font-semibold">គ្មានសៀវភៅកំពុងខ្ចីទេ</td></tr>
                   )}
                 </tbody>
               </table>
