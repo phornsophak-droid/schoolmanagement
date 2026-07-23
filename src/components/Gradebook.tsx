@@ -461,9 +461,19 @@ export default function Gradebook({
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, blankrows: false });
+        const clean = (h: any) => String(h ?? '').replace(/[﻿​]/g, '').trim();
+        // Find the HEADER ROW rather than assuming it is the first row. A sheet often
+        // carries a title line (or two) above the column headers; treating the title
+        // as the header found no columns, so names fell back to column 0 (the អត្តលេខ
+        // codes) and the real header row got imported as a student. Scan the first few
+        // rows for the one that names the ឈ្មោះ / អត្តលេខ columns.
+        const looksLikeHeader = (r: any[]) =>
+          Array.isArray(r) && r.some(c => { const t = clean(c); return t.includes('ឈ្មោះ') || t.includes('នាម') || t.includes('អត្តលេខ'); });
+        let headerIdx = rows.findIndex(looksLikeHeader);
+        if (headerIdx < 0) headerIdx = 0; // legacy "name, gender, scores" sheet with no header
         // Locate columns by header text so order/extra columns can't shift scores onto
         // the wrong subject. Falls back to the legacy "name, gender, scores" layout.
-        const headerRow = (rows[0] || []).map((h: any) => String(h ?? '').replace(/[﻿​]/g, '').trim());
+        const headerRow = (rows[headerIdx] || []).map(clean);
         let idCol = headerRow.findIndex(h => h.includes('អត្តលេខ'));
         let nameCol = headerRow.findIndex(h => h.includes('ឈ្មោះ') || h.includes('នាម'));
         let genderCol = headerRow.findIndex(h => h.includes('ភេទ'));
@@ -478,12 +488,16 @@ export default function Gradebook({
         const valCount = isSem ? SEM_SUBJECTS.length : (customSubjects ? customSubjects.length : scoreHeaders.length);
         let updated = [...students];
         let count = 0;
-        for (let i = 1; i < rows.length; i++) { // row 0 = header
+        for (let i = headerIdx + 1; i < rows.length; i++) { // data starts after the header row
           const row = rows[i];
           if (!row || !Array.isArray(row)) continue;
           const studentId = idCol >= 0 ? String(row[idCol] ?? '').replace(/[﻿​]/g, '').trim() : '';
           const name = String(row[nameCol] ?? '').replace(/[﻿​]/g, '').replace(/\s+/g, ' ').trim();
-          if (!name || name === 'ឈ្មោះ' || name === 'ឈ្មោះសិស្ស') continue;
+          // Skip blank rows and any stray header row: a file with a repeated header,
+          // or one whose name column lands on a label, must not create a student
+          // literally called "អត្តលេខ" / "ល.រ" / "ភេទ" etc.
+          const HEADER_WORDS = ['ឈ្មោះ', 'ឈ្មោះសិស្ស', 'នាម', 'គោត្តនាម', 'អត្តលេខ', 'ល.រ', 'លេខរៀង', 'ភេទ', 'ក្រុម', 'ខែ', 'ថ្នាក់', 'ថ្នាក់សិក្សា'];
+          if (!name || HEADER_WORDS.includes(name)) continue;
           const rawGender = String(row[genderCol] ?? '').trim().toLowerCase();
           const gender: 'ប្រុស' | 'ស្រី' = (rawGender.includes('ស្រី') || rawGender === 'f' || rawGender === 'female') ? 'ស្រី' : 'ប្រុស';
           const vals = Array.from({ length: valCount }, (_, idx) => num(row[scoreStart + idx]));
