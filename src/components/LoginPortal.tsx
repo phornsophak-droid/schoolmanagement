@@ -165,6 +165,14 @@ export const AVAILABLE_USERS: SchoolUser[] = [
     grade: 'ថ្នាក់អប់រំសុខភាព',
     photoCode: 'ហគ',
     avatarBg: 'bg-gradient-to-tr from-sky-600 to-sky-300'
+  },
+  {
+    id: 'librarian',
+    name: 'បណ្ណារក្ស',
+    role: 'teacher',
+    grade: 'បណ្ណាល័យ',
+    photoCode: 'បណ',
+    avatarBg: 'bg-gradient-to-tr from-cyan-600 to-blue-500'
   }
 ];
 
