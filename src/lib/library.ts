@@ -42,8 +42,17 @@ export interface Visit {
   grade?: string;
   date: string;        // YYYY-MM-DD
   purpose?: string;    // អានសៀវភៅ / ស្រាវជ្រាវ …
+  inAt: string;        // ISO — set on check-in (one tap)
+  outAt?: string;      // ISO — set on check-out; absent means still reading
   createdAt: string;
 }
+
+// Minutes between check-in and check-out. Null while the pupil is still in, and
+// never negative in case the clock was wound back between the two taps.
+export const visitMinutes = (v: Visit): number | null => {
+  if (!v.outAt) return null;
+  return Math.max(0, Math.round((new Date(v.outAt).getTime() - new Date(v.inAt).getTime()) / 60000));
+};
 
 // Who may edit besides the principal: the librarians, named by user name.
 export interface LibrarySettings {

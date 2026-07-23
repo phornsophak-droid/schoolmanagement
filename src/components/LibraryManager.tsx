@@ -17,7 +17,7 @@ import {
   Book, Loan, Visit, LibrarySettings,
   loadBooks, loadLoans, loadVisits, loadLibrarySettings, refreshLibraryFromCloud,
   saveBooks, saveLoans, saveVisits, saveLibrarySettings,
-  availableCount, outCount, canManageLibrary, newId, todayISO,
+  availableCount, outCount, canManageLibrary, visitMinutes, newId, todayISO,
 } from '../lib/library';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
@@ -39,6 +39,16 @@ const khDate = (iso?: string) => {
   if (!iso) return '';
   const [y, m, d] = iso.slice(0, 10).split('-');
   return y && m && d ? toKh(`${d}/${m}/${y}`) : toKh(iso);
+};
+
+// An ISO instant as "០១:៣០ ល្ងាច" — Khmer 12-hour clock.
+const khTime = (iso?: string) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  let h = d.getHours();
+  const suffix = h < 12 ? 'ព្រឹក' : 'ល្ងាច';
+  h = h % 12 || 12;
+  return `${toKh(String(h).padStart(2, '0'))}:${toKh(String(d.getMinutes()).padStart(2, '0'))} ${suffix}`;
 };
 
 type Tab = 'books' | 'loans' | 'visits';
@@ -191,17 +201,29 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   const overdue = (l: Loan) => !!l.dueAt && !l.returnedAt && l.dueAt < todayISO();
 
   // ---- daily reading visits ----
-  const [vDraft, setVDraft] = useState({ student: '', grade: '', purpose: '', date: todayISO() });
-  const addVisit = async () => {
+  // Check-in is one tap: it stamps the arrival time. The pupil's reading minutes
+  // are worked out on check-out, so the librarian never types a time.
+  const [vDraft, setVDraft] = useState({ student: '', grade: '', purpose: '' });
+  const checkIn = async () => {
     const student = vDraft.student.trim();
     if (!student) { flash('សូមបញ្ចូលឈ្មោះសិស្ស'); return; }
+    const now = new Date();
     const next = [{
       id: newId(), student, grade: vDraft.grade, purpose: vDraft.purpose.trim(),
-      date: vDraft.date || todayISO(), createdAt: new Date().toISOString(),
+      date: todayISO(), inAt: now.toISOString(), createdAt: now.toISOString(),
     }, ...visits];
     setVisits(next); await saveVisits(next);
-    setVDraft({ student: '', grade: '', purpose: '', date: vDraft.date });
+    setVDraft({ student: '', grade: '', purpose: '' });
     flash('កត់ត្រាចូលអានរួចរាល់ ✓');
+  };
+  const checkOut = async (id: string) => {
+    const next = visits.map(v => (v.id === id ? { ...v, outAt: new Date().toISOString() } : v));
+    setVisits(next); await saveVisits(next);
+    flash('កត់ត្រាម៉ោងចេញរួចរាល់ ✓');
+  };
+  const undoCheckOut = async (id: string) => {
+    const next = visits.map(v => (v.id === id ? { ...v, outAt: undefined } : v));
+    setVisits(next); await saveVisits(next);
   };
   const removeVisit = async (id: string) => {
     const next = visits.filter(v => v.id !== id);
@@ -454,17 +476,16 @@ export default function LibraryManager({ students = [], grades = [], currentUser
         <div className="space-y-3">
           {canEdit && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
-              <p className="text-[11px] font-bold text-slate-500">កត់ត្រាសិស្សចូលអាន</p>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              <p className="text-[11px] font-bold text-slate-500">កត់ត្រាសិស្សចូលអាន — ចុច «ចូល» ម្តងពេលមកដល់</p>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <input className={input} list="lib-students" placeholder="ឈ្មោះសិស្ស *" value={vDraft.student} onChange={e => setVDraft({ ...vDraft, student: e.target.value })} />
                 <select className={input} value={vDraft.grade} onChange={e => setVDraft({ ...vDraft, grade: e.target.value })}>
                   <option value="">— ថ្នាក់ —</option>
                   {grades.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
                 <input className={input} placeholder="គោលបំណង (អាន / ស្រាវជ្រាវ)" value={vDraft.purpose} onChange={e => setVDraft({ ...vDraft, purpose: e.target.value })} />
-                <input className={input} type="date" value={vDraft.date} onChange={e => setVDraft({ ...vDraft, date: e.target.value })} />
-                <button onClick={addVisit} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5">
-                  <Plus size={13} /> កត់ត្រា
+                <button onClick={checkIn} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5">
+                  <Plus size={13} /> ចូល
                 </button>
               </div>
             </div>
@@ -475,7 +496,10 @@ export default function LibraryManager({ students = [], grades = [], currentUser
               <Users size={14} className="text-slate-400" />
               <span className="text-[11px] font-bold text-slate-500">សិស្សចូលអាន</span>
               <input className={input} type="date" value={visitDay} onChange={e => setVisitDay(e.target.value)} />
-              <span className="text-[11px] font-bold text-emerald-600">សរុប {toKh(dayVisits.length)} នាក់</span>
+              <span className="text-[11px] font-bold text-emerald-600">
+                សរុប {toKh(dayVisits.length)} នាក់
+                {(() => { const m = dayVisits.reduce((a, v) => a + (visitMinutes(v) || 0), 0); return m > 0 ? ` · ${toKh(m)} នាទី` : ''; })()}
+              </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -485,27 +509,49 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                     <th className="py-2 pr-2 font-bold">ឈ្មោះសិស្ស</th>
                     <th className="py-2 pr-2 font-bold">ថ្នាក់</th>
                     <th className="py-2 pr-2 font-bold">គោលបំណង</th>
+                    <th className="py-2 pr-2 font-bold whitespace-nowrap">ម៉ោងចូល</th>
+                    <th className="py-2 pr-2 font-bold whitespace-nowrap">ម៉ោងចេញ</th>
+                    <th className="py-2 pr-2 font-bold text-center whitespace-nowrap">នាទី</th>
                     {canEdit && <th className="py-2 font-bold" />}
                   </tr>
                 </thead>
                 <tbody>
-                  {dayVisits.map((v, i) => (
-                    <tr key={v.id} className="border-b border-slate-50">
-                      <td className="py-2 pr-2 text-slate-400">{toKh(i + 1)}</td>
-                      <td className="py-2 pr-2 font-bold text-slate-700">{v.student}</td>
-                      <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{v.grade}</td>
-                      <td className="py-2 pr-2 text-slate-500">{v.purpose}</td>
-                      {canEdit && (
-                        <td className="py-2 text-right">
-                          <button onClick={() => removeVisit(v.id)} title="លុប" className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50">
-                            <Trash2 size={13} />
-                          </button>
+                  {dayVisits.map((v, i) => {
+                    const mins = visitMinutes(v);
+                    return (
+                      <tr key={v.id} className="border-b border-slate-50">
+                        <td className="py-2 pr-2 text-slate-400">{toKh(i + 1)}</td>
+                        <td className="py-2 pr-2 font-bold text-slate-700">{v.student}</td>
+                        <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{v.grade}</td>
+                        <td className="py-2 pr-2 text-slate-500">{v.purpose}</td>
+                        <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{khTime(v.inAt)}</td>
+                        <td className="py-2 pr-2 whitespace-nowrap">
+                          {v.outAt
+                            ? <span className="text-slate-500">{khTime(v.outAt)}</span>
+                            : <span className="text-emerald-600 font-bold">កំពុងអាន</span>}
                         </td>
-                      )}
-                    </tr>
-                  ))}
+                        <td className="py-2 pr-2 text-center font-bold text-slate-700">{mins === null ? '—' : toKh(mins)}</td>
+                        {canEdit && (
+                          <td className="py-2 text-right whitespace-nowrap">
+                            {!v.outAt ? (
+                              <button onClick={() => checkOut(v.id)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 inline-flex items-center gap-1">
+                                <Check size={12} /> ចេញ
+                              </button>
+                            ) : (
+                              <button onClick={() => undoCheckOut(v.id)} title="ត្រឡប់ជាកំពុងអាន" className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+                                <Undo2 size={13} />
+                              </button>
+                            )}
+                            <button onClick={() => removeVisit(v.id)} title="លុប" className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 ml-0.5">
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                   {dayVisits.length === 0 && (
-                    <tr><td colSpan={canEdit ? 5 : 4} className="py-6 text-center text-slate-400 font-semibold">គ្មានកំណត់ត្រាថ្ងៃនេះទេ</td></tr>
+                    <tr><td colSpan={canEdit ? 8 : 7} className="py-6 text-center text-slate-400 font-semibold">គ្មានកំណត់ត្រាថ្ងៃនេះទេ</td></tr>
                   )}
                 </tbody>
               </table>
