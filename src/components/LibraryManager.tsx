@@ -10,7 +10,7 @@
 // the same screens read-only, so a teacher can still look a book up.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Upload, Download } from 'lucide-react';
+import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Upload, Download, AlertTriangle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SchoolUser, StudentScore, afterHoursSubject } from '../types';
 import {
@@ -193,7 +193,27 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   };
 
   // ---- loans ----
-  const [lDraft, setLDraft] = useState({ bookId: '', student: '', grade: '', dueAt: '' });
+  const [lDraft, setLDraft] = useState({ bookId: '', student: '', grade: '', dueAt: '', days: '' });
+
+  const handleDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dStr = e.target.value;
+    if (!dStr) {
+      setLDraft({ ...lDraft, days: dStr, dueAt: '' });
+      return;
+    }
+    const days = parseInt(dStr, 10) || 0;
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    setLDraft({ ...lDraft, days: dStr, dueAt: `${y}-${m}-${d}` });
+  };
+
+  const handleDueAtChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLDraft({ ...lDraft, dueAt: e.target.value, days: '' });
+  };
+
   const lend = async () => {
     const book = books.find(b => b.id === lDraft.bookId);
     const student = lDraft.student.trim();
@@ -205,7 +225,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
       borrowedAt: todayISO(), dueAt: lDraft.dueAt || undefined,
     }, ...loans];
     setLoans(next); await saveLoans(next);
-    setLDraft({ bookId: '', student: '', grade: '', dueAt: '' });
+    setLDraft({ bookId: '', student: '', grade: '', dueAt: '', days: '' });
     flash('កត់ត្រាការខ្ចីរួចរាល់ ✓');
   };
   const giveBack = async (id: string) => {
@@ -350,6 +370,19 @@ export default function LibraryManager({ students = [], grades = [], currentUser
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-xl px-3 py-2">{toast}</div>
       )}
 
+      {canEdit && openLoans.some(overdue) && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl px-3 py-2 flex items-center justify-between shadow-sm">
+          <span className="flex items-center gap-1.5">
+            <AlertTriangle size={14} className="text-rose-600" /> មានសៀវភៅចំនួន {toKh(openLoans.filter(overdue).length)} ក្បាល ដែលដល់ថ្ងៃកំណត់សង ឬហួសកំណត់ហើយ!
+          </span>
+          {tab !== 'loans' && (
+            <button onClick={() => setTab('loans')} className="px-2 py-1 bg-rose-100 hover:bg-rose-200 rounded-lg text-rose-800 transition-colors">
+              ពិនិត្យមើល
+            </button>
+          )}
+        </div>
+      )}
+
       {/* tabs */}
       <div className="flex gap-1.5 flex-wrap">
         {([['books', 'បញ្ជីសៀវភៅ'], ['loans', 'ខ្ចី / សង'], ['visits', 'ចូលអានប្រចាំថ្ងៃ'], ['summary', 'សរុបនាទីតាមថ្នាក់']] as [Tab, string][]).map(([id, label]) => (
@@ -465,7 +498,10 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                   <option value="">— ថ្នាក់ —</option>
                   {grades.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
-                <input className={input} type="date" title="ថ្ងៃត្រូវសង" value={lDraft.dueAt} onChange={e => setLDraft({ ...lDraft, dueAt: e.target.value })} />
+                <div className="flex gap-1 relative">
+                  <input className={`w-16 ${input} px-1.5`} type="number" min="1" placeholder="ថ្ងៃ" title="ចំនួនថ្ងៃខ្ចី" value={lDraft.days} onChange={handleDaysChange} />
+                  <input className={`flex-1 ${input} px-1.5`} type="date" title="ថ្ងៃត្រូវសង" value={lDraft.dueAt} onChange={handleDueAtChange} />
+                </div>
                 <button onClick={lend} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5">
                   <Plus size={13} /> ខ្ចី
                 </button>
