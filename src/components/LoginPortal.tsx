@@ -11,7 +11,8 @@ import {
   Lock, 
   ChevronRight,
   Eye,
-  EyeOff
+  EyeOff,
+  Trash2
 } from 'lucide-react';
 
 interface LoginPortalProps {
@@ -194,6 +195,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
   const [pinCode, setPinCode] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [showPin, setShowPin] = useState<boolean>(false);
+  const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
 
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
   const [newClassName, setNewClassName] = useState('');
@@ -288,6 +290,30 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
     setNewPinCode('1234');
     setNewClassCategory('general');
     setNewClassGroup('1A');
+  };
+
+  const handleDeleteCustomUser = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm("តើលោកអ្នកពិតជាចង់លុបគណនីគ្រូនេះមែនទេ? (គណនីដែលបានលុប នឹងមិនអាចត្រឡប់វិញបានទេ)")) return;
+    
+    // Remove from AVAILABLE_USERS array
+    const index = AVAILABLE_USERS.findIndex(u => u.id === id);
+    if (index > -1) {
+      AVAILABLE_USERS.splice(index, 1);
+    }
+    
+    // Remove from localStorage and Cloud
+    const savedStr = localStorage.getItem('school_custom_users');
+    if (savedStr) {
+      let savedUsers = JSON.parse(savedStr);
+      if (Array.isArray(savedUsers)) {
+        savedUsers = savedUsers.filter((u: any) => u.id !== id);
+        localStorage.setItem('school_custom_users', JSON.stringify(savedUsers));
+        syncUpsertSetting('school_custom_users', savedUsers).catch(console.error);
+      }
+    }
+    
+    forceUpdate();
   };
 
   return (
@@ -387,6 +413,17 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                         <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold">{teacher.grade}</span>
                         <h3 className="text-xs font-semibold text-slate-800 mt-1 truncate group-hover:text-blue-600">{teacher.name}</h3>
                       </div>
+                      
+                      {/* Delete button for custom users */}
+                      {teacher.id.startsWith('teacher_custom_') && (
+                        <button
+                          onClick={(e) => handleDeleteCustomUser(teacher.id, e)}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                          title="លុបគណនីនេះ"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </button>
                 ))}
