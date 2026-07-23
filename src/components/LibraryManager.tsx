@@ -515,30 +515,35 @@ export default function LibraryManager({ students = [], grades = [], currentUser
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-slate-400 border-b border-slate-100">
-                    <th className="py-2 pr-2 font-bold">សៀវភៅ</th>
-                    <th className="py-2 pr-2 font-bold">សិស្ស</th>
+                    <th className="py-2 pr-2 font-bold">ឈ្មោះសិស្ស</th>
                     <th className="py-2 pr-2 font-bold">ថ្នាក់</th>
-                    <th className="py-2 pr-2 font-bold">ថ្ងៃខ្ចី</th>
-                    <th className="py-2 pr-2 font-bold">ត្រូវសង</th>
+                    <th className="py-2 pr-2 font-bold">ចំណងជើងសៀវភៅ</th>
+                    <th className="py-2 pr-2 font-bold whitespace-nowrap">កាលបរិច្ឆេទខ្ចី</th>
+                    <th className="py-2 pr-2 font-bold whitespace-nowrap">រយៈពេល</th>
+                    <th className="py-2 pr-2 font-bold whitespace-nowrap">កាលបរិច្ឆេទត្រូវសង</th>
+                    <th className="py-2 pr-2 font-bold whitespace-nowrap">សារជូនដំណឹង</th>
                     {canEdit && <th className="py-2 font-bold" />}
                   </tr>
                 </thead>
                 <tbody>
                   {openLoans.map(l => (
                     <tr key={l.id} className={`border-b border-slate-50 ${overdue(l) ? 'bg-rose-50/50' : ''}`}>
-                      <td className="py-2 pr-2 font-bold text-slate-700">{l.bookTitle}</td>
+                      <td className="py-2 pr-2 font-bold text-slate-700">{l.student}</td>
+                      <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{l.grade}</td>
+                      <td className="py-2 pr-2 text-slate-600">{l.bookTitle}</td>
+                      <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{khDate(l.borrowedAt)}</td>
+                      <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">
+                        {l.dueAt ? toKh(Math.max(0, Math.round((new Date(l.dueAt).getTime() - new Date(l.borrowedAt).getTime()) / (1000 * 60 * 60 * 24)))) + ' ថ្ងៃ' : '—'}
+                      </td>
+                      <td className={`py-2 pr-2 whitespace-nowrap font-bold ${overdue(l) ? 'text-rose-600' : 'text-slate-500'}`}>
+                        {khDate(l.dueAt)}
+                      </td>
                       <td className="py-2 pr-2">
-                        <div className="text-slate-600">{l.student}</div>
                         {overdue(l) && (
-                          <div className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-0.5 bg-rose-100/50 w-fit px-1.5 py-0.5 rounded">
+                          <div className="text-[10px] font-bold text-rose-600 flex items-center gap-1 bg-rose-100/50 w-fit px-1.5 py-0.5 rounded">
                             <AlertTriangle size={10} /> ត្រូវតាមដានសង
                           </div>
                         )}
-                      </td>
-                      <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{l.grade}</td>
-                      <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{khDate(l.borrowedAt)}</td>
-                      <td className={`py-2 pr-2 whitespace-nowrap font-bold ${overdue(l) ? 'text-rose-600' : 'text-slate-500'}`}>
-                        {khDate(l.dueAt)}{overdue(l) ? ' ⚠' : ''}
                       </td>
                       {canEdit && (
                         <td className="py-2 text-right">
@@ -550,7 +555,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                     </tr>
                   ))}
                   {openLoans.length === 0 && (
-                    <tr><td colSpan={canEdit ? 6 : 5} className="py-6 text-center text-slate-400 font-semibold">គ្មានសៀវភៅកំពុងខ្ចីទេ</td></tr>
+                    <tr><td colSpan={canEdit ? 8 : 7} className="py-6 text-center text-slate-400 font-semibold">គ្មានសៀវភៅកំពុងខ្ចីទេ</td></tr>
                   )}
                 </tbody>
               </table>
