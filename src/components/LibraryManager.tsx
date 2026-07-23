@@ -255,45 +255,42 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   const [visitDay, setVisitDay] = useState(todayISO());
   const dayVisits = visits.filter(v => v.date === visitDay);
 
-  // Per-pupil reading totals grouped by class, over an optional month filter. A
-  // pupil's grade is taken from their most recent visit, so the same name doesn't
-  // split across classes if the grade was left blank on an earlier one. Only
-  // checked-out visits carry minutes; a still-open one adds a count but no time.
+  // Reading totals for the WHOLE class roster, over an optional month and class
+  // filter. Every enrolled pupil is listed — a pupil who never came to read shows
+  // ០ នាទី rather than being left out, so the table doubles as the class name list.
+  // Only checked-out visits carry minutes; a still-open one adds a count but no time.
   const [summaryMonth, setSummaryMonth] = useState(''); // '' = all time, else 'YYYY-MM'
+  const [summaryGrade, setSummaryGrade] = useState(''); // '' = every general class
   const summary = useMemo(() => {
     const inMonth = summaryMonth ? visits.filter(v => v.date.slice(0, 7) === summaryMonth) : visits;
-    // General classes only — after-hours subjects (English, sport, art…) are named
-    // with their subject and afterHoursSubject() returns non-empty for them. A visit
-    // with no grade at all is kept, so an unclassed pupil isn't silently dropped.
-    const scoped = inMonth.filter(v => !v.grade || afterHoursSubject(v.grade) === '');
-    const byStudent = new Map<string, { student: string; grade: string; minutes: number; sessions: number; lastDate: string }>();
-    for (const v of scoped) {
+    // Total reading minutes and sessions per pupil name (general-class visits only).
+    const stats = new Map<string, { minutes: number; sessions: number }>();
+    for (const v of inMonth) {
+      if (v.grade && afterHoursSubject(v.grade) !== '') continue;
       const key = v.student.trim();
       if (!key) continue;
-      const cur = byStudent.get(key) || { student: key, grade: v.grade || '', minutes: 0, sessions: 0, lastDate: '' };
+      const cur = stats.get(key) || { minutes: 0, sessions: 0 };
       cur.minutes += visitMinutes(v) || 0;
       cur.sessions += 1;
-      if (v.date >= cur.lastDate) { cur.lastDate = v.date; if (v.grade) cur.grade = v.grade; }
-      byStudent.set(key, cur);
+      stats.set(key, cur);
     }
-    // Group the pupils under their class, classes in the order they were configured.
-    const byGrade = new Map<string, typeof byStudent extends Map<any, infer V> ? V[] : never>();
-    for (const s of byStudent.values()) {
-      const g = s.grade || 'គ្មានថ្នាក់';
-      (byGrade.get(g) || byGrade.set(g, []).get(g)!).push(s);
-    }
-    const order = [...grades, 'គ្មានថ្នាក់'];
-    return [...byGrade.entries()]
-      .sort((a, b) => {
-        const ia = order.indexOf(a[0]), ib = order.indexOf(b[0]);
-        return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || a[0].localeCompare(b[0], 'km');
-      })
-      .map(([grade, rows]) => ({
-        grade,
-        rows: rows.sort((a, b) => b.minutes - a.minutes || a.student.localeCompare(b.student, 'km')),
-        totalMinutes: rows.reduce((s, r) => s + r.minutes, 0),
-      }));
-  }, [visits, summaryMonth, grades]);
+    // The classes to show, in the order they were configured.
+    const gradesToShow = (summaryGrade ? [summaryGrade] : generalGrades)
+      .filter(g => namesByGrade.has(g));
+
+    return gradesToShow.map(grade => {
+      // Every enrolled pupil, plus anyone who read under this class but isn't on the
+      // roster (a hand-typed name), so no reading time goes unaccounted for.
+      const roster = new Set<string>(namesByGrade.get(grade) || []);
+      for (const v of inMonth) if (v.grade === grade && v.student.trim()) roster.add(v.student.trim());
+      const rows = [...roster].map(student => ({
+        student,
+        minutes: stats.get(student)?.minutes || 0,
+        sessions: stats.get(student)?.sessions || 0,
+      })).sort((a, b) => b.minutes - a.minutes || a.student.localeCompare(b.student, 'km'));
+      return { grade, rows, totalMinutes: rows.reduce((s, r) => s + r.minutes, 0) };
+    });
+  }, [visits, summaryMonth, summaryGrade, generalGrades, namesByGrade]);
 
   // Months that actually have visits, for the filter dropdown.
   const visitMonths = useMemo(
@@ -643,7 +640,11 @@ export default function LibraryManager({ students = [], grades = [], currentUser
         <div className="space-y-3">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex items-center gap-2 flex-wrap">
             <Users size={14} className="text-slate-400" />
-            <span className="text-[11px] font-bold text-slate-500">ចំនួននាទីអានសរុប តាមសិស្ស</span>
+            <span className="text-[11px] font-bold text-slate-500">បញ្ជីឈ្មោះសិស្ស និងនាទីអានសរុប</span>
+            <select className={input} value={summaryGrade} onChange={e => setSummaryGrade(e.target.value)}>
+              <option value="">គ្រប់ថ្នាក់</option>
+              {generalGrades.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
             <select className={input} value={summaryMonth} onChange={e => setSummaryMonth(e.target.value)}>
               <option value="">គ្រប់ខែ</option>
               {visitMonths.map(m => <option key={m} value={m}>{khMonthLabel(m)}</option>)}
@@ -652,7 +653,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
 
           {summary.length === 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-center text-slate-400 font-semibold text-xs">
-              គ្មានកំណត់ត្រាចូលអានទេ
+              គ្មានបញ្ជីឈ្មោះសិស្សថ្នាក់ទូទៅទេ
             </div>
           )}
 
