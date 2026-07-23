@@ -10,15 +10,22 @@
 // the same screens read-only, so a teacher can still look a book up.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Upload, Download, AlertTriangle, Pencil } from 'lucide-react';
+import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Upload, Download, AlertTriangle, Pencil, Monitor, ExternalLink } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SchoolUser, StudentScore, afterHoursSubject } from '../types';
 import {
-  Book, Loan, Visit, LibrarySettings,
-  loadBooks, loadLoans, loadVisits, loadLibrarySettings, refreshLibraryFromCloud,
-  saveBooks, saveLoans, saveVisits, saveLibrarySettings,
+  Book, Loan, Visit, ELink, LibrarySettings,
+  loadBooks, loadLoans, loadVisits, loadELinks, loadLibrarySettings, refreshLibraryFromCloud,
+  saveBooks, saveLoans, saveVisits, saveELinks, saveLibrarySettings,
   availableCount, outCount, canManageLibrary, visitMinutes, newId, todayISO,
 } from '../lib/library';
+
+// A few free Khmer digital-reading resources shown as quick links, always
+// available. The school adds its own e-books/links below these.
+const CURATED_ELIBRARY: { title: string; url: string; category: string }[] = [
+  { title: "Let's Read Asia — សៀវភៅកុមារខ្មែរ", url: 'https://www.letsreadasia.org', category: 'សៀវភៅ' },
+  { title: 'ថ្នាលបឋម PLP (ក្រសួងអប់រំ)', url: 'https://plp.moeys.gov.kh', category: 'គេហទំព័រ' },
+];
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 
@@ -51,7 +58,7 @@ const khTime = (iso?: string) => {
   return `${toKh(String(h).padStart(2, '0'))}:${toKh(String(d.getMinutes()).padStart(2, '0'))} ${suffix}`;
 };
 
-type Tab = 'books' | 'loans' | 'visits' | 'summary';
+type Tab = 'books' | 'loans' | 'visits' | 'summary' | 'elibrary';
 
 interface Props {
   students?: StudentScore[];
@@ -65,6 +72,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   const [books, setBooks] = useState<Book[]>(loadBooks);
   const [loans, setLoans] = useState<Loan[]>(loadLoans);
   const [visits, setVisits] = useState<Visit[]>(loadVisits);
+  const [elinks, setElinks] = useState<ELink[]>(loadELinks);
   const [settings, setSettings] = useState<LibrarySettings>(loadLibrarySettings);
   const [q, setQ] = useState('');
   const [toast, setToast] = useState<string | null>(null);
@@ -74,12 +82,30 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   useEffect(() => {
     refreshLibraryFromCloud().then(() => {
       setBooks(loadBooks()); setLoans(loadLoans());
-      setVisits(loadVisits()); setSettings(loadLibrarySettings());
+      setVisits(loadVisits()); setElinks(loadELinks()); setSettings(loadLibrarySettings());
     });
   }, []);
 
   const canEdit = canManageLibrary(currentUser, settings);
   const isPrincipal = currentUser?.role === 'principal';
+
+  // ---- e-library links ----
+  const [eDraft, setEDraft] = useState({ title: '', url: '', category: '' });
+  const addELink = async () => {
+    const title = eDraft.title.trim();
+    let url = eDraft.url.trim();
+    if (!title) { flash('សូមបញ្ចូលចំណងជើង'); return; }
+    if (!url) { flash('សូមបញ្ចូលតំណ (URL)'); return; }
+    if (!/^https?:\/\//i.test(url)) url = `https://${url}`;   // tolerate a bare domain
+    const next = [{ id: newId(), title, url, category: eDraft.category.trim(), createdAt: new Date().toISOString() }, ...elinks];
+    setElinks(next); await saveELinks(next);
+    setEDraft({ title: '', url: '', category: '' });
+    flash('បន្ថែមតំណរួចរាល់ ✓');
+  };
+  const removeELink = async (id: string) => {
+    const next = elinks.filter(e => e.id !== id);
+    setElinks(next); await saveELinks(next);
+  };
 
   // Reading is tracked for general classes only, so the visit form offers those.
   const generalGrades = useMemo(() => grades.filter(g => afterHoursSubject(g) === ''), [grades]);
@@ -456,7 +482,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
 
       {/* tabs */}
       <div className="flex gap-1.5 flex-wrap">
-        {([['books', 'បញ្ជីសៀវភៅ'], ['loans', 'ខ្ចី / សង'], ['visits', 'ចូលអានប្រចាំថ្ងៃ'], ['summary', 'សរុបនាទីតាមថ្នាក់']] as [Tab, string][]).map(([id, label]) => (
+        {([['books', 'បញ្ជីសៀវភៅ'], ['loans', 'ខ្ចី / សង'], ['visits', 'ចូលអានប្រចាំថ្ងៃ'], ['summary', 'សរុបនាទីតាមថ្នាក់'], ['elibrary', 'បណ្ណាល័យអេឡិចត្រូនិច']] as [Tab, string][]).map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -842,6 +868,79 @@ export default function LibraryManager({ students = [], grades = [], currentUser
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ---------------- e-library links ---------------- */}
+      {tab === 'elibrary' && (
+        <div className="space-y-3">
+          {/* Curated free resources — always available. */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
+            <p className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
+              <Monitor size={13} className="text-slate-400" /> ធនធានឌីជីថលឥតគិតថ្លៃ
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {CURATED_ELIBRARY.map(e => (
+                <a key={e.url} href={e.url} target="_blank" rel="noopener noreferrer"
+                  className="group bg-slate-50 hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-300 rounded-xl p-2.5 flex items-center gap-2.5 transition-all no-underline">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <Monitor size={15} className="text-emerald-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-700 truncate">{e.title}</p>
+                    <p className="text-[10px] text-slate-400 font-semibold truncate">{e.category}</p>
+                  </div>
+                  <ExternalLink size={12} className="text-slate-300 group-hover:text-emerald-500 shrink-0" />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {canEdit && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
+              <p className="text-[11px] font-bold text-slate-500">បន្ថែមតំណ e-book / ធនធានរបស់សាលា</p>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <input className={`${input} lg:col-span-2`} placeholder="ចំណងជើង *" value={eDraft.title} onChange={e => setEDraft({ ...eDraft, title: e.target.value })} />
+                <input className={input} placeholder="តំណ (https://…) *" value={eDraft.url} onChange={e => setEDraft({ ...eDraft, url: e.target.value })} />
+                <div className="flex gap-2">
+                  <input className={`${input} flex-1`} placeholder="ប្រភេទ" value={eDraft.category} onChange={e => setEDraft({ ...eDraft, category: e.target.value })} />
+                  <button onClick={addELink} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5">
+                    <Plus size={13} /> បន្ថែម
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
+            <p className="text-[11px] font-bold text-slate-500">តំណរបស់សាលា ({toKh(elinks.length)})</p>
+            {elinks.length === 0 ? (
+              <p className="py-6 text-center text-slate-400 font-semibold text-xs">មិនទាន់មានតំណទេ</p>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {elinks.map(e => (
+                  <div key={e.id} className="group bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center gap-2.5">
+                    <a href={e.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2.5 min-w-0 flex-1 no-underline">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                        <BookMarked size={15} className="text-blue-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-slate-700 truncate group-hover:text-blue-700">{e.title}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold truncate">{e.category || e.url}</p>
+                      </div>
+                      <ExternalLink size={12} className="text-slate-300 shrink-0" />
+                    </a>
+                    {canEdit && (
+                      <button onClick={() => removeELink(e.id)} title="លុប" className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 shrink-0">
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

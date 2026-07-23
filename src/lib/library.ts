@@ -55,6 +55,16 @@ export const visitMinutes = (v: Visit): number | null => {
   return Math.max(0, Math.round((new Date(v.outAt).getTime() - new Date(v.inAt).getTime()) / 60000));
 };
 
+// An entry in the electronic library (បណ្ណាល័យអេឡិចត្រូនិច) — a link to a digital
+// reading resource or e-book that opens in a new tab. The school curates its own.
+export interface ELink {
+  id: string;
+  title: string;      // ចំណងជើង
+  url: string;
+  category?: string;  // ប្រភេទ ( សៀវភៅ / វីដេអូ / គេហទំព័រ …)
+  createdAt: string;
+}
+
 // Who may edit besides the principal: the librarians, named by user name.
 export interface LibrarySettings {
   librarians: string[];
@@ -63,9 +73,10 @@ export interface LibrarySettings {
 const BOOKS_KEY = 'school_library_books';
 const LOANS_KEY = 'school_library_loans';
 const VISITS_KEY = 'school_library_visits';
+const ELINKS_KEY = 'school_library_elinks';
 const SETTINGS_KEY = 'school_library_settings';
 
-[BOOKS_KEY, LOANS_KEY, VISITS_KEY, SETTINGS_KEY].forEach(k => { kvHydrate(k); });
+[BOOKS_KEY, LOANS_KEY, VISITS_KEY, ELINKS_KEY, SETTINGS_KEY].forEach(k => { kvHydrate(k); });
 
 const readList = <T,>(key: string): T[] => {
   const v = kvReadSync<T[]>(key, []);
@@ -83,6 +94,7 @@ const writeList = async <T,>(key: string, list: T[]): Promise<T[]> => {
 export const loadBooks = () => readList<Book>(BOOKS_KEY);
 export const loadLoans = () => readList<Loan>(LOANS_KEY);
 export const loadVisits = () => readList<Visit>(VISITS_KEY);
+export const loadELinks = () => readList<ELink>(ELINKS_KEY);
 
 export function loadLibrarySettings(): LibrarySettings {
   const v = kvReadSync<LibrarySettings>(SETTINGS_KEY, { librarians: [] });
@@ -91,8 +103,8 @@ export function loadLibrarySettings(): LibrarySettings {
 
 // Pull everything from the cloud so every device shows the same library.
 export async function refreshLibraryFromCloud(): Promise<void> {
-  await Promise.all([BOOKS_KEY, LOANS_KEY, VISITS_KEY, SETTINGS_KEY].map(k => kvHydrate(k)));
-  await Promise.all([BOOKS_KEY, LOANS_KEY, VISITS_KEY, SETTINGS_KEY].map(async k => {
+  await Promise.all([BOOKS_KEY, LOANS_KEY, VISITS_KEY, ELINKS_KEY, SETTINGS_KEY].map(k => kvHydrate(k)));
+  await Promise.all([BOOKS_KEY, LOANS_KEY, VISITS_KEY, ELINKS_KEY, SETTINGS_KEY].map(async k => {
     try {
       const v = await fetchSetting(k);
       if (v !== null && v !== undefined) await kvWrite(k, v);
@@ -103,6 +115,7 @@ export async function refreshLibraryFromCloud(): Promise<void> {
 export const saveBooks = (list: Book[]) => writeList(BOOKS_KEY, list);
 export const saveLoans = (list: Loan[]) => writeList(LOANS_KEY, list);
 export const saveVisits = (list: Visit[]) => writeList(VISITS_KEY, list);
+export const saveELinks = (list: ELink[]) => writeList(ELINKS_KEY, list);
 
 export async function saveLibrarySettings(s: LibrarySettings): Promise<LibrarySettings> {
   await kvWrite(SETTINGS_KEY, s);
