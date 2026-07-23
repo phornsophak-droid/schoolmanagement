@@ -1094,6 +1094,18 @@ export default function App() {
     }
   };
 
+  // One-time automatic migration of old English class names to Library
+  const migrationRanRef = useRef(false);
+  useEffect(() => {
+    if (migrationRanRef.current) return;
+    if (grades.length === 0) return;
+    const oldName = grades.find(g => g === 'ថ្នាក់ភាសាអង់គ្លេស' || g === 'ថ្នាក់ភាសាអង់គ្លេស 1A');
+    if (oldName && !grades.includes('បណ្ណាល័យ')) {
+      migrationRanRef.current = true;
+      handleRenameGrade(oldName, 'បណ្ណាល័យ');
+    }
+  }, [grades]);
+
   const handleAddGrade = async (newGrade: string) => {
     const trimmed = newGrade.trim();
     if (!trimmed) return;
