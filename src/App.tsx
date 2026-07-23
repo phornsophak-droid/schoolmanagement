@@ -1214,11 +1214,11 @@ export default function App() {
     if (currentUser?.role !== 'principal') return;
     if (phantomCleanupRan.current) return;
     if (students.length === 0) return; // wait until data has loaded
-    if (localStorage.getItem('phantom_grade_cleanup_v1')) return;
+    if (localStorage.getItem('phantom_grade_cleanup_v2')) return;
 
     const phantom = findPhantomGrades([...new Set([...students.map(s => s.grade), ...grades])]);
     if (phantom.size === 0) {
-      localStorage.setItem('phantom_grade_cleanup_v1', '1');
+      localStorage.setItem('phantom_grade_cleanup_v2', '1');
       return;
     }
     phantomCleanupRan.current = true; // synchronous re-entry guard
@@ -1244,7 +1244,7 @@ export default function App() {
           }
         }
 
-        localStorage.setItem('phantom_grade_cleanup_v1', '1');
+        localStorage.setItem('phantom_grade_cleanup_v2', '1');
         showCloudToast(`បានលុបថ្នាក់ខុស (${[...phantom].join(', ')}) និងសិស្ស ${removed} នាក់ ✓`, true);
       } catch (err) {
         console.warn('Phantom-grade cleanup failed', err);
