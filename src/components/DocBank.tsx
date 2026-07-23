@@ -75,7 +75,7 @@ export default function DocBank({ currentUser, onClose }: Props) {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
         <h3 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-          <FolderOpen size={16} className="text-amber-500" /> បណ្ណាល័យឯកសារ (Document Bank)
+          <FolderOpen size={16} className="text-amber-500" /> ឃ្លាំងឯកសារ (Document Bank)
         </h3>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <button onClick={() => setIframeKey(k => k + 1)} title="ផ្ទុកឡើងវិញ" className="px-3 py-2 text-xs font-bold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center gap-1.5">

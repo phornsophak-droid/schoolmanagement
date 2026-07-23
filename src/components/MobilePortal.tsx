@@ -852,7 +852,7 @@ export default function MobilePortal({
                       </svg>
                     </div>
                     <span className="text-[13px] font-extrabold text-left text-violet-950 leading-tight">
-                      បណ្ណាល័យឯកសារ
+                      ឃ្លាំងឯកសារ
                     </span>
                   </button>
 
@@ -1547,7 +1547,7 @@ export default function MobilePortal({
                     <button onClick={() => setInnerView('home')} className="p-1 hover:bg-emerald-100/50 rounded text-emerald-800">
                       <ArrowLeft size={16} />
                     </button>
-                    <h3 className="text-xs font-bold text-emerald-950">បណ្ណាល័យឯកសារ</h3>
+                    <h3 className="text-xs font-bold text-emerald-950">ឃ្លាំងឯកសារ</h3>
                   </div>
                 </div>
 

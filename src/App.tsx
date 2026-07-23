@@ -1742,7 +1742,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <Database size={16} className={activeView === 'docbank' ? 'text-blue-400' : 'text-slate-400'} />
-              <span>បណ្ណាល័យឯកសារ</span>
+              <span>ឃ្លាំងឯកសារ</span>
             </div>
           </button>
 
