@@ -193,7 +193,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   };
 
   // ---- loans ----
-  const [lDraft, setLDraft] = useState({ bookId: '', student: '', gender: '', grade: '', dueAt: '', days: '' });
+  const [lDraft, setLDraft] = useState({ bookSearch: '', student: '', gender: '', grade: '', dueAt: '', days: '' });
 
   const handleDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dStr = e.target.value;
@@ -215,9 +215,13 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   };
 
   const lend = async () => {
-    const book = books.find(b => b.id === lDraft.bookId);
+    const search = lDraft.bookSearch.trim().toLowerCase();
+    const book = books.find(b => {
+      const l1 = (b.code ? `${b.code} - ${b.title}` : b.title).toLowerCase();
+      return search === l1 || search === `${l1} (អស់សៀវភៅ)` || (b.code && b.code.toLowerCase() === search) || b.title.toLowerCase() === search;
+    });
     const student = lDraft.student.trim();
-    if (!book) { flash('សូមជ្រើសសៀវភៅ'); return; }
+    if (!book) { flash('សូមវាយបញ្ចូលលេខកូដ ឬចំណងជើងសៀវភៅឱ្យបានត្រឹមត្រូវ'); return; }
     if (!student) { flash('សូមបញ្ចូលឈ្មោះសិស្ស'); return; }
     if (availableCount(book, loans) <= 0) { flash('សៀវភៅនេះអស់ហើយ'); return; }
     const next = [{
@@ -225,7 +229,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
       borrowedAt: todayISO(), dueAt: lDraft.dueAt || undefined,
     }, ...loans];
     setLoans(next); await saveLoans(next);
-    setLDraft({ bookId: '', student: '', gender: '', grade: '', dueAt: '', days: '' });
+    setLDraft({ bookSearch: '', student: '', gender: '', grade: '', dueAt: '', days: '' });
     flash('កត់ត្រាការខ្ចីរួចរាល់ ✓');
   };
   const giveBack = async (id: string) => {
@@ -485,14 +489,20 @@ export default function LibraryManager({ students = [], grades = [], currentUser
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
               <p className="text-[11px] font-bold text-slate-500">កត់ត្រាការខ្ចី</p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
-                <select className={`${input} lg:col-span-2`} value={lDraft.bookId} onChange={e => setLDraft({ ...lDraft, bookId: e.target.value })}>
-                  <option value="">— ជ្រើសសៀវភៅ —</option>
+                <input 
+                  className={`${input} lg:col-span-2`} 
+                  list="lib-books" 
+                  placeholder="លេខកូដ ឬចំណងជើងសៀវភៅ *" 
+                  value={lDraft.bookSearch} 
+                  onChange={e => setLDraft({ ...lDraft, bookSearch: e.target.value })} 
+                />
+                <datalist id="lib-books">
                   {books.map(b => (
-                    <option key={b.id} value={b.id} disabled={availableCount(b, loans) <= 0}>
-                      {b.title}{availableCount(b, loans) <= 0 ? ' (អស់)' : ` (${availableCount(b, loans)})`}
+                    <option key={b.id} value={b.code ? `${b.code} - ${b.title}` : b.title}>
+                      {availableCount(b, loans) <= 0 ? '(អស់សៀវភៅ)' : ''}
                     </option>
                   ))}
-                </select>
+                </datalist>
                 <input className={input} list="lib-students" placeholder="ឈ្មោះសិស្ស *" value={lDraft.student} onChange={e => setLDraft({ ...lDraft, student: e.target.value })} />
                 <select className={input} value={lDraft.gender} onChange={e => setLDraft({ ...lDraft, gender: e.target.value })}>
                   <option value="">— ភេទ —</option>
