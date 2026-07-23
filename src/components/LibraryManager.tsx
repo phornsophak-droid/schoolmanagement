@@ -12,7 +12,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Upload, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { SchoolUser, StudentScore } from '../types';
+import { SchoolUser, StudentScore, afterHoursSubject } from '../types';
 import {
   Book, Loan, Visit, LibrarySettings,
   loadBooks, loadLoans, loadVisits, loadLibrarySettings, refreshLibraryFromCloud,
@@ -80,6 +80,9 @@ export default function LibraryManager({ students = [], grades = [], currentUser
 
   const canEdit = canManageLibrary(currentUser, settings);
   const isPrincipal = currentUser?.role === 'principal';
+
+  // Reading is tracked for general classes only, so the visit form offers those.
+  const generalGrades = useMemo(() => grades.filter(g => afterHoursSubject(g) === ''), [grades]);
 
   // Distinct pupil names, for the name suggestions on the lend/visit forms.
   const studentNames = useMemo(
@@ -238,7 +241,11 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   // checked-out visits carry minutes; a still-open one adds a count but no time.
   const [summaryMonth, setSummaryMonth] = useState(''); // '' = all time, else 'YYYY-MM'
   const summary = useMemo(() => {
-    const scoped = summaryMonth ? visits.filter(v => v.date.slice(0, 7) === summaryMonth) : visits;
+    const inMonth = summaryMonth ? visits.filter(v => v.date.slice(0, 7) === summaryMonth) : visits;
+    // General classes only — after-hours subjects (English, sport, art…) are named
+    // with their subject and afterHoursSubject() returns non-empty for them. A visit
+    // with no grade at all is kept, so an unclassed pupil isn't silently dropped.
+    const scoped = inMonth.filter(v => !v.grade || afterHoursSubject(v.grade) === '');
     const byStudent = new Map<string, { student: string; grade: string; minutes: number; sessions: number; lastDate: string }>();
     for (const v of scoped) {
       const key = v.student.trim();
@@ -528,7 +535,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                 <input className={input} list="lib-students" placeholder="ឈ្មោះសិស្ស *" value={vDraft.student} onChange={e => setVDraft({ ...vDraft, student: e.target.value })} />
                 <select className={input} value={vDraft.grade} onChange={e => setVDraft({ ...vDraft, grade: e.target.value })}>
                   <option value="">— ថ្នាក់ —</option>
-                  {grades.map(g => <option key={g} value={g}>{g}</option>)}
+                  {generalGrades.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
                 <input className={input} placeholder="គោលបំណង (អាន / ស្រាវជ្រាវ)" value={vDraft.purpose} onChange={e => setVDraft({ ...vDraft, purpose: e.target.value })} />
                 <button onClick={checkIn} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5">
