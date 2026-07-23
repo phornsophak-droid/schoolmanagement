@@ -84,9 +84,13 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   // Reading is tracked for general classes only, so the visit form offers those.
   const generalGrades = useMemo(() => grades.filter(g => afterHoursSubject(g) === ''), [grades]);
 
-  // Distinct pupil names, for the name suggestions on the lend/visit forms.
+  // Distinct pupil names for the lend/visit form suggestions — general classes
+  // only, so the after-hours duplicates a pupil carries (their name tagged (A),
+  // (E), (PE)…) don't clutter the list.
   const studentNames = useMemo(
-    () => [...new Set(students.map(s => s.name.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'km')),
+    () => [...new Set(
+      students.filter(s => afterHoursSubject(s.grade) === '').map(s => s.name.trim()).filter(Boolean),
+    )].sort((a, b) => a.localeCompare(b, 'km')),
     [students],
   );
 
