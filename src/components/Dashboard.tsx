@@ -237,18 +237,20 @@ export default function Dashboard({
   // Permission / absent per class & total, derived from studentStates (the source of
   // truth) so the summary always matches the detailed absent list. The stored
   // presentCount/absentCount aggregate fields can be stale (e.g. after an import),
-  // so we never trust them here. Morning + afternoon shifts are merged per student
-  // per day — best status wins (present > late > permission > absent) — exactly like
-  // the daily-absent panel below.
+  // so we never trust them here. Each SHIFT is counted on its own — a pupil attends
+  // one shift, so ប្រចាំថ្ងៃ (both shifts) is the sum of morning + afternoon, not a
+  // per-pupil merge. Keying by shift keeps morning and afternoon separate; a
+  // single-shift view only sees its own records, so its count is unchanged.
   const derivedAbsence = useMemo(() => {
     const rank: Record<string, number> = { present: 0, late: 1, permission: 2, absent: 3 };
-    const perKey = new Map<string, { status: string; grade: string }>(); // key: date|studentId
+    const perKey = new Map<string, { status: string; grade: string }>(); // key: date|shift|studentId
     periodRecordsMerged.forEach(rec => {
       const ss = rec.studentStates as Record<string, string> | undefined;
       if (!ss) return;
+      const shift = recSession(rec);
       Object.entries(ss).forEach(([sId, status]) => {
         if (sId.endsWith('_reason') || rank[status] === undefined) return;
-        const key = `${rec.date}|${sId}`;
+        const key = `${rec.date}|${shift}|${sId}`;
         const prev = perKey.get(key);
         if (!prev || rank[status] < rank[prev.status]) perKey.set(key, { status, grade: rec.grade });
       });
@@ -505,9 +507,11 @@ export default function Dashboard({
 
     const list: any[] = [];
 
-    // Merge a student's morning + afternoon records into one daily status (best
-    // across shifts: present > late > permission > absent), so a student absent in
-    // both shifts is counted once — matching the summary panel above.
+    // Collapse a pupil's records for the day to their WORST status (absent >
+    // permission > late > present). A pupil attends one shift, so if they are marked
+    // absent in that shift they belong in the list even when a stray record in the
+    // other shift marks them present — the old "best status" rule hid exactly those
+    // absences, so this list disagreed with the summary count above.
     const statusRank: Record<string, number> = { present: 0, late: 1, permission: 2, absent: 3 };
     const byStudent = new Map<string, { status: string; grade: string; reason: string }>();
     todayRecords.forEach(rec => {
@@ -519,8 +523,9 @@ export default function Dashboard({
         if (!prev) {
           byStudent.set(sId, { status, grade: rec.grade, reason });
         } else {
-          const keepStatus = statusRank[status] < statusRank[prev.status] ? status : prev.status;
-          byStudent.set(sId, { status: keepStatus, grade: prev.grade, reason: prev.reason || reason });
+          const keepStatus = statusRank[status] > statusRank[prev.status] ? status : prev.status;
+          const keepGrade = statusRank[status] > statusRank[prev.status] ? rec.grade : prev.grade;
+          byStudent.set(sId, { status: keepStatus, grade: keepGrade, reason: prev.reason || reason });
         }
       });
     });
