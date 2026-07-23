@@ -527,7 +527,14 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                   {openLoans.map(l => (
                     <tr key={l.id} className={`border-b border-slate-50 ${overdue(l) ? 'bg-rose-50/50' : ''}`}>
                       <td className="py-2 pr-2 font-bold text-slate-700">{l.bookTitle}</td>
-                      <td className="py-2 pr-2 text-slate-600">{l.student}</td>
+                      <td className="py-2 pr-2">
+                        <div className="text-slate-600">{l.student}</div>
+                        {overdue(l) && (
+                          <div className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-0.5 bg-rose-100/50 w-fit px-1.5 py-0.5 rounded">
+                            <AlertTriangle size={10} /> ត្រូវតាមដានសង
+                          </div>
+                        )}
+                      </td>
                       <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{l.grade}</td>
                       <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{khDate(l.borrowedAt)}</td>
                       <td className={`py-2 pr-2 whitespace-nowrap font-bold ${overdue(l) ? 'text-rose-600' : 'text-slate-500'}`}>
