@@ -277,8 +277,14 @@ export default function LibraryManager({ students = [], grades = [], currentUser
     setLoans(next); await saveLoans(next);
   };
 
-  const openLoans = loans.filter(l => !l.returnedAt);
-  const closedLoans = loans.filter(l => l.returnedAt);
+  const isRegularTeacher = !canManageLibrary && currentUser?.role === 'teacher';
+  const myGrade = currentUser?.grade || '';
+
+  const visibleLoans = isRegularTeacher ? loans.filter(l => l.grade === myGrade) : loans;
+  const visibleVisits = isRegularTeacher ? visits.filter(v => v.grade === myGrade) : visits;
+
+  const openLoans = visibleLoans.filter(l => !l.returnedAt);
+  const closedLoans = visibleLoans.filter(l => l.returnedAt);
   const overdue = (l: Loan) => !!l.dueAt && !l.returnedAt && l.dueAt < todayISO();
 
   // ---- daily reading visits ----
@@ -312,7 +318,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
     setVisits(next); await saveVisits(next);
   };
   const [visitDay, setVisitDay] = useState(todayISO());
-  const dayVisits = visits.filter(v => v.date === visitDay);
+  const dayVisits = visibleVisits.filter(v => v.date === visitDay);
 
   // Reading totals for the WHOLE class roster, over an optional month and class
   // filter. Every enrolled pupil is listed — a pupil who never came to read shows
@@ -321,7 +327,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   const [summaryMonth, setSummaryMonth] = useState(''); // '' = all time, else 'YYYY-MM'
   const [summaryGrade, setSummaryGrade] = useState(''); // '' = every general class
   const summary = useMemo(() => {
-    const inMonth = summaryMonth ? visits.filter(v => v.date.slice(0, 7) === summaryMonth) : visits;
+    const inMonth = summaryMonth ? visibleVisits.filter(v => v.date.slice(0, 7) === summaryMonth) : visibleVisits;
     // Total reading minutes and sessions per pupil name (general-class visits only).
     const stats = new Map<string, { minutes: number; sessions: number }>();
     for (const v of inMonth) {
@@ -353,8 +359,8 @@ export default function LibraryManager({ students = [], grades = [], currentUser
 
   // Months that actually have visits, for the filter dropdown.
   const visitMonths = useMemo(
-    () => [...new Set(visits.map(v => v.date.slice(0, 7)))].sort().reverse(),
-    [visits],
+    () => [...new Set(visibleVisits.map(v => v.date.slice(0, 7)))].sort().reverse(),
+    [visibleVisits],
   );
   const khMonthLabel = (ym: string) => {
     const [y, m] = ym.split('-');
