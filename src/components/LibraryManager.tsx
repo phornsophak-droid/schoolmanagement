@@ -388,12 +388,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Library size={16} className="text-emerald-600" />
-          <div>
-            <h2 className="text-sm font-bold text-slate-700">គ្រប់គ្រងបណ្ណាល័យ</h2>
-            <p className="text-[11px] text-slate-400 font-semibold">
-              សៀវភៅ {toKh(books.length)} · កំពុងខ្ចី {toKh(openLoans.length)} · ចូលអានថ្ងៃនេះ {toKh(visits.filter(v => v.date === todayISO()).length)}
-            </p>
-          </div>
+          <h2 className="text-sm font-bold text-slate-700">គ្រប់គ្រងបណ្ណាល័យ</h2>
         </div>
         <div className="flex items-center gap-2">
           {!canEdit && <span className="text-[11px] font-bold text-slate-400">អានតែប៉ុណ្ណោះ</span>}
@@ -402,6 +397,37 @@ export default function LibraryManager({ students = [], grades = [], currentUser
               <X size={13} /> បិទ
             </button>
           )}
+        </div>
+      </div>
+
+      {/* stats cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex items-center gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+            <BookMarked size={18} />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-slate-500">ចំនួនសៀវភៅសរុប</p>
+            <p className="text-lg font-black text-slate-700 leading-none mt-1">{toKh(books.length)}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex items-center gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+            <Library size={18} />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-slate-500">ចំនួនសៀវភៅកំពុងខ្ចី</p>
+            <p className="text-lg font-black text-slate-700 leading-none mt-1">{toKh(openLoans.length)}</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex items-center gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+            <Users size={18} />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-slate-500">សិស្សចូលអានថ្ងៃនេះ</p>
+            <p className="text-lg font-black text-slate-700 leading-none mt-1">{toKh(visits.filter(v => v.date === todayISO()).length)}</p>
+          </div>
         </div>
       </div>
 
