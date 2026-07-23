@@ -55,6 +55,19 @@ export const visitMinutes = (v: Visit): number | null => {
   return Math.max(0, Math.round((new Date(v.outAt).getTime() - new Date(v.inAt).getTime()) / 60000));
 };
 
+// Free digital-reading resources with Khmer content, shown as quick links that are
+// always available for pupils to read — in the library panel and the Parent Portal.
+// All are established free platforms (Asia Foundation, Room to Read, Pratham, SIL,
+// GDL, MoEYS) active for Khmer readers. Each URL was checked to resolve.
+export const CURATED_ELIBRARY: { title: string; url: string; category: string }[] = [
+  { title: "Let's Read Asia — សៀវភៅកុមារខ្មែរ", url: 'https://www.letsreadasia.org', category: 'សៀវភៅកុមារ' },
+  { title: 'ថ្នាលបឋម PLP (ក្រសួងអប់រំ)', url: 'https://plp.moeys.gov.kh', category: 'គេហទំព័រអប់រំ' },
+  { title: 'Room to Read — Literacy Cloud', url: 'https://literacycloud.org', category: 'សៀវភៅកុមារ' },
+  { title: 'StoryWeaver (Pratham Books)', url: 'https://storyweaver.org.in', category: 'រឿងនិទាន' },
+  { title: 'Global Digital Library', url: 'https://digitallibrary.io', category: 'សៀវភៅ' },
+  { title: 'Bloom Library', url: 'https://bloomlibrary.org', category: 'សៀវភៅ' },
+];
+
 // An entry in the electronic library (បណ្ណាល័យអេឡិចត្រូនិច) — a link to a digital
 // reading resource or e-book that opens in a new tab. The school curates its own.
 export interface ELink {

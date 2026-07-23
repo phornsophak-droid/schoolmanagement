@@ -4,7 +4,8 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award, ExternalLink, Monitor } from 'lucide-react';
+import { CURATED_ELIBRARY } from '../lib/library';
 import { StudentScore } from '../types';
 import { fetchClassStudents, fetchSetting, fetchStudentDobByName } from '../lib/supabase';
 import { semesterAvgOf, readAnnualExtra } from '../utils/scoring';
@@ -43,6 +44,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   const [error, setError] = useState('');
   const [classStudents, setClassStudents] = useState<StudentScore[]>([]);
   const [timetable, setTimetable] = useState<Timetable>(emptyTimetable());
+  const [showELibrary, setShowELibrary] = useState(false);
   const [nameQuery, setNameQuery] = useState('');
   const [childName, setChildName] = useState('');
   const [nameError, setNameError] = useState('');
@@ -410,6 +412,38 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
             <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[13px] shrink-0">{onStudentTest ? '៣' : '២'}</span>
             <span className="flex-1 text-center flex items-center justify-center gap-1.5">📚 ថ្នាលបឋម (PLP) — សិក្សាបន្ថែម <ExternalLink size={14} className="text-emerald-500" /></span>
           </a>
+
+          {/* E-Library — a collection, so it opens a panel of reading links. */}
+          <button
+            onClick={() => setShowELibrary(v => !v)}
+            className="w-full px-4 py-3 rounded-2xl bg-white border border-violet-200 hover:bg-violet-50 text-violet-800 text-sm font-bold flex items-center gap-3 shadow-sm transition-all"
+          >
+            <span className="w-6 h-6 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-[13px] shrink-0">{onStudentTest ? '៤' : '៣'}</span>
+            <span className="flex-1 text-center">📖 បណ្ណាល័យអេឡិចត្រូនិច (E-Library)</span>
+            <span className="text-[11px] text-violet-400 shrink-0">{showELibrary ? '▲' : '▼'}</span>
+          </button>
+          {showELibrary && (
+            <div className="grid gap-2 sm:grid-cols-2 px-0.5">
+              {CURATED_ELIBRARY.map(e => (
+                <a
+                  key={e.url}
+                  href={e.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group bg-white border border-slate-200 hover:border-violet-300 hover:bg-violet-50/40 rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm transition-all no-underline"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                    <Monitor size={15} className="text-violet-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-700 truncate">{e.title}</p>
+                    <p className="text-[10px] text-slate-400 font-semibold truncate">{e.category}</p>
+                  </div>
+                  <ExternalLink size={12} className="text-slate-300 group-hover:text-violet-500 shrink-0" />
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         <p className="text-[10px] text-slate-400 text-center mt-4 leading-relaxed">

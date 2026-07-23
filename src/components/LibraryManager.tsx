@@ -14,24 +14,11 @@ import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Uplo
 import * as XLSX from 'xlsx';
 import { SchoolUser, StudentScore, afterHoursSubject } from '../types';
 import {
-  Book, Loan, Visit, ELink, LibrarySettings,
+  Book, Loan, Visit, ELink, LibrarySettings, CURATED_ELIBRARY,
   loadBooks, loadLoans, loadVisits, loadELinks, loadLibrarySettings, refreshLibraryFromCloud,
   saveBooks, saveLoans, saveVisits, saveELinks, saveLibrarySettings,
   availableCount, outCount, canManageLibrary, visitMinutes, newId, todayISO,
 } from '../lib/library';
-
-// Free digital-reading resources with Khmer content, shown as quick links that are
-// always available for pupils to read. The school adds its own e-books/links below
-// these. All are established free platforms (Asia Foundation, Room to Read, Pratham,
-// SIL, GDL, MoEYS) active for Khmer readers.
-const CURATED_ELIBRARY: { title: string; url: string; category: string }[] = [
-  { title: "Let's Read Asia — សៀវភៅកុមារខ្មែរ", url: 'https://www.letsreadasia.org', category: 'សៀវភៅកុមារ' },
-  { title: 'ថ្នាលបឋម PLP (ក្រសួងអប់រំ)', url: 'https://plp.moeys.gov.kh', category: 'គេហទំព័រអប់រំ' },
-  { title: 'Room to Read — Literacy Cloud', url: 'https://literacycloud.org', category: 'សៀវភៅកុមារ' },
-  { title: 'StoryWeaver (Pratham Books)', url: 'https://storyweaver.org.in', category: 'រឿងនិទាន' },
-  { title: 'Global Digital Library', url: 'https://digitallibrary.io', category: 'សៀវភៅ' },
-  { title: 'Bloom Library', url: 'https://bloomlibrary.org', category: 'សៀវភៅ' },
-];
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 
