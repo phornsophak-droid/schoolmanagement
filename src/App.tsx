@@ -966,7 +966,10 @@ export default function App() {
     
     // Auto-routes based on role and screen size
     const isMobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
+    if (user.id === 'librarian') {
+      setActiveView('library');
+      setSelectedGrade('ទាំងអស់');
+    } else if (isMobile) {
       setActiveView('mobile-portal');
       if (user.role === 'teacher') {
         setSelectedGrade(user.grade);
@@ -1554,6 +1557,8 @@ export default function App() {
 
         {/* Sidebar Nav Links */}
         <nav className="flex-1 p-4 space-y-2 mt-4 overflow-y-auto">
+          {currentUser?.id !== 'librarian' && (
+            <>
           <button
             onClick={() => setActiveView('dashboard')}
             className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
@@ -1755,6 +1760,8 @@ export default function App() {
               <span>ជំនួយការ AI</span>
             </div>
           </button>
+            </>
+          )}
 
           <button
             id="nav_library_tab"
@@ -1771,6 +1778,8 @@ export default function App() {
             </div>
           </button>
 
+          {currentUser?.id !== 'librarian' && (
+            <>
           <button
             id="nav_mobile_portal_tab"
             onClick={() => setActiveView('mobile-portal')}
@@ -1797,6 +1806,8 @@ export default function App() {
             </div>
             <span className={`h-2 w-2 rounded-full ${supabaseStatus === 'connected' ? 'bg-emerald-500' : supabaseStatus === 'syncing' ? 'bg-blue-500 animate-pulse' : supabaseStatus === 'error' ? 'bg-rose-500' : 'bg-slate-500'}`}></span>
           </button>
+            </>
+          )}
         </nav>
 
         {/* Info Box */}
@@ -3033,6 +3044,18 @@ export default function App() {
 
       {/* 6. Premium Sticky Mobile Bottom Navigation Bar (Visible only on mobile screen sizes) */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-2 flex justify-around items-center z-40 md:hidden pb-safe print:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+        {currentUser?.id === 'librarian' ? (
+          <button
+            onClick={() => setActiveView('library')}
+            className={`flex flex-col items-center gap-1.5 py-1 px-3 rounded-xl transition-all duration-300 active:scale-95 text-blue-600 font-bold scale-102`}
+          >
+            <div className={`p-1.5 rounded-xl transition-colors duration-300 bg-blue-50 text-blue-600`}>
+              <Library size={18} />
+            </div>
+            <span className="text-[9.5px] tracking-wide font-sans">បណ្ណាល័យ</span>
+          </button>
+        ) : (
+          <>
         <button
           onClick={() => setActiveView('dashboard')}
           className={`flex flex-col items-center gap-1.5 py-1 px-3 rounded-xl transition-all duration-300 active:scale-95 ${
@@ -3088,6 +3111,8 @@ export default function App() {
           </div>
           <span className="text-[9.5px] tracking-wide font-sans">របាយការណ៍</span>
         </button>
+          </>
+        )}
       </div>
 
       {isChangePinOpen && (
