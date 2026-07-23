@@ -51,7 +51,7 @@ const khTime = (iso?: string) => {
   return `${toKh(String(h).padStart(2, '0'))}:${toKh(String(d.getMinutes()).padStart(2, '0'))} ${suffix}`;
 };
 
-type Tab = 'books' | 'loans' | 'visits';
+type Tab = 'books' | 'loans' | 'visits' | 'summary';
 
 interface Props {
   students?: StudentScore[];
@@ -232,6 +232,53 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   const [visitDay, setVisitDay] = useState(todayISO());
   const dayVisits = visits.filter(v => v.date === visitDay);
 
+  // Per-pupil reading totals grouped by class, over an optional month filter. A
+  // pupil's grade is taken from their most recent visit, so the same name doesn't
+  // split across classes if the grade was left blank on an earlier one. Only
+  // checked-out visits carry minutes; a still-open one adds a count but no time.
+  const [summaryMonth, setSummaryMonth] = useState(''); // '' = all time, else 'YYYY-MM'
+  const summary = useMemo(() => {
+    const scoped = summaryMonth ? visits.filter(v => v.date.slice(0, 7) === summaryMonth) : visits;
+    const byStudent = new Map<string, { student: string; grade: string; minutes: number; sessions: number; lastDate: string }>();
+    for (const v of scoped) {
+      const key = v.student.trim();
+      if (!key) continue;
+      const cur = byStudent.get(key) || { student: key, grade: v.grade || '', minutes: 0, sessions: 0, lastDate: '' };
+      cur.minutes += visitMinutes(v) || 0;
+      cur.sessions += 1;
+      if (v.date >= cur.lastDate) { cur.lastDate = v.date; if (v.grade) cur.grade = v.grade; }
+      byStudent.set(key, cur);
+    }
+    // Group the pupils under their class, classes in the order they were configured.
+    const byGrade = new Map<string, typeof byStudent extends Map<any, infer V> ? V[] : never>();
+    for (const s of byStudent.values()) {
+      const g = s.grade || 'គ្មានថ្នាក់';
+      (byGrade.get(g) || byGrade.set(g, []).get(g)!).push(s);
+    }
+    const order = [...grades, 'គ្មានថ្នាក់'];
+    return [...byGrade.entries()]
+      .sort((a, b) => {
+        const ia = order.indexOf(a[0]), ib = order.indexOf(b[0]);
+        return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || a[0].localeCompare(b[0], 'km');
+      })
+      .map(([grade, rows]) => ({
+        grade,
+        rows: rows.sort((a, b) => b.minutes - a.minutes || a.student.localeCompare(b.student, 'km')),
+        totalMinutes: rows.reduce((s, r) => s + r.minutes, 0),
+      }));
+  }, [visits, summaryMonth, grades]);
+
+  // Months that actually have visits, for the filter dropdown.
+  const visitMonths = useMemo(
+    () => [...new Set(visits.map(v => v.date.slice(0, 7)))].sort().reverse(),
+    [visits],
+  );
+  const khMonthLabel = (ym: string) => {
+    const [y, m] = ym.split('-');
+    const names = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
+    return `${names[Number(m) - 1] || m} ${toKh(y)}`;
+  };
+
   // ---- librarians (principal only) ----
   const [libDraft, setLibDraft] = useState('');
   const addLibrarian = async () => {
@@ -281,7 +328,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
 
       {/* tabs */}
       <div className="flex gap-1.5 flex-wrap">
-        {([['books', 'បញ្ជីសៀវភៅ'], ['loans', 'ខ្ចី / សង'], ['visits', 'ចូលអានប្រចាំថ្ងៃ']] as [Tab, string][]).map(([id, label]) => (
+        {([['books', 'បញ្ជីសៀវភៅ'], ['loans', 'ខ្ចី / សង'], ['visits', 'ចូលអានប្រចាំថ្ងៃ'], ['summary', 'សរុបនាទីតាមថ្នាក់']] as [Tab, string][]).map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -557,6 +604,57 @@ export default function LibraryManager({ students = [], grades = [], currentUser
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ---------------- reading minutes per pupil, by class ---------------- */}
+      {tab === 'summary' && (
+        <div className="space-y-3">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex items-center gap-2 flex-wrap">
+            <Users size={14} className="text-slate-400" />
+            <span className="text-[11px] font-bold text-slate-500">ចំនួននាទីអានសរុប តាមសិស្ស</span>
+            <select className={input} value={summaryMonth} onChange={e => setSummaryMonth(e.target.value)}>
+              <option value="">គ្រប់ខែ</option>
+              {visitMonths.map(m => <option key={m} value={m}>{khMonthLabel(m)}</option>)}
+            </select>
+          </div>
+
+          {summary.length === 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-center text-slate-400 font-semibold text-xs">
+              គ្មានកំណត់ត្រាចូលអានទេ
+            </div>
+          )}
+
+          {summary.map(group => (
+            <div key={group.grade} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-emerald-700">{group.grade}</p>
+                <p className="text-[11px] font-bold text-slate-400">សរុប {toKh(group.totalMinutes)} នាទី</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-slate-400 border-b border-slate-100">
+                      <th className="py-2 pr-2 font-bold">ល.រ</th>
+                      <th className="py-2 pr-2 font-bold">ឈ្មោះសិស្ស</th>
+                      <th className="py-2 pr-2 font-bold text-center whitespace-nowrap">ចំនួនដង</th>
+                      <th className="py-2 pr-2 font-bold text-center whitespace-nowrap">នាទីសរុប</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.rows.map((r, i) => (
+                      <tr key={r.student} className="border-b border-slate-50">
+                        <td className="py-2 pr-2 text-slate-400">{toKh(i + 1)}</td>
+                        <td className="py-2 pr-2 font-bold text-slate-700">{r.student}</td>
+                        <td className="py-2 pr-2 text-center text-slate-500">{toKh(r.sessions)}</td>
+                        <td className="py-2 pr-2 text-center font-bold text-emerald-700">{toKh(r.minutes)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
