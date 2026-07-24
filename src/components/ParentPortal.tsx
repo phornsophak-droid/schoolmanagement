@@ -241,8 +241,12 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-sm">
             <SchoolLogo size={30} />
           </div>
-          <div className="min-w-0">
-            <h1 className="text-sm font-extrabold text-white leading-tight truncate">សាលាសហគមន៍ច្បារច្រុះ</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-extrabold text-white leading-tight">សាលាសហគមន៍ច្បារច្រុះ</h1>
+            {/* The school's three competencies, shown under the name. */}
+            <p className="text-[11px] font-bold text-white/85 leading-tight mt-0.5">
+              វិជ្ជាសម្បទា · បំណិនសម្បទា · ចរិយាសម្បទា
+            </p>
           </div>
         </div>
 
