@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SchoolUser } from '../types';
+import { useT, LanguageToggle } from '../i18n';
 import { getPinForUser, setPinForUser } from '../utils/auth';
 import { syncUpsertSetting, syncGradesBulk } from '../lib/supabase';
 import { SchoolLogo } from './SchoolLogo';
@@ -191,6 +192,7 @@ try {
 }
 
 export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentTest }: LoginPortalProps) {
+  const { t } = useT();
   const [selectedUser, setSelectedUser] = useState<SchoolUser | null>(null);
   const [pinCode, setPinCode] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -225,7 +227,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
     if (pinCode === correctPin) {
       onLoginSuccess(selectedUser);
     } else {
-      setErrorMsg('លេខកូដសម្ងាត់មិនត្រឹមត្រូវទេ!');
+      setErrorMsg(t('login.wrongPin'));
     }
   };
 
@@ -332,15 +334,15 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
             <div className="flex items-center gap-3">
               <span className="text-3xl">🇰🇭</span>
               <div>
-                <h4 className="text-xs font-bold tracking-widest text-blue-400 uppercase">ព្រះរាជាណាចក្រកម្ពុជា</h4>
-                <p className="text-[9px] font-semibold text-slate-400 tracking-wider">ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
+                <h4 className="text-xs font-bold tracking-widest text-blue-400 uppercase">{t('login.kingdom')}</h4>
+                <p className="text-[9px] font-semibold text-slate-400 tracking-wider">{t('login.motto')}</p>
               </div>
             </div>
 
             <div className="pt-8 border-t border-slate-850">
-              <h1 className="text-lg font-bold font-serif leading-snug">សាលាសហគមន៍ច្បារច្រុះ</h1>
+              <h1 className="text-lg font-bold font-serif leading-snug">{t('common.school')}</h1>
               <p className="text-xs text-slate-400 mt-2 font-medium leading-relaxed">
-                សូមស្វាគមន៍មកកាន់ប្រព័ន្ធគ្រប់គ្រងពិន្ទុសិស្ស និងរបាយការណ៍សាលារៀនប្រចាំខែ។
+                {t('login.welcome')}
               </p>
             </div>
           </div>
@@ -348,35 +350,36 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
           <div className="space-y-4 mt-8 md:mt-0 p-4 bg-slate-900/40 border border-slate-800 rounded-2xl">
             <h5 className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
               <KeyRound size={12} />
-              ព័ត៌មានគណនីគំរូសាកល្បង៖
+              {t('login.sampleAccounts')}
             </h5>
             <div className="text-[10px] text-slate-350 space-y-2 leading-relaxed">
               <div className="flex justify-between border-b border-slate-800 pb-1">
-                <span>🔑 គណនីនាយកសាលា៖</span>
+                <span>{t('login.principalAccount')}</span>
                 <span className="font-bold text-white font-mono bg-amber-500/25 px-1.5 py-0.2 rounded">PIN: 1111</span>
               </div>
               <div className="flex justify-between">
-                <span>🔑 គណនីគ្រូបង្រៀន (ថ្នាក់១-៦)៖</span>
+                <span>{t('login.teacherAccount')}</span>
                 <span className="font-bold text-white font-mono bg-blue-500/25 px-1.5 py-0.2 rounded">PIN: 1234</span>
               </div>
               <p className="text-[9px] text-[#94A3B8] italic mt-1 font-medium">
-                *លោកគ្រូ-អ្នកគ្រូនីមួយៗមានគណនីដាច់ដោយឡែក។ របាយការណ៍សរុបមានតែនាយកសាលាដែលមានសិទ្ធចូលមើល និងកំណត់។
+                {t('login.accountNote')}
               </p>
             </div>
           </div>
         </div>
 
         {/* Right Aspect: User Profile selection state / login step */}
-        <div className="md:col-span-7 p-6 md:p-8 flex flex-col justify-center bg-slate-50">
-          
+        <div className="md:col-span-7 p-6 md:p-8 flex flex-col justify-center bg-slate-50 relative">
+          <LanguageToggle className="absolute top-3 right-3 border-slate-200 text-slate-600 bg-white hover:bg-slate-100" />
+
           {!selectedUser ? (
             <div className="space-y-6">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-1.5">
                   <Users className="text-blue-600" size={20} />
-                  ជ្រើសរើសគណនីដើម្បីចូលប្រព័ន្ធ
+                  {t('login.selectAccount')}
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">សូមជ្រើសរើសតួនាទី ឬថ្នាក់របស់អ្នកបង្រៀនខាងក្រោម ដើម្បីបន្ត៖</p>
+                <p className="text-xs text-slate-500 mt-1">{t('login.selectHint')}</p>
               </div>
 
               {/* Scrollable list of available profiles to switch between */}
@@ -392,7 +395,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                       {AVAILABLE_USERS[0].photoCode}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">នាយកសាលា</span>
+                      <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">{t('login.principalBadge')}</span>
                       <h3 className="text-xs font-bold text-slate-800 mt-1 truncate group-hover:text-amber-700">{AVAILABLE_USERS[0].name}</h3>
                     </div>
                   </div>
@@ -419,7 +422,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                         <button
                           onClick={(e) => handleDeleteCustomUser(teacher.id, e)}
                           className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
-                          title="លុបគណនីនេះ"
+                          title={t('login.deleteAccount')}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -437,7 +440,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                   className="px-4 py-2 border border-dashed border-slate-300 text-slate-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
                 >
                   <span>+</span>
-                  <span>បន្ថែមថ្នាក់ថ្មី</span>
+                  <span>{t('login.addClass')}</span>
                 </button>
               </div>
 
@@ -449,7 +452,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                     className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md"
                   >
                     <Users size={15} />
-                    <span>មាតាបិតា — មើល/ទាញយកព្រឹត្តបត្រកូន</span>
+                    <span>{t('login.parentAccess')}</span>
                   </button>
                   {onStudentTest && (
                     <button
@@ -457,7 +460,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                       className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md"
                     >
                       <span>📝</span>
-                      <span>សិស្ស — ចូលធ្វើតេស្ត</span>
+                      <span>{t('login.studentTest')}</span>
                     </button>
                   )}
                 </div>
@@ -471,7 +474,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                 onClick={() => setSelectedUser(null)}
                 className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 hover:underline transition-colors mb-2"
               >
-                ← ចាកចេញ ទៅជ្រើសរើសគណនីឡើងវិញ
+                {t('login.backToSelect')}
               </button>
 
               <div className="p-5 bg-white border border-slate-200 rounded-2xl shadow-sm text-center relative overflow-hidden">
@@ -480,14 +483,14 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                 </div>
                 <h3 className="text-sm font-bold text-slate-805 leading-tight">{selectedUser.name}</h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  {selectedUser.role === 'principal' ? 'នាយកសាលាសហគមន៍' : `គ្រូបន្ទុកថ្នាក់ ${selectedUser.grade}`}
+                  {selectedUser.role === 'principal' ? t('login.principalRole') : `${t('login.teacherRole')} ${selectedUser.grade}`}
                 </p>
               </div>
 
               <form onSubmit={handlePinSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5 flex justify-between">
-                    <span>បញ្ចូលលេខកូដសម្ងាត់ (PIN)</span>
+                    <span>{t('login.enterPin')}</span>
                     <span className="text-slate-400 text-[10px] font-medium font-mono">
                       ({selectedUser.role === 'principal' ? 'PIN: 1111' : 'PIN: 1234'})
                     </span>
@@ -528,7 +531,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                   className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md flex items-center justify-center gap-1 group"
                 >
                   <Lock size={12} className="group-hover:scale-95 transition-transform" />
-                  ផ្ទៀងផ្ទាត់ និងចូលគណនី
+                  {t('login.verify')}
                   <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </form>
@@ -545,7 +548,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                បន្ថែមថ្នាក់ថ្មី (គណនីគ្រូ)
+                {t('login.addClassModal')}
               </h3>
               <button 
                 onClick={() => setIsAddClassOpen(false)}
@@ -556,27 +559,27 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
             </div>
             <form onSubmit={handleAddClassSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ប្រភេទថ្នាក់</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('login.classType')}</label>
                 <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
                   <button
                     type="button"
                     onClick={() => { setNewClassCategory('general'); setNewClassName(''); }}
                     className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${newClassCategory === 'general' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
                   >
-                    📘 ថ្នាក់ចំណេះទូទៅ
+                    {t('login.catGeneral')}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setNewClassCategory('extra'); setNewClassName(EXTRA_CLASS_OPTIONS[0]); setNewClassGroup('1A'); }}
                     className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${newClassCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
                   >
-                    🎨 ថ្នាក់ក្រៅម៉ោង
+                    {t('login.catExtra')}
                   </button>
                 </div>
               </div>
               {newClassCategory === 'extra' ? (
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">មុខវិជ្ជា និងក្រុម</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('login.subjectGroup')}</label>
                   <div className="flex gap-2">
                     <select
                       required
@@ -600,15 +603,15 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                     </select>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    ឈ្មោះថ្នាក់៖ <span className="font-bold text-indigo-600">{newClassName} {newClassGroup}</span>
+                    {t('login.classNameLabel')} <span className="font-bold text-indigo-600">{newClassName} {newClassGroup}</span>
                   </p>
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5">ថ្នាក់សិក្សា</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('login.classNameField')}</label>
                   <input
                     type="text"
-                    placeholder="ឧទាហរណ៍៖ ថ្នាក់ទី ៧ក"
+                    placeholder={t('login.classNamePlaceholder')}
                     required
                     value={newClassName}
                     onChange={e => setNewClassName(e.target.value)}
@@ -617,10 +620,10 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                 </div>
               )}
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">ឈ្មោះលោកគ្រូ-អ្នកគ្រូ</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('login.teacherNameField')}</label>
                 <input
                   type="text"
-                  placeholder="ឈ្មោះគ្រូបន្ទុកថ្នាក់"
+                  placeholder={t('login.teacherNamePlaceholder')}
                   required
                   value={newTeacherName}
                   onChange={e => setNewTeacherName(e.target.value)}
@@ -628,7 +631,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">កំណត់លេខកូដសម្ងាត់ (PIN)</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">{t('login.setPin')}</label>
                 <input
                   type="text"
                   placeholder="1234"
@@ -636,7 +639,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                   onChange={e => setNewPinCode(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-blue-500 font-mono"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">លំនាំដើមគឺលេខ 1234 ប៉ុន្តែអ្នកអាចដូរបាន។</p>
+                <p className="text-[10px] text-slate-400 mt-1">{t('login.pinDefault')}</p>
               </div>
 
               <div className="pt-2 flex gap-2">
@@ -645,13 +648,13 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                   onClick={() => setIsAddClassOpen(false)}
                   className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition-colors"
                 >
-                  បោះបង់
+                  {t('login.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors"
                 >
-                  បង្កើតគណនីថ្មី
+                  {t('login.addClassModal')}
                 </button>
               </div>
             </form>
