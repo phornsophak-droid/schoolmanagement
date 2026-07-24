@@ -44,7 +44,8 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   const [error, setError] = useState('');
   const [classStudents, setClassStudents] = useState<StudentScore[]>([]);
   const [timetable, setTimetable] = useState<Timetable>(emptyTimetable());
-  const [showELibrary, setShowELibrary] = useState(false);
+  // Mobile-Portal style: nothing is expanded until a tile is tapped.
+  const [activePanel, setActivePanel] = useState<'results' | 'elibrary' | null>(null);
   const [schoolElinks, setSchoolElinks] = useState<ELink[]>([]);
   useEffect(() => { fetchELinksFromCloud().then(setSchoolElinks).catch(() => {}); }, []);
   const [nameQuery, setNameQuery] = useState('');
@@ -246,11 +247,76 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
         </div>
 
 
+        {/* Mobile-Portal-style tiles — tapping one reveals its options below. */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setActivePanel(v => v === 'results' ? null : 'results')}
+            className={`flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all min-h-[112px] ${activePanel === 'results' ? 'border-emerald-300 bg-emerald-50/40' : 'border-emerald-500/10 hover:bg-emerald-50/50 hover:border-emerald-200'}`}
+          >
+            <div className="flex justify-between items-start w-full">
+              <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <GraduationCap className="w-4.5 h-4.5 text-emerald-600 stroke-[2.5]" />
+              </div>
+              <span className="text-2xl leading-none">🎓</span>
+            </div>
+            <span className="text-[13px] font-extrabold text-left text-emerald-950 leading-tight">
+              លទ្ធផលសិក្សា <span className="text-[10px] text-emerald-400">{activePanel === 'results' ? '▲' : '▼'}</span>
+            </span>
+          </button>
+
+          {onStudentTest && (
+            <button
+              onClick={onStudentTest}
+              className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all min-h-[112px] border-indigo-500/10 hover:bg-indigo-50/50 hover:border-indigo-200"
+            >
+              <div className="flex justify-between items-start w-full">
+                <div className="w-9 h-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                  <FileText className="w-4.5 h-4.5 text-indigo-600 stroke-[2.5]" />
+                </div>
+                <span className="text-2xl leading-none">📝</span>
+              </div>
+              <span className="text-[13px] font-extrabold text-left text-indigo-950 leading-tight">តេស្តអនឡាញ (Online)</span>
+            </button>
+          )}
+
+          <a
+            href="https://plp.moeys.gov.kh/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all min-h-[112px] border-sky-500/10 hover:bg-sky-50/50 hover:border-sky-200 no-underline"
+          >
+            <div className="flex justify-between items-start w-full">
+              <div className="w-9 h-9 rounded-full bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                <ExternalLink className="w-4.5 h-4.5 text-sky-600 stroke-[2.5]" />
+              </div>
+              <span className="text-2xl leading-none">📚</span>
+            </div>
+            <span className="text-[13px] font-extrabold text-left text-sky-950 leading-tight">ថ្នាលបឋម (PLP)</span>
+          </a>
+
+          <button
+            onClick={() => setActivePanel(v => v === 'elibrary' ? null : 'elibrary')}
+            className={`flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all min-h-[112px] ${activePanel === 'elibrary' ? 'border-violet-300 bg-violet-50/40' : 'border-violet-500/10 hover:bg-violet-50/50 hover:border-violet-200'}`}
+          >
+            <div className="flex justify-between items-start w-full">
+              <div className="w-9 h-9 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                <Monitor className="w-4.5 h-4.5 text-violet-600 stroke-[2.5]" />
+              </div>
+              <span className="text-2xl leading-none">📖</span>
+            </div>
+            <span className="text-[13px] font-extrabold text-left text-violet-950 leading-tight">
+              បណ្ណាល័យអេឡិចត្រូនិច <span className="text-[10px] text-violet-400">{activePanel === 'elibrary' ? '▲' : '▼'}</span>
+            </span>
+          </button>
+        </div>
+
+        {activePanel === 'results' && (
+          <div className="mt-3 space-y-4">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-5 space-y-4">
           {/* Step 1 — pick class */}
           <div>
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
-              <GraduationCap size={14} className="text-emerald-600" /> ១. លទ្ធផលសិក្សា
+              <GraduationCap size={14} className="text-emerald-600" /> ជ្រើសរើសថ្នាក់រៀន
             </label>
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl mb-3">
               <button
@@ -289,7 +355,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           {!loading && classStudents.length > 0 && (
             <div>
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
-                <Search size={14} className="text-emerald-600" /> ២. វាយឈ្មោះកូនរបស់អ្នក
+                <Search size={14} className="text-emerald-600" /> វាយឈ្មោះកូនរបស់អ្នក
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -332,7 +398,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           {childName && anyRec && (
             <div className="pt-1">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
-                <FileText size={14} className="text-emerald-600" /> ៣. ជ្រើសរើសព្រឹត្តបត្រដើម្បីមើល / ទាញយក PDF
+                <FileText size={14} className="text-emerald-600" /> ជ្រើសរើសព្រឹត្តបត្រដើម្បីមើល / ទាញយក PDF
               </label>
 
               {/* Monthly */}
@@ -365,7 +431,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
               {meritOptions.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-slate-100">
                   <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
-                    <Award size={14} className="text-amber-500" /> ៤. ប័ណ្ណសរសើរ (សិស្សនិទ្ទេស A/B)
+                    <Award size={14} className="text-amber-500" /> ប័ណ្ណសរសើរ (សិស្សនិទ្ទេស A/B)
                   </label>
                   <div className="flex flex-wrap gap-1.5">
                     {meritOptions.map(o => (
@@ -383,7 +449,6 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
             </div>
           )}
         </div>
-
         {/* Weekly timetable for the selected class (read-only) */}
         {grade && !isTimetableEmpty(timetable) && (
           <div className="mt-4 bg-white rounded-2xl border border-slate-100 shadow-lg p-4">
@@ -393,61 +458,10 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
             <TimetableView tt={timetable} />
           </div>
         )}
+          </div>
+        )}
 
-        {/* Extra links as Mobile-Portal-style tiles — a 2-column card grid. */}
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          {onStudentTest && (
-            <button
-              onClick={onStudentTest}
-              className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-indigo-500/10 hover:bg-indigo-50/50 hover:border-indigo-200 shadow-sm active:scale-97 transition-all min-h-[112px] relative"
-            >
-              <div className="flex justify-between items-start w-full">
-                <div className="w-9 h-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                  <FileText className="w-4.5 h-4.5 text-indigo-600 stroke-[2.5]" />
-                </div>
-                <span className="text-2xl leading-none">📝</span>
-              </div>
-              <span className="text-[13px] font-extrabold text-left text-indigo-950 leading-tight">តេស្តអនឡាញ (Online)</span>
-              <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">២</span>
-            </button>
-          )}
-
-          <a
-            href="https://plp.moeys.gov.kh/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border border-emerald-500/10 hover:bg-emerald-50/50 hover:border-emerald-200 shadow-sm active:scale-97 transition-all min-h-[112px] relative no-underline"
-          >
-            <div className="flex justify-between items-start w-full">
-              <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                <ExternalLink className="w-4.5 h-4.5 text-emerald-600 stroke-[2.5]" />
-              </div>
-              <span className="text-2xl leading-none">📚</span>
-            </div>
-            <span className="text-[13px] font-extrabold text-left text-emerald-950 leading-tight">ថ្នាលបឋម (PLP)</span>
-            <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">{onStudentTest ? '៣' : '២'}</span>
-          </a>
-
-          {/* E-Library — a collection, so its tile toggles the panel of links below. */}
-          <button
-            onClick={() => setShowELibrary(v => !v)}
-            className={`flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all min-h-[112px] relative ${showELibrary ? 'border-violet-300 bg-violet-50/40' : 'border-violet-500/10 hover:bg-violet-50/50 hover:border-violet-200'}`}
-          >
-            <div className="flex justify-between items-start w-full">
-              <div className="w-9 h-9 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-                <Monitor className="w-4.5 h-4.5 text-violet-600 stroke-[2.5]" />
-              </div>
-              <span className="text-2xl leading-none">📖</span>
-            </div>
-            <span className="text-[13px] font-extrabold text-left text-violet-950 leading-tight flex items-center gap-1">
-              បណ្ណាល័យអេឡិចត្រូនិច <span className="text-[10px] text-violet-400">{showELibrary ? '▲' : '▼'}</span>
-            </span>
-            <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center text-[10px] font-bold">{onStudentTest ? '៤' : '៣'}</span>
-          </button>
-        </div>
-
-        {/* E-Library links, revealed below the grid when its tile is active. */}
-        {showELibrary && (
+        {activePanel === 'elibrary' && (
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {[...CURATED_ELIBRARY.map(e => ({ title: e.title, url: e.url, category: e.category })),
               ...schoolElinks.map(e => ({ title: e.title, url: e.url, category: e.category || 'សៀវភៅសាលា' }))]
