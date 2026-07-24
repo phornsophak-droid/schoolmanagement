@@ -242,7 +242,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
             <SchoolLogo size={30} />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-extrabold text-white leading-tight">សាលាសហគមន៍ច្បារច្រុះ</h1>
+            <h1 className="text-[20px] font-extrabold text-white leading-tight">សាលាសហគមន៍ច្បារច្រុះ</h1>
             {/* The school's three competencies, shown under the name. */}
             <p className="text-[11px] font-bold text-white/85 leading-tight mt-0.5">
               វិជ្ជាសម្បទា · បំណិនសម្បទា · ចរិយាសម្បទា
