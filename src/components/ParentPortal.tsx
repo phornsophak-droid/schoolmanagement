@@ -6,6 +6,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award, ExternalLink, Monitor } from 'lucide-react';
 import { CURATED_ELIBRARY, fetchELinksFromCloud, ELink } from '../lib/library';
+import { useT, LanguageToggle } from '../i18n';
 import { StudentScore } from '../types';
 import { fetchClassStudents, fetchSetting, fetchStudentDobByName } from '../lib/supabase';
 import { semesterAvgOf, readAnnualExtra } from '../utils/scoring';
@@ -38,6 +39,7 @@ const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade ||
 const MONTH_ORDER = ['កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
 
 export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPortalProps) {
+  const { t, lang } = useT();
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
   const [grade, setGrade] = useState('');
   const [loading, setLoading] = useState(false);
@@ -86,9 +88,9 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     try {
       const rows = await fetchClassStudents(g);
       setClassStudents(rows);
-      if (rows.length === 0) setError('រកមិនឃើញទិន្នន័យសិស្សសម្រាប់ថ្នាក់នេះនៅឡើយទេ។');
+      if (rows.length === 0) setError(t('parent.err.noClassData'));
     } catch {
-      setError('មិនអាចទាញទិន្នន័យបានទេ — សូមពិនិត្យការតភ្ជាប់អ៊ីនធឺណិត រួចព្យាយាមម្ដងទៀត។');
+      setError(t('parent.err.fetch'));
     } finally {
       setLoading(false);
     }
@@ -146,7 +148,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
       if (nq.length >= 3) result = childNames.filter(n => { const nn = normalize(n).replace(/\s/g, ''); return nn.length >= 3 && (isSubseq(nq, nn) || isSubseq(nn, nq)); });
     }
     if (result.length === 0) {
-      setNameError('រកមិនឃើញឈ្មោះនេះក្នុងថ្នាក់ — សូមពិនិត្យអក្ខរាវិរុទ្ធ រួចព្យាយាមម្ដងទៀត។');
+      setNameError(t('parent.err.noName'));
       return;
     }
     if (result.length === 1) { setChildName(result[0]); return; }
@@ -197,21 +199,22 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
       const rec = childRecords.find(r => r.month === m);
       const score = rec?.overallAvg ?? null;
       const l = meritLetterOf(score);
-      if (rec && l) opts.push({ key: `m-${m}`, label: `ខែ${m} (${l})`, student: rec, score: score!, phrase: `ប្រចាំខែ${m} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+      if (rec && l) opts.push({ key: `m-${m}`, label: `${t('parent.monthPrefix')}${t('month.' + m)} (${l})`, student: rec, score: score!, phrase: `ប្រចាំខែ${m} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
     });
     ([1, 2] as const).forEach(sem => {
       const score = semesterAvgOf(childRecords, sem);
       const l = meritLetterOf(score);
-      if (l) opts.push({ key: `s-${sem}`, label: `ឆមាសទី ${toKh(sem)} (${l})`, student: anyRec, score: score!, phrase: `ប្រចាំ​ឆមាសទី ${toKh(sem)} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+      if (l) opts.push({ key: `s-${sem}`, label: `${t('parent.sem' + sem)} (${l})`, student: anyRec, score: score!, phrase: `ប្រចាំ​ឆមាសទី ${toKh(sem)} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
     });
     const semAvgs = [semesterAvgOf(childRecords, 1), semesterAvgOf(childRecords, 2)].filter((v): v is number => v !== null && v !== undefined);
     const annualRaw = semAvgs.length ? semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length : null;
     const ex = readAnnualExtra(anyRec.grade, childName);
     const yearScore = annualRaw !== null ? annualRaw * 0.8 + 0.1 * ex.skills + 0.1 * ex.conduct : null;
     const yl = meritLetterOf(yearScore);
-    if (yl) opts.push({ key: 'year', label: `ប្រចាំឆ្នាំ (${yl})`, student: anyRec, score: yearScore!, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` });
+    if (yl) opts.push({ key: 'year', label: `${t('parent.annual')} (${yl})`, student: anyRec, score: yearScore!, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` });
     return opts;
-  }, [childName, anyRec, childRecords, monthsAvailable]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childName, anyRec, childRecords, monthsAvailable, lang]);
 
   const filteredGrades = useMemo(() => grades.filter(g => classCategory === 'extra' ? isExtraClass(g) : !isExtraClass(g)), [grades, classCategory]);
 
@@ -242,12 +245,13 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
             <SchoolLogo size={30} />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-[20px] font-extrabold text-white leading-tight">សាលាសហគមន៍ច្បារច្រុះ</h1>
+            <h1 className="text-[20px] font-extrabold text-white leading-tight">{t('common.school')}</h1>
             {/* The school's three competencies, shown under the name. */}
             <p className="text-[11px] font-bold text-white/85 leading-tight mt-0.5">
-              វិជ្ជាសម្បទា · បំណិនសម្បទា · ចរិយាសម្បទា
+              {t('parent.motto')}
             </p>
           </div>
+          <LanguageToggle className="border-white/25 text-white bg-white/15 hover:bg-white/25 shrink-0" />
         </div>
 
 
@@ -264,7 +268,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
               <span className="text-2xl leading-none">🎓</span>
             </div>
             <span className="text-[13px] font-extrabold text-left text-emerald-950 leading-tight">
-              លទ្ធផលសិក្សា <span className="text-[10px] text-emerald-400">{activePanel === 'results' ? '▲' : '▼'}</span>
+              {t('parent.tile.results')} <span className="text-[10px] text-emerald-400">{activePanel === 'results' ? '▲' : '▼'}</span>
             </span>
           </button>
 
@@ -279,7 +283,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
                 </div>
                 <span className="text-2xl leading-none">📝</span>
               </div>
-              <span className="text-[13px] font-extrabold text-left text-indigo-950 leading-tight">តេស្តអនឡាញ (Online)</span>
+              <span className="text-[13px] font-extrabold text-left text-indigo-950 leading-tight">{t('parent.tile.test')}</span>
             </button>
           )}
 
@@ -295,7 +299,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
               </div>
               <span className="text-2xl leading-none">📚</span>
             </div>
-            <span className="text-[13px] font-extrabold text-left text-sky-950 leading-tight">ថ្នាលបឋម (PLP)</span>
+            <span className="text-[13px] font-extrabold text-left text-sky-950 leading-tight">{t('parent.tile.plp')}</span>
           </a>
 
           <button
@@ -309,7 +313,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
               <span className="text-2xl leading-none">📖</span>
             </div>
             <span className="text-[13px] font-extrabold text-left text-violet-950 leading-tight">
-              បណ្ណាល័យអេឡិចត្រូនិច <span className="text-[10px] text-violet-400">{activePanel === 'elibrary' ? '▲' : '▼'}</span>
+              {t('parent.tile.elibrary')} <span className="text-[10px] text-violet-400">{activePanel === 'elibrary' ? '▲' : '▼'}</span>
             </span>
           </button>
         </div>
@@ -320,20 +324,20 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           {/* Step 1 — pick class */}
           <div>
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
-              <GraduationCap size={14} className="text-emerald-600" /> ជ្រើសរើសថ្នាក់រៀន
+              <GraduationCap size={14} className="text-emerald-600" /> {t('parent.selectClass')}
             </label>
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl mb-3">
               <button
                 onClick={() => handleCategoryChange('general')}
                 className={`flex-1 px-2 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${classCategory === 'general' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
               >
-                📘 ថ្នាក់ចំណេះទូទៅ
+                {t('login.catGeneral')}
               </button>
               <button
                 onClick={() => handleCategoryChange('extra')}
                 className={`flex-1 px-2 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${classCategory === 'extra' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
               >
-                🎨 ថ្នាក់ក្រៅម៉ោង
+                {t('login.catExtra')}
               </button>
             </div>
             <select
@@ -341,14 +345,14 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
               onChange={e => loadClass(e.target.value)}
               className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:border-emerald-500 focus:outline-none transition-colors"
             >
-              <option value="">— ជ្រើសរើសថ្នាក់ —</option>
+              <option value="">{t('parent.selectClassOpt')}</option>
               {filteredGrades.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
 
           {loading && (
             <div className="flex items-center justify-center gap-2 py-6 text-slate-500 text-sm">
-              <Loader2 size={18} className="animate-spin" /> កំពុងទាញទិន្នន័យ...
+              <Loader2 size={18} className="animate-spin" /> {t('parent.loading')}
             </div>
           )}
           {error && !loading && (
@@ -359,28 +363,28 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           {!loading && classStudents.length > 0 && (
             <div>
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
-                <Search size={14} className="text-emerald-600" /> វាយឈ្មោះកូនរបស់អ្នក
+                <Search size={14} className="text-emerald-600" /> {t('parent.typeName')}
               </label>
               <div className="flex items-center gap-2">
                 <input
                   value={nameQuery}
                   onChange={e => { setNameQuery(e.target.value); setNameError(''); }}
                   onKeyDown={e => { if (e.key === 'Enter') confirmName(); }}
-                  placeholder="ឧ. ស៊ុំ សំណាង"
+                  placeholder={t('parent.namePlaceholder')}
                   className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none transition-colors placeholder:text-slate-400"
                 />
                 <button
                   onClick={() => confirmName()}
                   className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors shrink-0"
                 >
-                  ស្វែងរក
+                  {t('parent.search')}
                 </button>
               </div>
               {nameError && <p className="text-xs text-rose-600 mt-2">{nameError}</p>}
               {/* When several students match what was typed, let the parent pick */}
               {nameMatches.length > 1 && (
                 <div className="mt-2 rounded-xl border border-slate-100 divide-y divide-slate-50">
-                  <p className="text-[11px] text-slate-500 px-3 py-1.5">មានឈ្មោះស្រដៀងគ្នាច្រើន — សូមជ្រើសរើស៖</p>
+                  <p className="text-[11px] text-slate-500 px-3 py-1.5">{t('parent.manyMatches')}</p>
                   {nameMatches.map(n => (
                     <button
                       key={n}
@@ -393,7 +397,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
                 </div>
               )}
               {childName && (
-                <p className="text-xs text-emerald-700 font-bold mt-2">✓ បានជ្រើសរើស៖ {childName}</p>
+                <p className="text-xs text-emerald-700 font-bold mt-2">✓ {t('parent.selected')} {childName}</p>
               )}
             </div>
           )}
@@ -402,13 +406,13 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           {childName && anyRec && (
             <div className="pt-1">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
-                <FileText size={14} className="text-emerald-600" /> ជ្រើសរើសព្រឹត្តបត្រដើម្បីមើល / ទាញយក PDF
+                <FileText size={14} className="text-emerald-600" /> {t('parent.pickReport')}
               </label>
 
               {/* Monthly */}
               {monthsAvailable.length > 0 && (
                 <div className="mb-3">
-                  <p className="text-[11px] text-slate-500 font-semibold mb-1.5">ប្រចាំខែ</p>
+                  <p className="text-[11px] text-slate-500 font-semibold mb-1.5">{t('parent.monthly')}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {monthsAvailable.map(m => (
                       <button
@@ -416,7 +420,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
                         onClick={() => setMonthlyRec(childRecords.find(r => r.month === m) || null)}
                         className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold transition-colors"
                       >
-                        ខែ{m}
+                        {t('parent.monthPrefix')}{t('month.' + m)}
                       </button>
                     ))}
                   </div>
@@ -424,18 +428,18 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
               )}
 
               {/* Semester & annual */}
-              <p className="text-[11px] text-slate-500 font-semibold mb-1.5">ឆមាស / ប្រចាំឆ្នាំ</p>
+              <p className="text-[11px] text-slate-500 font-semibold mb-1.5">{t('parent.semAnnual')}</p>
               <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => setSemCard({ student: anyRec, period: 1 })} className="px-3 py-1.5 bg-violet-50 text-violet-700 hover:bg-violet-100 rounded-lg text-xs font-semibold transition-colors">ឆមាសទី ១</button>
-                <button onClick={() => setSemCard({ student: anyRec, period: 2 })} className="px-3 py-1.5 bg-violet-50 text-violet-700 hover:bg-violet-100 rounded-lg text-xs font-semibold transition-colors">ឆមាសទី ២</button>
-                <button onClick={() => setSemCard({ student: anyRec, period: 'year' })} className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors">ប្រចាំឆ្នាំ</button>
+                <button onClick={() => setSemCard({ student: anyRec, period: 1 })} className="px-3 py-1.5 bg-violet-50 text-violet-700 hover:bg-violet-100 rounded-lg text-xs font-semibold transition-colors">{t('parent.sem1')}</button>
+                <button onClick={() => setSemCard({ student: anyRec, period: 2 })} className="px-3 py-1.5 bg-violet-50 text-violet-700 hover:bg-violet-100 rounded-lg text-xs font-semibold transition-colors">{t('parent.sem2')}</button>
+                <button onClick={() => setSemCard({ student: anyRec, period: 'year' })} className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors">{t('parent.annual')}</button>
               </div>
 
               {/* Merit certificate — only for periods the child earned និទ្ទេស A/B */}
               {meritOptions.length > 0 && (
                 <div className="mt-4 pt-3 border-t border-slate-100">
                   <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
-                    <Award size={14} className="text-amber-500" /> ប័ណ្ណសរសើរ (សិស្សនិទ្ទេស A/B)
+                    <Award size={14} className="text-amber-500" /> {t('parent.merit')}
                   </label>
                   <div className="flex flex-wrap gap-1.5">
                     {meritOptions.map(o => (
@@ -457,7 +461,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
         {grade && !isTimetableEmpty(timetable) && (
           <div className="mt-4 bg-white rounded-2xl border border-slate-100 shadow-lg p-4">
             <h2 className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-3">
-              🗓️ {(timetable.title && timetable.title.trim()) || 'កាលវិភាគសិក្សាប្រចាំសប្តាហ៍'} — {grade}
+              🗓️ {(timetable.title && timetable.title.trim()) || t('parent.weeklyTimetable')} — {grade}
             </h2>
             <TimetableView tt={timetable} />
           </div>
@@ -468,7 +472,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
         {activePanel === 'elibrary' && (
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {[...CURATED_ELIBRARY.map(e => ({ title: e.title, url: e.url, category: e.category })),
-              ...schoolElinks.map(e => ({ title: e.title, url: e.url, category: e.category || 'សៀវភៅសាលា' }))]
+              ...schoolElinks.map(e => ({ title: e.title, url: e.url, category: e.category || t('parent.schoolBooks') }))]
               .map(e => (
                 <a
                   key={e.url + e.title}
@@ -491,7 +495,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
         )}
 
         <p className="text-[10px] text-slate-400 text-center mt-4 leading-relaxed">
-          ផ្ទាំងនេះសម្រាប់មាតាបិតាមើល និងទាញយកព្រឹត្តបត្រពិន្ទុរបស់កូនជា PDF តែប៉ុណ្ណោះ។
+          {t('parent.footnote')}
         </p>
       </div>
 
