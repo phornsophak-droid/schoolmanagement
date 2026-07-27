@@ -147,6 +147,7 @@ import DailyAttendance from './components/DailyAttendance';
 import WorksheetGenerator from './components/WorksheetGenerator';
 import DocBank from './components/DocBank';
 import AiTools from './components/AiTools';
+import KhmerCalendar from './components/KhmerCalendar';
 import LibraryManager from './components/LibraryManager';
 import LessonLibrary from './components/LessonLibrary';
 import QuestionBank from './components/QuestionBank';
@@ -173,7 +174,7 @@ const IS_PHONE = typeof navigator !== 'undefined' &&
 export default function App() {
   const { t } = useT();
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'docbank' | 'lessons' | 'timetable' | 'aitools' | 'library'>(() => {
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'docbank' | 'lessons' | 'timetable' | 'aitools' | 'library' | 'calendar'>(() => {
     const isMobile = typeof window !== 'undefined' && (
       window.innerWidth < 768 || 
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -1717,19 +1718,21 @@ export default function App() {
             <ExternalLink size={13} className="text-slate-500" />
           </a>
 
-          {/* Khmer lunar calendar — external site, opens in a new tab. */}
-          <a
-            href="https://khmer-lunar-calendar.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+          {/* Khmer lunar calendar — built in-app (the external site didn't work on phones). */}
+          <button
+            id="nav_calendar_tab"
+            onClick={() => setActiveView('calendar')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'calendar'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
           >
             <div className="flex items-center gap-3">
-              <CalendarDays size={16} className="text-slate-400" />
+              <CalendarDays size={16} className={activeView === 'calendar' ? 'text-blue-400' : 'text-slate-400'} />
               <span>ប្រតិទិនចន្ទគតិ</span>
             </div>
-            <ExternalLink size={13} className="text-slate-500" />
-          </a>
+          </button>
 
           <button
             id="nav_timetable_tab"
@@ -2525,6 +2528,18 @@ export default function App() {
                       currentUser={currentUser}
                       onClose={() => setActiveView('dashboard')}
                     />
+                  </motion.div>
+                )}
+
+                {activeView === 'calendar' && (
+                  <motion.div
+                    key="calendar"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <KhmerCalendar onClose={() => setActiveView('dashboard')} />
                   </motion.div>
                 )}
 
