@@ -29,6 +29,7 @@ import {
   Database,
   MapPin,
   Clock,
+  CalendarDays,
   Settings,
   Phone,
   Power,
@@ -881,6 +882,35 @@ export default function MobilePortal({
                     </div>
                     <span className="text-[13px] font-extrabold text-left text-teal-950 leading-tight">
                       ថ្នាលបឋម (PLP)
+                    </span>
+                  </a>
+
+                  {/* Button 14b: Khmer lunar calendar — external site, new tab. */}
+                  <a
+                    href="https://khmer-lunar-calendar.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all cursor-pointer min-h-[115px] relative border-rose-500/10 hover:bg-rose-50/50 hover:border-rose-200 no-underline"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                        <CalendarDays className="w-4.5 h-4.5 text-rose-600 stroke-[2.5]" />
+                      </div>
+                      {/* SVG - a wall calendar with a moon */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="24" y="30" width="72" height="64" rx="6" fill="#FFFFFF" stroke="#E11D48" strokeWidth="1.5" />
+                        <rect x="24" y="30" width="72" height="16" rx="6" fill="#FFE4E6" />
+                        <line x1="40" y1="24" x2="40" y2="36" stroke="#E11D48" strokeWidth="3" strokeLinecap="round" />
+                        <line x1="80" y1="24" x2="80" y2="36" stroke="#E11D48" strokeWidth="3" strokeLinecap="round" />
+                        <line x1="24" y1="58" x2="96" y2="58" stroke="#FECDD3" strokeWidth="1.5" />
+                        <line x1="24" y1="74" x2="96" y2="74" stroke="#FECDD3" strokeWidth="1.5" />
+                        <path d="M74,66 a11,11 0 1 0 11,15 a9,9 0 0 1 -11,-15 Z" fill="#FBBF24" />
+                        <circle cx="40" cy="66" r="3" fill="#FDA4AF" />
+                        <circle cx="56" cy="66" r="3" fill="#FDA4AF" />
+                      </svg>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-rose-950 leading-tight">
+                      ប្រតិទិនចន្ទគតិ
                     </span>
                   </a>
 

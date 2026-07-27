@@ -9,8 +9,9 @@ import {
   GraduationCap, 
   FileText, 
   LayoutDashboard, 
-  Clock, 
-  BookOpen, 
+  Clock,
+  CalendarDays,
+  BookOpen,
   Sparkles,
   Library,
   HelpCircle,
@@ -1712,6 +1713,20 @@ export default function App() {
             <div className="flex items-center gap-3">
               <BookOpen size={16} className="text-slate-400" />
               <span>ថ្នាលបឋម (PLP)</span>
+            </div>
+            <ExternalLink size={13} className="text-slate-500" />
+          </a>
+
+          {/* Khmer lunar calendar — external site, opens in a new tab. */}
+          <a
+            href="https://khmer-lunar-calendar.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+          >
+            <div className="flex items-center gap-3">
+              <CalendarDays size={16} className="text-slate-400" />
+              <span>ប្រតិទិនចន្ទគតិ</span>
             </div>
             <ExternalLink size={13} className="text-slate-500" />
           </a>
