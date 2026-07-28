@@ -11,6 +11,7 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, X } from 'lucide-react';
 import { fromDate } from '../utils/momentkh';
+import { holidayName } from '../utils/khmerHolidays';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 const GREG_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
@@ -59,6 +60,21 @@ export default function KhmerCalendar({ onClose }: Props) {
   // Lunar context for the header: the lunar month/animal-year at mid-month.
   const midLunar = useMemo(() => lunarOf(new Date(year, month, 15)), [year, month]);
 
+  // Public holidays falling in this month, for the list below the grid. Consecutive
+  // days of the same holiday (e.g. Khmer New Year) are merged into one range row.
+  const monthHolidays = useMemo(() => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const rows: { from: number; to: number; name: string }[] = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const name = holidayName(new Date(year, month, d));
+      if (!name) continue;
+      const last = rows[rows.length - 1];
+      if (last && last.name === name && last.to === d - 1) last.to = d;
+      else rows.push({ from: d, to: d, name });
+    }
+    return rows;
+  }, [year, month]);
+
   const step = (delta: number) => setCursor(new Date(year, month + delta, 1));
   const goToday = () => setCursor(new Date(today.getFullYear(), today.getMonth(), 1));
 
@@ -101,16 +117,20 @@ export default function KhmerCalendar({ onClose }: Props) {
             const lunar = lunarOf(date);
             const isToday = sameDay(date, today);
             const isSunday = date.getDay() === 0;
+            const holiday = holidayName(date);
             const fullMoon = lunar?.day === 15 && lunar?.moonPhaseName === 'កើត';
             const darkMoon = lunar?.day === 15 && lunar?.moonPhaseName === 'រោច';
             return (
               <div
                 key={date.toISOString()}
+                title={holiday || undefined}
                 className={`aspect-square rounded-xl border p-1 sm:p-1.5 flex flex-col items-center justify-center gap-0.5 overflow-hidden ${
-                  isToday ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-300' : 'border-slate-100 bg-slate-50/40'
+                  isToday ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-300'
+                    : holiday ? 'border-amber-200 bg-amber-50/70'
+                    : 'border-slate-100 bg-slate-50/40'
                 }`}
               >
-                <span className={`text-sm sm:text-base font-bold leading-none ${isToday ? 'text-rose-600' : isSunday ? 'text-rose-500' : 'text-slate-700'}`}>
+                <span className={`text-sm sm:text-base font-bold leading-none ${isToday ? 'text-rose-600' : (holiday || isSunday) ? 'text-rose-500' : 'text-slate-700'}`}>
                   {toKh(date.getDate())}
                 </span>
                 {lunar && (
@@ -126,11 +146,29 @@ export default function KhmerCalendar({ onClose }: Props) {
         </div>
       </div>
 
+      {/* holidays this month */}
+      {monthHolidays.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 space-y-1.5">
+          <p className="text-[11px] font-bold text-amber-700">🎉 ថ្ងៃឈប់សម្រាកក្នុងខែនេះ</p>
+          <div className="space-y-1">
+            {monthHolidays.map((h, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs">
+                <span className="font-bold text-rose-500 whitespace-nowrap w-16 shrink-0">
+                  {h.from === h.to ? toKh(h.from) : `${toKh(h.from)}–${toKh(h.to)}`} {GREG_MONTHS[month]}
+                </span>
+                <span className="text-slate-600 font-semibold">{h.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* legend */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] font-semibold text-slate-500">
         <span className="flex items-center gap-1"><span className="text-emerald-600">៥កើត</span> ថ្ងៃខ្នើត</span>
         <span className="flex items-center gap-1">🌕 <span className="text-amber-600">១៥កើត</span> ថ្ងៃពេញបូណ៌មី</span>
         <span className="flex items-center gap-1">🌑 <span className="text-slate-500">១៥រោច</span> ថ្ងៃដាច់</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-100 border border-amber-300 inline-block" /> ថ្ងៃឈប់សម្រាក</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-rose-100 border border-rose-300 inline-block" /> ថ្ងៃនេះ</span>
       </div>
     </div>
