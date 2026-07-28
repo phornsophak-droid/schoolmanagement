@@ -150,6 +150,7 @@ export default function KhmerCalendar({ onClose }: Props) {
                 className={`aspect-square rounded-xl border p-1 sm:p-1.5 flex flex-col items-center justify-center gap-0.5 overflow-hidden transition-colors hover:border-blue-300 ${
                   selected ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-300'
                     : isToday ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-300'
+                    : note ? 'border-blue-200 bg-blue-50'
                     : holiday ? 'border-amber-200 bg-amber-50/70'
                     : 'border-slate-100 bg-slate-50/40'
                 }`}
