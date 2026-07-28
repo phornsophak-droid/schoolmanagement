@@ -42,9 +42,7 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
     const newFlippedIndices = [...flippedIndices, index];
     setFlippedIndices(newFlippedIndices);
     
-    const newCards = [...cards];
-    newCards[index].isFlipped = true;
-    setCards(newCards);
+    setCards(prev => prev.map((card, i) => i === index ? { ...card, isFlipped: true } : card));
 
     if (newFlippedIndices.length === 2) {
       setIsLocked(true);
@@ -55,24 +53,28 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
       if (cards[firstIndex].emoji === cards[secondIndex].emoji) {
         // Match
         setTimeout(() => {
-          const matchedCards = [...cards];
-          matchedCards[firstIndex].isMatched = true;
-          matchedCards[secondIndex].isMatched = true;
-          setCards(matchedCards);
+          setCards(prev => {
+            const next = prev.map((card, i) => 
+              (i === firstIndex || i === secondIndex) 
+                ? { ...card, isMatched: true } 
+                : card
+            );
+            if (next.every(c => c.isMatched)) {
+              setIsWon(true);
+            }
+            return next;
+          });
           setFlippedIndices([]);
           setIsLocked(false);
-          
-          if (matchedCards.every(c => c.isMatched)) {
-            setIsWon(true);
-          }
         }, 500);
       } else {
         // No match
         setTimeout(() => {
-          const resetCards = [...cards];
-          resetCards[firstIndex].isFlipped = false;
-          resetCards[secondIndex].isFlipped = false;
-          setCards(resetCards);
+          setCards(prev => prev.map((card, i) => 
+            (i === firstIndex || i === secondIndex) 
+              ? { ...card, isFlipped: false } 
+              : card
+          ));
           setFlippedIndices([]);
           setIsLocked(false);
         }, 1000);
