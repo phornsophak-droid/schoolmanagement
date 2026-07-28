@@ -32,7 +32,8 @@ import {
   CheckCircle,
   ClipboardCheck,
   Bell,
-  ExternalLink
+  ExternalLink,
+  Rocket
 } from 'lucide-react';
 
 import { StudentScore, SchoolReport, SchoolUser } from './types';
@@ -149,6 +150,7 @@ import DocBank from './components/DocBank';
 import AiTools from './components/AiTools';
 import KhmerCalendar from './components/KhmerCalendar';
 import LibraryManager from './components/LibraryManager';
+import LearningGames from './components/LearningGames';
 import LessonLibrary from './components/LessonLibrary';
 import QuestionBank from './components/QuestionBank';
 import StandardTests from './components/StandardTests';
@@ -174,7 +176,7 @@ const IS_PHONE = typeof navigator !== 'undefined' &&
 export default function App() {
   const { t } = useT();
   // Navigation states
-  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'docbank' | 'lessons' | 'timetable' | 'aitools' | 'library' | 'calendar'>(() => {
+  const [activeView, setActiveView] = useState<'dashboard' | 'gradebook' | 'wizard' | 'detail' | 'class-mgmt' | 'mobile-portal' | 'attendance' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'docbank' | 'lessons' | 'timetable' | 'aitools' | 'library' | 'calendar' | 'learning-games'>(() => {
     const isMobile = typeof window !== 'undefined' && (
       window.innerWidth < 768 || 
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -1778,6 +1780,21 @@ export default function App() {
               <span>ជំនួយការ AI</span>
             </div>
           </button>
+
+          <button
+            id="nav_learning_games_tab"
+            onClick={() => setActiveView('learning-games')}
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all text-xs font-semibold ${
+              activeView === 'learning-games'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10 shadow-xs'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Rocket size={16} className={activeView === 'learning-games' ? 'text-blue-400' : 'text-slate-400'} />
+              <span>មជ្ឈមណ្ឌលល្បែងសិក្សា</span>
+            </div>
+          </button>
             </>
           )}
 
@@ -2137,6 +2154,23 @@ export default function App() {
                   </div>
                   <ExternalLink size={13} className="text-slate-500" />
                 </a>
+
+                <button
+                  onClick={() => {
+                    setActiveView('learning-games');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-lg flex items-center justify-between text-xs font-medium ${
+                    activeView === 'learning-games'
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/10'
+                      : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Rocket size={16} />
+                    <span>មជ្ឈមណ្ឌលល្បែងសិក្សា</span>
+                  </div>
+                </button>
 
                 <button
                   onClick={() => {
@@ -2511,6 +2545,18 @@ export default function App() {
                     transition={{ duration: 0.15 }}
                   >
                     <AiTools onClose={() => setActiveView('dashboard')} />
+                  </motion.div>
+                )}
+
+                {activeView === 'learning-games' && (
+                  <motion.div
+                    key="learning-games"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <LearningGames />
                   </motion.div>
                 )}
 

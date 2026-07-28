@@ -58,6 +58,7 @@ interface DashboardProps {
   onCreateReportClick: () => void;
   onOpenGradebookClick: () => void;
   onOpenAttendanceClick?: () => void;
+  onOpenLearningGamesClick?: () => void;
   grades?: string[];
   currentUser?: SchoolUser | null;
 }
@@ -85,6 +86,7 @@ export default function Dashboard({
   onCreateReportClick,
   onOpenGradebookClick,
   onOpenAttendanceClick,
+  onOpenLearningGamesClick,
   grades,
   currentUser
 }: DashboardProps) {
@@ -984,6 +986,15 @@ export default function Dashboard({
             <Plus size={15} />
             {t('dash.createReport')}
           </button>
+
+          {onOpenLearningGamesClick && (
+            <button 
+              onClick={onOpenLearningGamesClick}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 rounded-lg text-xs font-bold transition duration-200 shadow-md shadow-purple-500/20"
+            >
+              <span>🚀 មជ្ឈមណ្ឌលល្បែងសិក្សា</span>
+            </button>
+          )}
         </div>
       </div>
 
