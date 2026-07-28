@@ -6,15 +6,16 @@ interface MoneyGameProps {
 }
 
 const NOTES = [
-  { value: 100, color: 'bg-orange-600', label: '១០០ ៛' },
-  { value: 500, color: 'bg-red-600', label: '៥០០ ៛' },
-  { value: 1000, color: 'bg-blue-600', label: '១០០០ ៛' },
-  { value: 2000, color: 'bg-green-600', label: '២០០០ ៛' },
-  { value: 5000, color: 'bg-green-700', label: '៥០០០ ៛' },
+  { value: 100, color: 'bg-orange-600', label: '១០០ ៛', image: '/assets/money/100.jpg' },
+  { value: 500, color: 'bg-red-600', label: '៥០០ ៛', image: '/assets/money/500.jpg' },
+  { value: 1000, color: 'bg-blue-600', label: '១០០០ ៛', image: '/assets/money/1000.jpg' },
+  { value: 2000, color: 'bg-green-600', label: '២០០០ ៛', image: '/assets/money/2000.jpg' },
+  { value: 5000, color: 'bg-green-700', label: '៥០០០ ៛', image: '/assets/money/5000.jpg' },
+  { value: 10000, color: 'bg-purple-600', label: '១០០០០ ៛', image: '/assets/money/10000.jpg' },
 ];
 
 export default function MoneyGame({ onBack }: MoneyGameProps) {
-  const [currentNotes, setCurrentNotes] = useState<{ value: number; color: string; label: string; x: number; y: number; rot: number }[]>([]);
+  const [currentNotes, setCurrentNotes] = useState<{ value: number; color: string; label: string; image: string; x: number; y: number; rot: number }[]>([]);
   const [targetTotal, setTargetTotal] = useState(0);
   const [options, setOptions] = useState<number[]>([]);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -109,13 +110,22 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
             {currentNotes.map((note, idx) => (
               <div 
                 key={idx}
-                className={`absolute w-40 h-20 ${note.color} rounded-md shadow-md flex items-center justify-center border-2 border-white/20`}
+                className={`absolute w-40 h-20 ${note.color} rounded-md shadow-md flex items-center justify-center border-2 border-white/20 overflow-hidden group`}
                 style={{ 
                   transform: `translate(${note.x}px, ${note.y}px) rotate(${note.rot}deg)`,
                   zIndex: idx 
                 }}
               >
-                <div className="w-full h-full m-1 border border-white/30 rounded flex items-center justify-center">
+                <img 
+                  src={note.image} 
+                  alt={note.label}
+                  className="absolute inset-0 w-full h-full object-cover z-10"
+                  onError={(e) => {
+                    // Fallback to color block if image doesn't exist
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+                <div className="w-full h-full m-1 border border-white/30 rounded flex items-center justify-center relative z-0">
                   <span className="text-white font-bold text-xl drop-shadow-md">
                     {note.label}
                   </span>
