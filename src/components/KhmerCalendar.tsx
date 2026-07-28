@@ -11,6 +11,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, X, Pencil, Trash2 } from 'lucide-react';
 import { fromDate } from '../utils/momentkh';
+import { khmerLunarFull } from '../utils/khmerDate';
 import { holidayName } from '../utils/khmerHolidays';
 import { CalNotes, dateKey, loadCalNotes, refreshCalNotesFromCloud, setCalNote } from '../lib/calendarNotes';
 
@@ -182,15 +183,18 @@ export default function KhmerCalendar({ onClose }: Props) {
         const holiday = holidayName(date);
         return (
           <div className="bg-white rounded-2xl border border-blue-200 shadow-sm p-3 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Pencil size={13} className="text-blue-500" />
-                {toKh(d)} {GREG_MONTHS[m - 1]} {toKh(y)}
-                {lunar && <span className="text-[11px] font-semibold text-emerald-600">({toKh(lunar.day)}{lunar.moonPhaseName} ខែ{lunar.monthName})</span>}
-              </p>
-              <button onClick={() => setEditKey(null)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100"><X size={14} /></button>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-800">{toKh(d)} {GREG_MONTHS[m - 1]} {toKh(y)}</p>
+                {/* Full lunar date — weekday, moon phase, lunar month, animal year, BE year. */}
+                <p className="text-[11px] font-semibold text-emerald-700 leading-snug mt-0.5">{khmerLunarFull(date)}</p>
+              </div>
+              <button onClick={() => setEditKey(null)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 shrink-0"><X size={14} /></button>
             </div>
             {holiday && <p className="text-[11px] font-bold text-rose-500">🎉 {holiday}</p>}
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 border-t border-slate-100 pt-2">
+              <Pencil size={12} className="text-blue-500" /> កំណត់សំគាល់
+            </div>
             <textarea
               value={draft}
               onChange={e => setDraft(e.target.value)}
