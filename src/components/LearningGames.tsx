@@ -12,6 +12,12 @@ import GuessTimeGame from './games/GuessTimeGame';
 import MoneyGame from './games/MoneyGame';
 import GeometryGame from './games/GeometryGame';
 import EvenOddGame from './games/EvenOddGame';
+import MatchWordGame from './games/MatchWordGame';
+import SortLettersGame from './games/SortLettersGame';
+import WordWheelGame from './games/WordWheelGame';
+import GuessWordGame from './games/GuessWordGame';
+import FlashcardsGame from './games/FlashcardsGame';
+import TTSGame from './games/TTSGame';
 
 interface Game {
   id: string;
@@ -59,6 +65,12 @@ export default function LearningGames() {
   if (activeGame === 'money') return <MoneyGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'geometry') return <GeometryGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'even-odd') return <EvenOddGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'match-word') return <MatchWordGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'sort-letters') return <SortLettersGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'word-wheel') return <WordWheelGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'guess-word') return <GuessWordGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'flashcards') return <FlashcardsGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'tts') return <TTSGame onBack={() => setActiveGame(null)} />;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen bg-slate-50/50">
@@ -74,7 +86,11 @@ export default function LearningGames() {
           <button
             key={game.id}
             onClick={() => {
-              const availableGames = ['timer', 'randomizer', 'name-wheel', 'whiteboard', 'fraction', 'fast-math', 'multiplication', 'guess-time', 'money', 'geometry', 'even-odd'];
+              const availableGames = [
+                'timer', 'randomizer', 'name-wheel', 'whiteboard', 
+                'fraction', 'fast-math', 'multiplication', 'guess-time', 'money', 'geometry', 'even-odd',
+                'match-word', 'sort-letters', 'word-wheel', 'guess-word', 'flashcards', 'tts'
+              ];
               if (availableGames.includes(game.id)) {
                 setActiveGame(game.id);
               } else {
