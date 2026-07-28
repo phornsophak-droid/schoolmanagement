@@ -18,6 +18,10 @@ import WordWheelGame from './games/WordWheelGame';
 import GuessWordGame from './games/GuessWordGame';
 import FlashcardsGame from './games/FlashcardsGame';
 import TTSGame from './games/TTSGame';
+import MemoryGame from './games/MemoryGame';
+import FindPairsGame from './games/FindPairsGame';
+import GroupStudentsGame from './games/GroupStudentsGame';
+import ScoreTableGame from './games/ScoreTableGame';
 
 interface Game {
   id: string;
@@ -71,6 +75,10 @@ export default function LearningGames() {
   if (activeGame === 'guess-word') return <GuessWordGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'flashcards') return <FlashcardsGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'tts') return <TTSGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'memory-game') return <MemoryGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'find-pairs') return <FindPairsGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'group-students') return <GroupStudentsGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'score-table') return <ScoreTableGame onBack={() => setActiveGame(null)} />;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen bg-slate-50/50">
@@ -89,7 +97,8 @@ export default function LearningGames() {
               const availableGames = [
                 'timer', 'randomizer', 'name-wheel', 'whiteboard', 
                 'fraction', 'fast-math', 'multiplication', 'guess-time', 'money', 'geometry', 'even-odd',
-                'match-word', 'sort-letters', 'word-wheel', 'guess-word', 'flashcards', 'tts'
+                'match-word', 'sort-letters', 'word-wheel', 'guess-word', 'flashcards', 'tts',
+                'memory-game', 'find-pairs', 'group-students', 'score-table'
               ];
               if (availableGames.includes(game.id)) {
                 setActiveGame(game.id);
