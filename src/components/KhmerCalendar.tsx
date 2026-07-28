@@ -163,7 +163,11 @@ export default function KhmerCalendar({ onClose }: Props) {
                     {fullMoon ? '🌕 ' : darkMoon ? '🌑 ' : ''}{toKh(lunar.day)}{lunar.moonPhaseName}
                   </span>
                 )}
-                {note && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" title={note} />}
+                {note && (
+                  <span className="mt-0.5 w-full text-[7px] sm:text-[9px] leading-tight font-bold text-blue-600 text-center line-clamp-2 px-0.5" title={note}>
+                    📌 {note}
+                  </span>
+                )}
               </button>
             );
           })}
