@@ -148,12 +148,12 @@ export default function KhmerCalendar({ onClose }: Props) {
                 title={[holiday, note].filter(Boolean).join(' · ') || 'បន្ថែមកំណត់សំគាល់'}
                 className={`aspect-square rounded-xl border p-1 sm:p-1.5 flex flex-col items-center justify-center gap-0.5 overflow-hidden transition-colors hover:border-blue-300 ${
                   selected ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-300'
-                    : isToday ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-300'
+                    : isToday ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-300'
                     : holiday ? 'border-amber-200 bg-amber-50/70'
                     : 'border-slate-100 bg-slate-50/40'
                 }`}
               >
-                <span className={`text-sm sm:text-base font-bold leading-none ${isToday ? 'text-rose-600' : (holiday || isSunday) ? 'text-rose-500' : 'text-slate-700'}`}>
+                <span className={`text-sm sm:text-base font-bold leading-none ${isToday ? 'text-emerald-700' : (holiday || isSunday) ? 'text-rose-500' : 'text-slate-700'}`}>
                   {toKh(date.getDate())}
                 </span>
                 {lunar && (
@@ -252,7 +252,7 @@ export default function KhmerCalendar({ onClose }: Props) {
         <span className="flex items-center gap-1">🌑 <span className="text-slate-500">១៥រោច</span> ថ្ងៃដាច់</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-100 border border-amber-300 inline-block" /> ថ្ងៃឈប់សម្រាក</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> កំណត់សំគាល់</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-rose-100 border border-rose-300 inline-block" /> ថ្ងៃនេះ</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-400 inline-block" /> ថ្ងៃនេះ</span>
       </div>
     </div>
   );
