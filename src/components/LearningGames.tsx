@@ -5,6 +5,11 @@ import TimerGame from './games/TimerGame';
 import RandomizerGame from './games/RandomizerGame';
 import NameSpinnerGame from './games/NameSpinnerGame';
 import WhiteboardGame from './games/WhiteboardGame';
+import FractionGame from './games/FractionGame';
+import FastMathGame from './games/FastMathGame';
+import MultiplicationGame from './games/MultiplicationGame';
+import GuessTimeGame from './games/GuessTimeGame';
+import MoneyGame from './games/MoneyGame';
 
 interface Game {
   id: string;
@@ -45,6 +50,11 @@ export default function LearningGames() {
   if (activeGame === 'randomizer') return <RandomizerGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'name-wheel') return <NameSpinnerGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'whiteboard') return <WhiteboardGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'fraction') return <FractionGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'fast-math') return <FastMathGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'multiplication') return <MultiplicationGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'guess-time') return <GuessTimeGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'money') return <MoneyGame onBack={() => setActiveGame(null)} />;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen bg-slate-50/50">
@@ -60,7 +70,8 @@ export default function LearningGames() {
           <button
             key={game.id}
             onClick={() => {
-              if (['timer', 'randomizer', 'name-wheel', 'whiteboard'].includes(game.id)) {
+              const availableGames = ['timer', 'randomizer', 'name-wheel', 'whiteboard', 'fraction', 'fast-math', 'multiplication', 'guess-time', 'money'];
+              if (availableGames.includes(game.id)) {
                 setActiveGame(game.id);
               } else {
                 alert('ហ្គេមនេះកំពុងស្ថិតក្នុងការអភិវឌ្ឍន៍ (Coming soon)');
