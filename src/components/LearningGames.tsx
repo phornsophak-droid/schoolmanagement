@@ -10,6 +10,8 @@ import FastMathGame from './games/FastMathGame';
 import MultiplicationGame from './games/MultiplicationGame';
 import GuessTimeGame from './games/GuessTimeGame';
 import MoneyGame from './games/MoneyGame';
+import GeometryGame from './games/GeometryGame';
+import EvenOddGame from './games/EvenOddGame';
 
 interface Game {
   id: string;
@@ -55,6 +57,8 @@ export default function LearningGames() {
   if (activeGame === 'multiplication') return <MultiplicationGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'guess-time') return <GuessTimeGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'money') return <MoneyGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'geometry') return <GeometryGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'even-odd') return <EvenOddGame onBack={() => setActiveGame(null)} />;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen bg-slate-50/50">
@@ -70,7 +74,7 @@ export default function LearningGames() {
           <button
             key={game.id}
             onClick={() => {
-              const availableGames = ['timer', 'randomizer', 'name-wheel', 'whiteboard', 'fraction', 'fast-math', 'multiplication', 'guess-time', 'money'];
+              const availableGames = ['timer', 'randomizer', 'name-wheel', 'whiteboard', 'fraction', 'fast-math', 'multiplication', 'guess-time', 'money', 'geometry', 'even-odd'];
               if (availableGames.includes(game.id)) {
                 setActiveGame(game.id);
               } else {
