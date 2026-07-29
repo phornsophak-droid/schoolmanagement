@@ -79,7 +79,7 @@ export default function LearningGames({ onBack }: LearningGamesProps) {
   if (activeGame === 'guess-word') return <GuessWordGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'flashcards') return <FlashcardsGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'tts') return <TTSGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'memory-game') return <MemoryGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'memory') return <MemoryGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'find-pairs') return <FindPairsGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'group-students') return <GroupStudentsGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'score-table') return <ScoreTableGame onBack={() => setActiveGame(null)} />;
@@ -110,7 +110,7 @@ export default function LearningGames({ onBack }: LearningGamesProps) {
                 'timer', 'randomizer', 'name-wheel', 'whiteboard', 
                 'fraction', 'fast-math', 'multiplication', 'guess-time', 'money', 'geometry', 'even-odd',
                 'match-word', 'sort-letters', 'word-wheel', 'guess-word', 'flashcards', 'tts',
-                'memory-game', 'find-pairs', 'group-students', 'score-table'
+                'memory', 'find-pairs', 'group-students', 'score-table'
               ];
               if (availableGames.includes(game.id)) {
                 setActiveGame(game.id);
