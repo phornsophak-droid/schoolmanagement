@@ -38,9 +38,10 @@ const sameDay = (a: Date, b: Date) =>
 
 interface Props {
   onClose?: () => void;
+  readOnly?: boolean; // parents view holidays + the school's notes, but can't edit
 }
 
-export default function KhmerCalendar({ onClose }: Props) {
+export default function KhmerCalendar({ onClose, readOnly = false }: Props) {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
 
@@ -193,25 +194,39 @@ export default function KhmerCalendar({ onClose }: Props) {
               <button onClick={() => setEditKey(null)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 shrink-0"><X size={14} /></button>
             </div>
             {holiday && <p className="text-[11px] font-bold text-rose-500">🎉 {holiday}</p>}
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 border-t border-slate-100 pt-2">
-              <Pencil size={12} className="text-blue-500" /> កំណត់សំគាល់
-            </div>
-            <textarea
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              rows={2}
-              autoFocus
-              placeholder="កំណត់សំគាល់ (ឧ. ប្រឡងឆមាស, ប្រជុំគ្រូ, ព្រឹត្តិការណ៍…)"
-              className="w-full px-2.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-slate-700"
-            />
-            <div className="flex items-center justify-end gap-2">
-              {notes[editKey] && (
-                <button onClick={deleteNote} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 flex items-center gap-1.5">
-                  <Trash2 size={12} /> លុប
-                </button>
-              )}
-              <button onClick={saveNote} className="px-4 py-1.5 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white">រក្សាទុក</button>
-            </div>
+            {readOnly ? (
+              // Parents: show the school's note (if any) as read-only text — no editing.
+              notes[editKey] ? (
+                <div className="flex items-start gap-1.5 text-xs text-slate-700 border-t border-slate-100 pt-2">
+                  <span className="text-blue-500 shrink-0">📌</span>
+                  <span className="font-semibold whitespace-pre-wrap">{notes[editKey]}</span>
+                </div>
+              ) : (
+                !holiday && <p className="text-[11px] text-slate-400 border-t border-slate-100 pt-2">គ្មានកំណត់សំគាល់</p>
+              )
+            ) : (
+              <>
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 border-t border-slate-100 pt-2">
+                  <Pencil size={12} className="text-blue-500" /> កំណត់សំគាល់
+                </div>
+                <textarea
+                  value={draft}
+                  onChange={e => setDraft(e.target.value)}
+                  rows={2}
+                  autoFocus
+                  placeholder="កំណត់សំគាល់ (ឧ. ប្រឡងឆមាស, ប្រជុំគ្រូ, ព្រឹត្តិការណ៍…)"
+                  className="w-full px-2.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500 text-slate-700"
+                />
+                <div className="flex items-center justify-end gap-2">
+                  {notes[editKey] && (
+                    <button onClick={deleteNote} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 flex items-center gap-1.5">
+                      <Trash2 size={12} /> លុប
+                    </button>
+                  )}
+                  <button onClick={saveNote} className="px-4 py-1.5 text-xs font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white">រក្សាទុក</button>
+                </div>
+              </>
+            )}
           </div>
         );
       })()}

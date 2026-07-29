@@ -19,6 +19,7 @@ import MeritCertificate from './MeritCertificate';
 import TimetableView from './TimetableView';
 import { Timetable, emptyTimetable, loadTimetable, isTimetableEmpty } from '../lib/timetable';
 import LearningGames from './LearningGames';
+import KhmerCalendar from './KhmerCalendar';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 // Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
@@ -48,7 +49,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   const [classStudents, setClassStudents] = useState<StudentScore[]>([]);
   const [timetable, setTimetable] = useState<Timetable>(emptyTimetable());
   // Mobile-Portal style: nothing is expanded until a tile is tapped.
-  const [activePanel, setActivePanel] = useState<'results' | 'elibrary' | 'learning-games' | null>(null);
+  const [activePanel, setActivePanel] = useState<'results' | 'elibrary' | 'learning-games' | 'calendar' | null>(null);
   const [schoolElinks, setSchoolElinks] = useState<ELink[]>([]);
   useEffect(() => { fetchELinksFromCloud().then(setSchoolElinks).catch(() => {}); }, []);
   const [nameQuery, setNameQuery] = useState('');
@@ -332,6 +333,21 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
               មជ្ឈមណ្ឌលល្បែងសិក្សា <span className="text-[10px] text-rose-400">{activePanel === 'learning-games' ? '▲' : '▼'}</span>
             </span>
           </button>
+
+          <button
+            onClick={() => setActivePanel(v => v === 'calendar' ? null : 'calendar')}
+            className={`flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all min-h-[112px] ${activePanel === 'calendar' ? 'border-amber-300 bg-amber-50/40' : 'border-amber-500/10 hover:bg-amber-50/50 hover:border-amber-200'}`}
+          >
+            <div className="flex justify-between items-start w-full">
+              <div className="w-9 h-9 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                <span className="text-xl">📅</span>
+              </div>
+              <span className="text-2xl leading-none">🌕</span>
+            </div>
+            <span className="text-[13px] font-extrabold text-left text-amber-950 leading-tight">
+              ប្រតិទិនចន្ទគតិ <span className="text-[10px] text-amber-400">{activePanel === 'calendar' ? '▲' : '▼'}</span>
+            </span>
+          </button>
         </div>
 
         {activePanel === 'results' && (
@@ -518,6 +534,13 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
                 <LearningGames onBack={() => setActivePanel(null)} />
               </div>
             </div>
+          </div>
+        )}
+
+        {activePanel === 'calendar' && (
+          <div className="animate-in fade-in slide-in-from-top-4 duration-300 mt-4">
+            {/* Read-only for parents: they see holidays + the school's notes, no editing. */}
+            <KhmerCalendar readOnly />
           </div>
         )}
 
