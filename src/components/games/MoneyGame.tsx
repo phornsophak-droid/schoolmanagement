@@ -25,6 +25,44 @@ const NOTES = [
   { value: 200000, color: 'bg-fuchsia-700', label: '២០០០០០ ៛', image: '/assets/money/200000.jpg' },
 ];
 
+// Short feedback sounds via the Web Audio API — no audio files needed. The context
+// is created lazily on the first tap (a user gesture), which browsers require.
+let audioCtx: AudioContext | null = null;
+const playTones = (freqs: number[], step = 0.13, type: OscillatorType = 'sine') => {
+  if (typeof window === 'undefined') return;
+  try {
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const ctx = audioCtx;
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = f;
+      const t0 = ctx.currentTime + i * step;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + step + 0.05);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + step + 0.05);
+    });
+  } catch { /* audio not available — game still works silently */ }
+};
+const playCorrect = () => playTones([523.25, 659.25, 783.99, 1046.5], 0.12); // C-E-G-C rising
+const playWrong = () => playTones([220, 174.61], 0.16, 'triangle'); // low A → F, gentle
+
+// Celebration pieces that rain down on a correct answer.
+const BURST = Array.from({ length: 18 }, (_, i) => ({
+  left: (i * 5.5 + 3) % 100,
+  delay: (i % 6) * 0.06,
+  dur: 0.9 + (i % 5) * 0.14,
+  emoji: ['⭐', '🎉', '✨', '💰', '🪙'][i % 5],
+  size: 16 + (i % 4) * 6,
+}));
+
 export default function MoneyGame({ onBack }: MoneyGameProps) {
   const [currentNotes, setCurrentNotes] = useState<{ value: number; color: string; label: string; image: string; x: number; y: number; rot: number }[]>([]);
   const [targetTotal, setTargetTotal] = useState(0);
@@ -32,6 +70,7 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
+  const [showBurst, setShowBurst] = useState(false); // confetti on a correct answer
 
   const generateProblem = () => {
     // Generate 2 to 5 random notes
@@ -85,11 +124,15 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
     if (opt === targetTotal) {
       setIsCorrect(true);
       setScore(s => s + 1);
+      playCorrect();
+      setShowBurst(true);
       setTimeout(() => {
+        setShowBurst(false);
         generateProblem();
       }, 1500);
     } else {
       setIsCorrect(false);
+      playWrong();
       setTimeout(() => {
         setSelectedOption(null);
       }, 1500);
@@ -110,14 +153,54 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
             <span>💵</span> ស្គាល់លុយរៀល
           </h1>
         </div>
-        <div className="px-3 py-1 bg-green-100 text-green-700 font-bold rounded-full text-sm">
+        <div className={`px-3 py-1 bg-green-100 text-green-700 font-bold rounded-full text-sm transition-transform ${showBurst ? 'scale-125' : 'scale-100'}`}>
           ពិន្ទុ: {score}
         </div>
       </header>
 
+      {/* Keyframes for the celebration confetti (self-contained, no global CSS). */}
+      <style>{`
+        @keyframes moneyFall {
+          0% { transform: translateY(-30px) rotate(0deg); opacity: 0; }
+          10% { opacity: 1; }
+          100% { transform: translateY(320px) rotate(360deg); opacity: 0; }
+        }
+        @keyframes moneyPop {
+          0% { transform: scale(0.3); opacity: 0; }
+          40% { transform: scale(1.15); opacity: 1; }
+          70% { transform: scale(1); opacity: 1; }
+          100% { transform: scale(1); opacity: 0; }
+        }
+      `}</style>
+
       <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-slate-200 max-w-lg w-full flex flex-col items-center text-center">
-          
+        <div className="relative overflow-hidden bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-slate-200 max-w-lg w-full flex flex-col items-center text-center">
+
+          {/* Celebration overlay — confetti raining + a big "correct" badge. */}
+          {showBurst && (
+            <div className="absolute inset-0 z-30 pointer-events-none overflow-hidden">
+              {BURST.map((p, i) => (
+                <span
+                  key={i}
+                  className="absolute top-0"
+                  style={{
+                    left: `${p.left}%`,
+                    fontSize: `${p.size}px`,
+                    animation: `moneyFall ${p.dur}s ease-in ${p.delay}s both`,
+                  }}
+                >
+                  {p.emoji}
+                </span>
+              ))}
+              <div
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl md:text-4xl font-black text-green-600 drop-shadow"
+                style={{ animation: 'moneyPop 1.2s ease-out both' }}
+              >
+                🎉 ត្រឹមត្រូវ!
+              </div>
+            </div>
+          )}
+
           <h2 className="text-xl text-slate-800 font-bold mb-8">
             តើលុយទាំងអស់មានចំនួនប៉ុន្មាន?
           </h2>
