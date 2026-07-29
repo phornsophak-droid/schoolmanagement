@@ -57,6 +57,7 @@ import { SchoolLogo } from './SchoolLogo';
 import { persistAttendance, loadAttendance } from '../utils/attendanceStore';
 import { loadAnnouncements } from '../lib/announcements';
 import Announcements from './Announcements';
+import LearningGames from './LearningGames';
 
 // Force-load the newest deployed build. A plain reload can return a cached page
 // (HTTP cache or a service worker), so first drop any service workers + Cache
@@ -139,7 +140,7 @@ export default function MobilePortal({
   onRenameGrade
 }: MobilePortalProps) {
   // Mobile active navigation view
-  const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'aitools' | 'librarymgmt' | 'calendar'>('home');
+  const [innerView, setInnerView] = useState<'home' | 'timetable' | 'pdf-reports' | 'class-mgmt' | 'online-classes' | 'attendance-qr' | 'library' | 'notices' | 'students-info' | 'transport' | 'records' | 'chat' | 'worksheets' | 'standardtests' | 'announcements' | 'handbook' | 'aitools' | 'librarymgmt' | 'calendar' | 'learning-games'>('home');
   const [showMenuOverlay, setShowMenuOverlay] = useState(false);
   const [showAiHelper, setShowAiHelper] = useState(false);
   // Gradebook month/class filters on phone — must be real state, else the dropdowns
@@ -970,6 +971,21 @@ export default function MobilePortal({
                     </span>
                   </button>
 
+                  <button
+                    onClick={() => setInnerView('learning-games')}
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all cursor-pointer min-h-[115px] relative border-rose-500/10 hover:bg-rose-50/50 hover:border-rose-200"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                        <span className="text-lg">🎮</span>
+                      </div>
+                      <span className="text-3xl leading-none">🧩</span>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-rose-950 leading-tight">
+                      មជ្ឈមណ្ឌលល្បែងសិក្សា
+                    </span>
+                  </button>
+
                 </div>
 
                 {/* Khmer Traditional Custom Footer inside Home Dashboard view */}
@@ -1049,6 +1065,21 @@ export default function MobilePortal({
 
                 <div className="bg-[#F8FAFC] rounded-2xl p-2 text-slate-800 overflow-auto w-full flex-1 mt-2 relative">
                   <AiTools />
+                </div>
+              </motion.div>
+            )}
+
+            {innerView === 'learning-games' && (
+              <motion.div
+                key="learning-games"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-10 bg-[#F8FAFC] flex flex-col p-3 overflow-hidden"
+              >
+                <div className="bg-[#F8FAFC] rounded-2xl text-slate-800 overflow-auto w-full flex-1 relative">
+                  <LearningGames onBack={() => setInnerView('home')} />
                 </div>
               </motion.div>
             )}

@@ -18,6 +18,7 @@ import SemesterReportCard from './SemesterReportCard';
 import MeritCertificate from './MeritCertificate';
 import TimetableView from './TimetableView';
 import { Timetable, emptyTimetable, loadTimetable, isTimetableEmpty } from '../lib/timetable';
+import LearningGames from './LearningGames';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 // Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
@@ -47,7 +48,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   const [classStudents, setClassStudents] = useState<StudentScore[]>([]);
   const [timetable, setTimetable] = useState<Timetable>(emptyTimetable());
   // Mobile-Portal style: nothing is expanded until a tile is tapped.
-  const [activePanel, setActivePanel] = useState<'results' | 'elibrary' | null>(null);
+  const [activePanel, setActivePanel] = useState<'results' | 'elibrary' | 'learning-games' | null>(null);
   const [schoolElinks, setSchoolElinks] = useState<ELink[]>([]);
   useEffect(() => { fetchELinksFromCloud().then(setSchoolElinks).catch(() => {}); }, []);
   const [nameQuery, setNameQuery] = useState('');
@@ -316,6 +317,21 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
               {t('parent.tile.elibrary')} <span className="text-[10px] text-violet-400">{activePanel === 'elibrary' ? '▲' : '▼'}</span>
             </span>
           </button>
+
+          <button
+            onClick={() => setActivePanel(v => v === 'learning-games' ? null : 'learning-games')}
+            className={`flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all min-h-[112px] ${activePanel === 'learning-games' ? 'border-rose-300 bg-rose-50/40' : 'border-rose-500/10 hover:bg-rose-50/50 hover:border-rose-200'}`}
+          >
+            <div className="flex justify-between items-start w-full">
+              <div className="w-9 h-9 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+                <span className="text-xl">🎮</span>
+              </div>
+              <span className="text-2xl leading-none">🧩</span>
+            </div>
+            <span className="text-[13px] font-extrabold text-left text-rose-950 leading-tight">
+              មជ្ឈមណ្ឌលល្បែងសិក្សា <span className="text-[10px] text-rose-400">{activePanel === 'learning-games' ? '▲' : '▼'}</span>
+            </span>
+          </button>
         </div>
 
         {activePanel === 'results' && (
@@ -491,6 +507,17 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
                   <ExternalLink size={12} className="text-slate-300 group-hover:text-violet-500 shrink-0" />
                 </a>
               ))}
+          </div>
+        )}
+
+        {activePanel === 'learning-games' && (
+          <div className="animate-in fade-in slide-in-from-top-4 duration-300 relative bg-white/60 p-4 border rounded-3xl mt-4 overflow-hidden shadow-sm">
+            <h2 className="text-sm font-bold text-slate-800 mb-3">មជ្ឈមណ្ឌលល្បែងសិក្សា</h2>
+            <div className="bg-white/50 -mx-2 -mb-2 rounded-2xl overflow-hidden relative" style={{ minHeight: '600px' }}>
+              <div className="absolute inset-0 overflow-y-auto">
+                <LearningGames onBack={() => setActivePanel(null)} />
+              </div>
+            </div>
           </div>
         )}
 

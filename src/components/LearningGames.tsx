@@ -1,5 +1,5 @@
 import React from 'react';
-import { Rocket } from 'lucide-react';
+import { Rocket, ArrowLeft } from 'lucide-react';
 
 import TimerGame from './games/TimerGame';
 import RandomizerGame from './games/RandomizerGame';
@@ -55,7 +55,11 @@ const GAMES: Game[] = [
   { id: 'tts', emoji: '🔊', title: '២១. អានអត្ថបទ', description: 'វាយអត្ថបទ ហើយឱ្យកុំព្យូទ័រអានជាសំឡេង។', color: '#84CC16' }
 ];
 
-export default function LearningGames() {
+interface LearningGamesProps {
+  onBack?: () => void;
+}
+
+export default function LearningGames({ onBack }: LearningGamesProps) {
   const [activeGame, setActiveGame] = React.useState<string | null>(null);
 
   if (activeGame === 'timer') return <TimerGame onBack={() => setActiveGame(null)} />;
@@ -81,12 +85,20 @@ export default function LearningGames() {
   if (activeGame === 'score-table') return <ScoreTableGame onBack={() => setActiveGame(null)} />;
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen bg-slate-50/50">
-      <div className="text-center mb-10">
+    <div className={`p-4 md:p-8 max-w-7xl mx-auto min-h-screen ${onBack ? 'bg-transparent' : 'bg-slate-50/50'}`}>
+      <div className="text-center mb-10 relative">
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="absolute left-0 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-600"
+          >
+            <ArrowLeft size={24} />
+          </button>
+        )}
         <h1 className="text-3xl md:text-4xl font-black text-slate-800 mb-3 flex items-center justify-center gap-3">
           មជ្ឈមណ្ឌលល្បែងសិក្សា <Rocket className="text-blue-500" size={32} />
         </h1>
-        <p className="text-slate-500 font-medium">ជ្រើសរើសល្បែងខាងក្រោមដើម្បីចាប់ផ្តើមរៀន និងលេងយ៉ាងសប្បាយរីករាយ</p>
+        <p className="text-slate-500 font-medium">ល្បែងអប់រំ និងឧបករណ៍ជំនួយការបង្រៀនសម្រាប់គ្រូ</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
