@@ -5,13 +5,24 @@ interface MoneyGameProps {
   onBack: () => void;
 }
 
+// All Cambodian Riel banknotes in circulation (៥០ ដល់ ២០០០០០ រៀល). The `color`
+// is only a fallback block shown when the real photo (public/assets/money/N.jpg)
+// is missing; when the photo loads it covers the block.
 const NOTES = [
-  { value: 100, color: 'bg-orange-600', label: '១០០ ៛', image: '/assets/money/100.jpg' },
+  { value: 50, color: 'bg-lime-600', label: '៥០ ៛', image: '/assets/money/50.jpg' },
+  { value: 100, color: 'bg-red-500', label: '១០០ ៛', image: '/assets/money/100.jpg' },
+  { value: 200, color: 'bg-green-600', label: '២០០ ៛', image: '/assets/money/200.jpg' },
   { value: 500, color: 'bg-red-600', label: '៥០០ ៛', image: '/assets/money/500.jpg' },
-  { value: 1000, color: 'bg-blue-600', label: '១០០០ ៛', image: '/assets/money/1000.jpg' },
-  { value: 2000, color: 'bg-green-600', label: '២០០០ ៛', image: '/assets/money/2000.jpg' },
-  { value: 5000, color: 'bg-green-700', label: '៥០០០ ៛', image: '/assets/money/5000.jpg' },
+  { value: 1000, color: 'bg-indigo-600', label: '១០០០ ៛', image: '/assets/money/1000.jpg' },
+  { value: 2000, color: 'bg-emerald-600', label: '២០០០ ៛', image: '/assets/money/2000.jpg' },
+  { value: 5000, color: 'bg-amber-700', label: '៥០០០ ៛', image: '/assets/money/5000.jpg' },
   { value: 10000, color: 'bg-purple-600', label: '១០០០០ ៛', image: '/assets/money/10000.jpg' },
+  { value: 15000, color: 'bg-teal-600', label: '១៥០០០ ៛', image: '/assets/money/15000.jpg' },
+  { value: 20000, color: 'bg-blue-700', label: '២០០០០ ៛', image: '/assets/money/20000.jpg' },
+  { value: 30000, color: 'bg-orange-600', label: '៣០០០០ ៛', image: '/assets/money/30000.jpg' },
+  { value: 50000, color: 'bg-green-700', label: '៥០០០០ ៛', image: '/assets/money/50000.jpg' },
+  { value: 100000, color: 'bg-teal-700', label: '១០០០០០ ៛', image: '/assets/money/100000.jpg' },
+  { value: 200000, color: 'bg-fuchsia-700', label: '២០០០០០ ៛', image: '/assets/money/200000.jpg' },
 ];
 
 export default function MoneyGame({ onBack }: MoneyGameProps) {
@@ -42,16 +53,21 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
     setCurrentNotes(generatedNotes);
     setTargetTotal(total);
 
-    // Generate options
-    const opts = new Set([total]);
-    while (opts.size < 4) {
-      // Generate plausible wrong answers
-      const wrongBase = total + (Math.floor(Math.random() * 5) - 2) * 500;
-      if (wrongBase > 0 && wrongBase !== total) {
-        opts.add(wrongBase);
-      }
+    // Generate options. Wrong answers = "miscounted one of the notes in the pile"
+    // (total ± the value of a note that is actually shown), so distractors stay in
+    // scale whether the pile is tiny (៥០៛) or large (២០០០០០៛).
+    const noteValues = generatedNotes.map(n => n.value);
+    const opts = new Set<number>([total]);
+    let guard = 0;
+    while (opts.size < 4 && guard++ < 60) {
+      const v = noteValues[Math.floor(Math.random() * noteValues.length)];
+      const wrong = total + (Math.random() < 0.5 ? -v : v);
+      if (wrong > 0 && wrong !== total) opts.add(wrong);
     }
-    
+    // Rare fallback (e.g. a pile of two identical smallest notes) — top up to 4.
+    let pad = 1;
+    while (opts.size < 4) { const w = total + pad * 50; if (w > 0 && w !== total) opts.add(w); pad++; }
+
     setOptions(Array.from(opts).sort((a, b) => a - b));
     setSelectedOption(null);
     setIsCorrect(false);
