@@ -22,6 +22,11 @@ import MemoryGame from './games/MemoryGame';
 import FindPairsGame from './games/FindPairsGame';
 import GroupStudentsGame from './games/GroupStudentsGame';
 import ScoreTableGame from './games/ScoreTableGame';
+import CountingGame from './games/CountingGame';
+import CompareNumbersGame from './games/CompareNumbersGame';
+import SequenceGame from './games/SequenceGame';
+import PatternGame from './games/PatternGame';
+import ColorsGame from './games/ColorsGame';
 
 interface Game {
   id: string;
@@ -52,7 +57,12 @@ const GAMES: Game[] = [
   { id: 'whiteboard', emoji: '✏️', title: '១៨. ក្តារខៀនឌីជីថល', description: 'គូររូប និងសរសេរពន្យល់នៅលើក្តារខៀន។', color: '#EF4444' },
   { id: 'flashcards', emoji: '📇', title: '១៩. ប័ណ្ណពាក្យ', description: 'កាតពាក្យសម្រាប់ទន្ទេញមេរៀន។', color: '#06B6D4' },
   { id: 'find-pairs', emoji: '🔗', title: '២០. ស្វែងរកគូ', description: 'អូសខ្សែភ្ជាប់ពាក្យទៅនឹងរូបភាព។', color: '#EC4899' },
-  { id: 'tts', emoji: '🔊', title: '២១. អានអត្ថបទ', description: 'វាយអត្ថបទ ហើយឱ្យកុំព្យូទ័រអានជាសំឡេង។', color: '#84CC16' }
+  { id: 'tts', emoji: '🔊', title: '២១. អានអត្ថបទ', description: 'វាយអត្ថបទ ហើយឱ្យកុំព្យូទ័រអានជាសំឡេង។', color: '#84CC16' },
+  { id: 'counting', emoji: '🍎', title: '២២. រាប់ចំនួន', description: 'រាប់រូបភាព ហើយចុចលេខឱ្យបានត្រឹមត្រូវ។', color: '#EF4444' },
+  { id: 'compare-numbers', emoji: '⚖️', title: '២៣. ប្រៀបធៀបចំនួន', description: 'ជ្រើសសញ្ញា < = > សម្រាប់ចំនួនពីរ។', color: '#14B8A6' },
+  { id: 'sequence', emoji: '➡️', title: '២៤. បំពេញលេខបន្ត', description: 'រកលេខដែលបាត់ក្នុងលំដាប់លេខ។', color: '#8B5CF6' },
+  { id: 'pattern', emoji: '🔷', title: '២៥. លំនាំបន្ត', description: 'ទាយរូបភាពដែលនៅបន្ទាប់ក្នុងលំនាំ។', color: '#0EA5E9' },
+  { id: 'colors', emoji: '🎨', title: '២៦. ស្គាល់ពណ៌', description: 'មើលពណ៌ ហើយចុចឈ្មោះពណ៌ឱ្យត្រូវ។', color: '#EC4899' }
 ];
 
 interface LearningGamesProps {
@@ -83,6 +93,11 @@ export default function LearningGames({ onBack }: LearningGamesProps) {
   if (activeGame === 'find-pairs') return <FindPairsGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'group-students') return <GroupStudentsGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'score-table') return <ScoreTableGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'counting') return <CountingGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'compare-numbers') return <CompareNumbersGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'sequence') return <SequenceGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'pattern') return <PatternGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'colors') return <ColorsGame onBack={() => setActiveGame(null)} />;
 
   return (
     <div className={`p-4 md:p-8 max-w-7xl mx-auto min-h-screen ${onBack ? 'bg-transparent' : 'bg-slate-50/50'}`}>
@@ -110,7 +125,8 @@ export default function LearningGames({ onBack }: LearningGamesProps) {
                 'timer', 'randomizer', 'name-wheel', 'whiteboard', 
                 'fraction', 'fast-math', 'multiplication', 'guess-time', 'money', 'geometry', 'even-odd',
                 'match-word', 'sort-letters', 'word-wheel', 'guess-word', 'flashcards', 'tts',
-                'memory', 'find-pairs', 'group-students', 'score-table'
+                'memory', 'find-pairs', 'group-students', 'score-table',
+                'counting', 'compare-numbers', 'sequence', 'pattern', 'colors'
               ];
               if (availableGames.includes(game.id)) {
                 setActiveGame(game.id);
