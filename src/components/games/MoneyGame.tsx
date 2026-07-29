@@ -122,18 +122,17 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
             តើលុយទាំងអស់មានចំនួនប៉ុន្មាន?
           </h2>
 
-          <div className="relative mb-12 w-full h-48 flex items-center justify-center bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+          {/* Notes are laid out side by side (flex-wrap), not stacked, so pupils can
+              see every note and add them all up. A tiny tilt keeps it lively. */}
+          <div className="mb-12 w-full min-h-48 flex flex-wrap items-center justify-center gap-3 bg-slate-100 rounded-xl border border-slate-200 p-4">
             {currentNotes.map((note, idx) => (
-              <div 
+              <div
                 key={idx}
-                className={`absolute w-40 h-20 ${note.color} rounded-md shadow-md flex items-center justify-center border-2 border-white/20 overflow-hidden group`}
-                style={{ 
-                  transform: `translate(${note.x}px, ${note.y}px) rotate(${note.rot}deg)`,
-                  zIndex: idx 
-                }}
+                className={`relative w-28 sm:w-32 h-16 ${note.color} rounded-md shadow-md flex items-center justify-center border-2 border-white/20 overflow-hidden shrink-0`}
+                style={{ transform: `rotate(${note.rot * 0.25}deg)` }}
               >
-                <img 
-                  src={note.image} 
+                <img
+                  src={note.image}
                   alt={note.label}
                   className="absolute inset-0 w-full h-full object-cover z-10"
                   onError={(e) => {
@@ -142,7 +141,7 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
                   }}
                 />
                 <div className="w-full h-full m-1 border border-white/30 rounded flex items-center justify-center relative z-0">
-                  <span className="text-white font-bold text-xl drop-shadow-md">
+                  <span className="text-white font-bold text-sm sm:text-base drop-shadow-md">
                     {note.label}
                   </span>
                 </div>
