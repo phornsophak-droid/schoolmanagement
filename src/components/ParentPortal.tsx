@@ -237,7 +237,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   };
 
   const childRecords = useMemo(
-    () => classStudents.filter(s => s.name.trim() === childName),
+    () => classStudents.filter(s => normParentName(s.name) === normParentName(childName)),
     [classStudents, childName]
   );
   const anyRec = childRecords[0];
@@ -294,7 +294,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
       });
       const semAvgs = [semesterAvgOf(recs, 1), semesterAvgOf(recs, 2)].filter((v): v is number => v !== null && v !== undefined);
       const annualRaw = semAvgs.length ? semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length : null;
-      const ex = readAnnualExtra(g, childName);
+      const ex = readAnnualExtra(g, anyR.name.trim());
       const yearScore = annualRaw !== null ? annualRaw * 0.8 + 0.1 * ex.skills + 0.1 * ex.conduct : null;
       const yl = meritLetterOf(yearScore);
       if (yl) mOpts.push({ key: 'year', label: `${t('parent.annual')} (${yl})`, student: anyR, score: yearScore!, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` });
