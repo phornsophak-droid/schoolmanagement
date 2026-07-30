@@ -104,20 +104,24 @@ async function findRows(db: SupabaseClient, rawQuery: string): Promise<Row[]> {
     }
 
     // 3. Subsequence fallback — the parent may DROP or ADD a letter (e.g. type
-    // "វិៈបុត្រ" for the stored "វិរៈបុត្រ"), so no token is a clean substring.
-    // Fetch by the FIRST word (usually spelled right) then keep names where the
-    // whole typed query appears as a subsequence (same order, gaps allowed).
-    if (seen.size === 0 && tokens.length) {
+    // "វិៈបុត្រ" for the stored "វិរៈបុត្រ"), OR the general-class roster may spell
+    // the child's name differently from the separately-typed after-hours "GRADE"
+    // roster. Run whenever NO GENERAL class has matched yet (even if after-hours
+    // classes already did), so the child's main class still surfaces.
+    const hasGeneral = () => [...seen.values()].some(r => !isExtra(r.grade));
+    if (tokens.length && !hasGeneral()) {
       // Drop colon-like signs parents type interchangeably — yuukaleapintu ៈ
       // (U+17C8), camnuc-pii-kuuh ៖ (U+17D6), ASCII ":" and fullwidth "：" — plus
       // spaces, so "វិៈបុត្រ" and "វិរៈបុត្រ" compare on the letters alone.
       const bare = (s: string) => s.replace(/[ៈ៖:：\s]/g, '');
       const nq = bare(cleaned);
       const isSubseq = (a: string, b: string) => { let i = 0; for (let j = 0; j < b.length && i < a.length; j++) if (b[j] === a[i]) i++; return i === a.length; };
-      // Fetch by the first word's prefix so a mis-typed later letter still pulls
+      // Probe on the longest (most distinctive, usually the given-name) token —
+      // first 2 letters — so a letter difference elsewhere in the name still pulls
       // candidates, then keep bidirectional-subsequence matches.
-      const probe = tokens[0].slice(0, 3);
-      const { data } = await db.from('student_scores').select('name, grade, extra_data').ilike('name', `%${probe}%`).limit(500);
+      const probeTok = [...tokens].sort((a, b) => b.length - a.length)[0];
+      const probe = probeTok.slice(0, 2);
+      const { data } = await db.from('student_scores').select('name, grade, extra_data').ilike('name', `%${probe}%`).limit(800);
       add((data || []).filter((r: any) => { const nn = bare(String(r.name || '')); return nn.length >= 3 && (isSubseq(nq, nn) || isSubseq(nn, nq)); }));
     }
   }
