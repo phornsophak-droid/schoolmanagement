@@ -150,13 +150,31 @@ async function expandByStudentId(db: SupabaseClient, rows: Row[]): Promise<Row[]
 }
 
 function resolveChild(rows: Row[], query: string): { link?: Row[]; ambiguous?: Row[]; display?: string } {
+  if (rows.length === 0) return {};
   const base = baseName(query);
   const exact = rows.filter(r => baseName(r.name) === base);
-  const use = exact.length ? exact : rows;
-  if (use.length === 0) return {};
-  const generals = use.filter(r => !isExtra(r.grade));
-  if (generals.length > 1) return { ambiguous: generals };
-  return { link: use, display: stripTag((generals[0] || use[0]).name) };
+
+  // Distinct general-class children among ALL candidates (by base name). The
+  // English "GRADE" roster is often typed with a shortened family name (e.g.
+  // «គ ចិត្រា») while the general class has the full one («គង់ ចិត្រា»), so the
+  // names differ but the given name still matches the search.
+  const allGenerals = rows.filter(r => !isExtra(r.grade));
+  const generalNames = [...new Set(allGenerals.map(r => baseName(r.name)))];
+
+  // More than one different general-class child with this name → ask the parent.
+  if (generalNames.length > 1) return { ambiguous: allGenerals };
+
+  // When an exact name pins the child (usually via the GRADE roster), fold in the
+  // single general-class record too, even if its family name is spelled a little
+  // differently — that is the child's main class and parents expect to see it.
+  let use: Row[];
+  if (exact.length) use = generalNames.length === 1 ? [...exact, ...allGenerals] : exact;
+  else use = rows;
+
+  const seen = new Map<string, Row>();
+  for (const r of use) { const k = `${r.name}||${r.grade}`; if (!seen.has(k)) seen.set(k, r); }
+  const dedup = [...seen.values()];
+  return { link: dedup, display: stripTag((allGenerals[0] || dedup[0]).name) };
 }
 
 // Link a child from a typed name/ID (used by first-time onboarding and /link).
