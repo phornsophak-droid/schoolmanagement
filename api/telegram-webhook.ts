@@ -149,32 +149,33 @@ async function expandByStudentId(db: SupabaseClient, rows: Row[]): Promise<Row[]
   return [...merged.values()];
 }
 
+const dedupeRows = (list: Row[]): Row[] => {
+  const seen = new Map<string, Row>();
+  for (const r of list) { const k = `${r.name}||${r.grade}`; if (!seen.has(k)) seen.set(k, r); }
+  return [...seen.values()];
+};
+
 function resolveChild(rows: Row[], query: string): { link?: Row[]; ambiguous?: Row[]; display?: string } {
   if (rows.length === 0) return {};
   const base = baseName(query);
-  const exact = rows.filter(r => baseName(r.name) === base);
+  const generals = rows.filter(r => !isExtra(r.grade));
+  const extras = rows.filter(r => isExtra(r.grade));
+  const generalNames = [...new Set(generals.map(r => baseName(r.name)))];
 
-  // Distinct general-class children among ALL candidates (by base name). The
-  // English "GRADE" roster is often typed with a shortened family name (e.g.
-  // «គ ចិត្រា») while the general class has the full one («គង់ ចិត្រា»), so the
-  // names differ but the given name still matches the search.
-  const allGenerals = rows.filter(r => !isExtra(r.grade));
-  const generalNames = [...new Set(allGenerals.map(r => baseName(r.name)))];
+  // Several different general-class children share this name → let the parent pick.
+  if (generalNames.length > 1) return { ambiguous: generals };
 
-  // More than one different general-class child with this name → ask the parent.
-  if (generalNames.length > 1) return { ambiguous: allGenerals };
+  // The GENERAL class is the anchor (គោល) — the child's main class. Only when no
+  // general class can be found do we fall back to whatever after-hours class matched.
+  if (generals.length === 0) return { link: dedupeRows(rows), display: stripTag(rows[0].name) };
 
-  // When an exact name pins the child (usually via the GRADE roster), fold in the
-  // single general-class record too, even if its family name is spelled a little
-  // differently — that is the child's main class and parents expect to see it.
-  let use: Row[];
-  if (exact.length) use = generalNames.length === 1 ? [...exact, ...allGenerals] : exact;
-  else use = rows;
-
-  const seen = new Map<string, Row>();
-  for (const r of use) { const k = `${r.name}||${r.grade}`; if (!seen.has(k)) seen.set(k, r); }
-  const dedup = [...seen.values()];
-  return { link: dedup, display: stripTag((allGenerals[0] || dedup[0]).name) };
+  // Attach the child's after-hours classes to the general anchor: rows whose name
+  // matches what the parent typed, or the anchor's own name. The English "GRADE"
+  // roster is often a shortened spelling («គ ចិត្រា») of the same child whose
+  // general class is «គង់ ចិត្រា», so both spellings are treated as the same child.
+  const anchorBases = new Set(generals.map(r => baseName(r.name)));
+  const relatedExtras = extras.filter(r => baseName(r.name) === base || anchorBases.has(baseName(r.name)));
+  return { link: dedupeRows([...generals, ...relatedExtras]), display: stripTag(generals[0].name) };
 }
 
 // Link a child from a typed name/ID (used by first-time onboarding and /link).
