@@ -71,8 +71,6 @@ export default function WhiteboardGame({ onBack }: { onBack: () => void }) {
       clientY = (e as React.MouseEvent).clientY;
     }
 
-    ctx.lineTo(clientX - rect.left, clientY - top);
-    
     // I need to use `rect.top` correctly.
     ctx.lineTo(clientX - rect.left, clientY - rect.top);
     ctx.strokeStyle = isEraser ? '#ffffff' : color;

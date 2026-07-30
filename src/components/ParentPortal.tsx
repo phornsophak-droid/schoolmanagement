@@ -148,7 +148,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     
     setLoading(true);
     try {
-      let childRows;
+      let childRows: { grade: string }[] = [];
       try { childRows = await findChild(sess.name); } catch { childRows = []; }
       const gradesToFetch = childRows && childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade];
       
@@ -515,7 +515,30 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
                 >
                   {t('parent.search')}
                 </button>
-              </div>          {/* Step 3 - choose a report card */}
+              </div>
+              {nameError && <p className="text-xs text-rose-600 mt-2">{nameError}</p>}
+              {/* When several students match what was typed, let the parent pick */}
+              {nameMatches.length > 1 && (
+                <div className="mt-2 rounded-xl border border-slate-100 divide-y divide-slate-50">
+                  <p className="text-[11px] text-slate-500 px-3 py-1.5">{t('parent.manyMatches')}</p>
+                  {nameMatches.map(n => (
+                    <button
+                      key={n}
+                      onClick={() => { setChildName(n); setNameMatches([]); }}
+                      className="w-full text-left px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {childName && (
+                <p className="text-xs text-emerald-700 font-bold mt-2">✓ {t('parent.selected')} {childName}</p>
+              )}
+            </div>
+          )}
+
+          {/* Step 3 — choose a report card */}
           {childName && childRecords.length > 0 && (
             <div className="pt-1 space-y-4">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2 pb-2 border-b border-slate-100">
