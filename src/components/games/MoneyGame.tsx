@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Check, X } from 'lucide-react';
+import { ArrowLeft, Check, X, Clock, Trophy, Play, RotateCcw } from 'lucide-react';
+import { Leaderboard, refreshScoresFromCloud, submitScore } from '../../lib/gameScores';
 
 interface MoneyGameProps {
   onBack: () => void;
 }
+
+const DURATION = 60; // seconds per round
+const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
+const medal = (i: number) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${toKh(i + 1)}.`);
 
 // All Cambodian Riel banknotes in circulation (៥០ ដល់ ២០០០០០ រៀល). The `color`
 // is only a fallback block shown when the real photo (public/assets/money/N.jpg)
@@ -64,6 +69,13 @@ const BURST = Array.from({ length: 18 }, (_, i) => ({
 }));
 
 export default function MoneyGame({ onBack }: MoneyGameProps) {
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'over'>('intro');
+  const [name, setName] = useState('');
+  const [timeLeft, setTimeLeft] = useState(DURATION);
+  const [board, setBoard] = useState<Leaderboard>([]);
+  const [lastScore, setLastScore] = useState(0); // score shown on the "over" screen
+  const [myAt, setMyAt] = useState(0); // timestamp of this player's entry, to highlight it
+
   const [currentNotes, setCurrentNotes] = useState<{ value: number; color: string; label: string; image: string; x: number; y: number; rot: number }[]>([]);
   const [targetTotal, setTargetTotal] = useState(0);
   const [options, setOptions] = useState<number[]>([]);
@@ -71,6 +83,33 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
   const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
   const [showBurst, setShowBurst] = useState(false); // confetti on a correct answer
+
+  // Load the shared Top-Scorer board once, so it shows on the intro screen.
+  useEffect(() => { refreshScoresFromCloud('money').then(setBoard).catch(() => {}); }, []);
+
+  const playerName = () => (name.trim() || 'សិស្ស');
+
+  const startGame = () => {
+    setScore(0);
+    setTimeLeft(DURATION);
+    setPhase('playing');
+    generateProblem();
+  };
+
+  const endGame = (finalScore: number) => {
+    setLastScore(finalScore);
+    setPhase('over');
+    submitScore('money', playerName(), finalScore).then(r => { setBoard(r.board); setMyAt(r.entry.at); }).catch(() => {});
+  };
+
+  // Countdown while playing; end the round at zero.
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    if (timeLeft <= 0) { endGame(score); return; }
+    const id = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, timeLeft]);
 
   const generateProblem = () => {
     // Generate 2 to 5 random notes
@@ -112,13 +151,9 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
     setIsCorrect(false);
   };
 
-  useEffect(() => {
-    generateProblem();
-  }, []);
-
   const handleSelect = (opt: number) => {
-    if (selectedOption !== null) return;
-    
+    if (phase !== 'playing' || selectedOption !== null) return;
+
     setSelectedOption(opt);
     
     if (opt === targetTotal) {
@@ -153,9 +188,16 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
             <span>💵</span> ស្គាល់លុយរៀល
           </h1>
         </div>
-        <div className={`px-3 py-1 bg-green-100 text-green-700 font-bold rounded-full text-sm transition-transform ${showBurst ? 'scale-125' : 'scale-100'}`}>
-          ពិន្ទុ: {score}
-        </div>
+        {phase === 'playing' && (
+          <div className="flex items-center gap-2">
+            <div className={`px-3 py-1 font-bold rounded-full text-sm flex items-center gap-1 ${timeLeft <= 10 ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600'}`}>
+              <Clock size={14} /> {toKh(timeLeft)}វ
+            </div>
+            <div className={`px-3 py-1 bg-green-100 text-green-700 font-bold rounded-full text-sm transition-transform ${showBurst ? 'scale-125' : 'scale-100'}`}>
+              ពិន្ទុ: {toKh(score)}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Keyframes for the celebration confetti (self-contained, no global CSS). */}
@@ -174,6 +216,70 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
       `}</style>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4">
+
+        {/* INTRO — enter a name, start, and see the Top Scorer board. */}
+        {phase === 'intro' && (
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 max-w-lg w-full flex flex-col items-center text-center gap-4">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-4xl">💵</div>
+            <h2 className="text-2xl font-black text-slate-800">ស្គាល់លុយរៀល</h2>
+            <p className="text-slate-500 text-sm">បូកលុយឱ្យបានច្រើនបំផុត ក្នុងរយៈពេល {toKh(DURATION)} វិនាទី! ឆ្លើយត្រូវ +១ ពិន្ទុ។</p>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              maxLength={24}
+              placeholder="បញ្ចូលឈ្មោះរបស់អ្នក"
+              className="w-full px-4 py-3 text-center text-lg bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-green-500 text-slate-700"
+            />
+            <button onClick={startGame} className="w-full py-4 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 flex items-center justify-center gap-2 shadow-lg shadow-green-500/30 text-lg">
+              <Play size={22} fill="currentColor" /> ចាប់ផ្តើមលេង
+            </button>
+            <div className="w-full text-left mt-2">
+              <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5"><Trophy size={16} className="text-amber-500" /> តារាងជើងឯក (Top Scorer)</h3>
+              {board.length === 0 ? (
+                <p className="text-xs text-slate-400">មិនទាន់មានពិន្ទុ — ក្លាយជាអ្នកទី១!</p>
+              ) : (
+                <ol className="space-y-1">
+                  {board.map((e, i) => (
+                    <li key={i} className="flex items-center justify-between px-3 py-2 rounded-xl text-sm bg-slate-50">
+                      <span className="flex items-center gap-2"><span className="w-6 text-center">{medal(i)}</span><span className="font-bold text-slate-700">{e.name}</span></span>
+                      <span className="font-black text-green-600">{toKh(e.score)}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* OVER — final score + the Top Scorer board with this player highlighted. */}
+        {phase === 'over' && (
+          <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 max-w-lg w-full flex flex-col items-center text-center gap-3">
+            <div className="text-5xl">⏰</div>
+            <h2 className="text-2xl font-black text-slate-800">ចប់ម៉ោង!</h2>
+            <p className="text-slate-500 text-sm">ពិន្ទុរបស់ {playerName()}៖</p>
+            <div className="text-6xl font-black text-green-500">{toKh(lastScore)}</div>
+            <div className="w-full text-left mt-1">
+              <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-1.5"><Trophy size={16} className="text-amber-500" /> តារាងជើងឯក (Top Scorer)</h3>
+              <ol className="space-y-1">
+                {board.map((e, i) => {
+                  const mine = e.at === myAt;
+                  return (
+                    <li key={i} className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm ${mine ? 'bg-green-100 ring-1 ring-green-400' : 'bg-slate-50'}`}>
+                      <span className="flex items-center gap-2"><span className="w-6 text-center">{medal(i)}</span><span className="font-bold text-slate-700">{e.name}{mine ? ' (អ្នក)' : ''}</span></span>
+                      <span className="font-black text-green-600">{toKh(e.score)}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+            <button onClick={startGame} className="w-full py-4 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 flex items-center justify-center gap-2 shadow-lg shadow-green-500/30 text-lg mt-1">
+              <RotateCcw size={22} /> លេងម្តងទៀត
+            </button>
+          </div>
+        )}
+
+        {/* PLAYING — the actual round. */}
+        {phase === 'playing' && (
         <div className="relative overflow-hidden bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-slate-200 max-w-lg w-full flex flex-col items-center text-center">
 
           {/* Celebration overlay — confetti raining + a big "correct" badge. */}
@@ -266,6 +372,7 @@ export default function MoneyGame({ onBack }: MoneyGameProps) {
             })}
           </div>
         </div>
+        )}
       </main>
     </div>
   );
