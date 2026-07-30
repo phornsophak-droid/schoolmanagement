@@ -42,10 +42,10 @@ kvHydrate(PASS_KEY);
 kvHydrate(ACCT_KEY);
 
 // ── shared passcode ────────────────────────────────────────────────────────
-export function loadPasscode(): string { return kvReadSync<string>(PASS_KEY, '') || ''; }
+export function loadPasscode(): string { return kvReadSync<string>(PASS_KEY, 'ccc2026') || 'ccc2026'; }
 export async function getPasscode(): Promise<string> {
   await kvHydrate(PASS_KEY);
-  try { const v = await fetchSetting(PASS_KEY); if (typeof v === 'string') { await kvWrite(PASS_KEY, v); return v; } } catch { /* offline */ }
+  try { const v = await fetchSetting(PASS_KEY); if (typeof v === 'string' && v.trim() !== '') { await kvWrite(PASS_KEY, v); return v; } } catch { /* offline */ }
   return loadPasscode();
 }
 export async function setPasscode(code: string): Promise<void> {
