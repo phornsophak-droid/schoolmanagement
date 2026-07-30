@@ -142,6 +142,7 @@ import ReportDetail from './components/ReportDetail';
 import ReportsHub from './components/ReportsHub';
 import LoginPortal from './components/LoginPortal';
 import ParentPortal from './components/ParentPortal';
+import ParentPortalAdmin from './components/ParentPortalAdmin';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
 import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
@@ -3014,6 +3015,9 @@ export default function App() {
                   />
                 </div>
               </div>
+
+              {/* Parent Portal login admin — shared passcode + parent accounts */}
+              <ParentPortalAdmin />
 
               {/* Help tip */}
               <div className="mt-4 p-2.5 bg-slate-900/60 border border-slate-800/60 rounded-xl text-[9px] text-slate-400 leading-relaxed flex flex-col gap-1 text-left font-sans">

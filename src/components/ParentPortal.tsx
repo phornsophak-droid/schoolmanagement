@@ -20,6 +20,8 @@ import TimetableView from './TimetableView';
 import { Timetable, emptyTimetable, loadTimetable, isTimetableEmpty } from '../lib/timetable';
 import LearningGames from './LearningGames';
 import KhmerCalendar from './KhmerCalendar';
+import ParentLogin from './ParentLogin';
+import { ParentSession, loadSession, clearSession, changeParentPassword, normParentName } from '../lib/parentAuth';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 // Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
@@ -40,6 +42,30 @@ const isExtraClass = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade ||
 // Khmer school-year month order, for sorting the months a child has records in.
 const MONTH_ORDER = ['កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
 
+// Inline "change my password" box shown after login (parent sets a personal one).
+function ChangePasswordBox({ session, onDone }: { session: ParentSession; onDone: () => void }) {
+  const [p1, setP1] = useState('');
+  const [p2, setP2] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    if (p1.length < 4) { setMsg('លេខសម្ងាត់ត្រូវមានយ៉ាងតិច ៤ តួ។'); return; }
+    if (p1 !== p2) { setMsg('លេខសម្ងាត់មិនដូចគ្នា។'); return; }
+    setBusy(true);
+    try { await changeParentPassword({ name: session.name, grade: session.grade, studentId: session.studentId }, p1); setMsg('រក្សាទុករួច ✓'); setTimeout(onDone, 800); }
+    catch { setMsg('បរាជ័យ។ សូមព្យាយាមម្ដងទៀត។'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="mb-3 p-3 rounded-2xl bg-white border border-emerald-100 shadow-sm space-y-2">
+      <input type="password" value={p1} onChange={e => { setP1(e.target.value); setMsg(''); }} placeholder="លេខសម្ងាត់ថ្មី" className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-slate-700" />
+      <input type="password" value={p2} onChange={e => { setP2(e.target.value); setMsg(''); }} placeholder="បញ្ជាក់លេខសម្ងាត់ថ្មី" className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-slate-700" />
+      {msg && <p className="text-[11px] font-semibold text-slate-500">{msg}</p>}
+      <button onClick={save} disabled={busy} className="w-full py-2 text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl disabled:opacity-60">រក្សាទុក</button>
+    </div>
+  );
+}
+
 export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPortalProps) {
   const { t, lang } = useT();
   const [classCategory, setClassCategory] = useState<'general' | 'extra'>('general');
@@ -50,6 +76,10 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   const [timetable, setTimetable] = useState<Timetable>(emptyTimetable());
   // Mobile-Portal style: nothing is expanded until a tile is tapped.
   const [activePanel, setActivePanel] = useState<'results' | 'elibrary' | 'learning-games' | 'calendar' | null>(null);
+  // Parent login: the whole portal is gated. Once logged in, the view is scoped
+  // to this one child (their general class), so no class/name picker is shown.
+  const [session, setSession] = useState<ParentSession | null>(loadSession);
+  const [showChangePass, setShowChangePass] = useState(false);
   const [schoolElinks, setSchoolElinks] = useState<ELink[]>([]);
   useEffect(() => { fetchELinksFromCloud().then(setSchoolElinks).catch(() => {}); }, []);
   const [nameQuery, setNameQuery] = useState('');
@@ -103,6 +133,19 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     () => Array.from(new Set<string>(classStudents.map(s => s.name.trim()))).filter(Boolean).sort((a, b) => a.localeCompare(b, 'km')),
     [classStudents]
   );
+
+  // Logged-in scoping: load the child's class and open the results panel.
+  useEffect(() => {
+    if (session) { setActivePanel('results'); loadClass(session.grade); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.grade, session?.name]);
+  // Once the class is loaded, lock the child name to the logged-in child.
+  useEffect(() => {
+    if (session && classStudents.length && !childName) {
+      const m = classStudents.find(s => normParentName(s.name) === normParentName(session.name));
+      if (m) setChildName(m.name.trim());
+    }
+  }, [session, classStudents, childName]);
   // Parents type their child's name themselves (the class roster is never shown,
   // for privacy). Match the typed name against the class: exact first, then a
   // loose contains; show the few candidates only when several match.
@@ -231,6 +274,16 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     setClassStudents([]);
   };
 
+  // Gate the whole portal behind login.
+  if (!session) {
+    return <ParentLogin onBack={onBack} onLogin={(child) => setSession({ name: child.name, grade: child.grade, studentId: child.studentId })} />;
+  }
+
+  const logout = () => {
+    clearSession(); setSession(null); setActivePanel(null); setShowChangePass(false);
+    setGrade(''); setChildName(''); setNameQuery(''); setNameError(''); setNameMatches([]); setError(''); setClassStudents([]);
+  };
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_20%_15%,#E9FDF0,transparent_45%),radial-gradient(circle_at_80%_35%,#FEF9E7,transparent_55%),radial-gradient(circle_at_30%_85%,#ECFDF5,transparent_50%),#E4F4E9] flex flex-col items-center px-4 py-5">
       <div className="w-full max-w-md">
@@ -256,6 +309,15 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           <LanguageToggle className="border-white/25 text-white bg-white/15 hover:bg-white/25 shrink-0" />
         </div>
 
+        {/* Logged-in bar: which child, change password, and log out. */}
+        <div className="flex items-center justify-between gap-2 mb-3 px-3 py-2 rounded-2xl bg-white border border-emerald-100 shadow-sm">
+          <span className="text-xs font-bold text-slate-700 truncate">👦 {session.name.replace(/\s*\([^)]*\)\s*$/, '')} <span className="text-slate-400 font-semibold">· {session.grade}</span></span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button onClick={() => setShowChangePass(v => !v)} className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200">ប្តូរលេខសម្ងាត់</button>
+            <button onClick={logout} className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200">ចេញ</button>
+          </div>
+        </div>
+        {showChangePass && <ChangePasswordBox session={session} onDone={() => setShowChangePass(false)} />}
 
         {/* Mobile-Portal-style tiles — tapping one reveals its options below. */}
         <div className="grid grid-cols-2 gap-3">
@@ -353,8 +415,8 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
         {activePanel === 'results' && (
           <div className="mt-3 space-y-4">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-5 space-y-4">
-          {/* Step 1 — pick class */}
-          <div>
+          {/* Step 1 — pick class (hidden when scoped to the logged-in child) */}
+          {!session && <div>
             <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
               <GraduationCap size={14} className="text-emerald-600" /> {t('parent.selectClass')}
             </label>
@@ -380,7 +442,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
               <option value="">{t('parent.selectClassOpt')}</option>
               {filteredGrades.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
-          </div>
+          </div>}
 
           {loading && (
             <div className="flex items-center justify-center gap-2 py-6 text-slate-500 text-sm">
@@ -391,8 +453,8 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
             <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">{error}</p>
           )}
 
-          {/* Step 2 — parent types the child's name themselves (no roster shown) */}
-          {!loading && classStudents.length > 0 && (
+          {/* Step 2 — parent types the child's name (hidden when scoped to the logged-in child) */}
+          {!session && !loading && classStudents.length > 0 && (
             <div>
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
                 <Search size={14} className="text-emerald-600" /> {t('parent.typeName')}
