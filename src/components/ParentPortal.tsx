@@ -21,7 +21,7 @@ import { Timetable, emptyTimetable, loadTimetable, isTimetableEmpty } from '../l
 import LearningGames from './LearningGames';
 import KhmerCalendar from './KhmerCalendar';
 import ParentLogin from './ParentLogin';
-import { ParentSession, loadSession, clearSession, changeParentPassword, normParentName } from '../lib/parentAuth';
+import { ParentSession, loadSession, clearSession, changeParentPassword, normParentName, findChild } from '../lib/parentAuth';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 // Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
@@ -134,9 +134,45 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     [classStudents]
   );
 
-  // Logged-in scoping: load the child's class and open the results panel.
+  const loadSessionClasses = async (sess: ParentSession) => {
+    setGrade(sess.grade);
+    setChildName('');
+    setNameQuery('');
+    setNameError('');
+    setNameMatches([]);
+    setError('');
+    setClassStudents([]);
+    setTimetable(emptyTimetable());
+    
+    loadTimetable(sess.grade).then(setTimetable).catch(() => setTimetable(emptyTimetable()));
+    
+    setLoading(true);
+    try {
+      let childRows;
+      try { childRows = await findChild(sess.name); } catch { childRows = []; }
+      const gradesToFetch = childRows && childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade];
+      
+      gradesToFetch.forEach(g => {
+        fetchSetting(teacherSigKey(g))
+          .then(v => { if (v) { try { localStorage.setItem(teacherSigKey(g), v); } catch { /* ignore */ } } })
+          .catch(() => { /* offline */ });
+      });
+
+      const arrays = await Promise.all(gradesToFetch.map(g => fetchClassStudents(g)));
+      const combined = arrays.flat();
+      
+      setClassStudents(combined);
+      if (combined.length === 0) setError(t('parent.err.noClassData'));
+    } catch {
+      setError(t('parent.err.fetch'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Logged-in scoping: load the child's classes (general + extra) and open the results panel.
   useEffect(() => {
-    if (session) { setActivePanel('results'); loadClass(session.grade); }
+    if (session) { setActivePanel('results'); loadSessionClasses(session); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.grade, session?.name]);
   // Once the class is loaded, lock the child name to the logged-in child.
@@ -227,39 +263,45 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     [classStudents, childDob, anyRec]
   );
 
-  // Months this child has a (non-exam) report card for, in school-year order.
-  const monthsAvailable = useMemo(() => {
-    const months = Array.from(new Set<string>(childRecords.map(r => r.month)))
-      .filter(m => m && !m.startsWith('ប្រឡង'));
-    return months.sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
-  }, [childRecords]);
-
-  // Periods this child earned និទ្ទេស A or B in → a ប័ណ្ណសរសើរ (merit certificate)
-  // can be issued for each. Scores mirror the report cards: monthly overallAvg,
-  // semester = (exam + monthly)/2, year = 80% academic + skills + conduct.
-  const meritOptions = useMemo(() => {
-    if (!childName || !anyRec) return [] as { key: string; label: string; student: StudentScore; score: number; phrase: string }[];
-    const opts: { key: string; label: string; student: StudentScore; score: number; phrase: string }[] = [];
-    monthsAvailable.forEach(m => {
-      const rec = childRecords.find(r => r.month === m);
-      const score = rec?.overallAvg ?? null;
-      const l = meritLetterOf(score);
-      if (rec && l) opts.push({ key: `m-${m}`, label: `${t('parent.monthPrefix')}${t('month.' + m)} (${l})`, student: rec, score: score!, phrase: `ប្រចាំខែ${m} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+  // Group records by grade so we can show results for general AND extra classes.
+  const gradesData = useMemo(() => {
+    if (!childName) return [];
+    
+    const byGrade = new Map<string, StudentScore[]>();
+    childRecords.forEach(r => {
+      const arr = byGrade.get(r.grade) || [];
+      arr.push(r);
+      byGrade.set(r.grade, arr);
     });
-    ([1, 2] as const).forEach(sem => {
-      const score = semesterAvgOf(childRecords, sem);
-      const l = meritLetterOf(score);
-      if (l) opts.push({ key: `s-${sem}`, label: `${t('parent.sem' + sem)} (${l})`, student: anyRec, score: score!, phrase: `ប្រចាំ​ឆមាសទី ${toKh(sem)} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+    
+    return Array.from(byGrade.entries()).map(([g, recs]) => {
+      const anyR = recs[0];
+      const months = Array.from(new Set<string>(recs.map(r => r.month)))
+        .filter(m => m && !m.startsWith('ប្រឡង'))
+        .sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
+        
+      const mOpts: { key: string; label: string; student: StudentScore; score: number; phrase: string }[] = [];
+      months.forEach(m => {
+        const rec = recs.find(r => r.month === m);
+        const score = rec?.overallAvg ?? null;
+        const l = meritLetterOf(score);
+        if (rec && l) mOpts.push({ key: `m-${m}`, label: `${t('parent.monthPrefix')}${t('month.' + m)} (${l})`, student: rec, score: score!, phrase: `ប្រចាំខែ${m} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+      });
+      ([1, 2] as const).forEach(sem => {
+        const score = semesterAvgOf(recs, sem);
+        const l = meritLetterOf(score);
+        if (l) mOpts.push({ key: `s-${sem}`, label: `${t('parent.sem' + sem)} (${l})`, student: anyR, score: score!, phrase: `ប្រចាំ​ឆមាសទី ${toKh(sem)} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+      });
+      const semAvgs = [semesterAvgOf(recs, 1), semesterAvgOf(recs, 2)].filter((v): v is number => v !== null && v !== undefined);
+      const annualRaw = semAvgs.length ? semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length : null;
+      const ex = readAnnualExtra(g, childName);
+      const yearScore = annualRaw !== null ? annualRaw * 0.8 + 0.1 * ex.skills + 0.1 * ex.conduct : null;
+      const yl = meritLetterOf(yearScore);
+      if (yl) mOpts.push({ key: 'year', label: `${t('parent.annual')} (${yl})`, student: anyR, score: yearScore!, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` });
+      
+      return { grade: g, records: recs, anyRec: anyR, monthsAvailable: months, meritOptions: mOpts };
     });
-    const semAvgs = [semesterAvgOf(childRecords, 1), semesterAvgOf(childRecords, 2)].filter((v): v is number => v !== null && v !== undefined);
-    const annualRaw = semAvgs.length ? semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length : null;
-    const ex = readAnnualExtra(anyRec.grade, childName);
-    const yearScore = annualRaw !== null ? annualRaw * 0.8 + 0.1 * ex.skills + 0.1 * ex.conduct : null;
-    const yl = meritLetterOf(yearScore);
-    if (yl) opts.push({ key: 'year', label: `${t('parent.annual')} (${yl})`, student: anyRec, score: yearScore!, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` });
-    return opts;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [childName, anyRec, childRecords, monthsAvailable, lang]);
+  }, [childRecords, childName, lang, t]);
 
   const filteredGrades = useMemo(() => grades.filter(g => classCategory === 'extra' ? isExtraClass(g) : !isExtraClass(g)), [grades, classCategory]);
 
@@ -473,81 +515,66 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
                 >
                   {t('parent.search')}
                 </button>
-              </div>
-              {nameError && <p className="text-xs text-rose-600 mt-2">{nameError}</p>}
-              {/* When several students match what was typed, let the parent pick */}
-              {nameMatches.length > 1 && (
-                <div className="mt-2 rounded-xl border border-slate-100 divide-y divide-slate-50">
-                  <p className="text-[11px] text-slate-500 px-3 py-1.5">{t('parent.manyMatches')}</p>
-                  {nameMatches.map(n => (
-                    <button
-                      key={n}
-                      onClick={() => { setChildName(n); setNameMatches([]); }}
-                      className="w-full text-left px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {childName && (
-                <p className="text-xs text-emerald-700 font-bold mt-2">✓ {t('parent.selected')} {childName}</p>
-              )}
-            </div>
-          )}
-
-          {/* Step 3 — choose a report card */}
-          {childName && anyRec && (
-            <div className="pt-1">
-              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
+              </div>          {/* Step 3 - choose a report card */}
+          {childName && childRecords.length > 0 && (
+            <div className="pt-1 space-y-4">
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2 pb-2 border-b border-slate-100">
                 <FileText size={14} className="text-emerald-600" /> {t('parent.pickReport')}
               </label>
-
-              {/* Monthly */}
-              {monthsAvailable.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-[11px] text-slate-500 font-semibold mb-1.5">{t('parent.monthly')}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {monthsAvailable.map(m => (
-                      <button
-                        key={m}
-                        onClick={() => setMonthlyRec(childRecords.find(r => r.month === m) || null)}
-                        className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold transition-colors"
-                      >
-                        {t('parent.monthPrefix')}{t('month.' + m)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Semester & annual */}
-              <p className="text-[11px] text-slate-500 font-semibold mb-1.5">{t('parent.semAnnual')}</p>
-              <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => setSemCard({ student: anyRec, period: 1 })} className="px-3 py-1.5 bg-violet-50 text-violet-700 hover:bg-violet-100 rounded-lg text-xs font-semibold transition-colors">{t('parent.sem1')}</button>
-                <button onClick={() => setSemCard({ student: anyRec, period: 2 })} className="px-3 py-1.5 bg-violet-50 text-violet-700 hover:bg-violet-100 rounded-lg text-xs font-semibold transition-colors">{t('parent.sem2')}</button>
-                <button onClick={() => setSemCard({ student: anyRec, period: 'year' })} className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors">{t('parent.annual')}</button>
-              </div>
-
-              {/* Merit certificate — only for periods the child earned និទ្ទេស A/B */}
-              {meritOptions.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-slate-100">
-                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
-                    <Award size={14} className="text-amber-500" /> {t('parent.merit')}
+              
+              {gradesData.map((gd, idx) => (
+                <div key={gd.grade} className={idx > 0 ? "pt-3 border-t border-slate-100" : ""}>
+                  <label className="text-[13px] font-extrabold text-slate-800 flex items-center gap-1.5 mb-2.5">
+                    <GraduationCap size={15} className="text-emerald-600" /> ថ្នាក់ {gd.grade}
                   </label>
+
+                  {/* Monthly */}
+                  {gd.monthsAvailable.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-[11px] text-slate-500 font-semibold mb-1.5">{t('parent.monthly')}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {gd.monthsAvailable.map(m => (
+                          <button
+                            key={m}
+                            onClick={() => setMonthlyRec(gd.records.find(r => r.month === m) || null)}
+                            className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold transition-colors shadow-sm"
+                          >
+                            {t('parent.monthPrefix')}{t('month.' + m)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Semester & annual */}
+                  <p className="text-[11px] text-slate-500 font-semibold mb-1.5">{t('parent.semAnnual')}</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {meritOptions.map(o => (
-                      <button
-                        key={o.key}
-                        onClick={() => setMeritCard({ student: o.student, score: o.score, phrase: o.phrase })}
-                        className="px-3 py-1.5 bg-gradient-to-br from-amber-100 to-yellow-100 text-amber-800 hover:from-amber-200 hover:to-yellow-200 border border-amber-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
-                      >
-                        🏅 {o.label}
-                      </button>
-                    ))}
+                    <button onClick={() => setSemCard({ student: gd.anyRec, period: 1 })} className="px-3 py-1.5 bg-violet-50 text-violet-700 hover:bg-violet-100 rounded-lg text-xs font-semibold transition-colors shadow-sm">{t('parent.sem1')}</button>
+                    <button onClick={() => setSemCard({ student: gd.anyRec, period: 2 })} className="px-3 py-1.5 bg-violet-50 text-violet-700 hover:bg-violet-100 rounded-lg text-xs font-semibold transition-colors shadow-sm">{t('parent.sem2')}</button>
+                    <button onClick={() => setSemCard({ student: gd.anyRec, period: 'year' })} className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors shadow-sm">{t('parent.annual')}</button>
                   </div>
+
+                  {/* Merit certificate */}
+                  {gd.meritOptions.length > 0 && (
+                    <div className="mt-3 pt-2.5 border-t border-slate-50">
+                      <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-2">
+                        <Award size={14} className="text-amber-500" /> {t('parent.merit')}
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {gd.meritOptions.map(o => (
+                          <button
+                            key={o.key}
+                            onClick={() => setMeritCard({ student: o.student, score: o.score, phrase: o.phrase })}
+                            className="px-3 py-1.5 bg-gradient-to-br from-amber-100 to-yellow-100 text-amber-800 hover:from-amber-200 hover:to-yellow-200 border border-amber-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 shadow-sm"
+                          >
+                            🏅 {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>
