@@ -133,6 +133,22 @@ async function linkMany(db: SupabaseClient, chatId: number, rows: Row[]) {
   );
 }
 
+// Pull in every class of the SAME child by អត្តលេខ (studentId), even when the name
+// is spelled differently across rosters (the general class vs the separately-typed
+// English "GRADE" class). Only runs when a studentId is present; otherwise the rows
+// are returned unchanged. Deduped by name+grade (one entry per class).
+async function expandByStudentId(db: SupabaseClient, rows: Row[]): Promise<Row[]> {
+  const merged = new Map<string, Row>();
+  const put = (r: Row) => { const k = `${r.name}||${r.grade}`; if (!merged.has(k)) merged.set(k, r); };
+  rows.forEach(put);
+  const ids = [...new Set(rows.map(r => r.studentId).filter((x): x is string => !!x && x.trim().length >= 1))];
+  if (ids.length) {
+    const { data } = await db.from('student_scores').select('name, grade, extra_data').in('extra_data->>studentId', ids).limit(500);
+    for (const r of (data || []) as any[]) put({ name: r.name, grade: r.grade, studentId: r.extra_data?.studentId });
+  }
+  return [...merged.values()];
+}
+
 function resolveChild(rows: Row[], query: string): { link?: Row[]; ambiguous?: Row[]; display?: string } {
   const base = baseName(query);
   const exact = rows.filter(r => baseName(r.name) === base);
@@ -150,9 +166,10 @@ async function handleLink(db: SupabaseClient, chatId: number, query: string) {
     const opts = ambiguous.map(r => `• ${stripTag(r.name)} | ${r.grade}`).join('\n');
     await sendMessage(chatId, `មានសិស្សច្រើននាក់ឈ្មោះស្រដៀងគ្នា។ សូមជ្រើសថ្នាក់ចំណេះទូទៅរបស់កូនអ្នក តាមទម្រង់ <b>ឈ្មោះ | ថ្នាក់</b>៖\n${opts}`);
   } else if (link && link.length) {
-    await linkMany(db, chatId, link);
-    const list = link.map(r => `• ${r.grade}`).join('\n');
-    await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${display}</b> — គ្រប់ថ្នាក់ (${link.length})៖\n${list}\n\nឥឡូវអ្នកអាចសួរសំណួរអំពីកូន (ឧ. «អវត្តមានប៉ុន្មានដង?»)។`);
+    const full = await expandByStudentId(db, link);
+    await linkMany(db, chatId, full);
+    const list = full.map(r => `• ${r.grade}`).join('\n');
+    await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${display}</b> — គ្រប់ថ្នាក់ (${full.length})៖\n${list}\n\nឥឡូវអ្នកអាចសួរសំណួរអំពីកូន (ឧ. «អវត្តមានប៉ុន្មានដង?»)។`);
   } else {
     await sendMessage(chatId,
       `រកមិនឃើញសិស្សឈ្មោះ ឬអត្តលេខ "<b>${query}</b>" ទេ។\n\n` +
@@ -291,7 +308,12 @@ export default async function handler(req: Req, res: Res) {
     if (text.includes('|')) {
       const [nm, gr] = text.split('|').map(s => s.trim());
       const match = (await findRows(db, nm)).find(r => r.grade === gr && baseName(r.name) === baseName(nm));
-      if (match) { await linkMany(db, chatId, [match]); await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${stripTag(match.name)}</b> (${match.grade})។`); }
+      if (match) {
+        const full = await expandByStudentId(db, [match]);
+        await linkMany(db, chatId, full);
+        const list = full.map(r => `• ${r.grade}`).join('\n');
+        await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${stripTag(match.name)}</b> — គ្រប់ថ្នាក់ (${full.length})៖\n${list}`);
+      }
       else await sendMessage(chatId, 'រកមិនឃើញ។ សូមផ្ញើឈ្មោះ ឬអត្តលេខរបស់កូនម្ដងទៀត។');
       res.status(200).json({ ok: true }); return;
     }
