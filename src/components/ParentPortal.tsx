@@ -21,7 +21,7 @@ import { Timetable, emptyTimetable, loadTimetable, isTimetableEmpty } from '../l
 import LearningGames from './LearningGames';
 import KhmerCalendar from './KhmerCalendar';
 import ParentLogin from './ParentLogin';
-import { ParentSession, loadSession, clearSession, changeParentPassword, normParentName, findChild } from '../lib/parentAuth';
+import { ParentSession, ChildRow, loadSession, clearSession, changeParentPassword, normParentName, findChildClasses } from '../lib/parentAuth';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 // Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
@@ -80,6 +80,9 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   // to this one child (their general class), so no class/name picker is shown.
   const [session, setSession] = useState<ParentSession | null>(loadSession);
   const [showChangePass, setShowChangePass] = useState(false);
+  // The exact (grade||name) of every class the logged-in child studies, from
+  // findChild — used to gather their records across ALL classes (general + extra).
+  const [childClassKeys, setChildClassKeys] = useState<Set<string>>(new Set());
   const [schoolElinks, setSchoolElinks] = useState<ELink[]>([]);
   useEffect(() => { fetchELinksFromCloud().then(setSchoolElinks).catch(() => {}); }, []);
   const [nameQuery, setNameQuery] = useState('');
@@ -148,9 +151,12 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     
     setLoading(true);
     try {
-      let childRows: { grade: string }[] = [];
-      try { childRows = await findChild(sess.name); } catch { childRows = []; }
-      const gradesToFetch = childRows && childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade];
+      let childRows: ChildRow[] = [];
+      try { childRows = await findChildClasses({ name: sess.name, studentId: sess.studentId }); } catch { childRows = []; }
+      // Remember which exact rows belong to this child, so we can pull their records
+      // from EVERY class (general + after-hours), not just the general one.
+      setChildClassKeys(new Set(childRows.map(r => `${r.grade}||${r.name.trim()}`)));
+      const gradesToFetch = childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade];
       
       gradesToFetch.forEach(g => {
         fetchSetting(teacherSigKey(g))
@@ -175,11 +181,12 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     if (session) { setActivePanel('results'); loadSessionClasses(session); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.grade, session?.name]);
-  // Once the class is loaded, lock the child name to the logged-in child.
+  // Once the class is loaded, lock the child name to the logged-in child (fall back
+  // to the session name if the general row isn't among the fetched classes).
   useEffect(() => {
     if (session && classStudents.length && !childName) {
       const m = classStudents.find(s => normParentName(s.name) === normParentName(session.name));
-      if (m) setChildName(m.name.trim());
+      setChildName(m ? m.name.trim() : session.name);
     }
   }, [session, classStudents, childName]);
   // Parents type their child's name themselves (the class roster is never shown,
@@ -236,10 +243,14 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     setNameMatches(result);
   };
 
-  const childRecords = useMemo(
-    () => classStudents.filter(s => normParentName(s.name) === normParentName(childName)),
-    [classStudents, childName]
-  );
+  // Logged in: the child's records across ALL their classes (matched by the exact
+  // grade+name pairs from findChild). Otherwise (manual lookup): match by name.
+  const childRecords = useMemo(() => {
+    if (session && childClassKeys.size) {
+      return classStudents.filter(s => childClassKeys.has(`${s.grade}||${s.name.trim()}`));
+    }
+    return classStudents.filter(s => normParentName(s.name) === normParentName(childName));
+  }, [classStudents, childName, session, childClassKeys]);
   const anyRec = childRecords[0];
 
   // After-hours classes load only their own rows, but the date of birth lives on
@@ -323,7 +334,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
 
   const logout = () => {
     clearSession(); setSession(null); setActivePanel(null); setShowChangePass(false);
-    setGrade(''); setChildName(''); setNameQuery(''); setNameError(''); setNameMatches([]); setError(''); setClassStudents([]);
+    setGrade(''); setChildName(''); setNameQuery(''); setNameError(''); setNameMatches([]); setError(''); setClassStudents([]); setChildClassKeys(new Set());
   };
 
   return (

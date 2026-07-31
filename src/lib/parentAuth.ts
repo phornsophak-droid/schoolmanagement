@@ -108,6 +108,26 @@ export async function findChild(nameTyped: string): Promise<ChildRow[]> {
   return [...seen.values()];
 }
 
+// Every class a child studies. Combines name matches (findChild) with a studentId
+// match, so an after-hours class spelled differently from the general one still
+// joins (the same link the Telegram bot uses). Deduped by grade+name.
+export async function findChildClasses(sess: { name: string; studentId?: string }): Promise<ChildRow[]> {
+  const seen = new Map<string, ChildRow>();
+  const put = (r: ChildRow) => { const k = `${r.grade}||${(r.name || '').trim()}`; if (!seen.has(k)) seen.set(k, r); };
+  try { (await findChild(sess.name)).forEach(put); } catch { /* offline */ }
+  const sid = (sess.studentId || '').trim();
+  if (sid) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        const { data } = await supabase.from('student_scores').select('name, grade, extra_data').eq('extra_data->>studentId', sid).limit(500);
+        for (const r of (data || []) as any[]) put({ name: r.name, grade: r.grade, studentId: r.extra_data?.studentId });
+      } catch { /* offline */ }
+    }
+  }
+  return [...seen.values()];
+}
+
 // Pick the single GENERAL-class child (the anchor). Several distinct general-class
 // names → ambiguous, let the parent be more specific.
 export function resolveGeneral(rows: ChildRow[]): { child?: ChildRow; ambiguous?: ChildRow[] } {
