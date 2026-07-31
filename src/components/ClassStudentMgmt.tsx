@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -26,6 +26,7 @@ import { StudentScore, SchoolUser, afterHoursSubject } from '../types';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
 import { distinctStudentKey, findPhantomGrades, baseStudentName } from '../utils/studentKey';
 import { syncUpsertSetting } from '../lib/supabase';
+import { ParentAccounts, ParentAccount, childKey, refreshAccounts } from '../lib/parentAuth';
 import { formatDobKh as formatDobKhShared } from '../utils/khmerDate';
 import { useT } from '../i18n';
 import * as XLSX from 'xlsx';
@@ -129,7 +130,16 @@ export default function ClassStudentMgmt({
   // Teacher access scope. A general teacher is locked to their one class; an
   // after-hours teacher (e.g. English) may pick among their subject's sections.
   const isTeacher = currentUser?.role === 'teacher';
+  const isPrincipal = currentUser?.role === 'principal';
   const isExtraTeacher = isTeacher && isExtraClass(currentUser!.grade || '');
+
+  // Parent Portal passwords (principal-only column in the roster). Loaded from the
+  // shared parent_portal_accounts KV; reflects whatever a guardian last set.
+  const [parentAccounts, setParentAccounts] = useState<ParentAccounts>({});
+  const [revealParentPass, setRevealParentPass] = useState(false);
+  useEffect(() => { if (isPrincipal) refreshAccounts().then(setParentAccounts).catch(() => {}); }, [isPrincipal]);
+  const parentAcctOf = (p: StudentScore): ParentAccount | undefined =>
+    parentAccounts[childKey(p.name, p.grade, (p as any).studentId || resolvedId(p))];
   const teacherGradeOptions = isExtraTeacher
     ? grades.filter(g => afterHoursSubject(g) === afterHoursSubject(currentUser!.grade))
     : (isTeacher ? [currentUser!.grade] : []);
@@ -1845,6 +1855,13 @@ export default function ClassStudentMgmt({
                           <th className="px-4 py-3 text-center">{t('cls.col.class')}</th>
                           {classCategory === 'extra' && <th className="px-4 py-3 text-center">{t('cls.col.group')}</th>}
                           <th className="px-4 py-3 text-center whitespace-nowrap">ថ្ងៃខែឆ្នាំកំណើត</th>
+                          {isPrincipal && (
+                            <th className="px-4 py-3 text-center whitespace-nowrap">
+                              <button onClick={() => setRevealParentPass(v => !v)} className="inline-flex items-center gap-1 hover:text-slate-700" title="បង្ហាញ/លាក់លេខសម្ងាត់មាតាបិតា">
+                                លេខសម្ងាត់មាតាបិតា {revealParentPass ? '🙈' : '👁'}
+                              </button>
+                            </th>
+                          )}
                           <th className="px-4 py-3 text-center">{t('cls.col.status')}</th>
                           <th className="px-4 py-3 text-right">{t('common.action')}</th>
                         </tr>
@@ -1877,6 +1894,16 @@ export default function ClassStudentMgmt({
                                   </td>
                                 )}
                                 <td className="px-4 py-3 text-center text-slate-600 whitespace-nowrap">{resolvedDob(p) ? formatDobKh(resolvedDob(p)) : <span className="text-slate-300">-</span>}</td>
+                                {isPrincipal && (
+                                  <td className="px-4 py-3 text-center whitespace-nowrap font-sans">
+                                    {(() => {
+                                      const acct = parentAcctOf(p);
+                                      return acct
+                                        ? <span className="font-bold text-slate-700">{revealParentPass ? acct.password : '••••••'}</span>
+                                        : <span className="text-slate-300 text-[10px]">មិនទាន់ចូល</span>;
+                                    })()}
+                                  </td>
+                                )}
                                 <td className="px-4 py-3 text-center">
                                   {p.status === 'រៀនយឺត' ? (
                                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 border border-amber-105 text-amber-700">
@@ -1920,7 +1947,7 @@ export default function ClassStudentMgmt({
                           })
                         ) : (
                           <tr>
-                            <td colSpan={classCategory === 'extra' ? 9 : 8} className="px-4 py-12 text-center text-slate-400 font-medium">
+                            <td colSpan={(classCategory === 'extra' ? 9 : 8) + (isPrincipal ? 1 : 0)} className="px-4 py-12 text-center text-slate-400 font-medium">
                               <AlertTriangle size={32} className="mx-auto text-amber-500 mb-2" />
                               គ្មានគណនីសិស្សដែលស្វែងរកក្នុង {selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : 'ប្រព័ន្ធ'} ឡើយ។
                             </td>
