@@ -399,6 +399,16 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
         </div>
         {showChangePass && <ChangePasswordBox session={session} onDone={() => setShowChangePass(false)} />}
 
+        {/* TEMP DEBUG — remove after diagnosing missing classes. */}
+        <div className="mb-3 p-2 bg-yellow-50 border border-yellow-400 rounded-xl text-[9px] leading-snug text-slate-800 break-words">
+          <b>🐞 DEBUG</b><br />
+          session: {session.name} · {session.grade} · id:{session.studentId || '(គ្មាន)'}<br />
+          active grades ({grades.length}): {grades.join(' | ')}<br />
+          childKeys ({childClassKeys.size}): {[...childClassKeys].join('  ,  ') || '(ទទេ)'}<br />
+          fetched: {[...new Set(classStudents.map(s => s.grade))].join(' | ') || '(ទទេ)'}<br />
+          record grades: {[...new Set(childRecords.map(s => s.grade))].join(' | ') || '(ទទេ)'}
+        </div>
+
         {/* Mobile-Portal-style tiles — tapping one reveals its options below. */}
         <div className="grid grid-cols-2 gap-3">
           <button
