@@ -24,13 +24,11 @@ import ParentLogin from './ParentLogin';
 import { ParentSession, ChildRow, loadSession, clearSession, changeParentPassword, normParentName, findChildClasses, stripSubjectTag } from '../lib/parentAuth';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
-// Normalize a class name for comparison so "GRADE 3" matches even if the stored
-// grade and the class-list entry differ by invisible characters, spacing or case.
-const normGrade = (g: string) => (g || '')
-  .replace(/[\u200B-\u200F\u2028\u2029\u202A-\u202E\u2060\uFEFF\u00A0]/g, '')
-  .replace(/\s+/g, ' ')
-  .trim()
-  .toUpperCase();
+// Normalize a class name for comparison \u2014 keep ONLY letters/digits (Latin + Khmer),
+// dropping every space, invisible character and punctuation. So "GRADE 6", "GRADE 6"
+// with a hidden zero-width char, or "GRADE6" all compare equal, and an active class
+// is never dropped from a child's results over an unseen character difference.
+const normGrade = (g: string) => (g || '').toUpperCase().replace(/[^0-9A-Z\u1780-\u17FF]/g, '');
 // Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
 const meritLetterOf = (v: number | null | undefined): '' | 'A' | 'B' =>
   (v == null || v <= 0) ? '' : v >= 9 ? 'A' : v >= 8 ? 'B' : '';
@@ -403,9 +401,9 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
         </div>
         {showChangePass && <ChangePasswordBox session={session} onDone={() => setShowChangePass(false)} />}
 
-        {/* TEMP DEBUG v9 — remove after diagnosing missing GRADE. */}
+        {/* TEMP DEBUG v10 — remove after diagnosing missing GRADE. */}
         <div className="mb-3 p-2 bg-yellow-50 border border-yellow-400 rounded-xl text-[9px] leading-snug text-slate-800 break-words">
-          <b>🐞 DEBUG v9</b><br />
+          <b>🐞 DEBUG v10</b><br />
           session: {session.name} · {session.grade} · id:{session.studentId || '(គ្មាន)'}<br />
           childKeys ({childClassKeys.size}): {[...childClassKeys].join('  ,  ') || '(ទទេ)'}<br />
           GRADE in keys? {[...childClassKeys].some(k => /grade/i.test(k)) ? 'YES' : 'NO'}<br />
