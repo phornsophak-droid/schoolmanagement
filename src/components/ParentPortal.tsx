@@ -8,7 +8,7 @@ import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award, ExternalLin
 import { CURATED_ELIBRARY, fetchELinksFromCloud, ELink } from '../lib/library';
 import { useT, LanguageToggle } from '../i18n';
 import { StudentScore } from '../types';
-import { fetchClassStudents, fetchSetting, fetchStudentDobByName } from '../lib/supabase';
+import { fetchClassStudents, fetchSetting, fetchStudentDobByName, fetchGradesList } from '../lib/supabase';
 import { semesterAvgOf, readAnnualExtra } from '../utils/scoring';
 import SchoolLogo from './SchoolLogo';
 import { PRINCIPAL_SIG_KEY } from './PrincipalSignature';
@@ -88,6 +88,9 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   // The exact (grade||name) rows that belong to the logged-in child, from
   // findChildClasses (fuzzy name + studentId) — used to gather their records.
   const [childClassKeys, setChildClassKeys] = useState<Set<string>>(new Set());
+  // The real active class list from the cloud (school_grades). Parents have no cached
+  // custom grades, so without this the default list would drop "GRADE n" classes.
+  const [cloudGrades, setCloudGrades] = useState<string[]>([]);
   const [schoolElinks, setSchoolElinks] = useState<ELink[]>([]);
   useEffect(() => { fetchELinksFromCloud().then(setSchoolElinks).catch(() => {}); }, []);
   const [nameQuery, setNameQuery] = useState('');
@@ -159,9 +162,12 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
       let childRows: ChildRow[] = [];
       try { childRows = await findChildClasses({ name: sess.name, studentId: sess.studentId }); } catch { childRows = []; }
       setChildClassKeys(new Set(childRows.map(r => `${r.grade}||${r.name.trim()}`)));
-      // Only classes that STILL EXIST in the app. Deleted classes can leave orphaned
-      // student_scores rows behind — skip those so a removed class never resurfaces.
-      const activeSet = new Set(grades.map(normGrade));
+      // Only classes that STILL EXIST in the app. Read the real active list from the
+      // cloud (parents have no cached custom grades, so the default prop would drop
+      // "GRADE n" classes). Deleted classes leave orphaned rows we must skip.
+      let activeList = grades;
+      try { const g = await fetchGradesList(); if (g.length) { activeList = g; setCloudGrades(g); } } catch { /* offline — use prop */ }
+      const activeSet = new Set(activeList.map(normGrade));
       let gradesToFetch = (childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade])
         .filter(g => activeSet.has(normGrade(g)));
       if (gradesToFetch.length === 0 && activeSet.has(normGrade(sess.grade))) gradesToFetch = [sess.grade];
@@ -256,7 +262,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   // (and their classes) are never pulled in, and every month of a real class is
   // kept even if a monthly row's name has a minor variation. Otherwise (manual
   // lookup): match by name.
-  const activeGradeSet = useMemo(() => new Set(grades.map(normGrade)), [grades]);
+  const activeGradeSet = useMemo(() => new Set((cloudGrades.length ? cloudGrades : grades).map(normGrade)), [cloudGrades, grades]);
   const childRecords = useMemo(() => {
     // Logged in: rows across all the child's classes (findChildClasses: fuzzy name +
     // studentId), limited to classes that still exist — drops orphaned deleted-class rows.
@@ -403,9 +409,9 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
 
         {/* TEMP DEBUG v10 — remove after diagnosing missing GRADE. */}
         <div className="mb-3 p-2 bg-yellow-50 border border-yellow-400 rounded-xl text-[9px] leading-snug text-slate-800 break-words">
-          <b>🐞 DEBUG v10</b><br />
+          <b>🐞 DEBUG v11</b><br />
           session: {session.name} · {session.grade} · id:{session.studentId || '(គ្មាន)'}<br />
-          childKeys ({childClassKeys.size}): {[...childClassKeys].join('  ,  ') || '(ទទេ)'}<br />
+          activeGrades src: {cloudGrades.length ? `cloud(${cloudGrades.length})` : `prop(${grades.length})`} · GRADE active? {(cloudGrades.length ? cloudGrades : grades).some(g => /grade/i.test(g)) ? 'YES' : 'NO'}<br />
           GRADE in keys? {[...childClassKeys].some(k => /grade/i.test(k)) ? 'YES' : 'NO'}<br />
           fetched: {[...new Set(classStudents.map(s => s.grade))].join(' | ') || '(ទទេ)'}<br />
           record grades: {[...new Set(childRecords.map(s => s.grade))].join(' | ') || '(ទទេ)'}

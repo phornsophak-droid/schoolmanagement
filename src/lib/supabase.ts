@@ -883,6 +883,17 @@ export async function syncDeleteReport(id: string) {
 }
 
 // 8. Push grades bulk
+// The authoritative active class list (school_grades table). Parents open the portal
+// without a staff login, so they have no locally-cached custom grades — read the real
+// list from the cloud so "GRADE n" classes aren't filtered out of a child's results.
+export async function fetchGradesList(): Promise<string[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase.from('school_grades').select('name');
+  if (error || !data) return [];
+  return (data as any[]).map(r => r.name).filter((n): n is string => typeof n === 'string' && n.length > 0);
+}
+
 export async function syncGradesBulk(grades: string[]) {
   noteCloudWrite();
   const supabase = getSupabaseClient();
