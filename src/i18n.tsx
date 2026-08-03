@@ -228,7 +228,7 @@ export const TRANSLATIONS: Record<string, { km: string; en: string }> = {
   'parent.sem1': { km: 'ឆមាសទី ១', en: 'Semester 1' },
   'parent.sem2': { km: 'ឆមាសទី ២', en: 'Semester 2' },
   'parent.annual': { km: 'ប្រចាំឆ្នាំ', en: 'Annual' },
-  'parent.merit': { km: 'ប័ណ្ណសរសើរ (សិស្សនិទ្ទេស A/B)', en: 'Merit Certificate (grade A/B students)' },
+  'parent.merit': { km: 'ប័ណ្ណសរសើរ (សិស្សនិទ្ទេស A/B/C)', en: 'Merit Certificate (grade A/B/C students)' },
   'parent.loading': { km: 'កំពុងទាញទិន្នន័យ...', en: 'Loading…' },
   'parent.footnote': { km: 'ផ្ទាំងនេះសម្រាប់មាតាបិតាមើល និងទាញយកព្រឹត្តបត្រពិន្ទុរបស់កូនជា PDF តែប៉ុណ្ណោះ។', en: "This page is only for parents to view and download their child's report card as a PDF." },
   'parent.err.noClassData': { km: 'រកមិនឃើញទិន្នន័យសិស្សសម្រាប់ថ្នាក់នេះនៅឡើយទេ។', en: 'No student data found for this class yet.' },

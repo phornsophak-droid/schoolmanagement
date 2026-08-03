@@ -2516,7 +2516,7 @@ export default function Gradebook({
             <button
               onClick={() => setMeritPickerOpen(true)}
               className="px-3 py-1.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 hover:text-amber-800 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
-              title="ប័ណ្ណសរសើរ (សិស្សនិទ្ទេស A/B)"
+              title="ប័ណ្ណសរសើរ (សិស្សនិទ្ទេស A/B/C)"
             >
               📜 ប័ណ្ណសរសើរ
             </button>
@@ -3223,14 +3223,14 @@ export default function Gradebook({
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4" onClick={() => setMeritPickerOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-800">📜 ប័ណ្ណសរសើរ — ជ្រើសសិស្ស (និទ្ទេស A/B)</h3>
+              <h3 className="text-sm font-bold text-slate-800">📜 ប័ណ្ណសរសើរ — ជ្រើសសិស្ស (និទ្ទេស A/B/C)</h3>
               <button onClick={() => setMeritPickerOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"><X size={16} /></button>
             </div>
             <div className="overflow-auto p-2">
               {(() => {
                 const info = meritInfo();
-                const ab = info.list.filter(s => { const l = meritLetterOf(info.scoreOf(s)); return l === 'A' || l === 'B'; });
-                if (ab.length === 0) return <p className="text-center text-slate-400 text-xs py-10">គ្មានសិស្សនិទ្ទេស A ឬ B សម្រាប់ {info.phrase} ទេ។</p>;
+                const ab = info.list.filter(s => { const l = meritLetterOf(info.scoreOf(s)); return l === 'A' || l === 'B' || l === 'C'; });
+                if (ab.length === 0) return <p className="text-center text-slate-400 text-xs py-10">គ្មានសិស្សនិទ្ទេស A B ឬ C សម្រាប់ {info.phrase} ទេ។</p>;
                 return ab.map(s => {
                   const letter = meritLetterOf(info.scoreOf(s));
                   return (
@@ -3242,7 +3242,7 @@ export default function Gradebook({
                     <span className="font-semibold text-slate-700 text-sm">{s.name}</span>
                     <span className="flex items-center gap-2 text-[11px]">
                       <span className="text-slate-400">{s.grade}</span>
-                      <span className={`px-2 py-0.5 rounded-full font-bold ${letter === 'A' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>{letter}</span>
+                      <span className={`px-2 py-0.5 rounded-full font-bold ${letter === 'A' ? 'bg-blue-100 text-blue-700' : letter === 'B' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{letter}</span>
                     </span>
                   </button>
                   );

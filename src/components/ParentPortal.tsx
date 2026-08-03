@@ -29,9 +29,9 @@ const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២
 // with a hidden zero-width char, or "GRADE6" all compare equal, and an active class
 // is never dropped from a child's results over an unseen character difference.
 const normGrade = (g: string) => (g || '').toUpperCase().replace(/[^0-9A-Z\u1780-\u17FF]/g, '');
-// Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
-const meritLetterOf = (v: number | null | undefined): '' | 'A' | 'B' =>
-  (v == null || v <= 0) ? '' : v >= 9 ? 'A' : v >= 8 ? 'B' : '';
+// Merit certificate is awarded for និទ្ទេស A (≥9), B (≥8) or C (≥7).
+const meritLetterOf = (v: number | null | undefined): '' | 'A' | 'B' | 'C' =>
+  (v == null || v <= 0) ? '' : v >= 9 ? 'A' : v >= 8 ? 'B' : v >= 7 ? 'C' : '';
 
 interface ParentPortalProps {
   grades: string[];
