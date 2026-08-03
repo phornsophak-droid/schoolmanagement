@@ -80,6 +80,9 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   // to this one child (their general class), so no class/name picker is shown.
   const [session, setSession] = useState<ParentSession | null>(loadSession);
   const [showChangePass, setShowChangePass] = useState(false);
+  // The exact (grade||name) rows that belong to the logged-in child, from
+  // findChildClasses (fuzzy name + studentId) — used to gather their records.
+  const [childClassKeys, setChildClassKeys] = useState<Set<string>>(new Set());
   const [schoolElinks, setSchoolElinks] = useState<ELink[]>([]);
   useEffect(() => { fetchELinksFromCloud().then(setSchoolElinks).catch(() => {}); }, []);
   const [nameQuery, setNameQuery] = useState('');
@@ -150,6 +153,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     try {
       let childRows: ChildRow[] = [];
       try { childRows = await findChildClasses({ name: sess.name, studentId: sess.studentId }); } catch { childRows = []; }
+      setChildClassKeys(new Set(childRows.map(r => `${r.grade}||${r.name.trim()}`)));
       // Only classes that STILL EXIST in the app. Deleted classes can leave orphaned
       // student_scores rows behind — skip those so a removed class never resurfaces.
       const activeSet = new Set(grades);
@@ -249,6 +253,11 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   // lookup): match by name.
   const activeGradeSet = useMemo(() => new Set(grades), [grades]);
   const childRecords = useMemo(() => {
+    // Logged in: rows across all the child's classes (findChildClasses: fuzzy name +
+    // studentId), limited to classes that still exist — drops orphaned deleted-class rows.
+    if (session && childClassKeys.size) {
+      return classStudents.filter(s => activeGradeSet.has(s.grade) && childClassKeys.has(`${s.grade}||${s.name.trim()}`));
+    }
     if (session) {
       const sid = (session.studentId || '').trim();
       const base = normParentName(stripSubjectTag(session.name));
@@ -263,7 +272,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
       });
     }
     return classStudents.filter(s => normParentName(s.name) === normParentName(childName));
-  }, [classStudents, childName, session, activeGradeSet]);
+  }, [classStudents, childName, session, childClassKeys, activeGradeSet]);
   const anyRec = childRecords[0];
 
   // After-hours classes load only their own rows, but the date of birth lives on
@@ -349,7 +358,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
 
   const logout = () => {
     clearSession(); setSession(null); setActivePanel(null); setShowChangePass(false);
-    setGrade(''); setChildName(''); setNameQuery(''); setNameError(''); setNameMatches([]); setError(''); setClassStudents([]);
+    setGrade(''); setChildName(''); setNameQuery(''); setNameError(''); setNameMatches([]); setError(''); setClassStudents([]); setChildClassKeys(new Set());
   };
 
   return (
