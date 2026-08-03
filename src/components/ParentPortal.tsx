@@ -21,7 +21,7 @@ import { Timetable, emptyTimetable, loadTimetable, isTimetableEmpty } from '../l
 import LearningGames from './LearningGames';
 import KhmerCalendar from './KhmerCalendar';
 import ParentLogin from './ParentLogin';
-import { ParentSession, ChildRow, loadSession, clearSession, changeParentPassword, normParentName, findChildClasses } from '../lib/parentAuth';
+import { ParentSession, ChildRow, loadSession, clearSession, changeParentPassword, normParentName, findChildClasses, stripSubjectTag } from '../lib/parentAuth';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 // Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
@@ -80,9 +80,6 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   // to this one child (their general class), so no class/name picker is shown.
   const [session, setSession] = useState<ParentSession | null>(loadSession);
   const [showChangePass, setShowChangePass] = useState(false);
-  // The exact (grade||name) of every class the logged-in child studies, from
-  // findChild — used to gather their records across ALL classes (general + extra).
-  const [childClassKeys, setChildClassKeys] = useState<Set<string>>(new Set());
   const [schoolElinks, setSchoolElinks] = useState<ELink[]>([]);
   useEffect(() => { fetchELinksFromCloud().then(setSchoolElinks).catch(() => {}); }, []);
   const [nameQuery, setNameQuery] = useState('');
@@ -153,9 +150,6 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     try {
       let childRows: ChildRow[] = [];
       try { childRows = await findChildClasses({ name: sess.name, studentId: sess.studentId }); } catch { childRows = []; }
-      // Remember which exact rows belong to this child, so we can pull their records
-      // from EVERY class (general + after-hours), not just the general one.
-      setChildClassKeys(new Set(childRows.map(r => `${r.grade}||${r.name.trim()}`)));
       const gradesToFetch = childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade];
       
       gradesToFetch.forEach(g => {
@@ -243,14 +237,23 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     setNameMatches(result);
   };
 
-  // Logged in: the child's records across ALL their classes (matched by the exact
-  // grade+name pairs from findChild). Otherwise (manual lookup): match by name.
+  // Logged in: the child's records across ALL their classes, matched STRICTLY by
+  // studentId OR exact tag-stripped name — so other children with similar names
+  // (and their classes) are never pulled in, and every month of a real class is
+  // kept even if a monthly row's name has a minor variation. Otherwise (manual
+  // lookup): match by name.
   const childRecords = useMemo(() => {
-    if (session && childClassKeys.size) {
-      return classStudents.filter(s => childClassKeys.has(`${s.grade}||${s.name.trim()}`));
+    if (session) {
+      const sid = (session.studentId || '').trim();
+      const base = normParentName(stripSubjectTag(session.name));
+      return classStudents.filter(s => {
+        const rid = (s.studentId || '').trim();
+        if (sid && rid && rid === sid) return true;
+        return normParentName(stripSubjectTag(s.name)) === base;
+      });
     }
     return classStudents.filter(s => normParentName(s.name) === normParentName(childName));
-  }, [classStudents, childName, session, childClassKeys]);
+  }, [classStudents, childName, session]);
   const anyRec = childRecords[0];
 
   // After-hours classes load only their own rows, but the date of birth lives on
@@ -336,7 +339,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
 
   const logout = () => {
     clearSession(); setSession(null); setActivePanel(null); setShowChangePass(false);
-    setGrade(''); setChildName(''); setNameQuery(''); setNameError(''); setNameMatches([]); setError(''); setClassStudents([]); setChildClassKeys(new Set());
+    setGrade(''); setChildName(''); setNameQuery(''); setNameError(''); setNameMatches([]); setError(''); setClassStudents([]);
   };
 
   return (

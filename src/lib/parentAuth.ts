@@ -108,22 +108,35 @@ export async function findChild(nameTyped: string): Promise<ChildRow[]> {
   return [...seen.values()];
 }
 
-// Every class a child studies. Combines name matches (findChild) with a studentId
-// match, so an after-hours class spelled differently from the general one still
-// joins (the same link the Telegram bot uses). Deduped by grade+name.
+// Drop a trailing "(subject)" tag that after-hours rosters append to the name.
+export const stripSubjectTag = (n: string) => (n || '').replace(/\s*\([^)]*\)\s*$/, '');
+
+// Every class a KNOWN child studies (used after login, when we already resolved the
+// exact child). STRICT so it never pulls in a different child with a similar name:
+//   • same អត្តលេខ (studentId) — reliable across classes, OR
+//   • EXACT tag-stripped name match.
+// (This is deliberately stricter than findChild, which is fuzzy for the login step.)
 export async function findChildClasses(sess: { name: string; studentId?: string }): Promise<ChildRow[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
   const seen = new Map<string, ChildRow>();
   const put = (r: ChildRow) => { const k = `${r.grade}||${(r.name || '').trim()}`; if (!seen.has(k)) seen.set(k, r); };
-  try { (await findChild(sess.name)).forEach(put); } catch { /* offline */ }
+  const targetBase = normParentName(stripSubjectTag(sess.name));
   const sid = (sess.studentId || '').trim();
+
   if (sid) {
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      try {
-        const { data } = await supabase.from('student_scores').select('name, grade, extra_data').eq('extra_data->>studentId', sid).limit(500);
-        for (const r of (data || []) as any[]) put({ name: r.name, grade: r.grade, studentId: r.extra_data?.studentId });
-      } catch { /* offline */ }
-    }
+    try {
+      const { data } = await supabase.from('student_scores').select('name, grade, extra_data').eq('extra_data->>studentId', sid).limit(500);
+      for (const r of (data || []) as any[]) put({ name: r.name, grade: r.grade, studentId: r.extra_data?.studentId });
+    } catch { /* offline */ }
+  }
+  if (targetBase.length >= 2) {
+    const tokens = targetBase.split(' ').filter(t => t.length >= 2);
+    const probe = ([...tokens].sort((a, b) => b.length - a.length)[0] || targetBase).slice(0, 2);
+    try {
+      const { data } = await supabase.from('student_scores').select('name, grade, extra_data').ilike('name', `%${probe}%`).limit(800);
+      for (const r of (data || []) as any[]) if (normParentName(stripSubjectTag(r.name)) === targetBase) put({ name: r.name, grade: r.grade, studentId: r.extra_data?.studentId });
+    } catch { /* offline */ }
   }
   return [...seen.values()];
 }
