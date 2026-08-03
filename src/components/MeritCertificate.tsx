@@ -4,12 +4,12 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { Printer, X, Camera, Download, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Printer, X, Camera, Download, Loader2, Image as ImageIcon, Award } from 'lucide-react';
 import { StudentScore } from '../types';
 import { baseStudentName } from '../utils/studentKey';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
-import TeacherSignature from './TeacherSignature';
+import TeacherSignature, { teacherNameForGrade } from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { exportElementToPdf, exportElementToImage } from '../utils/exportPdf';
 
@@ -79,6 +79,8 @@ const renderDob = (text: string): React.ReactNode => {
 };
 
 export default function MeritCertificate({ student, students, scoreOverride, periodPhrase, onClose }: MeritCertificateProps) {
+  const isEnglish = /grade|អង់គ្លេស/i.test(student.grade);
+  const teacherName = teacherNameForGrade(student.grade);
   const niddes = gradeBand(scoreOverride ?? student.overallAvg);
   const period = periodPhrase || `ប្រចាំខែ${student.month} ឆ្នាំសិក្សា ២០២៥-២០២៦`;
   // Issue date auto-fills from the record's month for a monthly cert. For a
@@ -172,88 +174,175 @@ export default function MeritCertificate({ student, students, scoreOverride, per
 
         {/* Certificate sheet (landscape) */}
         <div id="merit-cert" className="bg-white rounded-b-2xl">
-          {/* Decorative frame image — place the file at public/cert-frame.png */}
-          <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
-            <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
-            <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7.5% 13% 11%' }}>
-
-              {/* Header: CAMKIDS org (left), kingdom motto (right) */}
-              <div className="flex items-start justify-between">
-                <div className="flex flex-col items-center text-emerald-700" style={{ fontSize: '2cqw' }}>
-                  <div style={{ width: '9.5cqw', marginTop: '2.5cqw' }}><SchoolLogo className="w-full h-auto" /></div>
-                  <div className="font-bold mt-0.5">សាលាសហគមន៍ច្បារច្រុះ</div>
+          {isEnglish ? (
+            <div className="relative w-full overflow-hidden text-[#0f2249] bg-white font-sans" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size', border: '1.5cqw solid #0f2249', padding: '1cqw' }}>
+              <div className="relative w-full h-full border-[0.4cqw] border-[#c89b3f] flex flex-col items-center justify-center p-[4cqw]">
+                {/* Top Corners */}
+                <div className="absolute top-0 left-0 w-[4cqw] h-[4cqw] border-t-[0.4cqw] border-l-[0.4cqw] border-[#0f2249]" style={{ transform: 'translate(-0.4cqw, -0.4cqw)' }} />
+                <div className="absolute top-0 right-0 w-[4cqw] h-[4cqw] border-t-[0.4cqw] border-r-[0.4cqw] border-[#0f2249]" style={{ transform: 'translate(0.4cqw, -0.4cqw)' }} />
+                <div className="absolute bottom-0 left-0 w-[4cqw] h-[4cqw] border-b-[0.4cqw] border-l-[0.4cqw] border-[#0f2249]" style={{ transform: 'translate(-0.4cqw, 0.4cqw)' }} />
+                <div className="absolute bottom-0 right-0 w-[4cqw] h-[4cqw] border-b-[0.4cqw] border-r-[0.4cqw] border-[#0f2249]" style={{ transform: 'translate(0.4cqw, 0.4cqw)' }} />
+                
+                {/* Decorative Swirls could be placed here if we had SVGs, but the clean border looks great. */}
+                
+                {/* Logo */}
+                <div style={{ width: '8cqw', marginTop: '-2cqw' }}><SchoolLogo className="w-full h-auto" /></div>
+                <div className="font-bold mt-1 text-[#0f2249]" style={{ fontSize: '1cqw' }}>CHBAR CHROS COMMUNITY SCHOOL</div>
+                
+                {/* Title */}
+                <h1 className="mt-[1.5cqw] font-serif uppercase tracking-widest text-[#0f2249]" style={{ fontSize: '4.2cqw', fontWeight: 900 }}>
+                  Certificate of Achievement
+                </h1>
+                
+                {/* Subtitle */}
+                <div className="flex items-center gap-4 mt-[1cqw] w-3/4">
+                  <div className="h-[0.15cqw] bg-[#c89b3f] flex-1"></div>
+                  <p className="uppercase tracking-widest text-slate-700 font-semibold" style={{ fontSize: '1cqw' }}>
+                    This certificate is proudly presented to
+                  </p>
+                  <div className="h-[0.15cqw] bg-[#c89b3f] flex-1"></div>
                 </div>
-                <div className="text-center text-emerald-800" style={{ fontSize: '1.9cqw' }}>
-                  <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
-                  <div className="font-semibold">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
-                  <div className="text-amber-600 tracking-widest">~ ~ ~ ~ ~</div>
-                </div>
-              </div>
-
-              {/* Title */}
-              <div className="text-center mt-1">
-                <h1 className="font-extrabold text-red-600 tracking-wide" style={{ fontFamily: "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif", fontSize: '3.8cqw', lineHeight: 1.15 }}>ប័ណ្ណសរសើរ</h1>
-                <p className="font-bold text-slate-700" style={{ fontSize: '2.4cqw' }}>នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
-              </div>
-
-              {/* Body — scales with the frame, justified to both margins. Sized so the
-                  date of birth lands on line 1 and the niddes on line 2 (even for long names). */}
-              <div className="text-justify mt-1" style={{ fontSize: '2.0cqw', lineHeight: 1.55 }}>
-                <p>
-                  សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
-                  ភេទ <span className="font-bold">{student.gender}</span>{' '}
-                  {dobText
-                    ? <>កើតនៅ<span style={{ whiteSpace: 'nowrap' }}>{renderDob(dobText)}</span> </>
-                    : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
-                  រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
-                  ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
-                  <span className="font-bold text-red-700" style={{ whiteSpace: 'nowrap' }}>{niddes.km} ({niddes.en})</span>
-                  {' '}{renderPeriod(period)} ។
+                
+                {/* Name */}
+                <h2 className="mt-[1cqw] text-[#0f2249]" style={{ fontFamily: "'Great Vibes', cursive", fontSize: '7.5cqw', fontWeight: 500 }}>
+                  {student.name}
+                </h2>
+                <div className="w-[75%] h-[0.15cqw] bg-[#c89b3f] mt-2 mb-[2cqw]"></div>
+                
+                {/* Reason */}
+                <p className="text-center text-slate-700 max-w-[85%]" style={{ fontSize: '1.2cqw', lineHeight: 1.6 }}>
+                  For your outstanding effort and achievement in academic performance,<br/>
+                  positive attitude, and active participation in all learning activities.<br/>
+                  Keep up the great work!
                 </p>
-                <p className="mt-3">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
+                
+                {/* Bottom Section */}
+                <div className="absolute bottom-[2cqw] left-[5cqw] right-[5cqw] flex justify-between items-end">
+                  {/* Principal */}
+                  <div className="text-center flex flex-col items-center w-[22cqw]">
+                    <div style={{ height: '5cqw' }} className="flex items-end justify-center">
+                      <PrincipalSignature height="100%" />
+                    </div>
+                    <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[1cqw] mb-[0.5cqw]"></div>
+                    <p className="font-bold text-[#0f2249]" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</p>
+                    <p className="text-slate-500 uppercase tracking-wider" style={{ fontSize: '0.9cqw' }}>School Principal</p>
+                  </div>
+                  
+                  {/* Ribbon */}
+                  <div className="flex flex-col items-center" style={{ marginBottom: '1cqw' }}>
+                    <div className="relative flex items-center justify-center bg-amber-400 rounded-full border-[0.4cqw] border-amber-200 shadow-sm" style={{ width: '6.5cqw', height: '6.5cqw' }}>
+                      <Award size={48} className="absolute text-amber-600" style={{ width: '4.5cqw', height: '4.5cqw' }} />
+                    </div>
+                    <div className="flex items-end gap-2 mt-[1cqw]">
+                      <span className="font-bold text-[#0f2249]" style={{ fontSize: '1.1cqw' }}>DATE:</span>
+                      <span className="border-b-[0.15cqw] border-[#0f2249] w-[12cqw] inline-block text-center text-[#0f2249] font-medium" style={{ fontSize: '1.1cqw' }}>
+                        {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Teacher */}
+                  <div className="text-center flex flex-col items-center w-[22cqw]">
+                    <div style={{ height: '5cqw' }} className="flex items-end justify-center relative teacher-sig-container">
+                      <TeacherSignature grade={student.grade} height="100%" />
+                    </div>
+                    <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[1cqw] mb-[0.5cqw]"></div>
+                    <p className="font-bold text-[#0f2249] uppercase" style={{ fontSize: '1.2cqw' }}>
+                      {teacherName || '..............................'}
+                    </p>
+                    <p className="text-slate-500 uppercase tracking-wider" style={{ fontSize: '0.9cqw' }}>Class Teacher</p>
+                  </div>
+                </div>
               </div>
+              
+              <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+                .teacher-sig-container p { display: none; }
+              `}</style>
+            </div>
+          ) : (
+            <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
+              <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
+              <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7.5% 13% 11%' }}>
 
-              {/* Signatures — principal (left), student photo (center), teacher + date (right).
-                  Top-aligned so «បានឃើញ និងឯកភាព» sits level with the date; the teacher
-                  signature height is matched so the two names line up at the bottom too. */}
-              <div className="grid gap-3 mt-auto text-center items-start" style={{ gridTemplateColumns: '1fr auto 1fr', fontSize: '1.9cqw' }}>
-                <div style={{ transform: 'translateX(-12%)' }}>
-                  <p className="font-bold">បានឃើញ និងឯកភាព</p>
-                  <p className="font-bold">នាយកសាលា</p>
-                  <PrincipalSignature height="7.5cqw" />
+                {/* Header: CAMKIDS org (left), kingdom motto (right) */}
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col items-center text-emerald-700" style={{ fontSize: '2cqw' }}>
+                    <div style={{ width: '9.5cqw', marginTop: '2.5cqw' }}><SchoolLogo className="w-full h-auto" /></div>
+                    <div className="font-bold mt-0.5">សាលាសហគមន៍ច្បារច្រុះ</div>
+                  </div>
+                  <div className="text-center text-emerald-800" style={{ fontSize: '1.9cqw' }}>
+                    <div className="font-bold">ព្រះរាជាណាចក្រកម្ពុជា</div>
+                    <div className="font-semibold">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+                    <div className="text-amber-600 tracking-widest">~ ~ ~ ~ ~</div>
+                  </div>
                 </div>
 
-                {/* Photo — centered between the principal block and the teacher block. Empty box is screen-only (click to add). */}
-                <div className="flex flex-col items-center self-center">
-                  {photo ? (
-                    <>
-                      <div className="rounded-lg overflow-hidden border-2 border-amber-300 shadow-sm" style={{ width: '6cqw', height: '7.5cqw' }}>
-                        <img src={photo} alt={student.name} className="w-full h-full object-cover" />
-                      </div>
-                      <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-0.5 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => fileRef.current?.click()}
-                      className="rc-no-print flex flex-col items-center justify-center gap-1 text-slate-300 hover:text-blue-500 hover:border-blue-300 border border-dashed border-slate-200 rounded-lg"
-                      style={{ width: '6cqw', height: '7.5cqw' }}
-                      title="ចុចដើម្បីបញ្ចូលរូបថត"
-                    >
-                      <Camera size={16} />
-                      <span className="text-[9px]">បញ្ចូលរូប</span>
-                    </button>
-                  )}
+                {/* Title */}
+                <div className="text-center mt-1">
+                  <h1 className="font-extrabold text-red-600 tracking-wide" style={{ fontFamily: "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif", fontSize: '3.8cqw', lineHeight: 1.15 }}>ប័ណ្ណសរសើរ</h1>
+                  <p className="font-bold text-slate-700" style={{ fontSize: '2.4cqw' }}>នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
                 </div>
 
-                <div>
-                  <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
-                  <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{dateMonth} ឆ្នាំ{endDate.year}</p>
-                  <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
-                  <TeacherSignature grade={student.grade} height="6.5cqw" />
+                {/* Body — scales with the frame, justified to both margins. Sized so the
+                    date of birth lands on line 1 and the niddes on line 2 (even for long names). */}
+                <div className="text-justify mt-1" style={{ fontSize: '2.0cqw', lineHeight: 1.55 }}>
+                  <p>
+                    សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
+                    ភេទ <span className="font-bold">{student.gender}</span>{' '}
+                    {dobText
+                      ? <>កើតនៅ<span style={{ whiteSpace: 'nowrap' }}>{renderDob(dobText)}</span> </>
+                      : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
+                    រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
+                    ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
+                    <span className="font-bold text-red-700" style={{ whiteSpace: 'nowrap' }}>{niddes.km} ({niddes.en})</span>
+                    {' '}{renderPeriod(period)} ។
+                  </p>
+                  <p className="mt-3">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
+                </div>
+
+                {/* Signatures — principal (left), student photo (center), teacher + date (right).
+                    Top-aligned so «បានឃើញ និងឯកភាព» sits level with the date; the teacher
+                    signature height is matched so the two names line up at the bottom too. */}
+                <div className="grid gap-3 mt-auto text-center items-start" style={{ gridTemplateColumns: '1fr auto 1fr', fontSize: '1.9cqw' }}>
+                  <div style={{ transform: 'translateX(-12%)' }}>
+                    <p className="font-bold">បានឃើញ និងឯកភាព</p>
+                    <p className="font-bold">នាយកសាលា</p>
+                    <PrincipalSignature height="7.5cqw" />
+                  </div>
+
+                  {/* Photo — centered between the principal block and the teacher block. Empty box is screen-only (click to add). */}
+                  <div className="flex flex-col items-center self-center">
+                    {photo ? (
+                      <>
+                        <div className="rounded-lg overflow-hidden border-2 border-amber-300 shadow-sm" style={{ width: '6cqw', height: '7.5cqw' }}>
+                          <img src={photo} alt={student.name} className="w-full h-full object-cover" />
+                        </div>
+                        <button onClick={() => fileRef.current?.click()} className="rc-no-print mt-0.5 text-[10px] text-blue-500 hover:underline">ប្តូររូប</button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => fileRef.current?.click()}
+                        className="rc-no-print flex flex-col items-center justify-center gap-1 text-slate-300 hover:text-blue-500 hover:border-blue-300 border border-dashed border-slate-200 rounded-lg"
+                        style={{ width: '6cqw', height: '7.5cqw' }}
+                        title="ចុចដើម្បីបញ្ចូលរូបថត"
+                      >
+                        <Camera size={16} />
+                        <span className="text-[9px]">បញ្ចូលរូប</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div>
+                    <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>{endDate.lunar}</p>
+                    <p style={{ fontSize: '1.3cqw', whiteSpace: 'nowrap' }}>ច្បារច្រុះ ថ្ងៃទី{endDate.day} ខែ{dateMonth} ឆ្នាំ{endDate.year}</p>
+                    <p className="font-bold pt-1">គ្រូប្រចាំថ្នាក់</p>
+                    <TeacherSignature grade={student.grade} height="6.5cqw" />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
