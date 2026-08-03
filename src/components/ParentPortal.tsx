@@ -311,7 +311,9 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
       if (yl) mOpts.push({ key: 'year', label: `${t('parent.annual')} (${yl})`, student: anyR, score: yearScore!, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` });
       
       return { grade: g, records: recs, anyRec: anyR, monthsAvailable: months, meritOptions: mOpts };
-    });
+    })
+    // General (ចំណេះទូទៅ) classes on top, after-hours classes below.
+    .sort((a, b) => Number(isExtraClass(a.grade)) - Number(isExtraClass(b.grade)));
   }, [childRecords, childName, lang, t]);
 
   const filteredGrades = useMemo(() => grades.filter(g => classCategory === 'extra' ? isExtraClass(g) : !isExtraClass(g)), [grades, classCategory]);
