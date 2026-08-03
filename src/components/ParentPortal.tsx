@@ -255,10 +255,10 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
       return classStudents.filter(s => {
         if (!activeGradeSet.has(s.grade)) return false; // skip deleted classes' orphan rows
         const rid = (s.studentId || '').trim();
-        // When BOTH the child and the row carry an អត្តលេខ, it is decisive — a
-        // different child who happens to share the name (their own id) is excluded.
-        if (sid && rid) return rid === sid;
-        // Otherwise (a blank id somewhere) fall back to the exact tag-stripped name.
+        // Match by EITHER the studentId OR the exact tag-stripped name. A child can
+        // have a different អត្តលេខ per class (data quirk), so we don't require the
+        // id to match — the name alone is enough to show that class.
+        if (sid && rid && rid === sid) return true;
         return normParentName(stripSubjectTag(s.name)) === base;
       });
     }
