@@ -200,13 +200,16 @@ export default function App() {
   // A shareable parent link opens the report-card portal straight away. Accepts
   // a clean path (/parent — best for QR codes, no special chars), a query
   // (?parent=1), or a hash (#parent).
-  const [parentMode, setParentMode] = useState(() => {
+  // A parent-only entry point (/parent, ?parent or #parent) opens the Parent Portal
+  // directly, never showing the staff account list / PINs.
+  const parentFromUrl = (() => {
     try {
       return /\/parent\b/i.test(window.location.pathname)
         || new URLSearchParams(window.location.search).get('parent') !== null
         || window.location.hash.toLowerCase().includes('parent');
     } catch { return false; }
-  });
+  })();
+  const [parentMode, setParentMode] = useState(parentFromUrl);
   // Student online-test mode (no login): /test, ?join=CODE, or #test. A join
   // link carries the test code so students skip typing it.
   const [studentTestMode, setStudentTestMode] = useState(() => {
@@ -1507,7 +1510,9 @@ export default function App() {
     return <StudentQuiz initialCode={joinCode} onBack={() => setStudentTestMode(false)} />;
   }
   if (parentMode) {
-    return <ParentPortal grades={grades} onBack={() => setParentMode(false)} onStudentTest={() => setStudentTestMode(true)} />;
+    // Parents who arrived via the parent-only link must never land on the staff
+    // login. Their "back" just returns to the parent login (reload), not LoginPortal.
+    return <ParentPortal grades={grades} onBack={parentFromUrl ? () => window.location.reload() : () => setParentMode(false)} onStudentTest={() => setStudentTestMode(true)} />;
   }
   if (!currentUser) {
     return <LoginPortal onLoginSuccess={handleLoginSuccess} onParentAccess={() => setParentMode(true)} onStudentTest={() => setStudentTestMode(true)} />;
