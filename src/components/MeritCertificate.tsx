@@ -175,48 +175,61 @@ export default function MeritCertificate({ student, students, scoreOverride, per
         {/* Certificate sheet (landscape) */}
         <div id="merit-cert" className="bg-white rounded-b-2xl">
           {isEnglish ? (
-            <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
+            <div className="relative w-full cert-english" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
               <img src="/cert-frame-en.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
               
               {/* Dynamic Content Placed Over Template */}
               
               {/* Name (covers baked-in "Student's Name") */}
-              <div className="absolute inset-x-0 flex justify-center bg-white" style={{ top: '38.5%', bottom: '46%' }}>
-                <h2 className="text-[#0f2249] flex items-center justify-center font-bold" style={{ fontFamily: "'Great Vibes', cursive", fontSize: '6cqw' }}>
-                  {student.name}
-                </h2>
+              <div className="absolute inset-x-0 flex justify-center pointer-events-none" style={{ top: '38%', bottom: '46%' }}>
+                {/* Use a tightly fitted white background that blends into the white center of the cert */}
+                <div className="bg-white px-8 flex items-center justify-center">
+                  <h2 className="text-[#0f2249] font-bold pb-2" style={{ fontFamily: "'Great Vibes', cursive", fontSize: '6cqw' }}>
+                    {baseStudentName(student.name)}
+                  </h2>
+                </div>
               </div>
               
-              {/* Signatures & Date Section (covers bottom part) */}
-              <div className="absolute inset-x-0 bottom-[5cqw] flex justify-between items-end px-[12cqw]">
+              {/* Signatures & Date Section */}
+              <div className="absolute inset-x-0 bottom-0 flex justify-between items-end px-[12cqw]" style={{ height: '20cqw' }}>
                 {/* Principal Signature */}
-                <div className="text-center flex flex-col items-center bg-white w-[18cqw] pb-2" style={{ marginBottom: '1cqw' }}>
-                  <div style={{ height: '7cqw' }} className="flex items-end justify-center">
-                    <PrincipalSignature height="100%" />
+                <div className="text-center flex flex-col items-center w-[18cqw] sig-container" style={{ paddingBottom: '3.5cqw' }}>
+                  <div className="bg-white px-2 rounded" style={{ height: '7cqw' }}>
+                    <div style={{ height: '100%' }} className="flex items-end justify-center">
+                      <PrincipalSignature height="100%" />
+                    </div>
                   </div>
                 </div>
                 
                 {/* Date */}
-                <div className="text-center bg-white flex items-center justify-center" style={{ width: '15cqw', height: '2.5cqw', marginBottom: '2.5cqw', transform: 'translateX(2.5cqw)' }}>
-                  <span className="text-slate-800 font-medium" style={{ fontSize: '1.2cqw' }}>
-                    {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </span>
+                <div className="text-center flex flex-col items-center justify-end" style={{ width: '15cqw', paddingBottom: '2.5cqw' }}>
+                  {/* The template has DATE: _________ at the bottom center. We cover it precisely. */}
+                  <div className="bg-white px-4 py-1">
+                    <span className="text-[#0f2249] font-medium" style={{ fontSize: '1.2cqw' }}>
+                      {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
                 </div>
                 
-                {/* Teacher Signature (covers baked-in "YORN YAV") */}
-                <div className="text-center flex flex-col items-center bg-white w-[18cqw] pb-2 teacher-sig-container" style={{ marginBottom: '1cqw' }}>
-                  <div style={{ height: '7cqw' }} className="flex items-end justify-center">
-                    <TeacherSignature grade={student.grade} height="100%" />
+                {/* Teacher Signature */}
+                <div className="text-center flex flex-col items-center w-[18cqw] sig-container" style={{ paddingBottom: '3cqw' }}>
+                  <div className="bg-white px-2 rounded" style={{ height: '7cqw' }}>
+                    <div style={{ height: '100%' }} className="flex items-end justify-center">
+                      <TeacherSignature grade={student.grade} height="100%" />
+                    </div>
                   </div>
-                  <div className="mt-[1cqw] text-[#0f2249] font-bold uppercase tracking-wider" style={{ fontSize: '1cqw', lineHeight: 1 }}>
-                    {teacherName}
+                  {/* White box to cover the printed "YORN YAV" on the template, then draw dynamic name */}
+                  <div className="bg-white px-3 mt-[0.5cqw]">
+                    <div className="text-[#0f2249] font-bold uppercase tracking-wider" style={{ fontSize: '1cqw', lineHeight: 1 }}>
+                      {teacherName}
+                    </div>
                   </div>
                 </div>
               </div>
               
               <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
-                .teacher-sig-container p { display: none; }
+                .cert-english .sig-container p { display: none !important; }
               `}</style>
             </div>
           ) : (
