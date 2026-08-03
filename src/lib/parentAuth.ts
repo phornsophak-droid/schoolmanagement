@@ -94,40 +94,75 @@ export async function findChild(nameTyped: string): Promise<ChildRow[]> {
   const q = normParentName(nameTyped);
   if (!q) return [];
   const tokens = q.split(' ').filter(t => t.length >= 2);
-  const probe = ([...tokens].sort((a, b) => b.length - a.length)[0] || q).slice(0, 2);
-  const { data } = await supabase.from('student_scores').select('name, grade, extra_data').ilike('name', `%${probe}%`).limit(800);
   const bare = (s: string) => normParentName(s).replace(/\s/g, '');
   const nq = bare(q);
   const isSub = (a: string, b: string) => { let i = 0; for (let j = 0; j < b.length && i < a.length; j++) if (b[j] === a[i]) i++; return i === a.length; };
   const seen = new Map<string, ChildRow>();
-  for (const r of (data || []) as any[]) {
-    const full = normParentName(r.name);
-    const nn = bare(r.name);
-    const ok = full === q || full.includes(q) || (tokens.length > 0 && tokens.every(t => full.includes(t))) || (nn.length >= 3 && (isSub(nq, nn) || isSub(nn, nq)));
-    if (!ok) continue;
-    const k = `${r.name}||${r.grade}`;
-    if (!seen.has(k)) seen.set(k, { name: r.name, grade: r.grade, studentId: r.extra_data?.studentId });
+  const put = (r: any) => { const k = `${r.name}||${r.grade}`; if (!seen.has(k)) seen.set(k, { name: r.name, grade: r.grade, studentId: r.extra_data?.studentId }); };
+
+  // 1. Narrow AND-token query first — requires every word, so the result is small
+  //    and never truncated by the row limit (unlike a 2-letter probe).
+  if (tokens.length) {
+    let query = supabase.from('student_scores').select('name, grade, extra_data');
+    for (const t of tokens) query = query.ilike('name', `%${t}%`);
+    const { data } = await query.limit(500);
+    for (const r of (data || []) as any[]) {
+      const full = normParentName(r.name);
+      if (full === q || full.includes(q) || tokens.every(t => full.includes(t))) put(r);
+    }
+  }
+  // 2. Subsequence fallback (spelling drift) — only if the exact/token match found
+  //    nothing, so a mis-typed letter still resolves the child.
+  if (seen.size === 0) {
+    const probe = ([...tokens].sort((a, b) => b.length - a.length)[0] || q).slice(0, 2);
+    const { data } = await supabase.from('student_scores').select('name, grade, extra_data').ilike('name', `%${probe}%`).limit(800);
+    for (const r of (data || []) as any[]) {
+      const nn = bare(r.name);
+      if (nn.length >= 3 && (isSub(nq, nn) || isSub(nn, nq))) put(r);
+    }
   }
   return [...seen.values()];
 }
 
-// Every class a KNOWN child studies (used after login). Fuzzy name matches (so a
-// name spelled differently across classes/months still joins) PLUS a studentId
-// link. The caller keeps only ACTIVE classes, which drops orphaned rows from
-// deleted classes — that is what prevents ghost classes, not strict name matching.
+// Every class a KNOWN child studies (used after login). Matches by studentId AND by
+// name — but the NAME query requires EVERY word of the name (AND ilike), so the
+// result set stays small. This avoids the earlier intermittent bug where a broad
+// 2-letter probe + row limit (no ORDER BY) sometimes truncated a class (e.g. GRADE)
+// out of the results, making it flicker in and out on refresh. The caller keeps only
+// ACTIVE classes, which drops orphaned rows from deleted classes.
 export async function findChildClasses(sess: { name: string; studentId?: string }): Promise<ChildRow[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
   const seen = new Map<string, ChildRow>();
-  const put = (r: ChildRow) => { const k = `${r.grade}||${(r.name || '').trim()}`; if (!seen.has(k)) seen.set(k, r); };
-  try { (await findChild(sess.name)).forEach(put); } catch { /* offline */ }
+  const put = (r: any) => { const k = `${r.grade}||${String(r.name || '').trim()}`; if (!seen.has(k)) seen.set(k, { name: r.name, grade: r.grade, studentId: r.extra_data?.studentId }); };
+  const targetBase = normParentName(stripSubjectTag(sess.name));
+  const tokens = targetBase.split(' ').filter(t => t.length >= 2);
   const sid = (sess.studentId || '').trim();
+
+  // 1. Same អត្តលេខ (reliable across classes when present).
   if (sid) {
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      try {
-        const { data } = await supabase.from('student_scores').select('name, grade, extra_data').eq('extra_data->>studentId', sid).limit(500);
-        for (const r of (data || []) as any[]) put({ name: r.name, grade: r.grade, studentId: r.extra_data?.studentId });
-      } catch { /* offline */ }
-    }
+    try {
+      const { data } = await supabase.from('student_scores').select('name, grade, extra_data').eq('extra_data->>studentId', sid).limit(500);
+      (data || []).forEach(put);
+    } catch { /* offline */ }
+  }
+  // 2. By name — require ALL words (AND ilike) so the query is narrow and never
+  //    truncated; then keep same-child rows (exact base name or a subsequence match,
+  //    tolerating a small spelling drift across rosters).
+  if (tokens.length) {
+    try {
+      let q = supabase.from('student_scores').select('name, grade, extra_data');
+      for (const t of tokens) q = q.ilike('name', `%${t}%`);
+      const { data } = await q.limit(500);
+      const bare = (s: string) => normParentName(stripSubjectTag(s)).replace(/\s/g, '');
+      const nq = bare(sess.name);
+      const isSub = (a: string, b: string) => { let i = 0; for (let j = 0; j < b.length && i < a.length; j++) if (b[j] === a[i]) i++; return i === a.length; };
+      for (const r of (data || []) as any[]) {
+        const full = normParentName(stripSubjectTag(r.name));
+        const nn = bare(r.name);
+        if (full === targetBase || full.includes(targetBase) || (nn.length >= 3 && (isSub(nq, nn) || isSub(nn, nq)))) put(r);
+      }
+    } catch { /* offline */ }
   }
   return [...seen.values()];
 }
