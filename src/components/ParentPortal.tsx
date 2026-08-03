@@ -24,6 +24,9 @@ import ParentLogin from './ParentLogin';
 import { ParentSession, ChildRow, loadSession, clearSession, changeParentPassword, normParentName, findChildClasses, stripSubjectTag } from '../lib/parentAuth';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
+// Normalize a class name for comparison (collapse whitespace) so "GRADE 3" matches
+// even if the stored grade and the class-list entry differ by spacing.
+const normGrade = (g: string) => (g || '').replace(/\s+/g, ' ').trim();
 // Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
 const meritLetterOf = (v: number | null | undefined): '' | 'A' | 'B' =>
   (v == null || v <= 0) ? '' : v >= 9 ? 'A' : v >= 8 ? 'B' : '';
@@ -156,10 +159,10 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
       setChildClassKeys(new Set(childRows.map(r => `${r.grade}||${r.name.trim()}`)));
       // Only classes that STILL EXIST in the app. Deleted classes can leave orphaned
       // student_scores rows behind — skip those so a removed class never resurfaces.
-      const activeSet = new Set(grades);
+      const activeSet = new Set(grades.map(normGrade));
       let gradesToFetch = (childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade])
-        .filter(g => activeSet.has(g));
-      if (gradesToFetch.length === 0 && activeSet.has(sess.grade)) gradesToFetch = [sess.grade];
+        .filter(g => activeSet.has(normGrade(g)));
+      if (gradesToFetch.length === 0 && activeSet.has(normGrade(sess.grade))) gradesToFetch = [sess.grade];
       
       gradesToFetch.forEach(g => {
         fetchSetting(teacherSigKey(g))
@@ -251,12 +254,12 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   // (and their classes) are never pulled in, and every month of a real class is
   // kept even if a monthly row's name has a minor variation. Otherwise (manual
   // lookup): match by name.
-  const activeGradeSet = useMemo(() => new Set(grades), [grades]);
+  const activeGradeSet = useMemo(() => new Set(grades.map(normGrade)), [grades]);
   const childRecords = useMemo(() => {
     // Logged in: rows across all the child's classes (findChildClasses: fuzzy name +
     // studentId), limited to classes that still exist — drops orphaned deleted-class rows.
     if (session && childClassKeys.size) {
-      return classStudents.filter(s => activeGradeSet.has(s.grade) && childClassKeys.has(`${s.grade}||${s.name.trim()}`));
+      return classStudents.filter(s => activeGradeSet.has(normGrade(s.grade)) && childClassKeys.has(`${s.grade}||${s.name.trim()}`));
     }
     if (session) {
       const sid = (session.studentId || '').trim();
