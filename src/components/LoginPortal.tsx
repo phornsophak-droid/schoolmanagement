@@ -4,6 +4,7 @@ import { useT, LanguageToggle } from '../i18n';
 import { getPinForUser, setPinForUser } from '../utils/auth';
 import { syncUpsertSetting, syncGradesBulk } from '../lib/supabase';
 import { SchoolLogo } from './SchoolLogo';
+import InstallPWAButton from './InstallPWAButton';
 import { 
   KeyRound, 
   ShieldAlert, 
@@ -344,6 +345,8 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
               <p className="text-xs text-slate-400 mt-2 font-medium leading-relaxed">
                 {t('login.welcome')}
               </p>
+              {/* One-tap install with the school logo (Android/Chrome). */}
+              <InstallPWAButton className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-lg shadow-emerald-600/25" />
             </div>
           </div>
 

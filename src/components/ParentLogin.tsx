@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Lock, User, KeyRound, Loader2 } from 'lucide-react';
 import { ChildRow, parentLogin, changeParentPassword, saveSession } from '../lib/parentAuth';
+import InstallPWAButton from './InstallPWAButton';
 
 interface Props {
   onBack: () => void;
@@ -126,6 +127,8 @@ export default function ParentLogin({ onBack, onLogin }: Props) {
           </button>
           <p className="text-[11px] text-slate-400 text-center leading-relaxed">លើកដំបូង សូមប្រើ <b>លេខសម្ងាត់រួម</b>ដែលសាលាផ្ដល់ឱ្យ រួចអ្នកអាចប្ដូរលេខសម្ងាត់ផ្ទាល់ខ្លួន។</p>
         </div>
+        {/* Android/Chrome: one-tap install with the school logo (no menu hunting). */}
+        <InstallPWAButton className="mt-4 inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-lg shadow-emerald-600/25" />
       </div>
     </div>
   );
