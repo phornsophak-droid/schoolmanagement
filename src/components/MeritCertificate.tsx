@@ -175,82 +175,41 @@ export default function MeritCertificate({ student, students, scoreOverride, per
         {/* Certificate sheet (landscape) */}
         <div id="merit-cert" className="bg-white rounded-b-2xl">
           {isEnglish ? (
-            <div className="relative w-full overflow-hidden text-[#0f2249] bg-white font-sans" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size', border: '1.5cqw solid #0f2249', padding: '1cqw' }}>
-              <div className="relative w-full h-full border-[0.4cqw] border-[#c89b3f] flex flex-col items-center justify-center p-[4cqw]">
-                {/* Top Corners */}
-                <div className="absolute top-0 left-0 w-[4cqw] h-[4cqw] border-t-[0.4cqw] border-l-[0.4cqw] border-[#0f2249]" style={{ transform: 'translate(-0.4cqw, -0.4cqw)' }} />
-                <div className="absolute top-0 right-0 w-[4cqw] h-[4cqw] border-t-[0.4cqw] border-r-[0.4cqw] border-[#0f2249]" style={{ transform: 'translate(0.4cqw, -0.4cqw)' }} />
-                <div className="absolute bottom-0 left-0 w-[4cqw] h-[4cqw] border-b-[0.4cqw] border-l-[0.4cqw] border-[#0f2249]" style={{ transform: 'translate(-0.4cqw, 0.4cqw)' }} />
-                <div className="absolute bottom-0 right-0 w-[4cqw] h-[4cqw] border-b-[0.4cqw] border-r-[0.4cqw] border-[#0f2249]" style={{ transform: 'translate(0.4cqw, 0.4cqw)' }} />
-                
-                {/* Decorative Swirls could be placed here if we had SVGs, but the clean border looks great. */}
-                
-                {/* Logo */}
-                <div style={{ width: '8cqw', marginTop: '-2cqw' }}><SchoolLogo className="w-full h-auto" /></div>
-                <div className="font-bold mt-1 text-[#0f2249]" style={{ fontSize: '1cqw' }}>CHBAR CHROS COMMUNITY SCHOOL</div>
-                
-                {/* Title */}
-                <h1 className="mt-[1.5cqw] font-serif uppercase tracking-widest text-[#0f2249]" style={{ fontSize: '4.2cqw', fontWeight: 900 }}>
-                  Certificate of Achievement
-                </h1>
-                
-                {/* Subtitle */}
-                <div className="flex items-center gap-4 mt-[1cqw] w-3/4">
-                  <div className="h-[0.15cqw] bg-[#c89b3f] flex-1"></div>
-                  <p className="uppercase tracking-widest text-slate-700 font-semibold" style={{ fontSize: '1cqw' }}>
-                    This certificate is proudly presented to
-                  </p>
-                  <div className="h-[0.15cqw] bg-[#c89b3f] flex-1"></div>
-                </div>
-                
-                {/* Name */}
-                <h2 className="mt-[1cqw] text-[#0f2249]" style={{ fontFamily: "'Great Vibes', cursive", fontSize: '7.5cqw', fontWeight: 500 }}>
+            <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
+              <img src="/cert-frame-en.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
+              
+              {/* Dynamic Content Placed Over Template */}
+              
+              {/* Name (covers baked-in "Student's Name") */}
+              <div className="absolute inset-x-0 flex justify-center bg-white" style={{ top: '38.5%', bottom: '46%' }}>
+                <h2 className="text-[#0f2249] flex items-center justify-center font-bold" style={{ fontFamily: "'Great Vibes', cursive", fontSize: '6cqw' }}>
                   {student.name}
                 </h2>
-                <div className="w-[75%] h-[0.15cqw] bg-[#c89b3f] mt-2 mb-[2cqw]"></div>
-                
-                {/* Reason */}
-                <p className="text-center text-slate-700 max-w-[85%]" style={{ fontSize: '1.2cqw', lineHeight: 1.6 }}>
-                  For your outstanding effort and achievement in academic performance,<br/>
-                  positive attitude, and active participation in all learning activities.<br/>
-                  Keep up the great work!
-                </p>
-                
-                {/* Bottom Section */}
-                <div className="absolute bottom-[2cqw] left-[5cqw] right-[5cqw] flex justify-between items-end">
-                  {/* Principal */}
-                  <div className="text-center flex flex-col items-center w-[22cqw]">
-                    <div style={{ height: '5cqw' }} className="flex items-end justify-center">
-                      <PrincipalSignature height="100%" />
-                    </div>
-                    <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[1cqw] mb-[0.5cqw]"></div>
-                    <p className="font-bold text-[#0f2249]" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</p>
-                    <p className="text-slate-500 uppercase tracking-wider" style={{ fontSize: '0.9cqw' }}>School Principal</p>
+              </div>
+              
+              {/* Signatures & Date Section (covers bottom part) */}
+              <div className="absolute inset-x-0 bottom-[5cqw] flex justify-between items-end px-[12cqw]">
+                {/* Principal Signature */}
+                <div className="text-center flex flex-col items-center bg-white w-[18cqw] pb-2" style={{ marginBottom: '1cqw' }}>
+                  <div style={{ height: '7cqw' }} className="flex items-end justify-center">
+                    <PrincipalSignature height="100%" />
                   </div>
-                  
-                  {/* Ribbon */}
-                  <div className="flex flex-col items-center" style={{ marginBottom: '1cqw' }}>
-                    <div className="relative flex items-center justify-center bg-amber-400 rounded-full border-[0.4cqw] border-amber-200 shadow-sm" style={{ width: '6.5cqw', height: '6.5cqw' }}>
-                      <Award size={48} className="absolute text-amber-600" style={{ width: '4.5cqw', height: '4.5cqw' }} />
-                    </div>
-                    <div className="flex items-end gap-2 mt-[1cqw]">
-                      <span className="font-bold text-[#0f2249]" style={{ fontSize: '1.1cqw' }}>DATE:</span>
-                      <span className="border-b-[0.15cqw] border-[#0f2249] w-[12cqw] inline-block text-center text-[#0f2249] font-medium" style={{ fontSize: '1.1cqw' }}>
-                        {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
+                </div>
+                
+                {/* Date */}
+                <div className="text-center bg-white flex items-center justify-center" style={{ width: '15cqw', height: '2.5cqw', marginBottom: '2.5cqw', transform: 'translateX(2.5cqw)' }}>
+                  <span className="text-slate-800 font-medium" style={{ fontSize: '1.2cqw' }}>
+                    {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+                
+                {/* Teacher Signature (covers baked-in "YORN YAV") */}
+                <div className="text-center flex flex-col items-center bg-white w-[18cqw] pb-2 teacher-sig-container" style={{ marginBottom: '1cqw' }}>
+                  <div style={{ height: '7cqw' }} className="flex items-end justify-center">
+                    <TeacherSignature grade={student.grade} height="100%" />
                   </div>
-                  
-                  {/* Teacher */}
-                  <div className="text-center flex flex-col items-center w-[22cqw]">
-                    <div style={{ height: '5cqw' }} className="flex items-end justify-center relative teacher-sig-container">
-                      <TeacherSignature grade={student.grade} height="100%" />
-                    </div>
-                    <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[1cqw] mb-[0.5cqw]"></div>
-                    <p className="font-bold text-[#0f2249] uppercase" style={{ fontSize: '1.2cqw' }}>
-                      {teacherName || '..............................'}
-                    </p>
-                    <p className="text-slate-500 uppercase tracking-wider" style={{ fontSize: '0.9cqw' }}>Class Teacher</p>
+                  <div className="mt-[1cqw] text-[#0f2249] font-bold uppercase tracking-wider" style={{ fontSize: '1cqw', lineHeight: 1 }}>
+                    {teacherName}
                   </div>
                 </div>
               </div>
