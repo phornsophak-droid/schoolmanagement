@@ -135,7 +135,14 @@ export async function findChildClasses(sess: { name: string; studentId?: string 
     const probe = ([...tokens].sort((a, b) => b.length - a.length)[0] || targetBase).slice(0, 2);
     try {
       const { data } = await supabase.from('student_scores').select('name, grade, extra_data').ilike('name', `%${probe}%`).limit(800);
-      for (const r of (data || []) as any[]) if (normParentName(stripSubjectTag(r.name)) === targetBase) put({ name: r.name, grade: r.grade, studentId: r.extra_data?.studentId });
+      for (const r of (data || []) as any[]) {
+        const rid = (r.extra_data?.studentId || '').trim();
+        // Same name, but if this row has its OWN different អត្តលេខ it is another
+        // child — skip it. Keep only blank-id rows or ones matching our id.
+        if (normParentName(stripSubjectTag(r.name)) === targetBase && (!rid || !sid || rid === sid)) {
+          put({ name: r.name, grade: r.grade, studentId: r.extra_data?.studentId });
+        }
+      }
     } catch { /* offline */ }
   }
   return [...seen.values()];

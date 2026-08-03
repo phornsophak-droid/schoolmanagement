@@ -150,7 +150,12 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     try {
       let childRows: ChildRow[] = [];
       try { childRows = await findChildClasses({ name: sess.name, studentId: sess.studentId }); } catch { childRows = []; }
-      const gradesToFetch = childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade];
+      // Only classes that STILL EXIST in the app. Deleted classes can leave orphaned
+      // student_scores rows behind — skip those so a removed class never resurfaces.
+      const activeSet = new Set(grades);
+      let gradesToFetch = (childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade])
+        .filter(g => activeSet.has(g));
+      if (gradesToFetch.length === 0 && activeSet.has(sess.grade)) gradesToFetch = [sess.grade];
       
       gradesToFetch.forEach(g => {
         fetchSetting(teacherSigKey(g))
@@ -242,18 +247,23 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   // (and their classes) are never pulled in, and every month of a real class is
   // kept even if a monthly row's name has a minor variation. Otherwise (manual
   // lookup): match by name.
+  const activeGradeSet = useMemo(() => new Set(grades), [grades]);
   const childRecords = useMemo(() => {
     if (session) {
       const sid = (session.studentId || '').trim();
       const base = normParentName(stripSubjectTag(session.name));
       return classStudents.filter(s => {
+        if (!activeGradeSet.has(s.grade)) return false; // skip deleted classes' orphan rows
         const rid = (s.studentId || '').trim();
-        if (sid && rid && rid === sid) return true;
+        // When BOTH the child and the row carry an អត្តលេខ, it is decisive — a
+        // different child who happens to share the name (their own id) is excluded.
+        if (sid && rid) return rid === sid;
+        // Otherwise (a blank id somewhere) fall back to the exact tag-stripped name.
         return normParentName(stripSubjectTag(s.name)) === base;
       });
     }
     return classStudents.filter(s => normParentName(s.name) === normParentName(childName));
-  }, [classStudents, childName, session]);
+  }, [classStudents, childName, session, activeGradeSet]);
   const anyRec = childRecords[0];
 
   // After-hours classes load only their own rows, but the date of birth lives on
