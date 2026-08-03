@@ -146,21 +146,27 @@ export async function findChildClasses(sess: { name: string; studentId?: string 
       (data || []).forEach(put);
     } catch { /* offline */ }
   }
-  // 2. By name — require ALL words (AND ilike) so the query is narrow and never
-  //    truncated; then keep same-child rows (exact base name or a subsequence match,
-  //    tolerating a small spelling drift across rosters).
+  // 2. By name — TOLERANT (exact base, contains, all-tokens, or subsequence so a
+  //    small spelling drift across rosters still joins). Fetch by the given-name
+  //    token with an ORDER BY + high limit + a light select (name+grade only), so the
+  //    result is DETERMINISTIC and never randomly truncates the child's GRADE row.
   if (tokens.length) {
     try {
-      let q = supabase.from('student_scores').select('name, grade, extra_data');
-      for (const t of tokens) q = q.ilike('name', `%${t}%`);
-      const { data } = await q.limit(500);
+      const probe = ([...tokens].sort((a, b) => b.length - a.length)[0] || targetBase).slice(0, 2);
+      const { data } = await supabase.from('student_scores')
+        .select('name, grade')
+        .ilike('name', `%${probe}%`)
+        .order('name', { ascending: true })
+        .limit(4000);
       const bare = (s: string) => normParentName(stripSubjectTag(s)).replace(/\s/g, '');
       const nq = bare(sess.name);
       const isSub = (a: string, b: string) => { let i = 0; for (let j = 0; j < b.length && i < a.length; j++) if (b[j] === a[i]) i++; return i === a.length; };
       for (const r of (data || []) as any[]) {
         const full = normParentName(stripSubjectTag(r.name));
         const nn = bare(r.name);
-        if (full === targetBase || full.includes(targetBase) || (nn.length >= 3 && (isSub(nq, nn) || isSub(nn, nq)))) put(r);
+        if (full === targetBase || full.includes(targetBase) || (tokens.length > 0 && tokens.every(t => full.includes(t))) || (nn.length >= 3 && (isSub(nq, nn) || isSub(nn, nq)))) {
+          put({ name: r.name, grade: r.grade });
+        }
       }
     } catch { /* offline */ }
   }

@@ -403,6 +403,16 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
         </div>
         {showChangePass && <ChangePasswordBox session={session} onDone={() => setShowChangePass(false)} />}
 
+        {/* TEMP DEBUG v9 — remove after diagnosing missing GRADE. */}
+        <div className="mb-3 p-2 bg-yellow-50 border border-yellow-400 rounded-xl text-[9px] leading-snug text-slate-800 break-words">
+          <b>🐞 DEBUG v9</b><br />
+          session: {session.name} · {session.grade} · id:{session.studentId || '(គ្មាន)'}<br />
+          childKeys ({childClassKeys.size}): {[...childClassKeys].join('  ,  ') || '(ទទេ)'}<br />
+          GRADE in keys? {[...childClassKeys].some(k => /grade/i.test(k)) ? 'YES' : 'NO'}<br />
+          fetched: {[...new Set(classStudents.map(s => s.grade))].join(' | ') || '(ទទេ)'}<br />
+          record grades: {[...new Set(childRecords.map(s => s.grade))].join(' | ') || '(ទទេ)'}
+        </div>
+
         {/* Mobile-Portal-style tiles — tapping one reveals its options below. */}
         <div className="grid grid-cols-2 gap-3">
           <button
