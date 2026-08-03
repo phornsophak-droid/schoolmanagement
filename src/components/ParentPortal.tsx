@@ -24,9 +24,13 @@ import ParentLogin from './ParentLogin';
 import { ParentSession, ChildRow, loadSession, clearSession, changeParentPassword, normParentName, findChildClasses, stripSubjectTag } from '../lib/parentAuth';
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
-// Normalize a class name for comparison (collapse whitespace) so "GRADE 3" matches
-// even if the stored grade and the class-list entry differ by spacing.
-const normGrade = (g: string) => (g || '').replace(/\s+/g, ' ').trim();
+// Normalize a class name for comparison so "GRADE 3" matches even if the stored
+// grade and the class-list entry differ by invisible characters, spacing or case.
+const normGrade = (g: string) => (g || '')
+  .replace(/[\u200B-\u200F\u2028\u2029\u202A-\u202E\u2060\uFEFF\u00A0]/g, '')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .toUpperCase();
 // Merit certificate is awarded for និទ្ទេស A (≥9) or B (≥8) only.
 const meritLetterOf = (v: number | null | undefined): '' | 'A' | 'B' =>
   (v == null || v <= 0) ? '' : v >= 9 ? 'A' : v >= 8 ? 'B' : '';
