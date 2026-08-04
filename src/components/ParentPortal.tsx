@@ -4,7 +4,8 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award, ExternalLink, Monitor } from 'lucide-react';
+import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award, ExternalLink, Monitor, RefreshCw } from 'lucide-react';
+import { hardRefresh } from '../utils/hardRefresh';
 import { CURATED_ELIBRARY, fetchELinksFromCloud, ELink } from '../lib/library';
 import { useT, LanguageToggle } from '../i18n';
 import { StudentScore } from '../types';
@@ -401,6 +402,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
         <div className="flex items-center justify-between gap-2 mb-3 px-3 py-2 rounded-2xl bg-white border border-emerald-100 shadow-sm">
           <span className="text-xs font-bold text-slate-700 truncate">👦 {session.name.replace(/\s*\([^)]*\)\s*$/, '')} <span className="text-slate-400 font-semibold">· {session.grade}</span></span>
           <div className="flex items-center gap-1.5 shrink-0">
+            <button onClick={hardRefresh} title="ធ្វើឱ្យទាន់សម័យ (សម្អាត cache)" className="px-2 py-1 text-[11px] font-bold rounded-lg bg-sky-50 text-sky-600 hover:bg-sky-100 border border-sky-200 flex items-center gap-1"><RefreshCw size={12} /> ទាន់សម័យ</button>
             <button onClick={() => setShowChangePass(v => !v)} className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200">ប្តូរលេខសម្ងាត់</button>
             <button onClick={logout} className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200">ចេញ</button>
           </div>

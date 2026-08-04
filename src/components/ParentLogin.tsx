@@ -4,7 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { ArrowLeft, Lock, User, KeyRound, Loader2 } from 'lucide-react';
+import { ArrowLeft, Lock, User, KeyRound, Loader2, RefreshCw } from 'lucide-react';
+import { hardRefresh } from '../utils/hardRefresh';
 import { ChildRow, parentLogin, changeParentPassword, saveSession } from '../lib/parentAuth';
 import InstallPWAButton from './InstallPWAButton';
 
@@ -95,9 +96,14 @@ export default function ParentLogin({ onBack, onLogin }: Props) {
   // ── main login ────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col p-4">
-      <button onClick={onBack} className="self-start p-2 rounded-full hover:bg-emerald-100 text-slate-600 flex items-center gap-1 text-sm font-semibold">
-        <ArrowLeft size={18} /> ត្រឡប់ក្រោយ
-      </button>
+      <div className="flex items-center justify-between">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-emerald-100 text-slate-600 flex items-center gap-1 text-sm font-semibold">
+          <ArrowLeft size={18} /> ត្រឡប់ក្រោយ
+        </button>
+        <button onClick={hardRefresh} title="ធ្វើឱ្យទាន់សម័យ (សម្អាត cache)" className="p-2 rounded-full hover:bg-emerald-100 text-slate-500 flex items-center gap-1 text-xs font-semibold">
+          <RefreshCw size={15} /> ធ្វើឱ្យទាន់សម័យ
+        </button>
+      </div>
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="bg-white rounded-3xl shadow-lg border border-emerald-100 p-6 w-full max-w-sm space-y-4">
           <div className="text-center">
