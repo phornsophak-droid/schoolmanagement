@@ -176,7 +176,8 @@ export default function MeritCertificate({ student, students, scoreOverride, per
             </button>
           </div>
         </div>
-
+        {/* Certificate sheet (landscape) */}
+        <div id="merit-cert" className="bg-white rounded-b-2xl">
           {isEnglish ? (
             <div className="relative w-full cert-english overflow-hidden bg-white text-[#0f2249]" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
               {/* Pure CSS/SVG Background Frame */}
