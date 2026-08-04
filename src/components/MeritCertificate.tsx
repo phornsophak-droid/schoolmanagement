@@ -284,17 +284,19 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
                 
                 {/* Title */}
-                <h1 className="font-serif uppercase tracking-wider text-[#0f2249]" style={{ fontSize: '3.6cqw', fontWeight: 900, textShadow: '1px 1px 0px rgba(0,0,0,0.1)' }}>
-                  Certificate <span style={{ fontSize: '2.2cqw', fontStyle: 'italic', textTransform: 'lowercase', margin: '0 0.5cqw' }}>of</span> Achievement
+                <h1 className="font-serif uppercase tracking-wider text-[#0f2249] flex items-center justify-center" style={{ fontSize: '3.8cqw', fontWeight: 900 }}>
+                  CERTIFICATE <span className="font-serif lowercase" style={{ fontSize: '2.4cqw', fontStyle: 'italic', margin: '0 0.8cqw' }}>of</span> ACHIEVEMENT
                 </h1>
                 
                 {/* Subtitle */}
-                <div className="flex items-center justify-center gap-3 mt-[1cqw]">
-                  <div className="w-[0.8cqw] h-[0.8cqw] bg-[#d0a747] rotate-45"></div>
-                  <p className="uppercase tracking-[0.2em] font-semibold text-slate-700" style={{ fontSize: '1.2cqw' }}>
-                    This certificate is proudly presented to
+                <div className="flex items-center justify-center gap-3 mt-[1cqw] w-[75%]">
+                  <div className="w-[0.6cqw] h-[0.6cqw] bg-[#d0a747] rotate-45 shrink-0"></div>
+                  <div className="flex-grow h-[1px] bg-[#d0a747]"></div>
+                  <p className="uppercase tracking-[0.2em] font-semibold text-[#334155] shrink-0 px-2" style={{ fontSize: '1.1cqw' }}>
+                    THIS CERTIFICATE IS PROUDLY PRESENTED TO
                   </p>
-                  <div className="w-[0.8cqw] h-[0.8cqw] bg-[#d0a747] rotate-45"></div>
+                  <div className="flex-grow h-[1px] bg-[#d0a747]"></div>
+                  <div className="w-[0.6cqw] h-[0.6cqw] bg-[#d0a747] rotate-45 shrink-0"></div>
                 </div>
                 
                 {/* Name */}
@@ -307,7 +309,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </h2>
                 
                 {/* Separator */}
-                <div className="w-3/4 h-[0.15cqw] bg-[#d0a747] mt-[0.5cqw] mb-[1cqw]"></div>
+                <div className="w-[85%] h-[0.15cqw] bg-[#d0a747] mt-[0.5cqw] mb-[1cqw]"></div>
                 
                 {/* Paragraph */}
                 <div className="text-center text-slate-800 flex flex-col gap-2" style={{ fontSize: '1.3cqw', lineHeight: 1.5, maxWidth: '95%' }}>
@@ -338,28 +340,56 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
                 
                 {/* Seal & Date */}
-                <div className="text-center flex flex-col items-center justify-end" style={{ width: '22cqw', paddingBottom: '7cqw' }}>
-                  <div className="mb-[1.5cqw] relative flex justify-center items-center">
-                    <svg width="13cqw" height="13cqw" viewBox="0 0 100 100" className="drop-shadow-lg">
-                      <defs>
-                        <linearGradient id="gGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#f7e192" />
-                          <stop offset="50%" stopColor="#c38e30" />
-                          <stop offset="100%" stopColor="#f7e192" />
-                        </linearGradient>
-                        <linearGradient id="gGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#c38e30" />
-                          <stop offset="50%" stopColor="#f7e192" />
-                          <stop offset="100%" stopColor="#c38e30" />
-                        </linearGradient>
-                      </defs>
-                      <path d="M 25 65 L 15 95 L 35 85 L 50 100 L 65 85 L 85 95 L 75 65 Z" fill="url(#gGrad2)" />
-                      <circle cx="50" cy="45" r="30" fill="url(#gGrad1)" />
-                      <circle cx="50" cy="45" r="26" fill="url(#gGrad2)" />
-                      <circle cx="50" cy="45" r="24" fill="url(#gGrad1)" />
-                      <text x="50" y="47" textAnchor="middle" dominantBaseline="middle" fill="#0f2249" fontSize="24" fontWeight="bold" fontFamily="serif">
-                        {niddes.en || 'A'}
-                      </text>
+                <div className="text-center flex flex-col items-center justify-end" style={{ width: '28cqw', paddingBottom: '7cqw' }}>
+                  <div className="mb-[1cqw] relative flex justify-center items-center w-full">
+                    {/* Left Laurel */}
+                    <svg viewBox="0 0 50 100" style={{ height: '7cqw', width: 'auto', marginRight: '1cqw', transform: 'scaleX(-1)' }}>
+                      <path d="M25,100 Q10,50 25,0" fill="none" stroke="#d0a747" strokeWidth="2" />
+                      <path d="M25,80 Q10,75 5,60 Q20,60 25,80" fill="#d0a747" />
+                      <path d="M22,60 Q5,55 0,40 Q15,40 22,60" fill="#d0a747" />
+                      <path d="M20,40 Q0,35 0,20 Q15,20 20,40" fill="#d0a747" />
+                      <path d="M25,20 Q10,15 10,0 Q25,0 25,20" fill="#d0a747" />
+                      <path d="M25,70 Q40,65 45,50 Q30,50 25,70" fill="#d0a747" />
+                      <path d="M22,50 Q40,45 45,30 Q30,30 22,50" fill="#d0a747" />
+                      <path d="M20,30 Q40,25 45,10 Q30,10 20,30" fill="#d0a747" />
+                    </svg>
+                    
+                    {/* Gold Seal with ribbons */}
+                    <div className="relative flex flex-col items-center justify-center">
+                      <svg className="absolute drop-shadow-md" style={{ top: '40%', width: '7cqw', height: '8cqw', zIndex: 0 }} viewBox="0 0 100 100">
+                        <polygon points="15,0 5,100 25,80 50,100 50,0" fill="#c38e30" />
+                        <polygon points="85,0 95,100 75,80 50,100 50,0" fill="#d0a747" />
+                      </svg>
+                      <svg style={{ width: '8cqw', height: '8cqw', position: 'relative', zIndex: 10 }} viewBox="0 0 100 100" className="drop-shadow-lg">
+                        <defs>
+                          <linearGradient id="gGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#f7e192" />
+                            <stop offset="50%" stopColor="#c38e30" />
+                            <stop offset="100%" stopColor="#f7e192" />
+                          </linearGradient>
+                          <linearGradient id="gGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#c38e30" />
+                            <stop offset="50%" stopColor="#f7e192" />
+                            <stop offset="100%" stopColor="#c38e30" />
+                          </linearGradient>
+                        </defs>
+                        <polygon points="50,0 58,5 68,2 73,10 83,10 85,20 95,23 93,33 100,38 95,47 100,53 93,62 95,72 85,75 83,85 73,85 68,93 58,90 50,95 42,90 32,93 27,85 17,85 15,75 5,72 7,62 0,53 5,47 0,38 7,33 5,23 15,20 17,10 27,10 32,2 42,5" fill="url(#gGrad2)" />
+                        <circle cx="50" cy="48" r="38" fill="url(#gGrad1)" />
+                        <circle cx="50" cy="48" r="32" fill="url(#gGrad2)" />
+                        <circle cx="50" cy="48" r="28" fill="url(#gGrad1)" />
+                      </svg>
+                    </div>
+
+                    {/* Right Laurel */}
+                    <svg viewBox="0 0 50 100" style={{ height: '7cqw', width: 'auto', marginLeft: '1cqw' }}>
+                      <path d="M25,100 Q10,50 25,0" fill="none" stroke="#d0a747" strokeWidth="2" />
+                      <path d="M25,80 Q10,75 5,60 Q20,60 25,80" fill="#d0a747" />
+                      <path d="M22,60 Q5,55 0,40 Q15,40 22,60" fill="#d0a747" />
+                      <path d="M20,40 Q0,35 0,20 Q15,20 20,40" fill="#d0a747" />
+                      <path d="M25,20 Q10,15 10,0 Q25,0 25,20" fill="#d0a747" />
+                      <path d="M25,70 Q40,65 45,50 Q30,50 25,70" fill="#d0a747" />
+                      <path d="M22,50 Q40,45 45,30 Q30,30 22,50" fill="#d0a747" />
+                      <path d="M20,30 Q40,25 45,10 Q30,10 20,30" fill="#d0a747" />
                     </svg>
                   </div>
                   <div className="flex items-end justify-center w-full">
