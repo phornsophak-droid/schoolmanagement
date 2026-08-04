@@ -253,7 +253,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div className="w-3/4 h-[0.15cqw] bg-[#d0a747] mt-[2cqw] mb-[2cqw]"></div>
                 
                 {/* Paragraph */}
-                <div className="text-center text-slate-800 flex flex-col gap-2" style={{ fontSize: '1.3cqw', lineHeight: 1.5, maxWidth: '85%' }}>
+                <div className="text-center text-slate-800 flex flex-col gap-2" style={{ fontSize: '1.3cqw', lineHeight: 1.5, maxWidth: '95%' }}>
                   <p>
                     for being the <span className="font-bold text-[#0f2249]">Student of the Month</span> for <span className="font-bold text-[#0f2249]">{EN_MONTHS[student.month?.trim()] || student.month || 'January 2025'}</span>.
                   </p>
