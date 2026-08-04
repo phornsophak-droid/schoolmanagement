@@ -216,13 +216,13 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               <div className="absolute inset-0 flex flex-col items-center z-10" style={{ padding: '5cqw 12cqw' }}>
                 
                 {/* Header / Logo */}
-                <div style={{ width: '8cqw', marginBottom: '1cqw' }}>
+                <div style={{ width: '12cqw', marginBottom: '1cqw' }}>
                   <SchoolLogo className="w-full h-auto" />
                 </div>
                 
                 {/* Title */}
-                <h1 className="font-serif uppercase tracking-wider text-[#0f2249]" style={{ fontSize: '4.8cqw', fontWeight: 900, textShadow: '1px 1px 0px rgba(0,0,0,0.1)' }}>
-                  Certificate <span style={{ fontSize: '3cqw', fontStyle: 'italic', textTransform: 'lowercase', margin: '0 0.5cqw' }}>of</span> Achievement
+                <h1 className="font-serif uppercase tracking-wider text-[#0f2249]" style={{ fontSize: '3.6cqw', fontWeight: 900, textShadow: '1px 1px 0px rgba(0,0,0,0.1)' }}>
+                  Certificate <span style={{ fontSize: '2.2cqw', fontStyle: 'italic', textTransform: 'lowercase', margin: '0 0.5cqw' }}>of</span> Achievement
                 </h1>
                 
                 {/* Subtitle */}
@@ -253,8 +253,8 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </p>
                 
                 {/* Seal */}
-                <div className="mt-auto mb-[2cqw] relative flex justify-center items-center">
-                  <svg width="10cqw" height="10cqw" viewBox="0 0 100 100" className="drop-shadow-lg">
+                <div className="mt-[1cqw] mb-auto relative flex justify-center items-center">
+                  <svg width="9cqw" height="9cqw" viewBox="0 0 100 100" className="drop-shadow-lg">
                     <defs>
                       <linearGradient id="gGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#f7e192" />
@@ -279,10 +279,10 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               </div>
               
               {/* Signatures & Date Section */}
-              <div className="absolute inset-x-0 bottom-0 flex justify-between items-end px-[10cqw] z-20" style={{ height: '18cqw' }}>
+              <div className="absolute inset-x-0 bottom-0 flex justify-between items-end px-[10cqw] z-20" style={{ height: '22cqw' }}>
                 {/* Principal Signature */}
-                <div className="text-center flex flex-col items-center w-[22cqw] sig-container" style={{ paddingBottom: '4cqw' }}>
-                  <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center">
+                <div className="text-center flex flex-col items-center w-[22cqw] sig-container" style={{ paddingBottom: '7cqw' }}>
+                  <div style={{ height: '4.5cqw', width: '100%' }} className="flex items-end justify-center">
                     <PrincipalSignature height="100%" />
                   </div>
                   <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[0.5cqw] mb-[0.5cqw]"></div>
@@ -291,7 +291,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
                 
                 {/* Date */}
-                <div className="text-center flex items-end justify-center" style={{ width: '20cqw', paddingBottom: '4cqw' }}>
+                <div className="text-center flex items-end justify-center" style={{ width: '20cqw', paddingBottom: '7cqw' }}>
                   <div className="text-[#0f2249] font-bold tracking-wider mr-2" style={{ fontSize: '1.2cqw' }}>DATE:</div>
                   <div className="border-b-[0.15cqw] border-[#0f2249] text-[#0f2249] font-medium px-2 text-center" style={{ fontSize: '1.2cqw', minWidth: '10cqw' }}>
                     {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -299,12 +299,14 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
                 
                 {/* Teacher Signature */}
-                <div className="text-center flex flex-col items-center w-[22cqw] sig-container" style={{ paddingBottom: '4cqw' }}>
-                  <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center">
+                <div className="text-center flex flex-col items-center w-[22cqw] sig-container" style={{ paddingBottom: '7cqw' }}>
+                  <div style={{ height: '4.5cqw', width: '100%' }} className="flex items-end justify-center">
                     <TeacherSignature grade={student.grade} height="100%" />
                   </div>
                   <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[0.5cqw] mb-[0.5cqw]"></div>
-                  <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>{teacherName || 'YORN YAV'}</div>
+                  <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>
+                    {(!teacherName || teacherName.trim() === 'យន យ៉ាវ') ? 'YORN YAV' : teacherName}
+                  </div>
                   <div className="text-slate-600 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.9cqw' }}>Class Teacher</div>
                 </div>
               </div>
