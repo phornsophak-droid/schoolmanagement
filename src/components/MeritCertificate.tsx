@@ -85,6 +85,7 @@ const renderDob = (text: string): React.ReactNode => {
 
 export default function MeritCertificate({ student, students, scoreOverride, periodPhrase, onClose }: MeritCertificateProps) {
   const isEnglish = /grade|អង់គ្លេស/i.test(student.grade);
+  const certName = (isEnglish && student.englishName) ? student.englishName.trim() : baseStudentName(student.name);
   const teacherName = teacherNameForGrade(student.grade);
   const niddes = gradeBand(scoreOverride ?? student.overallAvg);
   const period = periodPhrase || `ប្រចាំខែ${student.month} ឆ្នាំសិក្សា ២០២៥-២០២៦`;
@@ -256,11 +257,11 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 
                 {/* Name */}
                 <h2 className="mt-[2cqw] font-bold text-[#0f2249]" style={{ 
-                  fontFamily: baseStudentName(student.name).match(/[ក-អ]/) ? "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif" : "'Great Vibes', cursive", 
-                  fontSize: baseStudentName(student.name).match(/[ក-អ]/) ? '4.5cqw' : '7.5cqw',
+                  fontFamily: certName.match(/[ក-អ]/) ? "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif" : "'Great Vibes', cursive", 
+                  fontSize: certName.match(/[ក-អ]/) ? '4.5cqw' : '7.5cqw',
                   lineHeight: 1.2
                 }}>
-                  {baseStudentName(student.name)}
+                  {certName}
                 </h2>
                 
                 {/* Separator */}

@@ -120,6 +120,7 @@ export interface MathScore {
 export interface StudentScore {
   id: string;
   name: string;
+    englishName?: string;
   gender: 'ប្រុស' | 'ស្រី';
   grade: string; // ថ្នាក់ទី១ ដល់ ថ្នាក់ទី៦
   group?: string; // ក្រុម — used by after-hours classes split into groups
@@ -164,7 +165,8 @@ export interface StudentScore {
 
 // ជំហានទី ១: ព័ត៌មានទូទៅ
 export interface GeneralInfo {
-  teacherName: string;
+  teachername: string;
+    englishName?: string;
   grade: string;
   month: string;
   academicYear: string;
@@ -188,7 +190,8 @@ export interface StudentStats {
 
 // ជំហានទី ៣: ការវាយតម្លៃតាមមុខវិជ្ជា និងមតិយោបល់
 export interface SubjectEvalItem {
-  subjectName: string;
+  subjectname: string;
+    englishName?: string;
   excellentCount: number; // ល្អណាស់
   goodCount: number;      // ល្អ
   fairCount: number;      // ល្អបង្គួរ
@@ -217,6 +220,7 @@ export interface Step4Activities {
 export interface StrugglingStudent {
   id: string;
   name: string;
+    englishName?: string;
   gender: 'ប្រុស' | 'ស្រី';
   issue: string; // ឧ. អានមិនដាច់ ឬ អវត្តមាន ៥ដងគ្មានច្បាប់
   actionTaken: string; // វិធានការដោះស្រាយ
@@ -247,6 +251,7 @@ export interface SchoolReport {
 export interface SchoolUser {
   id: string;
   name: string;
+    englishName?: string;
   role: 'principal' | 'teacher';
   grade: string; // 'ថ្នាក់ទី១' ... 'ថ្នាក់ទី៦', or 'ទាំងអស់'
   photoCode: string;

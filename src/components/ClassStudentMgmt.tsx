@@ -181,6 +181,7 @@ export default function ClassStudentMgmt({
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [studentFormName, setStudentFormName] = useState('');
+    const [studentFormEnglishName, setStudentFormEnglishName] = useState('');
   const [studentFormGender, setStudentFormGender] = useState<'ប្រុស' | 'ស្រី'>('ប្រុស');
   const [studentFormGrade, setStudentFormGrade] = useState<string>(grades[0] || 'ថ្នាក់ទី៦');
   const [studentFormStatus, setStudentFormStatus] = useState<'ធម្មតា' | 'រៀនយឺត' | 'បោះបង់'>('ធម្មតា');
@@ -359,6 +360,7 @@ export default function ClassStudentMgmt({
   const handleOpenAddStudent = () => {
     setEditingStudentId(null);
     setStudentFormName('');
+      setStudentFormEnglishName('');
     setStudentFormGender('ប្រុស');
     setStudentFormGrade(selectedRosterGrade !== 'ទាំងអស់' ? selectedRosterGrade : (grades[0] || 'ថ្នាក់ទី៦'));
     setStudentFormStatus('ធម្មតា');
@@ -371,6 +373,7 @@ export default function ClassStudentMgmt({
   const handleOpenEditStudent = (profile: StudentScore) => {
     setEditingStudentId(profile.id);
     setStudentFormName(profile.name);
+      setStudentFormEnglishName(profile.englishName || '');
     setStudentFormGender(profile.gender);
     setStudentFormGrade(profile.grade);
     setStudentFormStatus(profile.status || 'ធម្មតា');
@@ -406,6 +409,7 @@ export default function ClassStudentMgmt({
             const payload = {
               ...s,
               name: name,
+              englishName: studentFormEnglishName.trim() || undefined,
               gender: studentFormGender,
               grade: studentFormGrade,
               group: studentFormGroup.trim() || undefined,
@@ -1733,7 +1737,7 @@ export default function ClassStudentMgmt({
                         </div>
                       )}
 
-                      <form onSubmit={handleSaveStudentSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-medium">
+                      <form onSubmit={handleSaveStudentSubmit} className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs font-medium">
                         <div>
                           <label className="block text-slate-500 mb-1">{t('common.studentName')}</label>
                           <input
@@ -1747,7 +1751,12 @@ export default function ClassStudentMgmt({
                         </div>
 
                         <div>
-                          <label className="block text-slate-500 mb-1">{t('common.gender')}</label>
+                          <label className="block text-slate-500 mb-1">English Name</label>
+                            <input type="text" value={studentFormEnglishName} onChange={(e) => setStudentFormEnglishName(e.target.value)} placeholder="e.g. Sok Samnang" className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500" />
+                          </div>
+
+                          <div>
+                            <label className="block text-slate-500 mb-1">{t('common.gender')}</label>
                           <select
                             value={studentFormGender}
                             onChange={(e) => setStudentFormGender(e.target.value as 'ប្រុស' | 'ស្រី')}
@@ -1851,6 +1860,7 @@ export default function ClassStudentMgmt({
                           <th className="px-4 py-3 text-center sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] w-12">ល.រ</th>
                           <th className="px-4 py-3 text-center whitespace-nowrap">អត្តលេខ</th>
                           <th className="px-4 py-3 whitespace-nowrap">{t('common.studentName')}</th>
+                          <th className="px-4 py-3 whitespace-nowrap">English Name</th>
                           <th className="px-4 py-3 text-center">{t('common.gender')}</th>
                           <th className="px-4 py-3 text-center">{t('cls.col.class')}</th>
                           {classCategory === 'extra' && <th className="px-4 py-3 text-center">{t('cls.col.group')}</th>}
@@ -1878,6 +1888,7 @@ export default function ClassStudentMgmt({
                                 </td>
                                 <td className="px-4 py-3 text-center font-sans text-slate-700 whitespace-nowrap">{resolvedId(p) || <span className="text-slate-300">-</span>}</td>
                                 <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">{p.name}</td>
+                                <td className="px-4 py-3 text-slate-700 whitespace-nowrap font-sans">{p.englishName || <span className="text-slate-300">-</span>}</td>
                                 <td className="px-4 py-3 text-center">
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                     p.gender === 'ស្រី'
