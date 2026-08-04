@@ -284,30 +284,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   </p>
                 </div>
                 
-                {/* Seal */}
-                <div className="mt-[1cqw] mb-auto relative flex justify-center items-center">
-                  <svg width="13cqw" height="13cqw" viewBox="0 0 100 100" className="drop-shadow-lg">
-                    <defs>
-                      <linearGradient id="gGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#f7e192" />
-                        <stop offset="50%" stopColor="#c38e30" />
-                        <stop offset="100%" stopColor="#f7e192" />
-                      </linearGradient>
-                      <linearGradient id="gGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#c38e30" />
-                        <stop offset="50%" stopColor="#f7e192" />
-                        <stop offset="100%" stopColor="#c38e30" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M 25 65 L 15 95 L 35 85 L 50 100 L 65 85 L 85 95 L 75 65 Z" fill="url(#gGrad2)" />
-                    <circle cx="50" cy="45" r="30" fill="url(#gGrad1)" />
-                    <circle cx="50" cy="45" r="26" fill="url(#gGrad2)" />
-                    <circle cx="50" cy="45" r="24" fill="url(#gGrad1)" />
-                    <text x="50" y="47" textAnchor="middle" dominantBaseline="middle" fill="#0f2249" fontSize="24" fontWeight="bold" fontFamily="serif">
-                      {niddes.en || 'A'}
-                    </text>
-                  </svg>
-                </div>
+
               </div>
               
               {/* Signatures & Date Section */}
@@ -322,11 +299,36 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   <div className="text-slate-600 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.9cqw' }}>School Principal</div>
                 </div>
                 
-                {/* Date */}
-                <div className="text-center flex items-end justify-center" style={{ width: '20cqw', paddingBottom: '7cqw' }}>
-                  <div className="text-[#0f2249] font-bold tracking-wider mr-2" style={{ fontSize: '1.2cqw' }}>DATE:</div>
-                  <div className="border-b-[0.15cqw] border-[#0f2249] text-[#0f2249] font-medium px-2 text-center" style={{ fontSize: '1.2cqw', minWidth: '10cqw' }}>
-                    {enEndDate}
+                {/* Seal & Date */}
+                <div className="text-center flex flex-col items-center justify-end" style={{ width: '22cqw', paddingBottom: '7cqw' }}>
+                  <div className="mb-[1.5cqw] relative flex justify-center items-center">
+                    <svg width="13cqw" height="13cqw" viewBox="0 0 100 100" className="drop-shadow-lg">
+                      <defs>
+                        <linearGradient id="gGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#f7e192" />
+                          <stop offset="50%" stopColor="#c38e30" />
+                          <stop offset="100%" stopColor="#f7e192" />
+                        </linearGradient>
+                        <linearGradient id="gGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#c38e30" />
+                          <stop offset="50%" stopColor="#f7e192" />
+                          <stop offset="100%" stopColor="#c38e30" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M 25 65 L 15 95 L 35 85 L 50 100 L 65 85 L 85 95 L 75 65 Z" fill="url(#gGrad2)" />
+                      <circle cx="50" cy="45" r="30" fill="url(#gGrad1)" />
+                      <circle cx="50" cy="45" r="26" fill="url(#gGrad2)" />
+                      <circle cx="50" cy="45" r="24" fill="url(#gGrad1)" />
+                      <text x="50" y="47" textAnchor="middle" dominantBaseline="middle" fill="#0f2249" fontSize="24" fontWeight="bold" fontFamily="serif">
+                        {niddes.en || 'A'}
+                      </text>
+                    </svg>
+                  </div>
+                  <div className="flex items-end justify-center w-full">
+                    <div className="text-[#0f2249] font-bold tracking-wider mr-2" style={{ fontSize: '1.2cqw' }}>DATE:</div>
+                    <div className="border-b-[0.15cqw] border-[#0f2249] text-[#0f2249] font-medium px-2 text-center" style={{ fontSize: '1.2cqw', minWidth: '10cqw' }}>
+                      {enEndDate}
+                    </div>
                   </div>
                 </div>
                 
