@@ -299,13 +299,10 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 {/* Paragraph */}
                 <div className="text-center text-slate-800 flex flex-col gap-2" style={{ fontSize: '1.3cqw', lineHeight: 1.5, maxWidth: '95%' }}>
                   <p>
-                    for being the <span className="font-bold text-[#0f2249]">{enTitle}</span> for <span className="font-bold text-[#0f2249]">{enPeriod}</span>.
+                    For being the <span className="font-bold text-[#0f2249]">{enTitle}</span> for <span className="font-bold text-[#0f2249]">{enPeriod}</span>. Your hard work, positive attitude, and good behavior make you a wonderful student. You are kind, respectful, and always ready to learn.
                   </p>
                   <p>
-                    Your hard work, positive attitude, and good behavior have made you a wonderful student. You are kind, respectful, and always eager to learn.
-                  </p>
-                  <p>
-                    We are proud of all you have achieved. Keep doing your best and continue to be a shining example for others.
+                    We are proud of your achievements. Keep doing your best and continue to be a great example for others.
                   </p>
                   <p className="font-bold mt-1 text-[#0f2249]">
                     Congratulations! Keep up the great work!
