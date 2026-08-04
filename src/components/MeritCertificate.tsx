@@ -310,7 +310,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 
                 {/* Header / Logo */}
                 <div style={{ width: '9cqw', marginBottom: '1cqw' }}>
-                  <SchoolLogo className="w-full h-auto drop-shadow-md mix-blend-multiply" />
+                  <SchoolLogo className="w-full h-auto mix-blend-multiply" />
                 </div>
                 
                 {/* Title */}
@@ -351,14 +351,11 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   <p>
                     We are proud of your achievements. Keep doing your best and continue to be a great example for others.
                   </p>
-                  <p className="font-bold mt-2 text-[#0f2249] tracking-wider" style={{ fontSize: '1.1cqw' }}>
-                    Keep up the great work!
-                  </p>
                 </div>
               </div>
               
               {/* Footer Area */}
-              <div className="absolute inset-x-0 bottom-[6cqw] flex justify-between items-end px-[12cqw] z-30">
+              <div className="absolute inset-x-0 bottom-[8cqw] flex justify-between items-end px-[12cqw] z-30">
                 
                 {/* Principal */}
                 <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
