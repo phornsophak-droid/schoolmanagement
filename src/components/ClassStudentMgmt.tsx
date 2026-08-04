@@ -29,6 +29,7 @@ import { syncUpsertSetting } from '../lib/supabase';
 import { ParentAccounts, ParentAccount, childKey, refreshAccounts } from '../lib/parentAuth';
 import { formatDobKh as formatDobKhShared } from '../utils/khmerDate';
 import { useT } from '../i18n';
+import { transliterateKhmerName } from '../utils/khmerToLatin';
 import * as XLSX from 'xlsx';
 
 // Helper to normalize grade names by stripping whitespace and converting digits to standard Khmer
@@ -1744,7 +1745,13 @@ export default function ClassStudentMgmt({
                             type="text"
                             required
                             value={studentFormName}
-                            onChange={(e) => setStudentFormName(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setStudentFormName(val);
+                                if (!studentFormEnglishName) {
+                                  setStudentFormEnglishName(transliterateKhmerName(val));
+                                }
+                              }}
                             placeholder="ឧ. សួង ចណ្ដា"
                             className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500"
                           />
