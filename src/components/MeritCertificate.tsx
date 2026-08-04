@@ -344,7 +344,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div className="w-[75%] h-[1.5px] bg-[#d0a747] mt-[0.5cqw] mb-[2cqw]"></div>
                 
                 {/* Paragraph */}
-                <div className="text-center text-[#334155] flex flex-col gap-1.5" style={{ fontSize: '1.2cqw', lineHeight: 1.6, maxWidth: '85%' }}>
+                <div className="text-center text-[#334155] flex flex-col gap-1.5" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '1.2cqw', lineHeight: 1.6, maxWidth: '85%' }}>
                   <p>
                     For being the <span className="font-bold text-[#0f2249]">{enTitle}</span> for <span className="font-bold text-[#0f2249]">{enPeriod}</span>. Your hard work, positive attitude, and good behavior make you a wonderful student. You are kind, respectful, and always ready to learn.
                   </p>
