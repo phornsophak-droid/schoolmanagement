@@ -374,7 +374,6 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               </div>
               
               <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
                 .cert-english .sig-container p { display: none !important; }
               `}</style>
             </div>

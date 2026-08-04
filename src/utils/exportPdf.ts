@@ -101,7 +101,15 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
   // to finish loading. If we capture before bold Khmer is ready html2canvas can't
   // measure the glyphs and the <th> header text comes out blank on some browsers
   // (e.g. desktop Chrome). Then settle briefly so metrics are final.
-  try { await (document as any).fonts?.ready; } catch { /* fonts API absent — proceed */ }
+  // Cap the wait: document.fonts.ready never resolves while a web font is still
+  // loading (e.g. a slow/blocked Google-Font request), which would hang EVERY export
+  // ("កំពុងបង្កើត..."). Proceed after at most 3s so a pending font can't freeze it.
+  try {
+    await Promise.race([
+      (document as any).fonts?.ready ?? Promise.resolve(),
+      new Promise(resolve => setTimeout(resolve, 3000)),
+    ]);
+  } catch { /* fonts API absent — proceed */ }
   await new Promise(resolve => setTimeout(resolve, 50));
 
   // Render at a fixed virtual width, and derive the scale FROM THAT width (not the
