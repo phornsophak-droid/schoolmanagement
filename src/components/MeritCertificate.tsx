@@ -310,7 +310,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 
                 {/* Header / Logo */}
                 <div style={{ width: '9cqw', marginBottom: '1cqw' }}>
-                  <SchoolLogo className="w-full h-auto drop-shadow-md" />
+                  <SchoolLogo className="w-full h-auto drop-shadow-md mix-blend-multiply" />
                 </div>
                 
                 {/* Title */}
@@ -372,9 +372,64 @@ export default function MeritCertificate({ student, students, scoreOverride, per
 
                 {/* Center Seal and Date */}
                 <div className="flex flex-col items-center justify-end w-[25cqw] translate-y-[-1cqw]">
-                  {/* Provided Medal Image */}
+                  {/* Dynamic SVG Medal */}
                   <div className="relative flex justify-center items-center mb-[1cqw]">
-                    <img src="/medal.png" alt="Grade Medal" className="w-[12cqw] h-auto object-contain drop-shadow-md" />
+                    <svg viewBox="0 0 100 130" style={{ width: '12cqw', height: '15.6cqw', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' }}>
+                      <defs>
+                        <linearGradient id="goldM" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#f3d578" />
+                          <stop offset="30%" stopColor="#d0a747" />
+                          <stop offset="50%" stopColor="#fff5c3" />
+                          <stop offset="70%" stopColor="#d0a747" />
+                          <stop offset="100%" stopColor="#b38222" />
+                        </linearGradient>
+                        <linearGradient id="blueRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#08142c" />
+                          <stop offset="20%" stopColor="#142c5c" />
+                          <stop offset="50%" stopColor="#1e3a8a" />
+                          <stop offset="80%" stopColor="#142c5c" />
+                          <stop offset="100%" stopColor="#08142c" />
+                        </linearGradient>
+                        <linearGradient id="blueCenter" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#0f2249" />
+                          <stop offset="100%" stopColor="#08142c" />
+                        </linearGradient>
+                      </defs>
+                      
+                      {/* Left Ribbon */}
+                      <polygon points="25,60 10,120 25,105 40,120 45,60" fill="url(#blueRibbon)" />
+                      <polygon points="25,60 14,116 25,102 36,116 41,60" fill="none" stroke="url(#goldM)" strokeWidth="1.5" />
+                      
+                      {/* Right Ribbon */}
+                      <polygon points="55,60 60,120 75,105 90,120 75,60" fill="url(#blueRibbon)" />
+                      <polygon points="59,60 64,116 75,102 86,116 75,60" fill="none" stroke="url(#goldM)" strokeWidth="1.5" />
+
+                      {/* Gold Seal Base */}
+                      <path d="M 50 2 C 54 2 56 6 60 7 C 64 8 68 5 71 8 C 74 11 73 15 77 18 C 81 21 86 21 88 25 C 90 29 87 33 89 37 C 91 41 96 44 96 48 C 96 52 91 55 89 59 C 87 63 90 67 88 71 C 86 75 81 75 77 78 C 73 81 74 85 71 88 C 68 91 64 88 60 89 C 56 90 54 94 50 94 C 46 94 44 90 40 89 C 36 88 32 91 29 88 C 26 85 27 81 23 78 C 19 75 14 75 12 71 C 10 67 13 63 11 59 C 9 55 4 52 4 48 C 4 44 9 41 11 37 C 13 33 10 29 12 25 C 14 21 19 21 23 18 C 27 15 26 11 29 8 C 32 5 36 8 40 7 C 44 6 46 2 50 2 Z" fill="url(#goldM)" />
+                      
+                      {/* Inner Circles */}
+                      <circle cx="50" cy="48" r="38" fill="url(#blueCenter)" />
+                      <circle cx="50" cy="48" r="36" fill="none" stroke="url(#goldM)" strokeWidth="1" strokeDasharray="1.5,1.5" />
+                      <circle cx="50" cy="48" r="34" fill="none" stroke="url(#goldM)" strokeWidth="1.5" />
+
+                      {/* Stars Top */}
+                      <g fill="url(#goldM)" transform="translate(50, 22)">
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(0, 0) scale(1.2)" />
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(-10, 2) scale(0.9)" />
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(10, 2) scale(0.9)" />
+                      </g>
+
+                      {/* Stars Bottom */}
+                      <g fill="url(#goldM)" transform="translate(50, 74)">
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(0, 0) scale(1.2)" />
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(-10, -2) scale(0.9)" />
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(10, -2) scale(0.9)" />
+                      </g>
+
+                      {/* Text */}
+                      <text x="50" y="38" fill="url(#goldM)" fontFamily="serif" fontSize="11" fontWeight="bold" textAnchor="middle" letterSpacing="1">GRADE</text>
+                      <text x="50" y="65" fill="url(#goldM)" fontFamily="serif" fontSize="28" fontWeight="bold" textAnchor="middle">{niddes?.en || 'A'}</text>
+                    </svg>
                   </div>
 
                   {/* Date */}
