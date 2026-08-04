@@ -306,108 +306,131 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               </div>
 
               {/* Content Container */}
-              <div className="relative w-full h-full flex flex-col items-center justify-start z-20 pt-[4cqw] px-[10cqw]">
+              <div className="relative w-full h-full flex flex-col items-center justify-start z-20 pt-[3cqw] px-[10cqw]">
                 
                 {/* Header / Logo */}
-                <div style={{ width: '10cqw', marginBottom: '1.5cqw' }}>
+                <div style={{ width: '9cqw', marginBottom: '1cqw' }}>
                   <SchoolLogo className="w-full h-auto drop-shadow-md" />
                 </div>
                 
                 {/* Title */}
-                <h1 className="font-serif uppercase tracking-widest text-[#0f2249] flex items-center justify-center" style={{ fontSize: '3.5cqw', fontWeight: 900 }}>
-                  CERTIFICATE <span className="font-serif lowercase text-[#d0a747]" style={{ fontSize: '2.5cqw', fontStyle: 'italic', margin: '0 0.8cqw' }}>of</span> ACHIEVEMENT
+                <h1 className="font-serif tracking-widest text-[#0f2249] flex items-center justify-center font-bold" style={{ fontSize: '3.8cqw' }}>
+                  <span style={{ fontSize: '4.5cqw' }}>C</span>ERTIFICATE
+                  <span className="mx-3" style={{ fontSize: '2.5cqw', fontStyle: 'italic', fontWeight: 'normal', textTransform: 'lowercase' }}>of</span>
+                  <span style={{ fontSize: '4.5cqw' }}>A</span>CHIEVEMENT
                 </h1>
                 
                 {/* Subtitle */}
                 <div className="flex items-center justify-center gap-3 mt-[1.5cqw] w-[80%]">
                   <div className="w-[0.5cqw] h-[0.5cqw] bg-[#d0a747] rotate-45 shrink-0"></div>
-                  <div className="flex-grow h-[1px] bg-gradient-to-r from-transparent via-[#d0a747] to-transparent"></div>
-                  <p className="uppercase tracking-[0.25em] font-medium text-[#475569] shrink-0 px-3" style={{ fontSize: '1cqw' }}>
+                  <div className="flex-grow h-[2px] bg-[#d0a747]"></div>
+                  <p className="uppercase tracking-[0.15em] font-medium text-[#0f2249] shrink-0 px-3" style={{ fontSize: '1.2cqw' }}>
                     THIS CERTIFICATE IS PROUDLY PRESENTED TO
                   </p>
-                  <div className="flex-grow h-[1px] bg-gradient-to-r from-transparent via-[#d0a747] to-transparent"></div>
+                  <div className="flex-grow h-[2px] bg-[#d0a747]"></div>
                   <div className="w-[0.5cqw] h-[0.5cqw] bg-[#d0a747] rotate-45 shrink-0"></div>
                 </div>
                 
                 {/* Name */}
-                <h2 className="mt-[2cqw] font-bold text-[#0f2249]" style={{ 
+                <h2 className="mt-[2cqw] text-[#0f2249]" style={{ 
                   fontFamily: certName.match(/[ក-អ]/) ? "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif" : "'Dancing Script', cursive", 
-                  fontSize: certName.match(/[ក-អ]/) ? '4cqw' : '6.5cqw',
-                  lineHeight: 1.2,
-                  textShadow: '2px 2px 4px rgba(0,0,0,0.05)'
+                  fontSize: certName.match(/[ក-អ]/) ? '4.5cqw' : '7cqw',
+                  lineHeight: 1.2
                 }}>
                   {certName}
                 </h2>
                 
                 {/* Separator */}
-                <div className="w-[70%] h-[2px] mt-[0.5cqw] mb-[2cqw] relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#d0a747] to-transparent"></div>
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[0.8cqw] h-[0.8cqw] bg-white border border-[#d0a747] rotate-45"></div>
-                </div>
+                <div className="w-[75%] h-[1.5px] bg-[#d0a747] mt-[0.5cqw] mb-[2cqw]"></div>
                 
                 {/* Paragraph */}
-                <div className="text-center text-slate-700 flex flex-col gap-2" style={{ fontSize: '1.2cqw', lineHeight: 1.6, maxWidth: '90%' }}>
+                <div className="text-center text-[#334155] flex flex-col gap-1.5" style={{ fontSize: '1.2cqw', lineHeight: 1.6, maxWidth: '85%' }}>
                   <p>
                     For being the <span className="font-bold text-[#0f2249]">{enTitle}</span> for <span className="font-bold text-[#0f2249]">{enPeriod}</span>. Your hard work, positive attitude, and good behavior make you a wonderful student. You are kind, respectful, and always ready to learn.
                   </p>
                   <p>
                     We are proud of your achievements. Keep doing your best and continue to be a great example for others.
                   </p>
-                  <p className="font-bold mt-2 text-[#d0a747] tracking-wider uppercase" style={{ fontSize: '1.1cqw' }}>
-                    Congratulations! Keep up the great work!
+                  <p className="font-bold mt-2 text-[#0f2249] tracking-wider" style={{ fontSize: '1.1cqw' }}>
+                    Keep up the great work!
                   </p>
                 </div>
               </div>
               
-              {/* Signatures & Date Section (Grid layout for perfect alignment) */}
-              <div className="absolute inset-x-0 bottom-[4cqw] flex justify-between items-end px-[8cqw] z-30">
+              {/* Footer Area */}
+              <div className="absolute inset-x-0 bottom-[6cqw] flex justify-between items-end px-[12cqw] z-30">
                 
-                {/* Principal Signature */}
+                {/* Principal */}
                 <div className="text-center flex flex-col items-center w-[20cqw]">
-                  <div style={{ height: '7cqw', width: '100%' }} className="flex items-end justify-center mb-1">
-                    <PrincipalSignature height="7cqw" />
+                  <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
+                    <PrincipalSignature height="6cqw" />
                   </div>
-                  <div className="w-full h-[1px] bg-slate-400 mb-[0.5cqw]"></div>
-                  <div className="text-[#0f2249] font-bold tracking-wider" style={{ fontSize: '1.1cqw' }}>PHORN SOPHAK</div>
-                  <div className="text-slate-500 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.8cqw' }}>School Principal</div>
+                  <div className="w-full h-[2px] bg-[#0f2249] mb-[0.5cqw]"></div>
+                  <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</div>
+                  <div className="text-slate-600 uppercase mt-[0.2cqw]" style={{ fontSize: '1cqw' }}>SCHOOL PRINCIPAL</div>
                 </div>
-                
-                {/* Clean Modern Seal & Date */}
-                <div className="text-center flex flex-col items-center justify-end w-[20cqw]">
-                  <div className="mb-[1.5cqw] relative flex justify-center items-center">
-                    <svg width="8cqw" height="8cqw" viewBox="0 0 100 100" className="drop-shadow-md">
-                      <defs>
-                        <linearGradient id="sealGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#fde08b" />
-                          <stop offset="50%" stopColor="#d0a747" />
-                          <stop offset="100%" stopColor="#fde08b" />
-                        </linearGradient>
-                        <linearGradient id="sealGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#d0a747" />
-                          <stop offset="50%" stopColor="#fde08b" />
-                          <stop offset="100%" stopColor="#d0a747" />
-                        </linearGradient>
-                      </defs>
-                      {/* Ribbon */}
-                      <path d="M 30 65 L 20 95 L 35 85 L 50 95 L 65 85 L 80 95 L 70 65 Z" fill="#b48b32" />
-                      {/* Seal Base */}
-                      <polygon points="50,0 56,8 65,5 68,15 78,17 76,26 84,33 78,41 84,50 78,59 84,67 76,74 78,83 68,85 65,95 56,92 50,100 44,92 35,95 32,85 22,83 24,74 16,67 22,59 16,50 22,41 16,33 24,26 22,17 32,15 35,5 44,8" fill="url(#sealGrad2)" />
-                      {/* Inner Rings */}
-                      <circle cx="50" cy="50" r="32" fill="url(#sealGrad1)" />
-                      <circle cx="50" cy="50" r="28" fill="#0f2249" />
-                      <circle cx="50" cy="50" r="26" fill="url(#sealGrad1)" />
-                      {/* Center Star */}
-                      <polygon points="50,28 55,42 70,42 58,51 62,65 50,56 38,65 42,51 30,42 45,42" fill="#0f2249" />
+
+                {/* Center Seal and Date */}
+                <div className="flex flex-col items-center justify-end w-[25cqw] translate-y-[1cqw]">
+                  {/* Seal with Laurels */}
+                  <div className="relative flex justify-center items-center mb-[1cqw]">
+                    {/* Left Laurel */}
+                    <svg viewBox="0 0 50 100" style={{ height: '7cqw', width: 'auto', marginRight: '0.5cqw', transform: 'scaleX(-1)' }}>
+                      <path d="M25,100 Q10,50 25,0" fill="none" stroke="#d0a747" strokeWidth="2" />
+                      <path d="M25,80 Q10,75 5,60 Q20,60 25,80" fill="#d0a747" />
+                      <path d="M22,60 Q5,55 0,40 Q15,40 22,60" fill="#d0a747" />
+                      <path d="M20,40 Q0,35 0,20 Q15,20 20,40" fill="#d0a747" />
+                      <path d="M25,70 Q40,65 45,50 Q30,50 25,70" fill="#d0a747" />
+                      <path d="M22,50 Q40,45 45,30 Q30,30 22,50" fill="#d0a747" />
+                    </svg>
+                    
+                    {/* Gold Seal */}
+                    <div className="relative flex flex-col items-center justify-center">
+                      {/* Ribbons */}
+                      <svg className="absolute drop-shadow-sm" style={{ top: '45%', width: '7cqw', height: '8cqw', zIndex: 0 }} viewBox="0 0 100 100">
+                        <polygon points="20,0 5,100 30,80 50,100 50,0" fill="#b38222" />
+                        <polygon points="80,0 95,100 70,80 50,100 50,0" fill="#d0a747" />
+                      </svg>
+                      {/* Sunburst seal */}
+                      <svg style={{ width: '8cqw', height: '8cqw', position: 'relative', zIndex: 10 }} viewBox="0 0 100 100" className="drop-shadow-md">
+                        <defs>
+                          <linearGradient id="sealGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#fde08b" />
+                            <stop offset="50%" stopColor="#d0a747" />
+                            <stop offset="100%" stopColor="#fde08b" />
+                          </linearGradient>
+                          <linearGradient id="sealGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#d0a747" />
+                            <stop offset="50%" stopColor="#fde08b" />
+                            <stop offset="100%" stopColor="#d0a747" />
+                          </linearGradient>
+                        </defs>
+                        <polygon points="50,0 56,8 65,5 68,15 78,17 76,26 84,33 78,41 84,50 78,59 84,67 76,74 78,83 68,85 65,95 56,92 50,100 44,92 35,95 32,85 22,83 24,74 16,67 22,59 16,50 22,41 16,33 24,26 22,17 32,15 35,5 44,8" fill="url(#sealGrad2)" />
+                        <circle cx="50" cy="50" r="34" fill="url(#sealGrad1)" />
+                        <circle cx="50" cy="50" r="28" fill="url(#sealGrad2)" />
+                        <circle cx="50" cy="50" r="26" fill="url(#sealGrad1)" />
+                      </svg>
+                    </div>
+
+                    {/* Right Laurel */}
+                    <svg viewBox="0 0 50 100" style={{ height: '7cqw', width: 'auto', marginLeft: '0.5cqw' }}>
+                      <path d="M25,100 Q10,50 25,0" fill="none" stroke="#d0a747" strokeWidth="2" />
+                      <path d="M25,80 Q10,75 5,60 Q20,60 25,80" fill="#d0a747" />
+                      <path d="M22,60 Q5,55 0,40 Q15,40 22,60" fill="#d0a747" />
+                      <path d="M20,40 Q0,35 0,20 Q15,20 20,40" fill="#d0a747" />
+                      <path d="M25,70 Q40,65 45,50 Q30,50 25,70" fill="#d0a747" />
+                      <path d="M22,50 Q40,45 45,30 Q30,30 22,50" fill="#d0a747" />
                     </svg>
                   </div>
-                  <div className="flex flex-col items-center justify-center w-full">
-                    <div className="text-slate-500 font-bold tracking-widest text-[0.8cqw] mb-1">DATE ISSUED</div>
-                    <div className="text-[#0f2249] font-bold tracking-wider" style={{ fontSize: '1.1cqw' }}>
+
+                  {/* Date */}
+                  <div className="flex items-end justify-center w-full mt-2">
+                    <div className="text-[#0f2249] font-bold tracking-wider mr-2" style={{ fontSize: '1.2cqw' }}>DATE:</div>
+                    <div className="border-b-[2px] border-[#0f2249] text-[#0f2249] font-bold px-4 text-center" style={{ fontSize: '1.2cqw', minWidth: '12cqw' }}>
                       {enEndDate}
                     </div>
                   </div>
                 </div>
-                
                 {/* Teacher Signature */}
                 <div className="text-center flex flex-col items-center w-[20cqw]">
                   <div style={{ height: '7cqw', width: '100%' }} className="flex items-end justify-center mb-1">
