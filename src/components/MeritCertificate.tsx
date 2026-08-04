@@ -177,69 +177,134 @@ export default function MeritCertificate({ student, students, scoreOverride, per
           </div>
         </div>
 
-        {/* Certificate sheet (landscape) */}
-        <div id="merit-cert" className="bg-white rounded-b-2xl">
           {isEnglish ? (
-            <div className="relative w-full cert-english" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
-              <img src="/cert-frame-en.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
+            <div className="relative w-full cert-english overflow-hidden bg-white text-[#0f2249]" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
+              {/* Pure CSS/SVG Background Frame */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1000 707">
+                <rect x="0" y="0" width="1000" height="707" fill="#0f2249" />
+                <rect x="15" y="15" width="970" height="677" fill="#d0a747" />
+                <rect x="25" y="25" width="950" height="657" fill="#ffffff" />
+                
+                {/* Corners */}
+                <g>
+                  <polygon points="0,0 120,0 0,120" fill="#0f2249" />
+                  <polygon points="120,0 150,0 0,150 0,120" fill="#d0a747" />
+                  <polygon points="170,0 175,0 0,175 0,170" fill="#0f2249" />
+                </g>
+                <g>
+                  <polygon points="1000,0 880,0 1000,120" fill="#0f2249" />
+                  <polygon points="880,0 850,0 1000,150 1000,120" fill="#d0a747" />
+                  <polygon points="830,0 825,0 1000,175 1000,170" fill="#0f2249" />
+                </g>
+                <g>
+                  <polygon points="0,707 120,707 0,587" fill="#0f2249" />
+                  <polygon points="120,707 150,707 0,557 0,587" fill="#d0a747" />
+                  <polygon points="170,707 175,707 0,532 0,537" fill="#0f2249" />
+                </g>
+                <g>
+                  <polygon points="1000,707 880,707 1000,587" fill="#0f2249" />
+                  <polygon points="880,707 850,707 1000,557 1000,587" fill="#d0a747" />
+                  <polygon points="830,707 825,707 1000,532 1000,537" fill="#0f2249" />
+                </g>
+                
+                {/* Inner Thin Border */}
+                <rect x="45" y="45" width="910" height="617" fill="none" stroke="#0f2249" strokeWidth="1.5" />
+              </svg>
               
-              {/* Central Box covering baked-in name and paragraph */}
-              <div className="absolute inset-x-0 flex flex-col items-center bg-white" style={{ top: '39%', bottom: '33%', padding: '0 12cqw' }}>
-                {/* Student Name */}
-                <h2 className="text-[#0f2249] font-bold mt-[1cqw]" style={{ fontFamily: "'Great Vibes', cursive", fontSize: '6.5cqw' }}>
+              {/* Content Container */}
+              <div className="absolute inset-0 flex flex-col items-center z-10" style={{ padding: '5cqw 12cqw' }}>
+                
+                {/* Header / Logo */}
+                <div style={{ width: '8cqw', marginBottom: '1cqw' }}>
+                  <SchoolLogo className="w-full h-auto" />
+                </div>
+                
+                {/* Title */}
+                <h1 className="font-serif uppercase tracking-wider text-[#0f2249]" style={{ fontSize: '4.8cqw', fontWeight: 900, textShadow: '1px 1px 0px rgba(0,0,0,0.1)' }}>
+                  Certificate <span style={{ fontSize: '3cqw', fontStyle: 'italic', textTransform: 'lowercase', margin: '0 0.5cqw' }}>of</span> Achievement
+                </h1>
+                
+                {/* Subtitle */}
+                <div className="flex items-center justify-center gap-3 mt-[1cqw]">
+                  <div className="w-[0.8cqw] h-[0.8cqw] bg-[#d0a747] rotate-45"></div>
+                  <p className="uppercase tracking-[0.2em] font-semibold text-slate-700" style={{ fontSize: '1.2cqw' }}>
+                    This certificate is proudly presented to
+                  </p>
+                  <div className="w-[0.8cqw] h-[0.8cqw] bg-[#d0a747] rotate-45"></div>
+                </div>
+                
+                {/* Name */}
+                <h2 className="mt-[2cqw] font-bold text-[#0f2249]" style={{ 
+                  fontFamily: baseStudentName(student.name).match(/[ក-អ]/) ? "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif" : "'Great Vibes', cursive", 
+                  fontSize: baseStudentName(student.name).match(/[ក-អ]/) ? '4.5cqw' : '7.5cqw',
+                  lineHeight: 1.2
+                }}>
                   {baseStudentName(student.name)}
                 </h2>
                 
-                {/* Dynamic Paragraph */}
-                <p className="text-center text-slate-800 mt-[3.5cqw]" style={{ fontSize: '1.4cqw', lineHeight: 1.6, maxWidth: '90%' }}>
-                  This is to certify that <span className="font-bold">{baseStudentName(student.name)}</span> has achieved outstanding distinction and is hereby
-                  awarded the <span className="font-bold">Student of the Month Certificate</span> for the month of <span className="font-bold">{EN_MONTHS[student.month?.trim()] || student.month || 'January 2025'}</span>. 
+                {/* Separator */}
+                <div className="w-3/4 h-[0.15cqw] bg-[#d0a747] mt-[2cqw] mb-[2cqw]"></div>
+                
+                {/* Paragraph */}
+                <p className="text-center text-slate-800" style={{ fontSize: '1.4cqw', lineHeight: 1.6, maxWidth: '95%' }}>
+                  This is to certify that <span className="font-bold text-[#0f2249]">{baseStudentName(student.name)}</span> has achieved outstanding distinction and is hereby awarded the <span className="font-bold text-[#0f2249]">Student of the Month Certificate</span> for the month of <span className="font-bold text-[#0f2249]">{EN_MONTHS[student.month?.trim()] || student.month || 'January 2025'}</span>. 
                   Your dedication, excellent performance, and positive attitude are highly commendable. Keep up the great work!
                 </p>
-              </div>
-              
-              {/* Grade Letter placed over the "A" on the gold seal */}
-              <div className="absolute inset-x-0 flex justify-center items-center pointer-events-none" style={{ bottom: '15cqw' }}>
-                <div className="bg-[#c89b3f] rounded-full flex items-center justify-center shadow-inner border border-amber-600" style={{ width: '3.5cqw', height: '3.5cqw' }}>
-                  <span className="text-white font-serif font-bold" style={{ fontSize: '2.5cqw', textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>
-                    {niddes.en || 'A'}
-                  </span>
+                
+                {/* Seal */}
+                <div className="mt-auto mb-[2cqw] relative flex justify-center items-center">
+                  <svg width="10cqw" height="10cqw" viewBox="0 0 100 100" className="drop-shadow-lg">
+                    <defs>
+                      <linearGradient id="gGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#f7e192" />
+                        <stop offset="50%" stopColor="#c38e30" />
+                        <stop offset="100%" stopColor="#f7e192" />
+                      </linearGradient>
+                      <linearGradient id="gGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#c38e30" />
+                        <stop offset="50%" stopColor="#f7e192" />
+                        <stop offset="100%" stopColor="#c38e30" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M 25 65 L 15 95 L 35 85 L 50 100 L 65 85 L 85 95 L 75 65 Z" fill="url(#gGrad2)" />
+                    <circle cx="50" cy="45" r="30" fill="url(#gGrad1)" />
+                    <circle cx="50" cy="45" r="26" fill="url(#gGrad2)" />
+                    <circle cx="50" cy="45" r="24" fill="url(#gGrad1)" />
+                    <text x="50" y="47" textAnchor="middle" dominantBaseline="middle" fill="#0f2249" fontSize="24" fontWeight="bold" fontFamily="serif">
+                      {niddes.en || 'A'}
+                    </text>
+                  </svg>
                 </div>
               </div>
               
               {/* Signatures & Date Section */}
-              <div className="absolute inset-x-0 bottom-0 flex justify-between items-end px-[12cqw]" style={{ height: '20cqw' }}>
+              <div className="absolute inset-x-0 bottom-0 flex justify-between items-end px-[10cqw] z-20" style={{ height: '18cqw' }}>
                 {/* Principal Signature */}
-                <div className="text-center flex flex-col items-center w-[18cqw] sig-container" style={{ paddingBottom: '3.5cqw' }}>
-                  <div className="bg-white px-2 rounded" style={{ height: '7cqw' }}>
-                    <div style={{ height: '100%' }} className="flex items-end justify-center">
-                      <PrincipalSignature height="100%" />
-                    </div>
+                <div className="text-center flex flex-col items-center w-[22cqw] sig-container" style={{ paddingBottom: '4cqw' }}>
+                  <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center">
+                    <PrincipalSignature height="100%" />
                   </div>
+                  <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[0.5cqw] mb-[0.5cqw]"></div>
+                  <div className="text-[#0f2249] font-bold tracking-wider" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</div>
+                  <div className="text-slate-600 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.9cqw' }}>School Principal</div>
                 </div>
                 
                 {/* Date */}
-                <div className="text-center flex flex-col items-center justify-end" style={{ width: '15cqw', paddingBottom: '2.5cqw' }}>
-                  <div className="bg-white px-4 py-1">
-                    <span className="text-[#0f2249] font-medium" style={{ fontSize: '1.2cqw' }}>
-                      {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </span>
+                <div className="text-center flex items-end justify-center" style={{ width: '20cqw', paddingBottom: '4cqw' }}>
+                  <div className="text-[#0f2249] font-bold tracking-wider mr-2" style={{ fontSize: '1.2cqw' }}>DATE:</div>
+                  <div className="border-b-[0.15cqw] border-[#0f2249] text-[#0f2249] font-medium px-2 text-center" style={{ fontSize: '1.2cqw', minWidth: '10cqw' }}>
+                    {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </div>
                 </div>
                 
                 {/* Teacher Signature */}
-                <div className="text-center flex flex-col items-center w-[18cqw] sig-container" style={{ paddingBottom: '3cqw' }}>
-                  <div className="bg-white px-2 rounded" style={{ height: '7cqw' }}>
-                    <div style={{ height: '100%' }} className="flex items-end justify-center">
-                      <TeacherSignature grade={student.grade} height="100%" />
-                    </div>
+                <div className="text-center flex flex-col items-center w-[22cqw] sig-container" style={{ paddingBottom: '4cqw' }}>
+                  <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center">
+                    <TeacherSignature grade={student.grade} height="100%" />
                   </div>
-                  {/* White box to cover the printed "YORN YAV" on the template, then draw dynamic name */}
-                  <div className="bg-white px-3 mt-[0.5cqw]">
-                    <div className="text-[#0f2249] font-bold uppercase tracking-wider" style={{ fontSize: '1cqw', lineHeight: 1 }}>
-                      {teacherName}
-                    </div>
-                  </div>
+                  <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[0.5cqw] mb-[0.5cqw]"></div>
+                  <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>{teacherName || 'YORN YAV'}</div>
+                  <div className="text-slate-600 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.9cqw' }}>Class Teacher</div>
                 </div>
               </div>
               
