@@ -160,6 +160,20 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     e.target.value = '';
   };
 
+  let enTitle = "Student of the Month";
+  let enPeriod = EN_MONTHS[period] || period || 'January 2025';
+  
+  if (/(ឆមាស|semester)/i.test(period)) {
+    enTitle = "Student of the Semester";
+    enPeriod = /១|1/.test(period) ? "Semester 1" : /២|2/.test(period) ? "Semester 2" : "the Semester";
+  } else if (/(ត្រីមាស|quarter|term)/i.test(period)) {
+    enTitle = "Student of the Term";
+    enPeriod = /១|1/.test(period) ? "Term 1" : /២|2/.test(period) ? "Term 2" : /៣|3/.test(period) ? "Term 3" : /៤|4/.test(period) ? "Term 4" : "the Term";
+  } else if (/(ប្រចាំឆ្នាំ|yearly|year)/i.test(period)) {
+    enTitle = "Student of the Year";
+    enPeriod = "the Academic Year";
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/50 overflow-auto p-4 flex justify-center items-start">
       <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
@@ -255,7 +269,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 {/* Paragraph */}
                 <div className="text-center text-slate-800 flex flex-col gap-2" style={{ fontSize: '1.3cqw', lineHeight: 1.5, maxWidth: '95%' }}>
                   <p>
-                    for being the <span className="font-bold text-[#0f2249]">Student of the Month</span> for <span className="font-bold text-[#0f2249]">{EN_MONTHS[student.month?.trim()] || student.month || 'January 2025'}</span>.
+                    for being the <span className="font-bold text-[#0f2249]">{enTitle}</span> for <span className="font-bold text-[#0f2249]">{enPeriod}</span>.
                   </p>
                   <p>
                     Your hard work, positive attitude, and good behavior have made you a wonderful student. You are kind, respectful, and always eager to learn.
