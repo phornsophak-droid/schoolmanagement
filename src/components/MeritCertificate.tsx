@@ -163,7 +163,10 @@ export default function MeritCertificate({ student, students, scoreOverride, per
   };
 
   let enTitle = "Student of the Month";
-  let enPeriod = EN_MONTHS[period] || period || 'January 2025';
+  let enPeriod = period || 'January 2025';
+  Object.keys(EN_MONTHS).forEach(khMonth => {
+    if (period.includes(khMonth)) enPeriod = EN_MONTHS[khMonth];
+  });
   
   if (/(ឆមាស|semester)/i.test(period)) {
     enTitle = "Student of the Semester";
