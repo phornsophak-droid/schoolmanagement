@@ -306,7 +306,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               </div>
 
               {/* Content Container */}
-              <div className="relative w-full h-full flex flex-col items-center justify-start z-20 pt-[3cqw] px-[10cqw]">
+              <div className="relative w-full h-full flex flex-col items-center justify-start z-20 pt-[8cqw] px-[10cqw]">
                 
                 {/* Header / Logo */}
                 <div style={{ width: '9cqw', marginBottom: '1cqw' }}>
@@ -361,7 +361,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               <div className="absolute inset-x-0 bottom-[6cqw] flex justify-between items-end px-[12cqw] z-30">
                 
                 {/* Principal */}
-                <div className="text-center flex flex-col items-center w-[20cqw]">
+                <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
                   <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
                     <PrincipalSignature height="6cqw" />
                   </div>
@@ -371,56 +371,10 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
 
                 {/* Center Seal and Date */}
-                <div className="flex flex-col items-center justify-end w-[25cqw] translate-y-[1cqw]">
-                  {/* Seal with Laurels */}
+                <div className="flex flex-col items-center justify-end w-[25cqw] translate-y-[-1cqw]">
+                  {/* Provided Medal Image */}
                   <div className="relative flex justify-center items-center mb-[1cqw]">
-                    {/* Left Laurel */}
-                    <svg viewBox="0 0 50 100" style={{ height: '7cqw', width: 'auto', marginRight: '0.5cqw', transform: 'scaleX(-1)' }}>
-                      <path d="M25,100 Q10,50 25,0" fill="none" stroke="#d0a747" strokeWidth="2" />
-                      <path d="M25,80 Q10,75 5,60 Q20,60 25,80" fill="#d0a747" />
-                      <path d="M22,60 Q5,55 0,40 Q15,40 22,60" fill="#d0a747" />
-                      <path d="M20,40 Q0,35 0,20 Q15,20 20,40" fill="#d0a747" />
-                      <path d="M25,70 Q40,65 45,50 Q30,50 25,70" fill="#d0a747" />
-                      <path d="M22,50 Q40,45 45,30 Q30,30 22,50" fill="#d0a747" />
-                    </svg>
-                    
-                    {/* Gold Seal */}
-                    <div className="relative flex flex-col items-center justify-center">
-                      {/* Ribbons */}
-                      <svg className="absolute drop-shadow-sm" style={{ top: '45%', width: '7cqw', height: '8cqw', zIndex: 0 }} viewBox="0 0 100 100">
-                        <polygon points="20,0 5,100 30,80 50,100 50,0" fill="#b38222" />
-                        <polygon points="80,0 95,100 70,80 50,100 50,0" fill="#d0a747" />
-                      </svg>
-                      {/* Sunburst seal */}
-                      <svg style={{ width: '8cqw', height: '8cqw', position: 'relative', zIndex: 10 }} viewBox="0 0 100 100" className="drop-shadow-md">
-                        <defs>
-                          <linearGradient id="sealGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#fde08b" />
-                            <stop offset="50%" stopColor="#d0a747" />
-                            <stop offset="100%" stopColor="#fde08b" />
-                          </linearGradient>
-                          <linearGradient id="sealGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#d0a747" />
-                            <stop offset="50%" stopColor="#fde08b" />
-                            <stop offset="100%" stopColor="#d0a747" />
-                          </linearGradient>
-                        </defs>
-                        <polygon points="50,0 56,8 65,5 68,15 78,17 76,26 84,33 78,41 84,50 78,59 84,67 76,74 78,83 68,85 65,95 56,92 50,100 44,92 35,95 32,85 22,83 24,74 16,67 22,59 16,50 22,41 16,33 24,26 22,17 32,15 35,5 44,8" fill="url(#sealGrad2)" />
-                        <circle cx="50" cy="50" r="34" fill="url(#sealGrad1)" />
-                        <circle cx="50" cy="50" r="28" fill="url(#sealGrad2)" />
-                        <circle cx="50" cy="50" r="26" fill="url(#sealGrad1)" />
-                      </svg>
-                    </div>
-
-                    {/* Right Laurel */}
-                    <svg viewBox="0 0 50 100" style={{ height: '7cqw', width: 'auto', marginLeft: '0.5cqw' }}>
-                      <path d="M25,100 Q10,50 25,0" fill="none" stroke="#d0a747" strokeWidth="2" />
-                      <path d="M25,80 Q10,75 5,60 Q20,60 25,80" fill="#d0a747" />
-                      <path d="M22,60 Q5,55 0,40 Q15,40 22,60" fill="#d0a747" />
-                      <path d="M20,40 Q0,35 0,20 Q15,20 20,40" fill="#d0a747" />
-                      <path d="M25,70 Q40,65 45,50 Q30,50 25,70" fill="#d0a747" />
-                      <path d="M22,50 Q40,45 45,30 Q30,30 22,50" fill="#d0a747" />
-                    </svg>
+                    <img src="/medal.png" alt="Grade Medal" className="w-[12cqw] h-auto object-contain drop-shadow-md" />
                   </div>
 
                   {/* Date */}
@@ -431,16 +385,16 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                     </div>
                   </div>
                 </div>
-                {/* Teacher Signature */}
-                <div className="text-center flex flex-col items-center w-[20cqw]">
-                  <div style={{ height: '7cqw', width: '100%' }} className="flex items-end justify-center mb-1">
-                    <TeacherSignature grade={student.grade} height="7cqw" />
+                {/* Teacher */}
+                <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
+                  <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
+                    <TeacherSignature grade={student.grade} height="6cqw" />
                   </div>
-                  <div className="w-full h-[1px] bg-slate-400 mb-[0.5cqw]"></div>
-                  <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.1cqw' }}>
+                  <div className="w-full h-[2px] bg-[#0f2249] mb-[0.5cqw]"></div>
+                  <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>
                     {(!teacherName || teacherName.includes('យន') || teacherName.includes('យ៉ាវ')) ? 'YORN YAV' : teacherName}
                   </div>
-                  <div className="text-slate-500 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.8cqw' }}>Class Teacher</div>
+                  <div className="text-slate-600 uppercase mt-[0.2cqw]" style={{ fontSize: '1cqw' }}>CLASS TEACHER</div>
                 </div>
               </div>
               
