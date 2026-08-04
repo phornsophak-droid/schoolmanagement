@@ -430,7 +430,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   </div>
 
                   {/* Date */}
-                  <div className="flex items-end justify-center w-full mt-2">
+                  <div className="flex items-end justify-center w-full translate-y-[-1cqw]">
                     <div className="text-[#0f2249] font-bold tracking-wider mr-2" style={{ fontSize: '1.2cqw' }}>DATE:</div>
                     <div className="border-b-[2px] border-[#0f2249] text-[#0f2249] font-bold px-4 text-center" style={{ fontSize: '1.2cqw', minWidth: '12cqw' }}>
                       {enEndDate}
