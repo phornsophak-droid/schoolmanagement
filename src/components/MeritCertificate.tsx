@@ -23,7 +23,11 @@ interface MeritCertificateProps {
 
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);
 const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
-const EN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const EN_MONTHS: Record<string, string> = {
+  'មករា': 'January', 'កុម្ភៈ': 'February', 'មីនា': 'March', 'មេសា': 'April',
+  'ឧសភា': 'May', 'មិថុនា': 'June', 'កក្កដា': 'July', 'សីហា': 'August',
+  'កញ្ញា': 'September', 'តុលា': 'October', 'វិច្ឆិកា': 'November', 'ធ្នូ': 'December'
+};
 const MONTH_LAST_DAY = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 // niddes word + letter for a 0–10 average (same bands as the report cards).
@@ -94,10 +98,6 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     : /ប្រចាំឆ្នាំ/.test(period) ? 'សីហា'
     : student.month;
   const endDate = monthEndDate(dateMonth);
-  // English month + academic year (Sep–Dec 2025, Jan–Aug 2026) for the English cert.
-  const enMonthIdx = KH_MONTHS.indexOf((dateMonth || '').trim());
-  const enMonthYear = enMonthIdx >= 0 ? `${EN_MONTHS[enMonthIdx]} ${enMonthIdx >= 8 ? 2025 : 2026}` : '';
-  const enName = baseStudentName(student.name);
 
   // Date of birth — fall back to any of this student's rows (by អត្តលេខ, then name).
   const dobFrom = (pred: (s: StudentScore) => boolean) => students.find(s => pred(s) && !!s.dob)?.dob;
@@ -127,7 +127,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     const el = document.getElementById('merit-cert');
     if (!el) return;
     setPdfBusy(true);
-    try { await exportElementToPdf(el, `${isEnglish ? 'Certificate' : 'ប័ណ្ណសរសើរ'}_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
+    try { await exportElementToPdf(el, `ប័ណ្ណសរសើរ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
     catch (e) { console.error('PDF export failed', e); alert('មិនអាចបង្កើត PDF បានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setPdfBusy(false); }
   };
@@ -137,7 +137,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     const el = document.getElementById('merit-cert');
     if (!el) return;
     setImgBusy(true);
-    try { await exportElementToImage(el, `${isEnglish ? 'Certificate' : 'ប័ណ្ណសរសើរ'}_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
+    try { await exportElementToImage(el, `ប័ណ្ណសរសើរ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
     catch (e) { console.error('Image export failed', e); alert('មិនអាចបង្កើតរូបភាពបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
     finally { setImgBusy(false); }
   };
@@ -180,78 +180,73 @@ export default function MeritCertificate({ student, students, scoreOverride, per
         {/* Certificate sheet (landscape) */}
         <div id="merit-cert" className="bg-white rounded-b-2xl">
           {isEnglish ? (
-            <div className="relative w-full cert-english" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size', overflow: 'hidden' }}>
-              <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@700;900&display=swap');
-                .cert-english .sig-container p { display: none !important; }
-              `}</style>
-
-              {/* Layered navy/gold/navy/white border (solid fills — export-safe). */}
-              <div style={{ position: 'absolute', inset: 0, background: '#13245c' }} />
-              <div style={{ position: 'absolute', inset: '2cqw', background: '#b8860b' }} />
-              <div style={{ position: 'absolute', inset: '2.7cqw', background: '#13245c' }} />
-              <div style={{ position: 'absolute', inset: '3.1cqw', background: '#fdfdfb' }} />
-              {/* Ornate ribbon corners: a gold triangle, a navy triangle over it (leaving
-                  a gold band), and a thin gold highlight — a folded-ribbon look. */}
-              {[
-                { v: 'top', h: 'left', g: '135deg' }, { v: 'top', h: 'right', g: '45deg' },
-                { v: 'bottom', h: 'left', g: '225deg' }, { v: 'bottom', h: 'right', g: '315deg' },
-              ].map(({ v, h, g }) => (
-                <React.Fragment key={`${v}${h}`}>
-                  <div style={{ position: 'absolute', [v]: '-6cqw', [h]: '-6cqw', width: '18cqw', height: '18cqw', background: `linear-gradient(${g},#f2d982,#b8860b)`, transform: 'rotate(45deg)' } as React.CSSProperties} />
-                  <div style={{ position: 'absolute', [v]: '-6cqw', [h]: '-6cqw', width: '12.5cqw', height: '12.5cqw', background: '#0c1a45', transform: 'rotate(45deg)' } as React.CSSProperties} />
-                  <div style={{ position: 'absolute', [v]: '-6cqw', [h]: '-6cqw', width: '9cqw', height: '9cqw', background: `linear-gradient(${g},#f6e08e,#c9a227)`, transform: 'rotate(45deg)' } as React.CSSProperties} />
-                </React.Fragment>
-              ))}
-
-              {/* Content */}
-              <div style={{ position: 'absolute', inset: '3.1cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '2.6cqw 6cqw 2cqw', color: '#13245c' }}>
-                <div style={{ width: '9.2cqw' }}><SchoolLogo className="w-full h-auto" /></div>
-
-                <h1 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 900, fontSize: '4.5cqw', letterSpacing: '0.02em', margin: '0.5cqw 0 0', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                  CERTIFICATE <span style={{ fontSize: '2.5cqw', fontStyle: 'italic', color: '#b8860b', fontWeight: 700 }}>of</span> ACHIEVEMENT
-                </h1>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.7cqw', margin: '1cqw 0 0.7cqw' }}>
-                  <span style={{ width: '0.7cqw', height: '0.7cqw', background: '#b8860b', transform: 'rotate(45deg)' }} />
-                  <span style={{ fontSize: '1.4cqw', letterSpacing: '0.2em', color: '#555', fontWeight: 600, fontFamily: 'sans-serif' }}>THIS CERTIFICATE IS PROUDLY PRESENTED TO</span>
-                  <span style={{ width: '0.7cqw', height: '0.7cqw', background: '#b8860b', transform: 'rotate(45deg)' }} />
-                </div>
-
-                <div style={{ fontFamily: "'Great Vibes',cursive", fontSize: '6.6cqw', color: '#13245c', lineHeight: 1.1 }}>{enName}</div>
-                <div style={{ width: '50%', borderBottom: '0.15cqw solid #c9a227', margin: '0.2cqw 0 1cqw' }} />
-
-                <p style={{ fontSize: '1.7cqw', lineHeight: 1.55, fontFamily: 'sans-serif', color: '#333', maxWidth: '82%', margin: 0 }}>
-                  For great effort, excellent results, and good behaviour{enMonthYear ? <> in <b style={{ color: '#13245c' }}>{enMonthYear}</b></> : null}.<br />
-                  Well done, <b style={{ color: '#13245c' }}>{enName}</b> — keep up the wonderful work! ⭐
+            <div className="relative w-full cert-english" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
+              <img src="/cert-frame-en.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
+              
+              {/* Central Box covering baked-in name and paragraph */}
+              <div className="absolute inset-x-0 flex flex-col items-center bg-white" style={{ top: '39%', bottom: '33%', padding: '0 12cqw' }}>
+                {/* Student Name */}
+                <h2 className="text-[#0f2249] font-bold mt-[1cqw]" style={{ fontFamily: "'Great Vibes', cursive", fontSize: '6.5cqw' }}>
+                  {baseStudentName(student.name)}
+                </h2>
+                
+                {/* Dynamic Paragraph */}
+                <p className="text-center text-slate-800 mt-[3.5cqw]" style={{ fontSize: '1.4cqw', lineHeight: 1.6, maxWidth: '90%' }}>
+                  This is to certify that <span className="font-bold">{baseStudentName(student.name)}</span> has achieved outstanding distinction and is hereby
+                  awarded the <span className="font-bold">Student of the Month Certificate</span> for the month of <span className="font-bold">{EN_MONTHS[student.month?.trim()] || student.month || 'January 2025'}</span>. 
+                  Your dedication, excellent performance, and positive attitude are highly commendable. Keep up the great work!
                 </p>
-
-                {/* Gold medal with the grade letter, flanked by laurels */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4cqw', margin: '0.7cqw 0' }}>
-                  <span style={{ fontSize: '4cqw', transform: 'scaleX(-1)', lineHeight: 1 }}>🌿</span>
-                  <div style={{ width: '5.8cqw', height: '5.8cqw', borderRadius: '50%', background: 'radial-gradient(circle at 50% 35%, #f6dd8a, #c9a227 62%, #9c7b1a)', border: '0.35cqw solid #efd987', boxShadow: '0 0.3cqw 0.7cqw rgba(0,0,0,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 900, fontSize: '3.3cqw', color: '#13245c' }}>{niddes.en}</span>
-                  </div>
-                  <span style={{ fontSize: '4cqw', lineHeight: 1 }}>🌿</span>
+              </div>
+              
+              {/* Grade Letter placed over the "A" on the gold seal */}
+              <div className="absolute inset-x-0 flex justify-center items-center pointer-events-none" style={{ bottom: '15cqw' }}>
+                <div className="bg-[#c89b3f] rounded-full flex items-center justify-center shadow-inner border border-amber-600" style={{ width: '3.5cqw', height: '3.5cqw' }}>
+                  <span className="text-white font-serif font-bold" style={{ fontSize: '2.5cqw', textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>
+                    {niddes.en || 'A'}
+                  </span>
                 </div>
-
-                {/* Signatures + date */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', marginTop: 'auto' }}>
-                  <div className="sig-container" style={{ width: '30%', textAlign: 'center' }}>
-                    <div style={{ height: '4.6cqw', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}><PrincipalSignature height="4.2cqw" /></div>
-                    <div style={{ borderTop: '0.13cqw solid #13245c', paddingTop: '0.5cqw', fontSize: '1.4cqw', fontWeight: 700, letterSpacing: '0.05em' }}>PHORN SOPHAK</div>
-                    <div style={{ fontSize: '1.05cqw', color: '#555', letterSpacing: '0.08em' }}>SCHOOL PRINCIPAL</div>
+              </div>
+              
+              {/* Signatures & Date Section */}
+              <div className="absolute inset-x-0 bottom-0 flex justify-between items-end px-[12cqw]" style={{ height: '20cqw' }}>
+                {/* Principal Signature */}
+                <div className="text-center flex flex-col items-center w-[18cqw] sig-container" style={{ paddingBottom: '3.5cqw' }}>
+                  <div className="bg-white px-2 rounded" style={{ height: '7cqw' }}>
+                    <div style={{ height: '100%' }} className="flex items-end justify-center">
+                      <PrincipalSignature height="100%" />
+                    </div>
                   </div>
-                  <div style={{ width: '26%', textAlign: 'center', paddingBottom: '1cqw' }}>
-                    <div style={{ fontSize: '1.4cqw', fontWeight: 700, color: '#13245c' }}>DATE: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                </div>
+                
+                {/* Date */}
+                <div className="text-center flex flex-col items-center justify-end" style={{ width: '15cqw', paddingBottom: '2.5cqw' }}>
+                  <div className="bg-white px-4 py-1">
+                    <span className="text-[#0f2249] font-medium" style={{ fontSize: '1.2cqw' }}>
+                      {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
                   </div>
-                  <div className="sig-container" style={{ width: '30%', textAlign: 'center' }}>
-                    <div style={{ height: '4.6cqw', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}><TeacherSignature grade={student.grade} height="4.2cqw" /></div>
-                    <div style={{ borderTop: '0.13cqw solid #13245c', paddingTop: '0.5cqw', fontSize: '1.4cqw', fontWeight: 700, letterSpacing: '0.05em' }}>{teacherName}</div>
-                    <div style={{ fontSize: '1.05cqw', color: '#555', letterSpacing: '0.08em' }}>CLASS TEACHER</div>
+                </div>
+                
+                {/* Teacher Signature */}
+                <div className="text-center flex flex-col items-center w-[18cqw] sig-container" style={{ paddingBottom: '3cqw' }}>
+                  <div className="bg-white px-2 rounded" style={{ height: '7cqw' }}>
+                    <div style={{ height: '100%' }} className="flex items-end justify-center">
+                      <TeacherSignature grade={student.grade} height="100%" />
+                    </div>
+                  </div>
+                  {/* White box to cover the printed "YORN YAV" on the template, then draw dynamic name */}
+                  <div className="bg-white px-3 mt-[0.5cqw]">
+                    <div className="text-[#0f2249] font-bold uppercase tracking-wider" style={{ fontSize: '1cqw', lineHeight: 1 }}>
+                      {teacherName}
+                    </div>
                   </div>
                 </div>
               </div>
+              
+              <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+                .cert-english .sig-container p { display: none !important; }
+              `}</style>
             </div>
           ) : (
             <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
