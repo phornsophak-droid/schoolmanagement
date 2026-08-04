@@ -191,11 +191,18 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               <div style={{ position: 'absolute', inset: '2cqw', background: '#b8860b' }} />
               <div style={{ position: 'absolute', inset: '2.7cqw', background: '#13245c' }} />
               <div style={{ position: 'absolute', inset: '3.1cqw', background: '#fdfdfb' }} />
-              {/* Gold triangular corner accents (rotated squares clipped by overflow). */}
-              <div style={{ position: 'absolute', top: '-5cqw', left: '-5cqw', width: '15cqw', height: '15cqw', background: 'linear-gradient(135deg,#f0d476,#b8860b)', transform: 'rotate(45deg)' }} />
-              <div style={{ position: 'absolute', top: '-5cqw', right: '-5cqw', width: '15cqw', height: '15cqw', background: 'linear-gradient(45deg,#f0d476,#b8860b)', transform: 'rotate(45deg)' }} />
-              <div style={{ position: 'absolute', bottom: '-5cqw', left: '-5cqw', width: '15cqw', height: '15cqw', background: 'linear-gradient(225deg,#f0d476,#b8860b)', transform: 'rotate(45deg)' }} />
-              <div style={{ position: 'absolute', bottom: '-5cqw', right: '-5cqw', width: '15cqw', height: '15cqw', background: 'linear-gradient(315deg,#f0d476,#b8860b)', transform: 'rotate(45deg)' }} />
+              {/* Ornate ribbon corners: a gold triangle, a navy triangle over it (leaving
+                  a gold band), and a thin gold highlight — a folded-ribbon look. */}
+              {[
+                { v: 'top', h: 'left', g: '135deg' }, { v: 'top', h: 'right', g: '45deg' },
+                { v: 'bottom', h: 'left', g: '225deg' }, { v: 'bottom', h: 'right', g: '315deg' },
+              ].map(({ v, h, g }) => (
+                <React.Fragment key={`${v}${h}`}>
+                  <div style={{ position: 'absolute', [v]: '-6cqw', [h]: '-6cqw', width: '18cqw', height: '18cqw', background: `linear-gradient(${g},#f2d982,#b8860b)`, transform: 'rotate(45deg)' } as React.CSSProperties} />
+                  <div style={{ position: 'absolute', [v]: '-6cqw', [h]: '-6cqw', width: '12.5cqw', height: '12.5cqw', background: '#0c1a45', transform: 'rotate(45deg)' } as React.CSSProperties} />
+                  <div style={{ position: 'absolute', [v]: '-6cqw', [h]: '-6cqw', width: '9cqw', height: '9cqw', background: `linear-gradient(${g},#f6e08e,#c9a227)`, transform: 'rotate(45deg)' } as React.CSSProperties} />
+                </React.Fragment>
+              ))}
 
               {/* Content */}
               <div style={{ position: 'absolute', inset: '3.1cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '2.6cqw 6cqw 2cqw', color: '#13245c' }}>
@@ -214,8 +221,9 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div style={{ fontFamily: "'Great Vibes',cursive", fontSize: '6.6cqw', color: '#13245c', lineHeight: 1.1 }}>{enName}</div>
                 <div style={{ width: '50%', borderBottom: '0.15cqw solid #c9a227', margin: '0.2cqw 0 1cqw' }} />
 
-                <p style={{ fontSize: '1.6cqw', lineHeight: 1.5, fontFamily: 'sans-serif', color: '#333', maxWidth: '86%', margin: 0 }}>
-                  This is to certify that <b style={{ color: '#13245c' }}>{enName}</b> has achieved outstanding distinction and is hereby awarded the <b style={{ color: '#13245c' }}>Student of the Month Certificate</b>{enMonthYear ? <> for the month of <b style={{ color: '#13245c' }}>{enMonthYear}</b></> : null}. Your dedication, excellent performance, and positive attitude are highly commendable. Keep up the great work!
+                <p style={{ fontSize: '1.7cqw', lineHeight: 1.55, fontFamily: 'sans-serif', color: '#333', maxWidth: '82%', margin: 0 }}>
+                  For great effort, excellent results, and good behaviour{enMonthYear ? <> in <b style={{ color: '#13245c' }}>{enMonthYear}</b></> : null}.<br />
+                  Well done, <b style={{ color: '#13245c' }}>{enName}</b> — keep up the wonderful work! ⭐
                 </p>
 
                 {/* Gold medal with the grade letter, flanked by laurels */}
