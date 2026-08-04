@@ -7,6 +7,7 @@ import React, { useRef, useState } from 'react';
 import { Printer, X, Camera, Download, Loader2, Image as ImageIcon, Award } from 'lucide-react';
 import { StudentScore } from '../types';
 import { baseStudentName } from '../utils/studentKey';
+import { transliterateKhmerName } from '../utils/khmerToLatin';
 import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature, { teacherNameForGrade } from './TeacherSignature';
@@ -85,7 +86,7 @@ const renderDob = (text: string): React.ReactNode => {
 
 export default function MeritCertificate({ student, students, scoreOverride, periodPhrase, onClose }: MeritCertificateProps) {
   const isEnglish = /grade|អង់គ្លេស/i.test(student.grade);
-  const certName = (isEnglish && student.englishName) ? student.englishName.trim() : baseStudentName(student.name);
+  const certName = isEnglish ? (student.englishName ? student.englishName.trim() : transliterateKhmerName(baseStudentName(student.name))) : baseStudentName(student.name);
   const teacherName = teacherNameForGrade(student.grade);
   const niddes = gradeBand(scoreOverride ?? student.overallAvg);
   const period = periodPhrase || `ប្រចាំខែ${student.month} ឆ្នាំសិក្សា ២០២៥-២០២៦`;

@@ -1895,7 +1895,7 @@ export default function ClassStudentMgmt({
                                 </td>
                                 <td className="px-4 py-3 text-center font-sans text-slate-700 whitespace-nowrap">{resolvedId(p) || <span className="text-slate-300">-</span>}</td>
                                 <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">{p.name}</td>
-                                <td className="px-4 py-3 text-slate-700 whitespace-nowrap font-sans">{p.englishName || <span className="text-slate-300">-</span>}</td>
+                                <td className="px-4 py-3 text-slate-700 whitespace-nowrap font-sans">{p.englishName || <span className="text-slate-400 italic">{transliterateKhmerName(p.name)}</span>}</td>
                                 <td className="px-4 py-3 text-center">
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                     p.gender === 'ស្រី'
