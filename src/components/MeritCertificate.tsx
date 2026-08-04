@@ -368,7 +368,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
 
                 {/* Center Seal and Date */}
-                <div className="flex flex-col items-center justify-end w-[25cqw] translate-y-[-1cqw]">
+                <div className="flex flex-col items-center justify-end w-[25cqw] translate-y-[1cqw]">
                   {/* Dynamic SVG Medal */}
                   <div className="relative flex justify-center items-center mb-[1cqw]">
                     <svg viewBox="0 0 100 130" style={{ width: '12cqw', height: '15.6cqw', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' }}>
