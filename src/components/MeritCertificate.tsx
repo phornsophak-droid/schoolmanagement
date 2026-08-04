@@ -286,7 +286,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 
                 {/* Name */}
                 <h2 className="mt-[1cqw] font-bold text-[#0f2249]" style={{ 
-                  fontFamily: certName.match(/[ក-អ]/) ? "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif" : "'Great Vibes', cursive", 
+                  fontFamily: certName.match(/[ក-អ]/) ? "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif" : "'Dancing Script', cursive", 
                   fontSize: certName.match(/[ក-អ]/) ? '4.5cqw' : '7.5cqw',
                   lineHeight: 1.2
                 }}>
