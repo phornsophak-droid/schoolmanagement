@@ -98,6 +98,12 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     : /ប្រចាំឆ្នាំ/.test(period) ? 'សីហា'
     : student.month;
   const endDate = monthEndDate(dateMonth);
+  const enEndDate = (() => {
+    const idx = KH_MONTHS.indexOf((dateMonth || '').trim());
+    if (idx < 0) return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const yearNum = idx >= 8 ? 2025 : 2026;
+    return new Date(yearNum, idx, MONTH_LAST_DAY[idx]).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  })();
 
   // Date of birth — fall back to any of this student's rows (by អត្តលេខ, then name).
   const dobFrom = (pred: (s: StudentScore) => boolean) => students.find(s => pred(s) && !!s.dob)?.dob;
@@ -254,7 +260,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 
                 {/* Seal */}
                 <div className="mt-[1cqw] mb-auto relative flex justify-center items-center">
-                  <svg width="9cqw" height="9cqw" viewBox="0 0 100 100" className="drop-shadow-lg">
+                  <svg width="13cqw" height="13cqw" viewBox="0 0 100 100" className="drop-shadow-lg">
                     <defs>
                       <linearGradient id="gGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#f7e192" />
@@ -294,7 +300,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div className="text-center flex items-end justify-center" style={{ width: '20cqw', paddingBottom: '7cqw' }}>
                   <div className="text-[#0f2249] font-bold tracking-wider mr-2" style={{ fontSize: '1.2cqw' }}>DATE:</div>
                   <div className="border-b-[0.15cqw] border-[#0f2249] text-[#0f2249] font-medium px-2 text-center" style={{ fontSize: '1.2cqw', minWidth: '10cqw' }}>
-                    {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    {enEndDate}
                   </div>
                 </div>
                 
