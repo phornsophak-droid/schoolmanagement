@@ -894,6 +894,7 @@ export default function Gradebook({
       return calculateStudentFields({
         id: `__new__${selectedGrade}__${selectedMonth}__${name}`,
         name, gender: sample.gender, grade: selectedGrade, month: selectedMonth, group: sample.group,
+          englishName: sample.englishName,
         studentId: sample.studentId,
         khmer: { listening: null, speaking: null, reading: null, writing: null },
         math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
@@ -916,6 +917,7 @@ export default function Gradebook({
       rec = calculateStudentFields({
         id: generateUniqueId(),
         name: row.name, gender: row.gender, grade: selectedGrade, month: selectedMonth, group: row.group,
+          englishName: row.englishName ?? sample?.englishName,
         studentId: row.studentId ?? sample?.studentId,
         khmer: { listening: null, speaking: null, reading: null, writing: null },
         math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
@@ -955,6 +957,7 @@ export default function Gradebook({
         id: generateUniqueId(),
         name: row.name, gender: row.gender, grade: row.grade, month: examMonth,
         studentId: sample?.studentId,
+          englishName: sample?.englishName,
         khmer: { listening: null, speaking: null, reading: null, writing: null },
         math: { numbers: null, measurement: null, geometry: null, algebra: null, statistics: null },
         science: null, socialStudies: null, scienceScores: {}, socialScores: {},
