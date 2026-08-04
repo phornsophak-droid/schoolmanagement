@@ -253,10 +253,14 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div className="w-3/4 h-[0.15cqw] bg-[#d0a747] mt-[2cqw] mb-[2cqw]"></div>
                 
                 {/* Paragraph */}
-                <p className="text-center text-slate-800" style={{ fontSize: '1.4cqw', lineHeight: 1.6, maxWidth: '95%' }}>
-                  This is to certify that <span className="font-bold text-[#0f2249]">{baseStudentName(student.name)}</span> has achieved outstanding distinction and is hereby awarded the <span className="font-bold text-[#0f2249]">Student of the Month Certificate</span> for the month of <span className="font-bold text-[#0f2249]">{EN_MONTHS[student.month?.trim()] || student.month || 'January 2025'}</span>. 
-                  Your dedication, excellent performance, and positive attitude are highly commendable. Keep up the great work!
-                </p>
+                <div className="text-center text-slate-800 flex flex-col gap-2" style={{ fontSize: '1.3cqw', lineHeight: 1.5, maxWidth: '85%' }}>
+                  <p>
+                    in recognition of being named <span className="font-bold text-[#0f2249]">Student of the Month</span> for <span className="font-bold text-[#0f2249]">{EN_MONTHS[student.month?.trim()] || student.month || 'January 2025'}</span>.
+                  </p>
+                  <p>
+                    Your hard work, good behavior, and positive attitude have made you a wonderful student. You come to school ready to learn, treat everyone with kindness and respect, and always do your best. We are proud of your achievements and the wonderful example you set for others. Keep learning, keep growing, and continue to shine every day!
+                  </p>
+                </div>
                 
                 {/* Seal */}
                 <div className="mt-[1cqw] mb-auto relative flex justify-center items-center">
