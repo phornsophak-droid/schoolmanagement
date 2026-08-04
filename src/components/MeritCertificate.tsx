@@ -257,7 +257,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
                 
                 {/* Name */}
-                <h2 className="mt-[2cqw] font-bold text-[#0f2249]" style={{ 
+                <h2 className="mt-[1cqw] font-bold text-[#0f2249]" style={{ 
                   fontFamily: certName.match(/[ក-អ]/) ? "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif" : "'Great Vibes', cursive", 
                   fontSize: certName.match(/[ក-អ]/) ? '4.5cqw' : '7.5cqw',
                   lineHeight: 1.2
@@ -266,7 +266,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </h2>
                 
                 {/* Separator */}
-                <div className="w-3/4 h-[0.15cqw] bg-[#d0a747] mt-[2cqw] mb-[2cqw]"></div>
+                <div className="w-3/4 h-[0.15cqw] bg-[#d0a747] mt-[0.5cqw] mb-[1cqw]"></div>
                 
                 {/* Paragraph */}
                 <div className="text-center text-slate-800 flex flex-col gap-2" style={{ fontSize: '1.3cqw', lineHeight: 1.5, maxWidth: '95%' }}>
