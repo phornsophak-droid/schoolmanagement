@@ -204,212 +204,161 @@ export default function MeritCertificate({ student, students, scoreOverride, per
         {/* Certificate sheet (landscape) */}
         <div id="merit-cert" className="bg-white rounded-b-2xl">
           {isEnglish ? (
-            <div className="relative w-full cert-english overflow-hidden bg-white text-[#0f2249]" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
-              {/* Pure CSS/SVG Background Frame matching the user's template */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1000 707">
-                {/* Dark Blue Background */}
-                <rect x="0" y="0" width="1000" height="707" fill="#0f2249" />
-
-                {/* Solid gold triangles at corners */}
-                <g fill="#d0a747">
-                  {/* Top Left */}
-                  <polygon points="0,0 120,0 0,120" />
-                  {/* Top Right */}
-                  <polygon points="1000,0 880,0 1000,120" />
-                  {/* Bottom Left */}
-                  <polygon points="0,707 120,707 0,587" />
-                  {/* Bottom Right */}
-                  <polygon points="1000,707 880,707 1000,587" />
-                </g>
-
-                {/* Outer thin gold rectangle (drawn over background and corner triangles) */}
-                <rect x="25" y="25" width="950" height="657" fill="none" stroke="#d0a747" strokeWidth="2" />
-                
-                {/* Thin dark blue rectangle to create the cut effect through the gold triangles */}
-                <rect x="20" y="20" width="960" height="667" fill="none" stroke="#0f2249" strokeWidth="2" />
-
-                {/* White Octagon with thick gold border */}
-                <clipPath id="octagonClip">
-                  <polygon points="170,60 830,60 940,170 940,537 830,647 170,647 60,537 60,170" />
-                </clipPath>
-                
-                {/* The thick gold frame */}
-                <polygon points="170,60 830,60 940,170 940,537 830,647 170,647 60,537 60,170" fill="#ffffff" stroke="#d0a747" strokeWidth="12" />
-
-                {/* Watermarks inside the white octagon */}
-                <g clipPath="url(#octagonClip)">
-                  {/* Concentric ripples */}
-                  <g fill="none" stroke="#d0a747" strokeWidth="0.5" opacity="0.25">
-                    {/* Left Ripples */}
-                    <circle cx="0" cy="353.5" r="150" />
-                    <circle cx="0" cy="353.5" r="180" />
-                    <circle cx="0" cy="353.5" r="210" />
-                    <circle cx="0" cy="353.5" r="240" />
-                    <circle cx="0" cy="353.5" r="270" />
-                    <circle cx="0" cy="353.5" r="300" />
-                    <circle cx="0" cy="353.5" r="330" />
-                    <circle cx="0" cy="353.5" r="360" />
-                    <circle cx="0" cy="353.5" r="390" />
-                    <circle cx="0" cy="353.5" r="420" />
-                    <circle cx="0" cy="353.5" r="450" />
-
-                    {/* Right Ripples */}
-                    <circle cx="1000" cy="353.5" r="150" />
-                    <circle cx="1000" cy="353.5" r="180" />
-                    <circle cx="1000" cy="353.5" r="210" />
-                    <circle cx="1000" cy="353.5" r="240" />
-                    <circle cx="1000" cy="353.5" r="270" />
-                    <circle cx="1000" cy="353.5" r="300" />
-                    <circle cx="1000" cy="353.5" r="330" />
-                    <circle cx="1000" cy="353.5" r="360" />
-                    <circle cx="1000" cy="353.5" r="390" />
-                    <circle cx="1000" cy="353.5" r="420" />
-                    <circle cx="1000" cy="353.5" r="450" />
-                  </g>
-                </g>
-
-                {/* Inner thin dark blue octagon */}
-                <polygon points="182,72 818,72 928,182 928,525 818,635 182,635 72,525 72,182" fill="none" stroke="#0f2249" strokeWidth="1.5" />
-
-                {/* Innermost thin gold octagon */}
-                <polygon points="190,80 810,80 920,190 920,517 810,627 190,627 80,517 80,190" fill="none" stroke="#d0a747" strokeWidth="1" />
-              </svg>
+            <div className="relative w-full cert-english overflow-hidden bg-[#fdfbf7] text-[#0f2249] p-[2cqw] font-sans shadow-inner" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
               
+              {/* Outer Thick Dark Blue Border */}
+              <div className="absolute inset-[1.5cqw] border-[0.8cqw] border-[#0f2249] rounded-sm pointer-events-none z-10"></div>
+              
+              {/* Middle Thin Gold Border */}
+              <div className="absolute inset-[2.7cqw] border-[0.2cqw] border-[#d0a747] rounded-sm pointer-events-none z-10"></div>
+              
+              {/* Inner Thin Dark Blue Border */}
+              <div className="absolute inset-[3.1cqw] border-[0.1cqw] border-[#0f2249] rounded-sm pointer-events-none z-10"></div>
+
+              {/* Corner Gold Accents on the Thick Border */}
+              {/* Top Left */}
+              <div className="absolute top-[1.2cqw] left-[1.2cqw] w-[1.4cqw] h-[1.4cqw] bg-[#d0a747] z-20 border-[0.2cqw] border-white transform rotate-45 shadow-sm"></div>
+              {/* Top Right */}
+              <div className="absolute top-[1.2cqw] right-[1.2cqw] w-[1.4cqw] h-[1.4cqw] bg-[#d0a747] z-20 border-[0.2cqw] border-white transform rotate-45 shadow-sm"></div>
+              {/* Bottom Left */}
+              <div className="absolute bottom-[1.2cqw] left-[1.2cqw] w-[1.4cqw] h-[1.4cqw] bg-[#d0a747] z-20 border-[0.2cqw] border-white transform rotate-45 shadow-sm"></div>
+              {/* Bottom Right */}
+              <div className="absolute bottom-[1.2cqw] right-[1.2cqw] w-[1.4cqw] h-[1.4cqw] bg-[#d0a747] z-20 border-[0.2cqw] border-white transform rotate-45 shadow-sm"></div>
+
+              {/* Subtle Guilloche Background Watermark */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] z-0 overflow-hidden">
+                <svg viewBox="0 0 100 100" className="w-[120%] h-[120%]">
+                  <g fill="none" stroke="#0f2249" strokeWidth="0.2">
+                    <circle cx="50" cy="50" r="10" />
+                    <circle cx="50" cy="50" r="15" />
+                    <circle cx="50" cy="50" r="20" />
+                    <circle cx="50" cy="50" r="25" />
+                    <circle cx="50" cy="50" r="30" />
+                    <circle cx="50" cy="50" r="35" />
+                    <circle cx="50" cy="50" r="40" />
+                    <circle cx="50" cy="50" r="45" />
+                  </g>
+                </svg>
+              </div>
+
+              {/* Central Large Watermark (School Logo) */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] z-0">
+                <SchoolLogo className="w-[40cqw] h-auto grayscale" />
+              </div>
+
               {/* Content Container */}
-              <div className="absolute inset-0 flex flex-col items-center z-10" style={{ padding: '5cqw 12cqw' }}>
+              <div className="relative w-full h-full flex flex-col items-center justify-start z-20 pt-[4cqw] px-[10cqw]">
                 
                 {/* Header / Logo */}
-                <div style={{ width: '12cqw', marginBottom: '1cqw' }}>
-                  <SchoolLogo className="w-full h-auto" />
+                <div style={{ width: '10cqw', marginBottom: '1.5cqw' }}>
+                  <SchoolLogo className="w-full h-auto drop-shadow-md" />
                 </div>
                 
                 {/* Title */}
-                <h1 className="font-serif uppercase tracking-wider text-[#0f2249] flex items-center justify-center" style={{ fontSize: '3.8cqw', fontWeight: 900 }}>
-                  CERTIFICATE <span className="font-serif lowercase" style={{ fontSize: '2.4cqw', fontStyle: 'italic', margin: '0 0.8cqw' }}>of</span> ACHIEVEMENT
+                <h1 className="font-serif uppercase tracking-widest text-[#0f2249] flex items-center justify-center" style={{ fontSize: '3.5cqw', fontWeight: 900 }}>
+                  CERTIFICATE <span className="font-serif lowercase text-[#d0a747]" style={{ fontSize: '2.5cqw', fontStyle: 'italic', margin: '0 0.8cqw' }}>of</span> ACHIEVEMENT
                 </h1>
                 
                 {/* Subtitle */}
-                <div className="flex items-center justify-center gap-3 mt-[1cqw] w-[75%]">
-                  <div className="w-[0.6cqw] h-[0.6cqw] bg-[#d0a747] rotate-45 shrink-0"></div>
-                  <div className="flex-grow h-[1px] bg-[#d0a747]"></div>
-                  <p className="uppercase tracking-[0.2em] font-semibold text-[#334155] shrink-0 px-2" style={{ fontSize: '1.1cqw' }}>
+                <div className="flex items-center justify-center gap-3 mt-[1.5cqw] w-[80%]">
+                  <div className="w-[0.5cqw] h-[0.5cqw] bg-[#d0a747] rotate-45 shrink-0"></div>
+                  <div className="flex-grow h-[1px] bg-gradient-to-r from-transparent via-[#d0a747] to-transparent"></div>
+                  <p className="uppercase tracking-[0.25em] font-medium text-[#475569] shrink-0 px-3" style={{ fontSize: '1cqw' }}>
                     THIS CERTIFICATE IS PROUDLY PRESENTED TO
                   </p>
-                  <div className="flex-grow h-[1px] bg-[#d0a747]"></div>
-                  <div className="w-[0.6cqw] h-[0.6cqw] bg-[#d0a747] rotate-45 shrink-0"></div>
+                  <div className="flex-grow h-[1px] bg-gradient-to-r from-transparent via-[#d0a747] to-transparent"></div>
+                  <div className="w-[0.5cqw] h-[0.5cqw] bg-[#d0a747] rotate-45 shrink-0"></div>
                 </div>
                 
                 {/* Name */}
-                <h2 className="mt-[1cqw] font-bold text-[#0f2249]" style={{ 
+                <h2 className="mt-[2cqw] font-bold text-[#0f2249]" style={{ 
                   fontFamily: certName.match(/[ក-អ]/) ? "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif" : "'Dancing Script', cursive", 
-                  fontSize: certName.match(/[ក-អ]/) ? '4.5cqw' : '7.5cqw',
-                  lineHeight: 1.2
+                  fontSize: certName.match(/[ក-អ]/) ? '4cqw' : '6.5cqw',
+                  lineHeight: 1.2,
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.05)'
                 }}>
                   {certName}
                 </h2>
                 
                 {/* Separator */}
-                <div className="w-[85%] h-[0.15cqw] bg-[#d0a747] mt-[0.5cqw] mb-[1cqw]"></div>
+                <div className="w-[70%] h-[2px] mt-[0.5cqw] mb-[2cqw] relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#d0a747] to-transparent"></div>
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[0.8cqw] h-[0.8cqw] bg-white border border-[#d0a747] rotate-45"></div>
+                </div>
                 
                 {/* Paragraph */}
-                <div className="text-center text-slate-800 flex flex-col gap-2" style={{ fontSize: '1.3cqw', lineHeight: 1.5, maxWidth: '95%' }}>
+                <div className="text-center text-slate-700 flex flex-col gap-2" style={{ fontSize: '1.2cqw', lineHeight: 1.6, maxWidth: '90%' }}>
                   <p>
                     For being the <span className="font-bold text-[#0f2249]">{enTitle}</span> for <span className="font-bold text-[#0f2249]">{enPeriod}</span>. Your hard work, positive attitude, and good behavior make you a wonderful student. You are kind, respectful, and always ready to learn.
                   </p>
                   <p>
                     We are proud of your achievements. Keep doing your best and continue to be a great example for others.
                   </p>
-                  <p className="font-bold mt-1 text-[#0f2249]">
+                  <p className="font-bold mt-2 text-[#d0a747] tracking-wider uppercase" style={{ fontSize: '1.1cqw' }}>
                     Congratulations! Keep up the great work!
                   </p>
                 </div>
-                
-
               </div>
               
-              {/* Signatures & Date Section */}
-              <div className="absolute inset-x-0 bottom-0 flex justify-between items-end px-[10cqw] z-20" style={{ height: '22cqw' }}>
+              {/* Signatures & Date Section (Grid layout for perfect alignment) */}
+              <div className="absolute inset-x-0 bottom-[4cqw] flex justify-between items-end px-[8cqw] z-30">
+                
                 {/* Principal Signature */}
-                <div className="text-center flex flex-col items-center w-[22cqw] sig-container" style={{ paddingBottom: '7cqw' }}>
-                  <div style={{ height: '8cqw', width: '100%' }} className="flex items-end justify-center">
-                    <PrincipalSignature height="8cqw" />
+                <div className="text-center flex flex-col items-center w-[20cqw]">
+                  <div style={{ height: '7cqw', width: '100%' }} className="flex items-end justify-center mb-1">
+                    <PrincipalSignature height="7cqw" />
                   </div>
-                  <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[0.5cqw] mb-[0.5cqw]"></div>
-                  <div className="text-[#0f2249] font-bold tracking-wider" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</div>
-                  <div className="text-slate-600 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.9cqw' }}>School Principal</div>
+                  <div className="w-full h-[1px] bg-slate-400 mb-[0.5cqw]"></div>
+                  <div className="text-[#0f2249] font-bold tracking-wider" style={{ fontSize: '1.1cqw' }}>PHORN SOPHAK</div>
+                  <div className="text-slate-500 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.8cqw' }}>School Principal</div>
                 </div>
                 
-                {/* Seal & Date */}
-                <div className="text-center flex flex-col items-center justify-end" style={{ width: '28cqw', paddingBottom: '7cqw' }}>
-                  <div className="mb-[1cqw] relative flex justify-center items-center w-full">
-                    {/* Left Laurel */}
-                    <svg viewBox="0 0 50 100" style={{ height: '7cqw', width: 'auto', marginRight: '1cqw', transform: 'scaleX(-1)' }}>
-                      <path d="M25,100 Q10,50 25,0" fill="none" stroke="#d0a747" strokeWidth="2" />
-                      <path d="M25,80 Q10,75 5,60 Q20,60 25,80" fill="#d0a747" />
-                      <path d="M22,60 Q5,55 0,40 Q15,40 22,60" fill="#d0a747" />
-                      <path d="M20,40 Q0,35 0,20 Q15,20 20,40" fill="#d0a747" />
-                      <path d="M25,20 Q10,15 10,0 Q25,0 25,20" fill="#d0a747" />
-                      <path d="M25,70 Q40,65 45,50 Q30,50 25,70" fill="#d0a747" />
-                      <path d="M22,50 Q40,45 45,30 Q30,30 22,50" fill="#d0a747" />
-                      <path d="M20,30 Q40,25 45,10 Q30,10 20,30" fill="#d0a747" />
-                    </svg>
-                    
-                    {/* Gold Seal with ribbons */}
-                    <div className="relative flex flex-col items-center justify-center">
-                      <svg className="absolute drop-shadow-md" style={{ top: '40%', width: '7cqw', height: '8cqw', zIndex: 0 }} viewBox="0 0 100 100">
-                        <polygon points="15,0 5,100 25,80 50,100 50,0" fill="#c38e30" />
-                        <polygon points="85,0 95,100 75,80 50,100 50,0" fill="#d0a747" />
-                      </svg>
-                      <svg style={{ width: '8cqw', height: '8cqw', position: 'relative', zIndex: 10 }} viewBox="0 0 100 100" className="drop-shadow-lg">
-                        <defs>
-                          <linearGradient id="gGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#f7e192" />
-                            <stop offset="50%" stopColor="#c38e30" />
-                            <stop offset="100%" stopColor="#f7e192" />
-                          </linearGradient>
-                          <linearGradient id="gGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#c38e30" />
-                            <stop offset="50%" stopColor="#f7e192" />
-                            <stop offset="100%" stopColor="#c38e30" />
-                          </linearGradient>
-                        </defs>
-                        <polygon points="50,0 58,5 68,2 73,10 83,10 85,20 95,23 93,33 100,38 95,47 100,53 93,62 95,72 85,75 83,85 73,85 68,93 58,90 50,95 42,90 32,93 27,85 17,85 15,75 5,72 7,62 0,53 5,47 0,38 7,33 5,23 15,20 17,10 27,10 32,2 42,5" fill="url(#gGrad2)" />
-                        <circle cx="50" cy="48" r="38" fill="url(#gGrad1)" />
-                        <circle cx="50" cy="48" r="32" fill="url(#gGrad2)" />
-                        <circle cx="50" cy="48" r="28" fill="url(#gGrad1)" />
-                      </svg>
-                    </div>
-
-                    {/* Right Laurel */}
-                    <svg viewBox="0 0 50 100" style={{ height: '7cqw', width: 'auto', marginLeft: '1cqw' }}>
-                      <path d="M25,100 Q10,50 25,0" fill="none" stroke="#d0a747" strokeWidth="2" />
-                      <path d="M25,80 Q10,75 5,60 Q20,60 25,80" fill="#d0a747" />
-                      <path d="M22,60 Q5,55 0,40 Q15,40 22,60" fill="#d0a747" />
-                      <path d="M20,40 Q0,35 0,20 Q15,20 20,40" fill="#d0a747" />
-                      <path d="M25,20 Q10,15 10,0 Q25,0 25,20" fill="#d0a747" />
-                      <path d="M25,70 Q40,65 45,50 Q30,50 25,70" fill="#d0a747" />
-                      <path d="M22,50 Q40,45 45,30 Q30,30 22,50" fill="#d0a747" />
-                      <path d="M20,30 Q40,25 45,10 Q30,10 20,30" fill="#d0a747" />
+                {/* Clean Modern Seal & Date */}
+                <div className="text-center flex flex-col items-center justify-end w-[20cqw]">
+                  <div className="mb-[1.5cqw] relative flex justify-center items-center">
+                    <svg width="8cqw" height="8cqw" viewBox="0 0 100 100" className="drop-shadow-md">
+                      <defs>
+                        <linearGradient id="sealGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#fde08b" />
+                          <stop offset="50%" stopColor="#d0a747" />
+                          <stop offset="100%" stopColor="#fde08b" />
+                        </linearGradient>
+                        <linearGradient id="sealGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#d0a747" />
+                          <stop offset="50%" stopColor="#fde08b" />
+                          <stop offset="100%" stopColor="#d0a747" />
+                        </linearGradient>
+                      </defs>
+                      {/* Ribbon */}
+                      <path d="M 30 65 L 20 95 L 35 85 L 50 95 L 65 85 L 80 95 L 70 65 Z" fill="#b48b32" />
+                      {/* Seal Base */}
+                      <polygon points="50,0 56,8 65,5 68,15 78,17 76,26 84,33 78,41 84,50 78,59 84,67 76,74 78,83 68,85 65,95 56,92 50,100 44,92 35,95 32,85 22,83 24,74 16,67 22,59 16,50 22,41 16,33 24,26 22,17 32,15 35,5 44,8" fill="url(#sealGrad2)" />
+                      {/* Inner Rings */}
+                      <circle cx="50" cy="50" r="32" fill="url(#sealGrad1)" />
+                      <circle cx="50" cy="50" r="28" fill="#0f2249" />
+                      <circle cx="50" cy="50" r="26" fill="url(#sealGrad1)" />
+                      {/* Center Star */}
+                      <polygon points="50,28 55,42 70,42 58,51 62,65 50,56 38,65 42,51 30,42 45,42" fill="#0f2249" />
                     </svg>
                   </div>
-                  <div className="flex items-end justify-center w-full">
-                    <div className="text-[#0f2249] font-bold tracking-wider mr-2" style={{ fontSize: '1.2cqw' }}>DATE:</div>
-                    <div className="border-b-[0.15cqw] border-[#0f2249] text-[#0f2249] font-medium px-2 text-center" style={{ fontSize: '1.2cqw', minWidth: '10cqw' }}>
+                  <div className="flex flex-col items-center justify-center w-full">
+                    <div className="text-slate-500 font-bold tracking-widest text-[0.8cqw] mb-1">DATE ISSUED</div>
+                    <div className="text-[#0f2249] font-bold tracking-wider" style={{ fontSize: '1.1cqw' }}>
                       {enEndDate}
                     </div>
                   </div>
                 </div>
                 
                 {/* Teacher Signature */}
-                <div className="text-center flex flex-col items-center w-[22cqw] sig-container" style={{ paddingBottom: '7cqw' }}>
-                  <div style={{ height: '8cqw', width: '100%' }} className="flex items-end justify-center">
-                    <TeacherSignature grade={student.grade} height="8cqw" />
+                <div className="text-center flex flex-col items-center w-[20cqw]">
+                  <div style={{ height: '7cqw', width: '100%' }} className="flex items-end justify-center mb-1">
+                    <TeacherSignature grade={student.grade} height="7cqw" />
                   </div>
-                  <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[0.5cqw] mb-[0.5cqw]"></div>
-                  <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>
+                  <div className="w-full h-[1px] bg-slate-400 mb-[0.5cqw]"></div>
+                  <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.1cqw' }}>
                     {(!teacherName || teacherName.includes('យន') || teacherName.includes('យ៉ាវ')) ? 'YORN YAV' : teacherName}
                   </div>
-                  <div className="text-slate-600 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.9cqw' }}>Class Teacher</div>
+                  <div className="text-slate-500 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.8cqw' }}>Class Teacher</div>
                 </div>
               </div>
               
