@@ -205,36 +205,61 @@ export default function MeritCertificate({ student, students, scoreOverride, per
         <div id="merit-cert" className="bg-white rounded-b-2xl">
           {isEnglish ? (
             <div className="relative w-full cert-english overflow-hidden bg-white text-[#0f2249]" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
-              {/* Pure CSS/SVG Background Frame */}
+              {/* Pure CSS/SVG Background Frame matching the user's template */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1000 707">
-                <rect x="0" y="0" width="1000" height="707" fill="#0f2249" />
-                <rect x="15" y="15" width="970" height="677" fill="#d0a747" />
-                <rect x="25" y="25" width="950" height="657" fill="#ffffff" />
+                {/* Outer Dark Blue Background */}
+                <rect x="0" y="0" width="1000" height="707" fill="#051b43" />
                 
-                {/* Corners */}
-                <g>
-                  <polygon points="0,0 120,0 0,120" fill="#0f2249" />
-                  <polygon points="120,0 150,0 0,150 0,120" fill="#d0a747" />
-                  <polygon points="170,0 175,0 0,175 0,170" fill="#0f2249" />
-                </g>
-                <g>
-                  <polygon points="1000,0 880,0 1000,120" fill="#0f2249" />
-                  <polygon points="880,0 850,0 1000,150 1000,120" fill="#d0a747" />
-                  <polygon points="830,0 825,0 1000,175 1000,170" fill="#0f2249" />
-                </g>
-                <g>
-                  <polygon points="0,707 120,707 0,587" fill="#0f2249" />
-                  <polygon points="120,707 150,707 0,557 0,587" fill="#d0a747" />
-                  <polygon points="170,707 175,707 0,532 0,537" fill="#0f2249" />
-                </g>
-                <g>
-                  <polygon points="1000,707 880,707 1000,587" fill="#0f2249" />
-                  <polygon points="880,707 850,707 1000,557 1000,587" fill="#d0a747" />
-                  <polygon points="830,707 825,707 1000,532 1000,537" fill="#0f2249" />
+                {/* Outer Thin Gold Border */}
+                <rect x="15" y="15" width="970" height="677" fill="none" stroke="#d0a747" strokeWidth="2" />
+                
+                {/* Corner Gold Double Ribbons */}
+                <g fill="#d0a747">
+                  {/* Top Left */}
+                  <polygon points="0,100 0,70 70,0 100,0" />
+                  <polygon points="0,150 0,110 110,0 150,0" />
+                  {/* Top Right */}
+                  <polygon points="1000,100 1000,70 930,0 900,0" />
+                  <polygon points="1000,150 1000,110 890,0 850,0" />
+                  {/* Bottom Left */}
+                  <polygon points="0,607 0,637 70,707 100,707" />
+                  <polygon points="0,557 0,597 110,707 150,707" />
+                  {/* Bottom Right */}
+                  <polygon points="1000,607 1000,637 930,707 900,707" />
+                  <polygon points="1000,557 1000,597 890,707 850,707" />
                 </g>
                 
-                {/* Inner Thin Border */}
-                <rect x="45" y="45" width="910" height="617" fill="none" stroke="#0f2249" strokeWidth="1.5" />
+                {/* Inner White Octagon */}
+                <polygon points="200,40 800,40 960,200 960,507 800,667 200,667 40,507 40,200" fill="#ffffff" stroke="#d0a747" strokeWidth="6" />
+                
+                {/* Inner Thin Dark Blue Octagon */}
+                <polygon points="222,52 778,52 948,222 948,485 778,655 222,655 52,485 52,222" fill="none" stroke="#051b43" strokeWidth="1.5" />
+                
+                {/* Innermost Thin Gold Octagon */}
+                <polygon points="234,58 766,58 942,234 942,473 766,649 234,649 58,473 58,234" fill="none" stroke="#d0a747" strokeWidth="1" />
+                
+                {/* Gold Wave Watermarks (Left and Right) */}
+                <g opacity="0.35" stroke="#d0a747" strokeWidth="0.8" fill="none">
+                  {/* Left Waves */}
+                  <path d="M 50 200 C 200 250, 250 450, 50 500" />
+                  <path d="M 50 220 C 180 270, 230 430, 50 480" />
+                  <path d="M 50 240 C 160 290, 210 410, 50 460" />
+                  <path d="M 50 260 C 140 310, 190 390, 50 440" />
+                  <path d="M 50 280 C 120 330, 170 370, 50 420" />
+                  <path d="M 50 500 C 200 450, 250 250, 50 200" />
+                  <path d="M 50 480 C 180 430, 230 270, 50 220" />
+                  <path d="M 50 460 C 160 410, 210 290, 50 240" />
+                  
+                  {/* Right Waves */}
+                  <path d="M 950 200 C 800 250, 750 450, 950 500" />
+                  <path d="M 950 220 C 820 270, 770 430, 950 480" />
+                  <path d="M 950 240 C 840 290, 790 410, 950 460" />
+                  <path d="M 950 260 C 860 310, 810 390, 950 440" />
+                  <path d="M 950 280 C 880 330, 830 370, 950 420" />
+                  <path d="M 950 500 C 800 450, 750 250, 950 200" />
+                  <path d="M 950 480 C 820 430, 770 270, 950 220" />
+                  <path d="M 950 460 C 840 410, 790 290, 950 240" />
+                </g>
               </svg>
               
               {/* Content Container */}
