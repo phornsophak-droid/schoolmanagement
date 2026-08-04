@@ -282,8 +282,8 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               <div className="absolute inset-x-0 bottom-0 flex justify-between items-end px-[10cqw] z-20" style={{ height: '22cqw' }}>
                 {/* Principal Signature */}
                 <div className="text-center flex flex-col items-center w-[22cqw] sig-container" style={{ paddingBottom: '7cqw' }}>
-                  <div style={{ height: '4.5cqw', width: '100%' }} className="flex items-end justify-center">
-                    <PrincipalSignature height="100%" />
+                  <div style={{ height: '4cqw', width: '100%' }} className="flex items-end justify-center">
+                    <PrincipalSignature height="4cqw" />
                   </div>
                   <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[0.5cqw] mb-[0.5cqw]"></div>
                   <div className="text-[#0f2249] font-bold tracking-wider" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</div>
@@ -300,12 +300,12 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 
                 {/* Teacher Signature */}
                 <div className="text-center flex flex-col items-center w-[22cqw] sig-container" style={{ paddingBottom: '7cqw' }}>
-                  <div style={{ height: '4.5cqw', width: '100%' }} className="flex items-end justify-center">
-                    <TeacherSignature grade={student.grade} height="100%" />
+                  <div style={{ height: '4cqw', width: '100%' }} className="flex items-end justify-center">
+                    <TeacherSignature grade={student.grade} height="4cqw" />
                   </div>
                   <div className="w-full h-[0.15cqw] bg-[#0f2249] mt-[0.5cqw] mb-[0.5cqw]"></div>
                   <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>
-                    {(!teacherName || teacherName.trim() === 'យន យ៉ាវ') ? 'YORN YAV' : teacherName}
+                    {(!teacherName || teacherName.includes('យន') || teacherName.includes('យ៉ាវ')) ? 'YORN YAV' : teacherName}
                   </div>
                   <div className="text-slate-600 tracking-widest uppercase mt-[0.2cqw]" style={{ fontSize: '0.9cqw' }}>Class Teacher</div>
                 </div>
