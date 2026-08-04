@@ -332,13 +332,13 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
                 
                 {/* Name */}
-                <h2 className="mt-[2cqw] text-[#0f2249]" style={{ 
-                  fontFamily: certName.match(/[ក-អ]/) ? "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif" : "'Dancing Script', cursive", 
-                  fontSize: certName.match(/[ក-អ]/) ? '4.5cqw' : '7cqw',
-                  lineHeight: 1.2
-                }}>
-                  {certName}
-                </h2>
+                  <h2 className={`mt-[2cqw] text-[#0f2249] ${!certName.match(/[ក-៹]/) ? 'font-bold' : ''}`} style={{ 
+                    fontFamily: certName.match(/[ក-៹]/) ? "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif" : "'Poppins', sans-serif", 
+                    fontSize: certName.match(/[ក-៹]/) ? '4.5cqw' : '5.5cqw',
+                    lineHeight: 1.2
+                  }}>
+                    {certName}
+                  </h2>
                 
                 {/* Separator */}
                 <div className="w-[75%] h-[1.5px] bg-[#d0a747] mt-[0.5cqw] mb-[2cqw]"></div>
