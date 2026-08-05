@@ -338,7 +338,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                     </svg>
                     {/* letter as an HTML overlay */}
                     <div style={{ position: 'absolute', left: '50%', top: '37%', transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#efd27a', textShadow: '0 0.1cqw 0.2cqw rgba(0,0,0,0.45)', pointerEvents: 'none' }}>
-                      <span style={{ fontFamily: 'serif', fontSize: '5cqw', fontWeight: 900, lineHeight: 1, marginTop: '1.2cqw' }}>{niddes?.en || 'A'}</span>
+                      <span style={{ fontFamily: 'serif', fontSize: '5cqw', fontWeight: 900, lineHeight: 1 }}>{niddes?.en || 'A'}</span>
                     </div>
                     </div>
                   </div>
