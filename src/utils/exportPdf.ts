@@ -539,3 +539,151 @@ export async function exportElementToImage(el: HTMLElement, filename: string, fi
   if (!blob) throw new Error('toBlob returned null');
   deliverBlob(blob, name);
 }
+
+// ---------------------------------------------------------------------------
+// iOS-safe CERTIFICATE export
+// ---------------------------------------------------------------------------
+// The merit certificate is laid out in container-query units (cqw) with Tailwind
+// classes. On iOS Safari html2canvas neither resolves cqw in its clone NOR keeps
+// class-based sizing/positioning/colours, so a phone export came out grossly
+// distorted — giant logos (images fell back to their intrinsic ~2600px size),
+// the frame misplaced, content stacked. Desktop/Android don't reproduce it.
+//
+// Fix, mirroring the proven SOF report export: clone the cert into an OFF-SCREEN
+// sandbox pinned to the design width so the browser lays it out correctly (cqw
+// resolves to real px there), then FLATTEN every computed layout/visual property
+// onto the clone as INLINE styles, which html2canvas honours on every device.
+// MeritCertificate.tsx is never touched — this only changes how it is captured.
+
+let _certCtx: CanvasRenderingContext2D | null = null;
+const _certColor = new Map<string, string>();
+// getComputedStyle returns colours in their authored space (Tailwind v4 emits
+// oklch(), which iOS html2canvas can't parse). Rasterise a 1px sample to force a
+// plain rgb()/transparent that html2canvas accepts everywhere.
+const certToRgb = (c: string): string => {
+  if (!c) return c;
+  const hit = _certColor.get(c);
+  if (hit !== undefined) return hit;
+  let out = c;
+  try {
+    if (!_certCtx) { const cv = document.createElement('canvas'); cv.width = cv.height = 1; _certCtx = cv.getContext('2d', { willReadFrequently: true }); }
+    _certCtx!.clearRect(0, 0, 1, 1);
+    _certCtx!.fillStyle = 'rgba(0,0,0,0)';
+    _certCtx!.fillStyle = c;
+    _certCtx!.fillRect(0, 0, 1, 1);
+    const d = _certCtx!.getImageData(0, 0, 1, 1).data;
+    out = d[3] === 0 ? 'transparent' : `rgb(${d[0]}, ${d[1]}, ${d[2]})`;
+  } catch { /* unparseable — keep original */ }
+  _certColor.set(c, out);
+  return out;
+};
+
+// Layout/text properties copied verbatim (they're already resolved to px in the
+// sandbox). Colours + borders + filter are handled separately.
+const CERT_FLAT_PROPS = [
+  'position', 'top', 'right', 'bottom', 'left', 'width', 'height',
+  'min-width', 'max-width', 'min-height', 'max-height', 'box-sizing', 'margin', 'padding',
+  'display', 'flex-direction', 'justify-content', 'align-items', 'flex-wrap', 'gap',
+  'flex-grow', 'flex-shrink', 'flex-basis',
+  'font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing',
+  'text-align', 'text-transform', 'white-space', 'opacity', 'border-radius', 'object-fit',
+  'transform', 'transform-origin', 'z-index', 'overflow', 'mix-blend-mode',
+];
+
+// Flatten the sandbox clone's computed styles onto itself as inline styles. Read
+// EVERY node's styles first (a snapshot), then write — so an early write can't
+// shift a later node's computed values. SVG interiors are left untouched (their
+// geometry is coordinate-based); only the <svg> box + a taint-causing CSS filter
+// are handled.
+const flattenCertStyles = (root: HTMLElement) => {
+  const all: (HTMLElement | SVGElement)[] = [root, ...Array.from(root.querySelectorAll<HTMLElement | SVGElement>('*'))];
+  const snaps = all.map(node => {
+    const insideSvg = node !== root && (node instanceof SVGElement) && node.tagName.toLowerCase() !== 'svg';
+    const cs = window.getComputedStyle(node as Element);
+    const s: Record<string, string> = {};
+    if (!insideSvg) {
+      for (const p of CERT_FLAT_PROPS) s[p] = cs.getPropertyValue(p);
+      s.__color = certToRgb(cs.color);
+      s.__bg = certToRgb(cs.backgroundColor);
+      for (const side of ['top', 'right', 'bottom', 'left']) {
+        if (parseFloat(cs.getPropertyValue(`border-${side}-width`)) > 0) {
+          s[`__border-${side}`] = `${cs.getPropertyValue(`border-${side}-width`)} ${cs.getPropertyValue(`border-${side}-style`)} ${certToRgb(cs.getPropertyValue(`border-${side}-color`))}`;
+        }
+      }
+      const f = cs.getPropertyValue('filter');
+      // A CSS filter on an <svg> (medal drop-shadow) taints the export canvas — drop it.
+      s.__filter = node.tagName.toLowerCase() === 'svg' ? 'none' : (f && f !== 'none' ? f : '');
+    }
+    return { node, s, insideSvg };
+  });
+  for (const { node, s, insideSvg } of snaps) {
+    if (insideSvg) continue;
+    const st = (node as HTMLElement).style;
+    for (const p of CERT_FLAT_PROPS) { if (s[p]) st.setProperty(p, s[p]); }
+    st.color = s.__color;
+    st.backgroundColor = s.__bg;
+    for (const side of ['top', 'right', 'bottom', 'left']) {
+      if (s[`__border-${side}`]) st.setProperty(`border-${side}`, s[`__border-${side}`]);
+    }
+    st.setProperty('filter', s.__filter || 'none');
+  }
+};
+
+async function renderCertToCanvas(el: HTMLElement, fixedWidth = 1240): Promise<HTMLCanvasElement> {
+  try {
+    await Promise.race([
+      (document as any).fonts?.ready ?? Promise.resolve(),
+      new Promise(resolve => setTimeout(resolve, 3000)),
+    ]);
+  } catch { /* fonts API absent */ }
+  const scale = Math.min(2.5, Math.max(1.5, 1500 / fixedWidth));
+
+  const sandbox = document.createElement('div');
+  sandbox.style.cssText = `position:fixed;left:-100000px;top:0;width:${fixedWidth}px;background:#ffffff;z-index:-1;pointer-events:none;`;
+  const clone = el.cloneNode(true) as HTMLElement;
+  clone.style.width = `${fixedWidth}px`;
+  clone.style.maxWidth = 'none';
+  clone.style.margin = '0';
+  clone.querySelectorAll<HTMLElement>('.rc-no-print').forEach(n => { n.style.display = 'none'; });
+  sandbox.appendChild(clone);
+  document.body.appendChild(sandbox);
+  try {
+    await new Promise(resolve => setTimeout(resolve, 60)); // let it lay out at fixedWidth
+    flattenCertStyles(clone);
+    await new Promise(resolve => setTimeout(resolve, 20));
+    const options = { scale, useCORS: true, backgroundColor: '#ffffff', logging: false, imageTimeout: 15000, width: fixedWidth, windowWidth: fixedWidth };
+    if (!_h2cWarmed) {
+      _h2cWarmed = true;
+      try { await html2canvas(clone, { ...options, scale: 0.5 }); } catch { /* warm-up */ }
+      await new Promise(resolve => setTimeout(resolve, 60));
+    }
+    return await html2canvas(clone, options);
+  } finally {
+    sandbox.remove();
+  }
+}
+
+// Public: export the certificate element (#merit-cert) to a landscape PDF.
+export async function exportCertToPdf(el: HTMLElement, filename: string, fixedWidth = 1240): Promise<void> {
+  const canvas = await renderCertToCanvas(el, fixedWidth);
+  const imgW = canvas.width, imgH = canvas.height;
+  const orientation = imgW >= imgH ? 'landscape' : 'portrait';
+  const pdf = new jsPDF({ orientation, unit: 'pt', format: 'a4' });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const ratio = Math.min(pageW / imgW, pageH / imgH);
+  const w = imgW * ratio, h = imgH * ratio;
+  pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', (pageW - w) / 2, (pageH - h) / 2, w, h, undefined, 'FAST');
+  const name = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+  deliverBlob(pdf.output('blob'), name);
+}
+
+// Public: export the certificate element to a PNG (in-app overlay on phones).
+export async function exportCertToImage(el: HTMLElement, filename: string, fixedWidth = 1240): Promise<void> {
+  const canvas = await renderCertToCanvas(el, fixedWidth);
+  const name = filename.endsWith('.png') ? filename : `${filename}.png`;
+  if (isMobile()) { showImageOverlay(canvas.toDataURL('image/png'), name); return; }
+  const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) throw new Error('toBlob returned null');
+  deliverBlob(blob, name);
+}

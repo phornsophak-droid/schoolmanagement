@@ -12,7 +12,7 @@ import SchoolLogo from './SchoolLogo';
 import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature, { teacherNameForGrade } from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
-import { exportElementToPdf, exportElementToImage } from '../utils/exportPdf';
+import { exportCertToPdf, exportCertToImage } from '../utils/exportPdf';
 import certFrameEnglish from '../assets/cert-frame-english.jpg';
 
 interface MeritCertificateProps {
@@ -136,7 +136,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     const el = document.getElementById('merit-cert');
     if (!el) return;
     setPdfBusy(true);
-      try { await exportElementToPdf(el, `វិញ្ញាបនបត្រ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
+      try { await exportCertToPdf(el, `វិញ្ញាបនបត្រ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
       catch (e: any) { console.error('PDF export failed', e); alert('មិនអាចទាញយក PDF បានទេ - សូមព្យាយាមម្តងទៀត។ Error: ' + String(e?.message || e)); }
       finally { setPdfBusy(false); }
   };
@@ -146,7 +146,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     const el = document.getElementById('merit-cert');
     if (!el) return;
     setImgBusy(true);
-      try { await exportElementToImage(el, `វិញ្ញាបនបត្រ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
+      try { await exportCertToImage(el, `វិញ្ញាបនបត្រ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
       catch (e: any) { console.error('Image export failed', e); alert('មិនអាចបង្កើតរូបភាពបានទេ — សូមព្យាយាមម្តងទៀត។ Error: ' + String(e?.message || e)); }
       finally { setImgBusy(false); }
   };
