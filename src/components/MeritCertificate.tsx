@@ -207,7 +207,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
             <div className="relative w-full cert-english overflow-hidden bg-white text-[#0f2249] font-sans" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
               
               {/* Uploaded Image Frame */}
-              <img src="/cert-frame-english.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none object-cover" />
+              <img src="/cert-frame-english.jpg" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none object-cover" />
 
               {/* Central Large Watermark (School Logo) */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
@@ -264,13 +264,14 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               </div>
               
               {/* Footer Area */}
-              <div className="absolute inset-x-0 bottom-[5.5cqw] flex justify-between items-end px-[12cqw]">
+              <div className="absolute inset-x-0 bottom-[7cqw] flex justify-between items-end px-[12cqw]">
                 
                 {/* Principal */}
                   <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
-                    <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-[3cqw]">
+                    <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
                       <PrincipalSignature height="6cqw" />
                     </div>
+                    <div className="w-full h-[1.5px] bg-[#d0a747] mb-[0.8cqw] opacity-70"></div>
                     <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</div>
                   <div className="text-slate-600 uppercase mt-[0.2cqw]" style={{ fontSize: '1cqw' }}>SCHOOL PRINCIPAL</div>
                 </div>
@@ -352,9 +353,10 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
                 {/* Teacher */}
                   <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
-                    <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-[3cqw]">
+                    <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
                       <TeacherSignature grade={student.grade} height="6cqw" />
                     </div>
+                    <div className="w-full h-[1.5px] bg-[#d0a747] mb-[0.8cqw] opacity-70"></div>
                     <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>
                     {(!teacherName || teacherName.includes('យន') || teacherName.includes('យ៉ាវ')) ? 'YORN YAV' : teacherName}
                   </div>
