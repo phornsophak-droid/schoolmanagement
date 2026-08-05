@@ -4,20 +4,55 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Download, X, Share, MoreVertical, PlusSquare } from 'lucide-react';
+import { Download, X, Share, MoreVertical, PlusSquare, Loader2 } from 'lucide-react';
 
 const isIOS = (): boolean =>
   /iP(hone|ad|od)/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+// In-app browsers (Telegram, Messenger, Facebook, Line…) can't install a PWA and
+// never fire `beforeinstallprompt`, so the native dialog is impossible there — the
+// parent must reopen the link in Chrome first. The school shares the Parent Portal
+// link via Telegram, so this is the most common reason "install" isn't automatic.
+const isInAppBrowser = (): boolean => {
+  const ua = navigator.userAgent || '';
+  return /FBAN|FBAV|Instagram|Line\/|MicroMessenger|WhatsApp|Twitter|Snapchat|TikTok|Telegram/i.test(ua)
+    || /;\s*wv\b|\bwv\)/.test(ua); // generic Android WebView (covers most in-app browsers)
+};
+
 // An "Install app" button that ALWAYS shows (until the app is already installed).
 // If the browser offers a native install prompt (Android/desktop Chrome) it fires
 // that; otherwise — iOS, or Chrome not currently offering it — it shows step-by-step
 // "Add to Home Screen" instructions, so the button is never a dead end.
+// Chrome fires `beforeinstallprompt` a beat AFTER load, so a fast tap can arrive
+// before it's captured. Poll `window.__deferredInstallPrompt` (and listen for the
+// stash event) for a short window so the native dialog still opens automatically
+// instead of jumping to the manual steps. Resolves null only if it never fires
+// (in-app browser, already installed, or criteria unmet).
+const waitForInstallPrompt = (ms: number): Promise<any> =>
+  new Promise(resolve => {
+    const existing = (window as any).__deferredInstallPrompt;
+    if (existing) { resolve(existing); return; }
+    let done = false;
+    const finish = (v: any) => { if (done) return; done = true; window.removeEventListener('pwa-install-available', onAvail); resolve(v); };
+    const onAvail = () => finish((window as any).__deferredInstallPrompt || null);
+    window.addEventListener('pwa-install-available', onAvail);
+    const start = Date.now();
+    const tick = () => {
+      if (done) return;
+      const p = (window as any).__deferredInstallPrompt;
+      if (p) return finish(p);
+      if (Date.now() - start >= ms) return finish(null);
+      setTimeout(tick, 150);
+    };
+    tick();
+  });
+
 export default function InstallPWAButton({ className = '' }: { className?: string }) {
   const [deferred, setDeferred] = useState<any>(null);
   const [installed, setInstalled] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [waiting, setWaiting] = useState(false);
 
   useEffect(() => {
     const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (navigator as any).standalone === true;
@@ -42,12 +77,20 @@ export default function InstallPWAButton({ className = '' }: { className?: strin
   if (installed) return null;
 
   const onClick = async () => {
-    if (deferred) {
-      try { await deferred.prompt(); await deferred.userChoice; } catch { /* dismissed */ }
+    // Prefer a prompt we already have; otherwise wait briefly for it to fire so the
+    // native dialog opens automatically (Chrome can dispatch it just after load).
+    let prompt = deferred || (window as any).__deferredInstallPrompt;
+    if (!prompt) {
+      setWaiting(true);
+      prompt = await waitForInstallPrompt(3000);
+      setWaiting(false);
+    }
+    if (prompt) {
+      try { await prompt.prompt(); await prompt.userChoice; } catch { /* dismissed */ }
       (window as any).__deferredInstallPrompt = null;
       setDeferred(null);
     } else {
-      setShowHelp(true); // no native prompt available → show manual steps
+      setShowHelp(true); // truly unavailable (in-app browser / already installed) → manual steps
     }
   };
 
@@ -57,9 +100,12 @@ export default function InstallPWAButton({ className = '' }: { className?: strin
     <>
       <button
         onClick={onClick}
-        className={className || 'inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-lg shadow-emerald-600/25'}
+        disabled={waiting}
+        className={className || 'inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-70 text-white text-sm font-bold shadow-lg shadow-emerald-600/25'}
       >
-        <Download size={16} /> ដំឡើងកម្មវិធី លើទូរស័ព្ទ
+        {waiting
+          ? <><Loader2 size={16} className="animate-spin" /> កំពុងរៀបចំ...</>
+          : <><Download size={16} /> ដំឡើងកម្មវិធី លើទូរស័ព្ទ</>}
       </button>
 
       {showHelp && (
@@ -69,6 +115,11 @@ export default function InstallPWAButton({ className = '' }: { className?: strin
               <h3 className="text-base font-black text-slate-800">📲 ដំឡើងកម្មវិធីលើទូរស័ព្ទ</h3>
               <button onClick={() => setShowHelp(false)} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"><X size={16} /></button>
             </div>
+            {isInAppBrowser() && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[12px] text-amber-800 leading-relaxed">
+                <b>⚠️ សូមបើកក្នុង {ios ? 'Safari' : 'Chrome'} ជាមុនសិន។</b> អ្នកកំពុងបើកតំណនេះក្នុងកម្មវិធីផ្សេង (Telegram/Messenger…) ដែល<b>មិនអាចដំឡើងកម្មវិធីបានទេ</b>។ ចុច <b>Menu (⋮)</b> ខាងលើ រួចជ្រើស <b>«បើកក្នុង {ios ? 'Safari' : 'Chrome'} / Open in browser»</b> រួចសាកចុច «ដំឡើង» ម្តងទៀត។
+              </div>
+            )}
             {ios ? (
               <>
                 <p className="text-xs text-slate-500">នៅលើ iPhone/iPad សូមប្រើ <b>Safari</b>៖</p>
