@@ -371,7 +371,8 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 <div className="flex flex-col items-center justify-end w-[25cqw] translate-y-[1cqw]">
                   {/* Dynamic SVG Medal */}
                   <div className="relative flex justify-center items-center mb-[1cqw]">
-                    <svg viewBox="0 0 100 130" style={{ width: '12cqw', height: '15.6cqw', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' }}>
+                    <div style={{ position: 'relative', width: '12cqw', height: '15.6cqw' }}>
+                    <svg viewBox="0 0 100 130" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' }}>
                       <defs>
                         <linearGradient id="goldM" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="#f3d578" />
@@ -423,10 +424,14 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                         <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(10, -2) scale(0.9)" />
                       </g>
 
-                      {/* Text */}
-                      <text x="50" y="38" fill="url(#goldM)" fontFamily="serif" fontSize="11" fontWeight="bold" textAnchor="middle" letterSpacing="1">GRADE</text>
-                      <text x="50" y="65" fill="url(#goldM)" fontFamily="serif" fontSize="28" fontWeight="bold" textAnchor="middle">{niddes?.en || 'A'}</text>
                     </svg>
+                    {/* GRADE + letter as an HTML overlay — SVG <text> taints the
+                        html2canvas export (it pulls a cross-origin web font). */}
+                    <div style={{ position: 'absolute', left: '50%', top: '37%', transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#efd27a', textShadow: '0 0.1cqw 0.2cqw rgba(0,0,0,0.45)', pointerEvents: 'none' }}>
+                      <span style={{ fontFamily: 'serif', fontSize: '1.35cqw', fontWeight: 700, letterSpacing: '0.12cqw', lineHeight: 1 }}>GRADE</span>
+                      <span style={{ fontFamily: 'serif', fontSize: '3.6cqw', fontWeight: 900, lineHeight: 1, marginTop: '0.2cqw' }}>{niddes?.en || 'A'}</span>
+                    </div>
+                    </div>
                   </div>
 
                   {/* Date */}
