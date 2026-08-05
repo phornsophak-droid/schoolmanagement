@@ -14,6 +14,7 @@ import TeacherSignature, { teacherNameForGrade } from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { exportCertToPdf, exportCertToImage } from '../utils/exportPdf';
 import certFrameEnglish from '../assets/cert-frame-english.jpg';
+import certFrame from '../assets/cert-frame.png';
 
 interface MeritCertificateProps {
   student: StudentScore;
@@ -208,7 +209,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
             <div className="relative w-full cert-english overflow-hidden bg-white text-[#0f2249] font-sans" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
               
               {/* Uploaded Image Frame */}
-              <img src={certFrameEnglish} alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none object-cover" crossOrigin="anonymous" />
+              <img src={certFrameEnglish} alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none object-cover" />
 
               {/* Central Large Watermark (School Logo) */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
@@ -369,7 +370,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
             </div>
           ) : (
             <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
-              <img src="/cert-frame.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
+              <img src={certFrame} alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
               <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7.5% 13% 11%' }}>
 
                 {/* Header: CAMKIDS org (left), kingdom motto (right) */}
