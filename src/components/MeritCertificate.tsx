@@ -135,9 +135,9 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     const el = document.getElementById('merit-cert');
     if (!el) return;
     setPdfBusy(true);
-    try { await exportElementToPdf(el, `ប័ណ្ណសរសើរ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
-    catch (e) { console.error('PDF export failed', e); alert('មិនអាចបង្កើត PDF បានទេ — សូមព្យាយាមម្ដងទៀត។'); }
-    finally { setPdfBusy(false); }
+      try { await exportElementToPdf(el, `វិញ្ញាបនបត្រ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
+      catch (e: any) { console.error('PDF export failed', e); alert('មិនអាចទាញយក PDF បានទេ - សូមព្យាយាមម្តងទៀត។ Error: ' + String(e?.message || e)); }
+      finally { setPdfBusy(false); }
   };
   // Download the certificate as a PNG image.
   const [imgBusy, setImgBusy] = useState(false);
@@ -145,9 +145,9 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     const el = document.getElementById('merit-cert');
     if (!el) return;
     setImgBusy(true);
-    try { await exportElementToImage(el, `ប័ណ្ណសរសើរ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
-    catch (e) { console.error('Image export failed', e); alert('មិនអាចបង្កើតរូបភាពបានទេ — សូមព្យាយាមម្ដងទៀត។'); }
-    finally { setImgBusy(false); }
+      try { await exportElementToImage(el, `វិញ្ញាបនបត្រ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
+      catch (e: any) { console.error('Image export failed', e); alert('មិនអាចបង្កើតរូបភាពបានទេ — សូមព្យាយាមម្តងទៀត។ Error: ' + String(e?.message || e)); }
+      finally { setImgBusy(false); }
   };
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
