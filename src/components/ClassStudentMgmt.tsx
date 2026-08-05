@@ -194,6 +194,13 @@ export default function ClassStudentMgmt({
   const [studentFormMother, setStudentFormMother] = useState(''); // ឈ្មោះម្តាយ
   const [studentFormAddress, setStudentFormAddress] = useState(''); // អាសយដ្ឋាន
   const [studentFormPhone, setStudentFormPhone] = useState('');   // លេខទំនាក់ទំនង
+  // In-table inline editing of the two SHARED identity fields — English name and
+  // date of birth. They belong to the PERSON, so a change follows the student into
+  // every class they attend (general + after-hours). `inlineEdit` marks the active
+  // cell; `inlineOrig` is the seeded value so an unchanged blur saves nothing.
+  const [inlineEdit, setInlineEdit] = useState<{ id: string; field: 'englishName' | 'dob' } | null>(null);
+  const [inlineValue, setInlineValue] = useState('');
+  const [inlineOrig, setInlineOrig] = useState('');
 
   // Stray sectionless grades (e.g. "ថ្នាក់ទី៣" when ៣ក/៣ខ exist) are hidden from
   // the counts & rosters so the head-count matches reality (459, not 481). This is
@@ -385,6 +392,37 @@ export default function ClassStudentMgmt({
     setIsStudentFormOpen(true);
   };
 
+  // Start editing a shared field in-place. English name seeds from the stored value
+  // or the auto-transliteration (so the teacher tweaks a suggestion); dob seeds from
+  // the resolved (cross-class) value.
+  const beginInlineEdit = (p: StudentScore, field: 'englishName' | 'dob') => {
+    if (!canManageStudents(p.grade)) {
+      alert(`លោកអ្នកមានសិទ្ធិកែប្រែព័ត៌មានសិស្សបានតែក្នុងថ្នាក់ ${currentUser?.grade} របស់លោកអ្នកប៉ុណ្ណោះ!`);
+      return;
+    }
+    const seed = field === 'englishName' ? (p.englishName || transliterateKhmerName(p.name)) : resolvedDob(p);
+    setInlineEdit({ id: p.id, field });
+    setInlineValue(seed);
+    setInlineOrig(seed);
+  };
+
+  // Save the edited field to EVERY record of this student — all months AND all
+  // classes — matched by base name (the same cross-class key resolvedDob uses), so
+  // the English name / date of birth auto-follows them into their other classes.
+  const commitInlineEdit = (p: StudentScore) => {
+    if (!inlineEdit) return;
+    const field = inlineEdit.field;
+    const value = inlineValue.trim();
+    setInlineEdit(null);
+    if (value === inlineOrig.trim()) return; // unchanged — nothing to save
+    const base = baseStudentName(p.name);
+    const updated = students.map(s => {
+      if (baseStudentName(s.name) !== base) return s;
+      return calculateStudentFields({ ...s, [field]: value || undefined });
+    });
+    onSaveStudents(updated);
+  };
+
   const handleSaveStudentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (currentUser?.role === 'teacher') {
@@ -426,7 +464,24 @@ export default function ClassStudentMgmt({
           }
           return s;
         });
-        onSaveStudents(updated);
+        // The English name + date of birth belong to the PERSON, so also fill them
+        // into this student's records in OTHER classes (after-hours), matched by
+        // base name. Fill-only (never blanks another class) so an empty field in
+        // this form can't wipe a value already set elsewhere.
+        const base = baseStudentName(targetOldStudent.name);
+        const newDob = studentFormDob.trim();
+        const newEng = studentFormEnglishName.trim();
+        const propagated = (newDob || newEng)
+          ? updated.map(s => {
+              if (s.grade === targetOldStudent.grade) return s; // handled above
+              if (baseStudentName(s.name) !== base) return s;
+              const patch: any = { ...s };
+              if (newDob) patch.dob = newDob;
+              if (newEng) patch.englishName = newEng;
+              return calculateStudentFields(patch);
+            })
+          : updated;
+        onSaveStudents(propagated);
         alert('បានធ្វើបច្ចុប្បន្នភាពព័ត៌មានសិស្សដោយជោគជ័យ ចំពោះគ្រប់ខែសិក្សាទាំងអស់!');
       }
     } else {
@@ -1895,7 +1950,29 @@ export default function ClassStudentMgmt({
                                 </td>
                                 <td className="px-4 py-3 text-center font-sans text-slate-700 whitespace-nowrap">{resolvedId(p) || <span className="text-slate-300">-</span>}</td>
                                 <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">{p.name}</td>
-                                <td className="px-4 py-3 text-slate-700 whitespace-nowrap font-sans">{p.englishName || <span className="text-slate-400 italic">{transliterateKhmerName(p.name)}</span>}</td>
+                                <td className="px-4 py-3 text-slate-700 whitespace-nowrap font-sans">
+                                  {inlineEdit?.id === p.id && inlineEdit.field === 'englishName' ? (
+                                    <input
+                                      autoFocus
+                                      value={inlineValue}
+                                      onChange={e => setInlineValue(e.target.value)}
+                                      onBlur={() => commitInlineEdit(p)}
+                                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitInlineEdit(p); } else if (e.key === 'Escape') setInlineEdit(null); }}
+                                      className="w-36 px-2 py-1 border border-blue-400 rounded-md text-xs font-sans outline-none focus:ring-2 focus:ring-blue-200 text-slate-800"
+                                      placeholder="English name"
+                                    />
+                                  ) : canManageStudents(p.grade) ? (
+                                    <button
+                                      onClick={() => beginInlineEdit(p, 'englishName')}
+                                      title="ចុចដើម្បីកែ (នឹងអូតូទៅថ្នាក់ផ្សេងៗ)"
+                                      className="text-left rounded px-1 -mx-1 hover:bg-blue-50 hover:ring-1 hover:ring-blue-200 transition-colors"
+                                    >
+                                      {p.englishName || <span className="text-slate-400 italic">{transliterateKhmerName(p.name)}</span>}
+                                    </button>
+                                  ) : (
+                                    p.englishName || <span className="text-slate-400 italic">{transliterateKhmerName(p.name)}</span>
+                                  )}
+                                </td>
                                 <td className="px-4 py-3 text-center">
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                     p.gender === 'ស្រី'
@@ -1911,7 +1988,29 @@ export default function ClassStudentMgmt({
                                     {p.group ? <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 border border-indigo-100">{p.group}</span> : <span className="text-slate-300">-</span>}
                                   </td>
                                 )}
-                                <td className="px-4 py-3 text-center text-slate-600 whitespace-nowrap">{resolvedDob(p) ? formatDobKh(resolvedDob(p)) : <span className="text-slate-300">-</span>}</td>
+                                <td className="px-4 py-3 text-center text-slate-600 whitespace-nowrap">
+                                  {inlineEdit?.id === p.id && inlineEdit.field === 'dob' ? (
+                                    <input
+                                      autoFocus
+                                      value={inlineValue}
+                                      onChange={e => setInlineValue(e.target.value)}
+                                      onBlur={() => commitInlineEdit(p)}
+                                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitInlineEdit(p); } else if (e.key === 'Escape') setInlineEdit(null); }}
+                                      className="w-28 px-2 py-1 border border-blue-400 rounded-md text-xs font-sans text-center outline-none focus:ring-2 focus:ring-blue-200 text-slate-800"
+                                      placeholder="ថ្ងៃ/ខែ/ឆ្នាំ"
+                                    />
+                                  ) : canManageStudents(p.grade) ? (
+                                    <button
+                                      onClick={() => beginInlineEdit(p, 'dob')}
+                                      title="ចុចដើម្បីកែ (នឹងអូតូទៅថ្នាក់ផ្សេងៗ)"
+                                      className="rounded px-1 -mx-1 hover:bg-blue-50 hover:ring-1 hover:ring-blue-200 transition-colors"
+                                    >
+                                      {resolvedDob(p) ? formatDobKh(resolvedDob(p)) : <span className="text-slate-300">-</span>}
+                                    </button>
+                                  ) : (
+                                    resolvedDob(p) ? formatDobKh(resolvedDob(p)) : <span className="text-slate-300">-</span>
+                                  )}
+                                </td>
                                 {isPrincipal && (
                                   <td className="px-4 py-3 text-center whitespace-nowrap font-sans">
                                     {(() => {
