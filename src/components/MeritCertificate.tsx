@@ -256,7 +256,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 {/* Paragraph */}
                 <div className="text-center text-[#334155] flex flex-col gap-1.5" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '1.2cqw', lineHeight: 1.6, maxWidth: '85%' }}>
                   <p>
-                    For being the <span className="font-bold text-[#0f2249]">{enTitle}</span> for <span className="font-bold text-[#0f2249]">{enPeriod}</span>. Your hard work, positive attitude, and good behavior make you a wonderful student. You are kind, respectful, and always ready to learn.
+                    For being the <span className="font-bold text-[#0f2249]">{enTitle}</span> of <span className="font-bold text-[#0f2249]">{student.grade.match(/^[a-zA-Z]/) ? student.grade : `Class ${student.grade.replace(/^ថ្នាក់ទី\s*/, '')}`}</span> for <span className="font-bold text-[#0f2249]">{enPeriod}</span>. Your hard work, positive attitude, and good behavior make you a wonderful student. You are kind, respectful, and always ready to learn.
                   </p>
                   <p>
                     We are proud of your achievements. Keep doing your best and continue to be a great example for others.
@@ -321,25 +321,23 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                       <circle cx="50" cy="48" r="34" fill="none" stroke="url(#goldM)" strokeWidth="1.5" />
 
                       {/* Stars Top */}
-                      <g fill="url(#goldM)" transform="translate(50, 22)">
+                      <g fill="url(#goldM)" transform="translate(50, 16)">
                         <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(0, 0) scale(1.2)" />
                         <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(-10, 2) scale(0.9)" />
                         <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(10, 2) scale(0.9)" />
                       </g>
 
                       {/* Stars Bottom */}
-                      <g fill="url(#goldM)" transform="translate(50, 74)">
+                      <g fill="url(#goldM)" transform="translate(50, 80)">
                         <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(0, 0) scale(1.2)" />
                         <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(-10, -2) scale(0.9)" />
                         <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(10, -2) scale(0.9)" />
                       </g>
 
                     </svg>
-                    {/* GRADE + letter as an HTML overlay — SVG <text> taints the
-                        html2canvas export (it pulls a cross-origin web font). */}
+                    {/* letter as an HTML overlay */}
                     <div style={{ position: 'absolute', left: '50%', top: '37%', transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#efd27a', textShadow: '0 0.1cqw 0.2cqw rgba(0,0,0,0.45)', pointerEvents: 'none' }}>
-                      <span style={{ fontFamily: 'serif', fontSize: '1.35cqw', fontWeight: 700, letterSpacing: '0.12cqw', lineHeight: 1 }}>GRADE</span>
-                      <span style={{ fontFamily: 'serif', fontSize: '3.6cqw', fontWeight: 900, lineHeight: 1, marginTop: '0.2cqw' }}>{niddes?.en || 'A'}</span>
+                      <span style={{ fontFamily: 'serif', fontSize: '5cqw', fontWeight: 900, lineHeight: 1, marginTop: '1.2cqw' }}>{niddes?.en || 'A'}</span>
                     </div>
                     </div>
                   </div>
