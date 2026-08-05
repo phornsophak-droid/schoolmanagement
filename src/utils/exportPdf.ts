@@ -129,7 +129,7 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
   const keeps: { top: number; bottom: number }[] = [];
   const options = {
     scale,
-    useCORS: true,
+    useCORS: false,
     backgroundColor: '#ffffff',
     logging: false,
     imageTimeout: 15000,
@@ -345,7 +345,7 @@ export async function renderHtmlToPngDataUrl(html: string, width = 820): Promise
     const height = Math.max(body.scrollHeight, doc.documentElement.scrollHeight);
     iframe.style.height = `${height}px`;
     const canvas = await html2canvas(body, {
-      scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+      scale: 2, useCORS: false, backgroundColor: '#ffffff', logging: false,
       width, windowWidth: width, height, windowHeight: height,
     });
     return canvas.toDataURL('image/png');
