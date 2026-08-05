@@ -321,17 +321,17 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                       <circle cx="50" cy="48" r="34" fill="none" stroke="url(#goldM)" strokeWidth="1.5" />
 
                       {/* Stars Top */}
-                      <g fill="url(#goldM)" transform="translate(50, 16)">
-                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(0, 0) scale(1.2)" />
-                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(-10, 2) scale(0.9)" />
-                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(10, 2) scale(0.9)" />
+                      <g fill="url(#goldM)" transform="translate(50, 20)">
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(0, 0) scale(1.6)" />
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(-12, 3) scale(1.2)" />
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(12, 3) scale(1.2)" />
                       </g>
 
                       {/* Stars Bottom */}
-                      <g fill="url(#goldM)" transform="translate(50, 80)">
-                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(0, 0) scale(1.2)" />
-                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(-10, -2) scale(0.9)" />
-                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(10, -2) scale(0.9)" />
+                      <g fill="url(#goldM)" transform="translate(50, 76)">
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(0, 0) scale(1.6)" />
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(-12, -3) scale(1.2)" />
+                        <polygon points="0,-3 1,-1 3,-1 1.5,0.5 2,2.5 0,1.5 -2,2.5 -1.5,0.5 -3,-1 -1,-1" transform="translate(12, -3) scale(1.2)" />
                       </g>
 
                     </svg>
