@@ -271,7 +271,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                     <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
                       <PrincipalSignature height="6cqw" />
                     </div>
-                    <div className="w-full h-[1.5px] bg-[#d0a747] mb-[0.8cqw] opacity-70"></div>
+                    <div className="w-full h-[2px] bg-[#d0a747] mb-[0.8cqw] opacity-70"></div>
                     <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</div>
                   <div className="text-slate-600 uppercase mt-[0.2cqw]" style={{ fontSize: '1cqw' }}>SCHOOL PRINCIPAL</div>
                 </div>
@@ -346,7 +346,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   {/* Date */}
                   <div className="flex items-end justify-center w-full translate-y-[-1cqw]">
                     <div className="text-[#0f2249] font-bold tracking-wider mr-2" style={{ fontSize: '1.2cqw' }}>DATE:</div>
-                    <div className="border-b-[1.5px] border-[#d0a747]/70 text-[#0f2249] font-bold px-4 text-center" style={{ fontSize: '1.2cqw', minWidth: '12cqw' }}>
+                    <div className="border-b-[2px] border-[#d0a747] text-[#0f2249] font-bold px-4 text-center" style={{ fontSize: '1.2cqw', minWidth: '12cqw' }}>
                       {enEndDate}
                     </div>
                   </div>
@@ -356,7 +356,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                     <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
                       <TeacherSignature grade={student.grade} height="6cqw" />
                     </div>
-                    <div className="w-full h-[1.5px] bg-[#d0a747] mb-[0.8cqw] opacity-70"></div>
+                    <div className="w-full h-[2px] bg-[#d0a747] mb-[0.8cqw] opacity-70"></div>
                     <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>
                     {(!teacherName || teacherName.includes('យន') || teacherName.includes('យ៉ាវ')) ? 'YORN YAV' : teacherName}
                   </div>
