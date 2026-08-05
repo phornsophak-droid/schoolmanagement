@@ -207,15 +207,15 @@ export default function MeritCertificate({ student, students, scoreOverride, per
             <div className="relative w-full cert-english overflow-hidden bg-white text-[#0f2249] font-sans" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
               
               {/* Uploaded Image Frame */}
-              <img src="/cert-frame-english.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none z-10 object-cover" />
+              <img src="/cert-frame-english.png" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none object-cover" />
 
               {/* Central Large Watermark (School Logo) */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] z-0">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
                 <SchoolLogo className="w-[40cqw] h-auto grayscale" />
               </div>
 
               {/* Content Container */}
-              <div className="relative w-full h-full flex flex-col items-center justify-start z-20 pt-[8cqw] px-[10cqw]">
+              <div className="relative w-full h-full flex flex-col items-center justify-start pt-[8cqw] px-[10cqw]">
                 
                 {/* Header / Logo */}
                 <div style={{ width: '9cqw', marginBottom: '1cqw' }}>
@@ -264,15 +264,14 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               </div>
               
               {/* Footer Area */}
-              <div className="absolute inset-x-0 bottom-[8cqw] flex justify-between items-end px-[12cqw] z-30">
+              <div className="absolute inset-x-0 bottom-[8cqw] flex justify-between items-end px-[12cqw]">
                 
                 {/* Principal */}
-                <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
-                  <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
-                    <PrincipalSignature height="6cqw" />
-                  </div>
-                  <div className="w-full h-[2px] bg-[#0f2249] mb-[0.5cqw]"></div>
-                  <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</div>
+                  <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
+                    <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
+                      <PrincipalSignature height="6cqw" />
+                    </div>
+                    <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</div>
                   <div className="text-slate-600 uppercase mt-[0.2cqw]" style={{ fontSize: '1cqw' }}>SCHOOL PRINCIPAL</div>
                 </div>
 
@@ -352,12 +351,11 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                   </div>
                 </div>
                 {/* Teacher */}
-                <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
-                  <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
-                    <TeacherSignature grade={student.grade} height="6cqw" />
-                  </div>
-                  <div className="w-full h-[2px] bg-[#0f2249] mb-[0.5cqw]"></div>
-                  <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>
+                  <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
+                    <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
+                      <TeacherSignature grade={student.grade} height="6cqw" />
+                    </div>
+                    <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>
                     {(!teacherName || teacherName.includes('យន') || teacherName.includes('យ៉ាវ')) ? 'YORN YAV' : teacherName}
                   </div>
                   <div className="text-slate-600 uppercase mt-[0.2cqw]" style={{ fontSize: '1cqw' }}>CLASS TEACHER</div>
