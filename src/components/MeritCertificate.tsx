@@ -13,6 +13,7 @@ import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature, { teacherNameForGrade } from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { exportElementToPdf, exportElementToImage } from '../utils/exportPdf';
+import certFrameEnglish from '../assets/cert-frame-english.jpg';
 
 interface MeritCertificateProps {
   student: StudentScore;
@@ -207,7 +208,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
             <div className="relative w-full cert-english overflow-hidden bg-white text-[#0f2249] font-sans" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
               
               {/* Uploaded Image Frame */}
-              <img src="/cert-frame-english.jpg" alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none object-cover" />
+              <img src={certFrameEnglish} alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none object-cover" crossOrigin="anonymous" />
 
               {/* Central Large Watermark (School Logo) */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
