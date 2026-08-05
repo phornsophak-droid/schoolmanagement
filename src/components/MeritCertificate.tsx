@@ -264,11 +264,11 @@ export default function MeritCertificate({ student, students, scoreOverride, per
               </div>
               
               {/* Footer Area */}
-              <div className="absolute inset-x-0 bottom-[8cqw] flex justify-between items-end px-[12cqw]">
+              <div className="absolute inset-x-0 bottom-[5.5cqw] flex justify-between items-end px-[12cqw]">
                 
                 {/* Principal */}
                   <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
-                    <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
+                    <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-[3cqw]">
                       <PrincipalSignature height="6cqw" />
                     </div>
                     <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>PHORN SOPHAK</div>
@@ -352,7 +352,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
                 {/* Teacher */}
                   <div className="text-center flex flex-col items-center w-[20cqw] sig-container">
-                    <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-1">
+                    <div style={{ height: '6cqw', width: '100%' }} className="flex items-end justify-center mb-[3cqw]">
                       <TeacherSignature grade={student.grade} height="6cqw" />
                     </div>
                     <div className="text-[#0f2249] font-bold tracking-wider uppercase" style={{ fontSize: '1.2cqw' }}>
