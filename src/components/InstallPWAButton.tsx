@@ -20,6 +20,20 @@ const isInAppBrowser = (): boolean => {
     || /;\s*wv\b|\bwv\)/.test(ua); // generic Android WebView (covers most in-app browsers)
 };
 
+// If the PWA is ALREADY installed, Chrome (Android) never fires beforeinstallprompt
+// and its menu has no "Install app" — so both the native dialog AND the manual steps
+// silently fail, which looks like "install is broken". getInstalledRelatedApps()
+// (enabled by the manifest's related_applications self-reference) reports this so we
+// can tell the parent the app is already on their phone instead of looping them.
+const detectInstalled = async (): Promise<boolean> => {
+  try {
+    const fn = (navigator as any).getInstalledRelatedApps;
+    if (typeof fn !== 'function') return false;
+    const apps = await fn.call(navigator);
+    return Array.isArray(apps) && apps.length > 0;
+  } catch { return false; }
+};
+
 // An "Install app" button that ALWAYS shows (until the app is already installed).
 // If the browser offers a native install prompt (Android/desktop Chrome) it fires
 // that; otherwise — iOS, or Chrome not currently offering it — it shows step-by-step
@@ -53,10 +67,14 @@ export default function InstallPWAButton({ className = '' }: { className?: strin
   const [installed, setInstalled] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [waiting, setWaiting] = useState(false);
+  const [alreadyInstalled, setAlreadyInstalled] = useState(false);
 
   useEffect(() => {
     const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (navigator as any).standalone === true;
     if (standalone) { setInstalled(true); return; }
+    // Opened in a browser tab, but the app may still be installed — hide the button
+    // if so (best effort; Chrome Android only) so we don't offer a dead install.
+    detectInstalled().then(v => { if (v) setInstalled(true); });
     const stashed = (window as any).__deferredInstallPrompt;
     if (stashed) setDeferred(stashed);
     const onAvailable = () => setDeferred((window as any).__deferredInstallPrompt || null);
@@ -90,7 +108,11 @@ export default function InstallPWAButton({ className = '' }: { className?: strin
       (window as any).__deferredInstallPrompt = null;
       setDeferred(null);
     } else {
-      setShowHelp(true); // truly unavailable (in-app browser / already installed) → manual steps
+      // No native prompt. Either it's already installed (tell them to open it) or the
+      // steps must be done by hand (in-app browser / prompt cooldown).
+      const inst = await detectInstalled();
+      setAlreadyInstalled(inst);
+      setShowHelp(true);
     }
   };
 
@@ -115,6 +137,16 @@ export default function InstallPWAButton({ className = '' }: { className?: strin
               <h3 className="text-base font-black text-slate-800">📲 ដំឡើងកម្មវិធីលើទូរស័ព្ទ</h3>
               <button onClick={() => setShowHelp(false)} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100"><X size={16} /></button>
             </div>
+            {alreadyInstalled ? (
+              <div className="space-y-2">
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[13px] text-emerald-800 leading-relaxed">
+                  <b>✅ កម្មវិធីត្រូវបានដំឡើងរួចហើយ</b> នៅលើទូរស័ព្ទរបស់អ្នក។ មិនចាំបាច់ដំឡើងម្ដងទៀតទេ។
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  សូម<b>បិទ browser នេះ</b> រួចបើកកម្មវិធីពី <b>home screen</b> (រករូបសាលា 🏫)។ បើចង់ដំឡើងឡើងវិញ សូមលុប (uninstall) កម្មវិធីចាស់ជាមុនសិន។
+                </p>
+              </div>
+            ) : (<>
             {isInAppBrowser() && (
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[12px] text-amber-800 leading-relaxed">
                 <b>⚠️ សូមបើកក្នុង {ios ? 'Safari' : 'Chrome'} ជាមុនសិន។</b> អ្នកកំពុងបើកតំណនេះក្នុងកម្មវិធីផ្សេង (Telegram/Messenger…) ដែល<b>មិនអាចដំឡើងកម្មវិធីបានទេ</b>។ ចុច <b>Menu (⋮)</b> ខាងលើ រួចជ្រើស <b>«បើកក្នុង {ios ? 'Safari' : 'Chrome'} / Open in browser»</b> រួចសាកចុច «ដំឡើង» ម្តងទៀត។
@@ -137,9 +169,10 @@ export default function InstallPWAButton({ className = '' }: { className?: strin
                   <li className="flex items-start gap-2"><PlusSquare size={18} className="text-emerald-600 shrink-0 mt-0.5" /> <span>ចុច <b>«Install app»</b> ឬ <b>«Add to Home screen»</b></span></li>
                   <li className="flex items-start gap-2"><span className="text-emerald-600 font-bold shrink-0">✓</span> <span>បញ្ជាក់ → រូបសាលានឹងបង្ហាញលើ home screen</span></li>
                 </ol>
-                <p className="text-[11px] text-slate-400 leading-relaxed">បើមិនឃើញ «Install app» — សូមចេញ App ចាស់ (uninstall) សិន ឬសម្អាត cache រួចសាកម្តងទៀត។</p>
+                <p className="text-[11px] text-slate-400 leading-relaxed">បើមិនឃើញ «Install app» — ប្រហែលកម្មវិធីដំឡើងរួចហើយ (បើកពី home screen) ឬសម្អាត cache រួចសាកម្តងទៀត។</p>
               </>
             )}
+            </>)}
           </div>
         </div>
       )}
