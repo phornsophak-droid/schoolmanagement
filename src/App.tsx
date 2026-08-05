@@ -33,7 +33,8 @@ import {
   ClipboardCheck,
   Bell,
   ExternalLink,
-  Rocket
+  Rocket,
+  KeyRound
 } from 'lucide-react';
 
 import { StudentScore, SchoolReport, SchoolUser } from './types';
@@ -143,6 +144,7 @@ import ReportsHub from './components/ReportsHub';
 import LoginPortal from './components/LoginPortal';
 import ParentPortal from './components/ParentPortal';
 import ParentPortalAdmin from './components/ParentPortalAdmin';
+import StaffPinManager from './components/StaffPinManager';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
 import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
@@ -209,7 +211,14 @@ export default function App() {
         || window.location.hash.toLowerCase().includes('parent');
     } catch { return false; }
   })();
-  const [parentMode, setParentMode] = useState(parentFromUrl);
+  // Entering Parent Portal via the staff-login "មាតាបិតា" button only set React
+  // state, so a page REFRESH lost it and dropped the user back onto the staff
+  // login (which exposes the account list). Remember it in sessionStorage so a
+  // refresh stays in the Parent Portal; "back" clears it and returns to staff.
+  const parentSession = (() => { try { return sessionStorage.getItem('parent_mode_session') === '1'; } catch { return false; } })();
+  const [parentMode, setParentMode] = useState(parentFromUrl || parentSession);
+  const enterParentMode = () => { setParentMode(true); try { sessionStorage.setItem('parent_mode_session', '1'); } catch { /* private mode */ } };
+  const exitParentMode = () => { setParentMode(false); try { sessionStorage.removeItem('parent_mode_session'); } catch { /* private mode */ } };
   // Student online-test mode (no login): /test, ?join=CODE, or #test. A join
   // link carries the test code so students skip typing it.
   const [studentTestMode, setStudentTestMode] = useState(() => {
@@ -279,6 +288,8 @@ export default function App() {
 
   // Change PIN states
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
+  // Principal-only: view/reset every staff account's login password.
+  const [isPinsManagerOpen, setIsPinsManagerOpen] = useState(false);
   const [pinChangeOld, setPinChangeOld] = useState('');
   const [pinChangeNew, setPinChangeNew] = useState('');
   const [pinChangeError, setPinChangeError] = useState('');
@@ -1512,10 +1523,10 @@ export default function App() {
   if (parentMode) {
     // Parents who arrived via the parent-only link must never land on the staff
     // login. Their "back" just returns to the parent login (reload), not LoginPortal.
-    return <ParentPortal grades={grades} onBack={parentFromUrl ? () => window.location.reload() : () => setParentMode(false)} onStudentTest={() => setStudentTestMode(true)} />;
+    return <ParentPortal grades={grades} onBack={parentFromUrl ? () => window.location.reload() : exitParentMode} onStudentTest={() => setStudentTestMode(true)} />;
   }
   if (!currentUser) {
-    return <LoginPortal onLoginSuccess={handleLoginSuccess} onParentAccess={() => setParentMode(true)} onStudentTest={() => setStudentTestMode(true)} />;
+    return <LoginPortal onLoginSuccess={handleLoginSuccess} onParentAccess={enterParentMode} onStudentTest={() => setStudentTestMode(true)} />;
   }
   // Wait for the attendance store (IndexedDB) to finish loading before the main
   // app renders, so no attendance reader runs against an empty cache. This is a
@@ -1929,6 +1940,15 @@ export default function App() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              {currentUser?.role === 'principal' && (
+                <button
+                  onClick={() => setIsPinsManagerOpen(true)}
+                  className="p-1.5 hover:bg-slate-800 hover:text-emerald-400 text-slate-400 rounded-lg transition-colors flex-shrink-0"
+                  title="គ្រប់គ្រងលេខសម្ងាត់គ្រូ"
+                >
+                  <KeyRound size={13} />
+                </button>
+              )}
               <button
                 onClick={() => setIsChangePinOpen(true)}
                 className="p-1.5 hover:bg-slate-800 hover:text-amber-400 text-slate-400 rounded-lg transition-colors flex-shrink-0"
@@ -2275,6 +2295,17 @@ export default function App() {
                     </p>
                   </div>
                   <div className="flex flex-col gap-1.5 ml-2">
+                    {currentUser?.role === 'principal' && (
+                      <button
+                        onClick={() => {
+                          setIsPinsManagerOpen(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="p-1 px-2.5 bg-slate-800/80 rounded border border-slate-700 hover:text-emerald-400 text-slate-400 text-[10px] font-medium transition-colors flex items-center gap-1 justify-center"
+                      >
+                        <KeyRound size={10} /> លេខសម្ងាត់គ្រូ
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setIsChangePinOpen(true);
@@ -3200,9 +3231,13 @@ export default function App() {
         )}
       </div>
 
+      {currentUser?.role === 'principal' && (
+        <StaffPinManager open={isPinsManagerOpen} onClose={() => setIsPinsManagerOpen(false)} />
+      )}
+
       {isChangePinOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}

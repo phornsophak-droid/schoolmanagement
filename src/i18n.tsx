@@ -185,6 +185,8 @@ export const TRANSLATIONS: Record<string, { km: string; en: string }> = {
   'login.principalAccount': { km: '🔑 គណនីនាយកសាលា៖', en: '🔑 Principal account:' },
   'login.teacherAccount': { km: '🔑 គណនីគ្រូបង្រៀន (ថ្នាក់១-៦)៖', en: '🔑 Teacher account (Grades 1–6):' },
   'login.accountNote': { km: '*លោកគ្រូ-អ្នកគ្រូនីមួយៗមានគណនីដាច់ដោយឡែក។ របាយការណ៍សរុបមានតែនាយកសាលាដែលមានសិទ្ធចូលមើល និងកំណត់។', en: '*Each teacher has a separate account. Only the principal may view and manage the overall reports.' },
+  'login.secureTitle': { km: 'សុវត្ថិភាពគណនី', en: 'Account security' },
+  'login.secureBody': { km: 'លេខសម្ងាត់ត្រូវបានលាក់ ដើម្បីសុវត្ថិភាព។ បើភ្លេច សូមទាក់ទងនាយកសាលា ដើម្បីទទួល ឬកំណត់ឡើងវិញ។', en: 'Passwords are hidden for security. If you forget yours, contact the principal to view or reset it.' },
   'login.selectAccount': { km: 'ជ្រើសរើសគណនីដើម្បីចូលប្រព័ន្ធ', en: 'Select an account to sign in' },
   'login.selectHint': { km: 'សូមជ្រើសរើសតួនាទី ឬថ្នាក់របស់អ្នកបង្រៀនខាងក្រោម ដើម្បីបន្ត៖', en: 'Choose your role or class below to continue:' },
   'login.principalBadge': { km: 'នាយកសាលា', en: 'Principal' },

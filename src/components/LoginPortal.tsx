@@ -6,8 +6,7 @@ import { syncUpsertSetting, syncGradesBulk } from '../lib/supabase';
 import { SchoolLogo } from './SchoolLogo';
 import InstallPWAButton from './InstallPWAButton';
 import { 
-  KeyRound, 
-  ShieldAlert, 
+  ShieldAlert,
   Users, 
   GraduationCap, 
   Lock, 
@@ -350,24 +349,17 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
             </div>
           </div>
 
-          <div className="space-y-4 mt-8 md:mt-0 p-4 bg-slate-900/40 border border-slate-800 rounded-2xl">
-            <h5 className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-              <KeyRound size={12} />
-              {t('login.sampleAccounts')}
+          <div className="space-y-2 mt-8 md:mt-0 p-4 bg-slate-900/40 border border-slate-800 rounded-2xl">
+            <h5 className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Lock size={12} />
+              {t('login.secureTitle')}
             </h5>
-            <div className="text-[10px] text-slate-350 space-y-2 leading-relaxed">
-              <div className="flex justify-between border-b border-slate-800 pb-1">
-                <span>{t('login.principalAccount')}</span>
-                <span className="font-bold text-white font-mono bg-amber-500/25 px-1.5 py-0.2 rounded">PIN: 1111</span>
-              </div>
-              <div className="flex justify-between">
-                <span>{t('login.teacherAccount')}</span>
-                <span className="font-bold text-white font-mono bg-blue-500/25 px-1.5 py-0.2 rounded">PIN: 1234</span>
-              </div>
-              <p className="text-[9px] text-[#94A3B8] italic mt-1 font-medium">
-                {t('login.accountNote')}
-              </p>
-            </div>
+            <p className="text-[10px] text-slate-350 leading-relaxed">
+              {t('login.secureBody')}
+            </p>
+            <p className="text-[9px] text-[#94A3B8] italic mt-1 font-medium">
+              {t('login.accountNote')}
+            </p>
           </div>
         </div>
 
@@ -492,11 +484,8 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
 
               <form onSubmit={handlePinSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1.5 flex justify-between">
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">
                     <span>{t('login.enterPin')}</span>
-                    <span className="text-slate-400 text-[10px] font-medium font-mono">
-                      ({selectedUser.role === 'principal' ? 'PIN: 1111' : 'PIN: 1234'})
-                    </span>
                   </label>
                   
                   <div className="relative">
