@@ -247,6 +247,22 @@ async function renderElementToCanvas(el: HTMLElement, fixedWidth?: number): Prom
         });
       } catch { /* fall back to native field rendering */ }
 
+      // A CSS `filter` on an inline <svg> (the certificate medal uses
+      // `filter: drop-shadow(...)`) makes html2canvas-pro rasterize that SVG
+      // through a path that Chrome marks NOT origin-clean, so the whole export
+      // canvas becomes tainted and toBlob()/toDataURL() throw "Tainted canvases
+      // may not be exported" — every certificate PNG/PDF download then failed.
+      // Strip the filter from SVGs in the clone (only the on-screen copy keeps the
+      // shadow); losing a faint drop-shadow in the export is invisible next to a
+      // download that actually works. Isolated to this exact cause by hiding
+      // elements one at a time and re-testing the export in the browser.
+      try {
+        const cloneRoot2 = (el.id && doc.getElementById(el.id)) || doc.body;
+        cloneRoot2.querySelectorAll<SVGElement>('svg').forEach(svg => {
+          if (svg.style.filter && svg.style.filter !== 'none') svg.style.filter = 'none';
+        });
+      } catch { /* leave SVGs as-is — worst case the taint returns */ }
+
       // Measure forced page-break positions (AFTER the field swaps above, so the
       // layout is final). Each `.rc-page-break` element's top → canvas Y = its
       // offset from the export root × scale.
