@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Volume2, Play } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, Volume2, Play, Star, RotateCcw, HelpCircle, Trophy } from 'lucide-react';
 
 interface KhmerAlphabetGameProps {
   onBack: () => void;
 }
 
 type TabType = 'consonants' | 'dependent_vowels' | 'independent_vowels';
+type ModeType = 'learn' | 'quiz';
+type DifficultyType = 'easy' | 'medium' | 'hard';
 
 interface LetterItem {
   char: string;
@@ -38,9 +40,33 @@ const INDEPENDENT_VOWELS: LetterItem[] = [
   { char: 'ឰ', name: 'ស្រៈ ឰ', latin: 'ai' }, { char: 'ឱ', name: 'ស្រៈ ឱ', latin: 'ao' }, { char: 'ឳ', name: 'ស្រៈ ឳ', latin: 'aou' }
 ];
 
+// Helper to shuffle array
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
 export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
+  const [mode, setMode] = useState<ModeType>('learn');
   const [activeTab, setActiveTab] = useState<TabType>('consonants');
+  const [difficulty, setDifficulty] = useState<DifficultyType>('easy');
+  
+  // Learn Mode State
   const [activeLetter, setActiveLetter] = useState<LetterItem | null>(null);
+  
+  // Quiz Mode State
+  const [score, setScore] = useState(0);
+  const [targetLetter, setTargetLetter] = useState<LetterItem | null>(null);
+  const [quizOptions, setQuizOptions] = useState<LetterItem[]>([]);
+  const [wrongLetter, setWrongLetter] = useState<string | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Audio State
   const [synth, setSynth] = useState<SpeechSynthesis | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -53,14 +79,20 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
     };
   }, [synth]);
 
-  const handlePlaySound = (letter: LetterItem) => {
-    setActiveLetter(letter);
-    
+  const getActiveData = useCallback(() => {
+    switch (activeTab) {
+      case 'consonants': return CONSONANTS;
+      case 'dependent_vowels': return DEPENDENT_VOWELS;
+      case 'independent_vowels': return INDEPENDENT_VOWELS;
+    }
+  }, [activeTab]);
+
+  const playSound = useCallback((letterName: string, onEnd?: () => void) => {
     if (!synth) return;
     synth.cancel();
 
-    // Use just the letter character itself or its spoken name
-    const utterance = new SpeechSynthesisUtterance(letter.name.replace('ស្រៈ ', ''));
+    const textToSpeak = letterName.replace('ស្រៈ ', '');
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'km-KH';
     utterance.rate = 0.8;
     
@@ -71,23 +103,102 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
     }
 
     utterance.onstart = () => setIsPlaying(true);
-    utterance.onend = () => setIsPlaying(false);
+    utterance.onend = () => {
+      setIsPlaying(false);
+      if (onEnd) onEnd();
+    };
     utterance.onerror = () => setIsPlaying(false);
 
     synth.speak(utterance);
+  }, [synth]);
+
+  const handlePlayLearnSound = (letter: LetterItem) => {
+    setActiveLetter(letter);
+    playSound(letter.name);
   };
 
-  const getActiveData = () => {
-    switch (activeTab) {
-      case 'consonants': return CONSONANTS;
-      case 'dependent_vowels': return DEPENDENT_VOWELS;
-      case 'independent_vowels': return INDEPENDENT_VOWELS;
+  const generateQuiz = useCallback(() => {
+    setIsGenerating(true);
+    const data = getActiveData();
+    const target = data[Math.floor(Math.random() * data.length)];
+    
+    let optionsCount = data.length;
+    if (difficulty === 'easy') optionsCount = Math.min(4, data.length);
+    else if (difficulty === 'medium') optionsCount = Math.min(12, data.length);
+    
+    let options = [target];
+    const available = data.filter(d => d.char !== target.char);
+    const shuffledAvailable = shuffleArray(available);
+    
+    while (options.length < optionsCount && shuffledAvailable.length > 0) {
+      options.push(shuffledAvailable.pop()!);
+    }
+    
+    setTargetLetter(target);
+    setQuizOptions(shuffleArray(options));
+    setShowCelebration(false);
+    setWrongLetter(null);
+    setIsGenerating(false);
+
+    // Play target sound automatically after a short delay
+    setTimeout(() => {
+      playSound(target.name);
+    }, 500);
+  }, [getActiveData, difficulty, playSound]);
+
+  // Handle mode or tab change
+  useEffect(() => {
+    if (mode === 'quiz') {
+      generateQuiz();
+    } else {
+      setScore(0);
+      setActiveLetter(null);
+    }
+  }, [mode, activeTab, difficulty, generateQuiz]);
+
+  const handleQuizClick = (letter: LetterItem) => {
+    if (showCelebration || isGenerating || !targetLetter) return;
+
+    if (letter.char === targetLetter.char) {
+      // Correct
+      setShowCelebration(true);
+      setScore(s => s + 10);
+      
+      // Play success tone (using simple speech or Audio if preferred, sticking to SpeechSynthesis for now)
+      if (synth) {
+        synth.cancel();
+        const successSpeech = new SpeechSynthesisUtterance('ត្រឹមត្រូវល្អណាស់');
+        successSpeech.lang = 'km-KH';
+        successSpeech.rate = 1.2;
+        synth.speak(successSpeech);
+      }
+
+      setTimeout(() => {
+        generateQuiz();
+      }, 2000);
+    } else {
+      // Wrong
+      setWrongLetter(letter.char);
+      setScore(s => Math.max(0, s - 2));
+      
+      if (synth) {
+        synth.cancel();
+        const wrongSpeech = new SpeechSynthesisUtterance('មិនទាន់ត្រូវទេ ស្តាប់ម្តងទៀត');
+        wrongSpeech.lang = 'km-KH';
+        wrongSpeech.rate = 1.2;
+        synth.speak(wrongSpeech);
+      }
+
+      setTimeout(() => setWrongLetter(null), 800);
+      setTimeout(() => {
+        if (targetLetter) playSound(targetLetter.name);
+      }, 1500);
     }
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+      <header className="bg-white border-b border-slate-200 p-4 flex flex-wrap items-center justify-between sticky top-0 z-10 shadow-sm gap-4">
         <div className="flex items-center gap-3">
           <button 
             onClick={onBack}
@@ -99,11 +210,31 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
             <span className="text-2xl">🔠</span> អក្ខរក្រមខ្មែរ
           </h1>
         </div>
+
+        {/* Mode Switcher */}
+        <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner">
+          <button
+            onClick={() => setMode('learn')}
+            className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${
+              mode === 'learn' ? 'bg-white text-blue-600 shadow' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <HelpCircle size={16} /> រៀនអាន
+          </button>
+          <button
+            onClick={() => setMode('quiz')}
+            className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${
+              mode === 'quiz' ? 'bg-orange-500 text-white shadow' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Trophy size={16} /> លេងហ្គេមទាយអក្សរ
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col p-4 md:p-8 max-w-6xl mx-auto w-full">
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
+        {/* Tabs for choosing letter category */}
+        <div className="flex flex-wrap gap-2 mb-6 bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
           {[
             { id: 'consonants', label: 'ព្យញ្ជនៈ ៣៣តួ', icon: '📝' },
             { id: 'dependent_vowels', label: 'ស្រៈនិស្ស័យ', icon: '〰️' },
@@ -112,9 +243,9 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`flex-1 min-w-[140px] py-3 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[130px] py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
                 activeTab === tab.id 
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 scale-[1.02]' 
+                  ? 'bg-blue-600 text-white shadow-md scale-[1.02]' 
                   : 'bg-transparent text-slate-500 hover:bg-slate-50'
               }`}
             >
@@ -123,38 +254,97 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
           ))}
         </div>
 
+        {mode === 'quiz' && (
+          <div className="mb-6 flex flex-wrap items-center justify-between bg-orange-50 p-4 rounded-2xl border border-orange-100 shadow-sm gap-4">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-orange-900">កម្រិត៖</span>
+              <div className="flex bg-white rounded-lg p-1 border border-orange-200">
+                {[
+                  { id: 'easy', label: 'ងាយ' },
+                  { id: 'medium', label: 'មធ្យម' },
+                  { id: 'hard', label: 'ពិបាក' }
+                ].map(diff => (
+                  <button
+                    key={diff.id}
+                    onClick={() => setDifficulty(diff.id as DifficultyType)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+                      difficulty === diff.id ? 'bg-orange-500 text-white' : 'text-slate-500 hover:bg-orange-50'
+                    }`}
+                  >
+                    {diff.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-xl font-black text-orange-600">
+                <Star className="fill-orange-500 text-orange-500 animate-pulse" />
+                ពិន្ទុ៖ {score}
+              </div>
+              
+              <button
+                onClick={() => targetLetter && playSound(targetLetter.name)}
+                className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold text-white transition-all shadow-md active:scale-95 ${
+                  isPlaying ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg'
+                }`}
+              >
+                {isPlaying ? <Volume2 className="animate-pulse" size={20} /> : <RotateCcw size={20} />}
+                ស្តាប់ម្ដងទៀត
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main Grid */}
-          <div className="flex-1">
+          <div className="flex-1 relative">
+            
+            {showCelebration && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-3xl animate-in fade-in duration-300">
+                <div className="flex flex-col items-center animate-bounce">
+                  <span className="text-8xl mb-4">🎉</span>
+                  <h2 className="text-4xl font-black text-green-600 font-hanuman">ត្រឹមត្រូវល្អណាស់!</h2>
+                  <div className="mt-4 text-6xl font-hanuman text-blue-600">{targetLetter?.char}</div>
+                </div>
+              </div>
+            )}
+
             <div className={`grid gap-3 md:gap-4 ${
+              (mode === 'quiz' ? quizOptions : getActiveData()).length <= 4 ? 'grid-cols-2 max-w-lg mx-auto' :
+              (mode === 'quiz' ? quizOptions : getActiveData()).length <= 12 ? 'grid-cols-3 md:grid-cols-4' :
               activeTab === 'consonants' ? 'grid-cols-4 md:grid-cols-5' : 
               activeTab === 'dependent_vowels' ? 'grid-cols-4 md:grid-cols-6' : 
               'grid-cols-3 md:grid-cols-5'
             }`}>
-              {getActiveData().map((letter, idx) => (
+              {(mode === 'quiz' ? quizOptions : getActiveData()).map((letter, idx) => (
                 <button
-                  key={idx}
-                  onClick={() => handlePlaySound(letter)}
+                  key={`${mode}-${letter.char}-${idx}`}
+                  onClick={() => mode === 'learn' ? handlePlayLearnSound(letter) : handleQuizClick(letter)}
                   className={`
                     aspect-square rounded-2xl border-2 flex flex-col items-center justify-center gap-1 md:gap-2 transition-all group
                     hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-500/20
-                    ${activeLetter?.char === letter.char 
-                      ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md shadow-blue-500/10' 
+                    ${mode === 'learn' && activeLetter?.char === letter.char 
+                      ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md shadow-blue-500/10 scale-105' 
+                      : mode === 'quiz' && wrongLetter === letter.char
+                      ? 'border-red-500 bg-red-50 text-red-600 animate-[shake_0.5s_ease-in-out]'
                       : 'border-slate-200 bg-white hover:border-blue-300 text-slate-800'
                     }
                   `}
                 >
-                  <span className={`text-4xl md:text-5xl lg:text-6xl font-hanuman transition-transform group-hover:scale-110 ${letter.type === 'O' ? 'text-rose-600' : letter.type === 'U' ? 'text-indigo-600' : ''}`}>
+                  <span className={`text-5xl md:text-6xl lg:text-7xl font-hanuman transition-transform group-hover:scale-110 ${letter.type === 'O' ? 'text-rose-600' : letter.type === 'U' ? 'text-indigo-600' : ''}`}>
                     {letter.char}
                   </span>
-                  <span className={`text-xs md:text-sm font-medium ${activeLetter?.char === letter.char ? 'text-blue-600' : 'text-slate-400'}`}>
-                    {letter.latin}
-                  </span>
+                  {mode === 'learn' && (
+                    <span className={`text-xs md:text-sm font-medium ${activeLetter?.char === letter.char ? 'text-blue-600' : 'text-slate-400'}`}>
+                      {letter.latin}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
             
-            {activeTab === 'consonants' && (
+            {activeTab === 'consonants' && mode === 'learn' && (
               <div className="mt-6 flex justify-center gap-6 text-sm font-medium">
                 <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-rose-600"></span> ពួក "អ" (O)</div>
                 <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-indigo-600"></span> ពួក "អ៊" (U)</div>
@@ -162,47 +352,58 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
             )}
           </div>
 
-          {/* Side Panel for Active Letter */}
-          <div className="w-full lg:w-80 flex-shrink-0">
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 sticky top-24 flex flex-col items-center text-center">
-              {activeLetter ? (
-                <>
-                  <div className={`w-32 h-32 md:w-48 md:h-48 rounded-3xl flex items-center justify-center mb-6 shadow-inner ${
-                    activeLetter.type === 'O' ? 'bg-rose-50 border border-rose-100 text-rose-600' : 
-                    activeLetter.type === 'U' ? 'bg-indigo-50 border border-indigo-100 text-indigo-600' : 
-                    'bg-slate-50 border border-slate-100 text-slate-700'
-                  }`}>
-                    <span className="text-7xl md:text-9xl font-hanuman">{activeLetter.char}</span>
+          {/* Side Panel for Active Letter (Only in Learn Mode) */}
+          {mode === 'learn' && (
+            <div className="w-full lg:w-80 flex-shrink-0">
+              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 sticky top-24 flex flex-col items-center text-center">
+                {activeLetter ? (
+                  <>
+                    <div className={`w-32 h-32 md:w-48 md:h-48 rounded-3xl flex items-center justify-center mb-6 shadow-inner ${
+                      activeLetter.type === 'O' ? 'bg-rose-50 border border-rose-100 text-rose-600' : 
+                      activeLetter.type === 'U' ? 'bg-indigo-50 border border-indigo-100 text-indigo-600' : 
+                      'bg-slate-50 border border-slate-100 text-slate-700'
+                    }`}>
+                      <span className="text-7xl md:text-9xl font-hanuman">{activeLetter.char}</span>
+                    </div>
+                    <h2 className="text-3xl font-black text-slate-800 mb-2 font-hanuman">
+                      {activeLetter.name}
+                    </h2>
+                    <p className="text-lg text-slate-500 font-medium mb-8">
+                      [{activeLetter.latin}]
+                    </p>
+                    <button
+                      onClick={() => handlePlayLearnSound(activeLetter)}
+                      className={`flex items-center gap-2 px-8 py-4 rounded-full font-bold text-white transition-all w-full justify-center text-lg ${
+                        isPlaying 
+                          ? 'bg-blue-400 scale-95 shadow-inner' 
+                          : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/30 hover:-translate-y-1'
+                      }`}
+                    >
+                      {isPlaying ? <Volume2 className="animate-pulse" size={24} /> : <Play size={24} />}
+                      {isPlaying ? 'កំពុងអាន...' : 'ស្តាប់សំឡេង'}
+                    </button>
+                  </>
+                ) : (
+                  <div className="py-20 flex flex-col items-center justify-center text-slate-400 opacity-60">
+                    <Volume2 size={64} className="mb-4" />
+                    <p className="font-medium text-lg">សូមចុចលើតួអក្សរ</p>
+                    <p className="text-sm">ដើម្បីស្តាប់ការបញ្ចេញសំឡេង</p>
                   </div>
-                  <h2 className="text-3xl font-black text-slate-800 mb-2 font-hanuman">
-                    {activeLetter.name}
-                  </h2>
-                  <p className="text-lg text-slate-500 font-medium mb-8">
-                    [{activeLetter.latin}]
-                  </p>
-                  <button
-                    onClick={() => handlePlaySound(activeLetter)}
-                    className={`flex items-center gap-2 px-8 py-4 rounded-full font-bold text-white transition-all w-full justify-center text-lg ${
-                      isPlaying 
-                        ? 'bg-blue-400 scale-95 shadow-inner' 
-                        : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/30 hover:-translate-y-1'
-                    }`}
-                  >
-                    {isPlaying ? <Volume2 className="animate-pulse" size={24} /> : <Play size={24} />}
-                    {isPlaying ? 'កំពុងអាន...' : 'ស្តាប់សំឡេង'}
-                  </button>
-                </>
-              ) : (
-                <div className="py-20 flex flex-col items-center justify-center text-slate-400 opacity-60">
-                  <Volume2 size={64} className="mb-4" />
-                  <p className="font-medium text-lg">សូមចុចលើតួអក្សរ</p>
-                  <p className="text-sm">ដើម្បីស្តាប់ការបញ្ចេញសំឡេង</p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
+
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          50% { transform: translateX(5px); }
+          75% { transform: translateX(-5px); }
+        }
+      `}</style>
     </div>
   );
 }
