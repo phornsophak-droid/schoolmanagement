@@ -89,13 +89,22 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
   }, [activeTab]);
 
   const playSound = useCallback((letterName: string, onEnd?: () => void) => {
-    if (!synth) return;
-    synth.cancel();
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    const synth = window.speechSynthesis;
 
-    const textToSpeak = letterName.replace('ស្រៈ ', '');
+    if (synth.speaking) {
+      synth.cancel();
+    }
+
+    let textToSpeak = letterName;
+    // For single letters (consonants), add "អក្សរ" (Letter) to help TTS recognize it better
+    if (textToSpeak.length === 1 && !textToSpeak.includes('ស្រៈ')) {
+      textToSpeak = `អក្សរ ${textToSpeak}`;
+    }
+
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = 'km-KH';
-    utterance.rate = 0.8;
+    utterance.rate = 0.9;
     
     const voices = synth.getVoices();
     const khmerVoice = voices.find(v => v.lang.includes('km'));
@@ -111,7 +120,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
     utterance.onerror = () => setIsPlaying(false);
 
     synth.speak(utterance);
-  }, [synth]);
+  }, []);
 
   const handlePlayLearnSound = (letter: LetterItem) => {
     setActiveLetter(letter);
@@ -166,40 +175,41 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
   const handleQuizClick = (letter: LetterItem) => {
     if (showCelebration || isGenerating || !targetLetter) return;
 
+    const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
+
     if (letter.char === targetLetter.char) {
       // Correct
       setShowCelebration(true);
       setScore(s => s + 10);
       
-      // Play success tone (using simple speech or Audio if preferred, sticking to SpeechSynthesis for now)
       if (synth) {
-        synth.cancel();
+        if (synth.speaking) synth.cancel();
         const successSpeech = new SpeechSynthesisUtterance('ត្រឹមត្រូវល្អណាស់');
         successSpeech.lang = 'km-KH';
-        successSpeech.rate = 1.2;
+        successSpeech.rate = 1.1;
         synth.speak(successSpeech);
       }
 
       setTimeout(() => {
         generateQuiz();
-      }, 2000);
+      }, 2500);
     } else {
       // Wrong
       setWrongLetter(letter.char);
       setScore(s => Math.max(0, s - 2));
       
       if (synth) {
-        synth.cancel();
+        if (synth.speaking) synth.cancel();
         const wrongSpeech = new SpeechSynthesisUtterance('មិនទាន់ត្រូវទេ ស្តាប់ម្តងទៀត');
         wrongSpeech.lang = 'km-KH';
-        wrongSpeech.rate = 1.2;
+        wrongSpeech.rate = 1.1;
         synth.speak(wrongSpeech);
       }
 
       setTimeout(() => setWrongLetter(null), 800);
       setTimeout(() => {
         if (targetLetter) playSound(targetLetter.name);
-      }, 1500);
+      }, 2000);
     }
   };
 
