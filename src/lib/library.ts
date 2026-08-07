@@ -20,6 +20,7 @@ export interface Book {
   title: string;       // ចំណងជើង
   author?: string;     // អ្នកនិពន្ធ
   category?: string;   // ប្រភេទ
+  language?: string;   // ភាសា (ខ្មែរ ឫ អង់គ្លេស)
   total: number;       // ចំនួនច្បាប់ដែលសាលាមាន
   note?: string;
   createdAt: string;

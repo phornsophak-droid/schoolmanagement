@@ -129,17 +129,17 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   }, [students]);
 
   // ---- books ----
-  const [bDraft, setBDraft] = useState({ code: '', title: '', author: '', category: '', total: '' });
+  const [bDraft, setBDraft] = useState({ code: '', title: '', author: '', category: '', language: '', total: '' });
   const addBook = async () => {
     const title = bDraft.title.trim();
     if (!title) { flash('សូមបញ្ចូលចំណងជើងសៀវភៅ'); return; }
     const total = Number(bDraft.total) || 1;
     const next = [{
       id: newId(), code: bDraft.code.trim(), title, author: bDraft.author.trim(),
-      category: bDraft.category.trim(), total, createdAt: new Date().toISOString(),
+      category: bDraft.category.trim(), language: bDraft.language, total, createdAt: new Date().toISOString(),
     }, ...books];
     setBooks(next); await saveBooks(next);
-    setBDraft({ code: '', title: '', author: '', category: '', total: '' });
+    setBDraft({ code: '', title: '', author: '', category: '', language: '', total: '' });
     flash('បន្ថែមសៀវភៅរួចរាល់ ✓');
   };
   // Import a book list from Excel/CSV. A row whose លេខកូដ already exists UPDATES that
@@ -168,6 +168,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
         title: colIndex(header, ['ចំណងជើង', 'title']),
         author: colIndex(header, ['អ្នកនិពន្ធ', 'author']),
         category: colIndex(header, ['ប្រភេទ', 'category']),
+        language: colIndex(header, ['ភាសា', 'language']),
         total: colIndex(header, ['ចំនួន', 'total', 'qty']),
       };
       if (ci.title < 0) { flash('រកមិនឃើញជួរ «ចំណងជើង» — សូមប្រើគំរូ'); return; }
@@ -181,7 +182,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
         if (!title) { skipped++; continue; }
         const code = cell(row, ci.code);
         const total = Math.max(1, khToNum(cell(row, ci.total)) || 1);
-        const fields = { code, title, author: cell(row, ci.author), category: cell(row, ci.category), total };
+        const fields = { code, title, author: cell(row, ci.author), category: cell(row, ci.category), language: cell(row, ci.language), total };
         const at = code ? next.findIndex(b => b.code && b.code === code) : -1;
         if (at >= 0) { next[at] = { ...next[at], ...fields }; updated++; }
         else { next.unshift({ id: newId(), ...fields, createdAt: new Date().toISOString() }); added++; }
@@ -196,8 +197,8 @@ export default function LibraryManager({ students = [], grades = [], currentUser
 
   // A filled-in template so the columns are never in doubt.
   const downloadTemplate = () => {
-    const header = ['លេខកូដ', 'ចំណងជើង', 'អ្នកនិពន្ធ', 'ប្រភេទ', 'ចំនួនច្បាប់'];
-    const example = ['B-001', 'រឿងព្រេងខ្មែរ', 'ក្រសួងអប់រំ', 'អក្សរសាស្ត្រ', '2'];
+    const header = ['លេខកូដ', 'ចំណងជើង', 'អ្នកនិពន្ធ', 'ប្រភេទ', 'ភាសា', 'ចំនួនច្បាប់'];
+    const example = ['B-001', 'រឿងព្រេងខ្មែរ', 'ក្រសួងអប់រំ', 'អក្សរសាស្ត្រ', 'ខ្មែរ', '2'];
     const ws = XLSX.utils.aoa_to_sheet([header, example]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'បញ្ជីសៀវភៅ');
@@ -404,8 +405,12 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   const filtered = books.filter(b => {
     const s = q.trim().toLowerCase();
     if (!s) return true;
-    return [b.title, b.author, b.code, b.category].some(x => (x || '').toLowerCase().includes(s));
+    return [b.title, b.author, b.code, b.category, b.language].some(x => (x || '').toLowerCase().includes(s));
   });
+
+  const totalCopies = books.reduce((sum, b) => sum + (b.total || 0), 0);
+  const khmerCopies = books.filter(b => b.language === 'ខ្មែរ' || b.language?.toLowerCase() === 'khmer').reduce((sum, b) => sum + (b.total || 0), 0);
+  const englishCopies = books.filter(b => b.language === 'អង់គ្លេស' || b.language?.toLowerCase() === 'english').reduce((sum, b) => sum + (b.total || 0), 0);
 
   return (
     <div className="space-y-3">
@@ -426,14 +431,15 @@ export default function LibraryManager({ students = [], grades = [], currentUser
       </div>
 
       {/* stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex items-center gap-3">
           <div className="w-10 h-10 shrink-0 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
             <BookMarked size={18} />
           </div>
           <div>
-            <p className="text-[11px] font-bold text-slate-500">ចំនួនសៀវភៅសរុប</p>
-            <p className="text-lg font-black text-slate-700 leading-none mt-1">{toKh(books.length)}</p>
+            <p className="text-[11px] font-bold text-slate-500">ចំនួនក្បាលសរុប</p>
+            <p className="text-lg font-black text-slate-700 leading-none mt-1">{toKh(totalCopies)}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">ខ្មែរ៖ {toKh(khmerCopies)} | អង់គ្លេស៖ {toKh(englishCopies)}</p>
           </div>
         </div>
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 flex items-center gap-3">
@@ -506,13 +512,22 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                   <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={importBooks} className="hidden" />
                 </div>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
                 <input className={input} placeholder="លេខកូដ" value={bDraft.code} onChange={e => setBDraft({ ...bDraft, code: e.target.value })} />
                 <input className={`${input} lg:col-span-2`} placeholder="ចំណងជើង *" value={bDraft.title} onChange={e => setBDraft({ ...bDraft, title: e.target.value })} />
                 <input className={input} placeholder="អ្នកនិពន្ធ" value={bDraft.author} onChange={e => setBDraft({ ...bDraft, author: e.target.value })} />
                 <input className={input} placeholder="ប្រភេទ" value={bDraft.category} onChange={e => setBDraft({ ...bDraft, category: e.target.value })} />
-                <input className={input} placeholder="ចំនួនច្បាប់" inputMode="numeric" value={bDraft.total} onChange={e => setBDraft({ ...bDraft, total: e.target.value })} />
-                <button onClick={addBook} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5">
+                
+                <div className="flex gap-2">
+                  <select className={input} value={bDraft.language} onChange={e => setBDraft({ ...bDraft, language: e.target.value })}>
+                    <option value="">— ភាសា —</option>
+                    <option value="ខ្មែរ">ខ្មែរ</option>
+                    <option value="អង់គ្លេស">អង់គ្លេស</option>
+                  </select>
+                  <input className={`w-16 ${input}`} placeholder="ក្បាល" inputMode="numeric" value={bDraft.total} onChange={e => setBDraft({ ...bDraft, total: e.target.value })} />
+                </div>
+                
+                <button onClick={addBook} className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-1.5 lg:col-span-6">
                   <Plus size={13} /> បន្ថែម
                 </button>
               </div>
@@ -530,8 +545,10 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                   <tr className="text-left text-slate-400 border-b border-slate-100">
                     <th className="py-2 pr-2 font-bold">លេខកូដ</th>
                     <th className="py-2 pr-2 font-bold">ចំណងជើង</th>
+                    <th className="py-2 pr-2 font-bold">ភាសា</th>
                     <th className="py-2 pr-2 font-bold">អ្នកនិពន្ធ</th>
-                    <th className="py-2 pr-2 font-bold">ប្រភេទ</th>
+                    <th className="py-2 pr-2 font-bold text-center">សរុប</th>
+                    <th className="py-2 pr-2 font-bold text-center">ខ្ចី</th>
                     <th className="py-2 pr-2 font-bold text-center">នៅសល់</th>
                     {canEdit && <th className="py-2 font-bold" />}
                   </tr>
@@ -539,14 +556,17 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                 <tbody>
                   {filtered.map(b => {
                     const free = availableCount(b, loans);
+                    const out = outCount(b.id, loans);
                     return (
                       <tr key={b.id} className="border-b border-slate-50">
                         <td className="py-2 pr-2 text-slate-500 whitespace-nowrap">{b.code}</td>
-                        <td className="py-2 pr-2 font-bold text-slate-700">{b.title}</td>
-                        <td className="py-2 pr-2 text-slate-500">{b.author}</td>
-                        <td className="py-2 pr-2 text-slate-500">{b.category}</td>
+                        <td className="py-2 pr-2 font-bold text-slate-700">{b.title} <span className="text-[10px] text-slate-400 font-normal ml-1">({b.category || 'គ្មាន'})</span></td>
+                        <td className="py-2 pr-2 text-slate-500">{b.language || '—'}</td>
+                        <td className="py-2 pr-2 text-slate-500">{b.author || '—'}</td>
+                        <td className="py-2 pr-2 text-center text-slate-600 font-bold">{toKh(b.total)}</td>
+                        <td className="py-2 pr-2 text-center text-amber-600 font-bold">{out > 0 ? toKh(out) : '-'}</td>
                         <td className={`py-2 pr-2 text-center font-bold ${free > 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                          {toKh(free)}/{toKh(b.total)}
+                          {toKh(free)}
                         </td>
                         {canEdit && (
                           <td className="py-2 text-right">
@@ -559,7 +579,7 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                     );
                   })}
                   {filtered.length === 0 && (
-                    <tr><td colSpan={canEdit ? 6 : 5} className="py-6 text-center text-slate-400 font-semibold">មិនទាន់មានសៀវភៅ</td></tr>
+                    <tr><td colSpan={canEdit ? 8 : 7} className="py-6 text-center text-slate-400 font-semibold">មិនទាន់មានសៀវភៅ</td></tr>
                   )}
                 </tbody>
               </table>
