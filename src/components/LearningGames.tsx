@@ -28,6 +28,7 @@ import SequenceGame from './games/SequenceGame';
 import PatternGame from './games/PatternGame';
 import ColorsGame from './games/ColorsGame';
 import KhmerAlphabetGame from './games/KhmerAlphabetGame';
+import KhmerReadingGame from './games/KhmerReadingGame';
 
 interface Game {
   id: string;
@@ -64,7 +65,8 @@ const GAMES: Game[] = [
   { id: 'sequence', emoji: '➡️', title: '២៤. បំពេញលេខបន្ត', description: 'រកលេខដែលបាត់ក្នុងលំដាប់លេខ។', color: '#8B5CF6' },
   { id: 'pattern', emoji: '🔷', title: '២៥. លំនាំបន្ត', description: 'ទាយរូបភាពដែលនៅបន្ទាប់ក្នុងលំនាំ។', color: '#0EA5E9' },
   { id: 'colors', emoji: '🎨', title: '២៦. ស្គាល់ពណ៌', description: 'មើលពណ៌ ហើយចុចឈ្មោះពណ៌ឱ្យត្រូវ។', color: '#EC4899' },
-  { id: 'khmer-alphabet', emoji: '🔠', title: '២៧. អក្ខរក្រមខ្មែរ', description: 'រៀនអានព្យញ្ជនៈ ស្រៈនិស្ស័យ និងស្រៈពេញតួ។', color: '#3B82F6' }
+  { id: 'khmer-alphabet', emoji: '🔠', title: '២៧. អក្ខរក្រមខ្មែរ', description: 'រៀនអាន និងស្គាល់តួអក្សរខ្មែរ (ព្យញ្ជនៈ និងស្រៈ) ជាមួយនឹងហ្គេមទាយអក្សរ', color: '#3B82F6' },
+  { id: 'khmer-reading', emoji: '📚', title: '២៨. ល្បែងអានពាក្យ', description: 'ជួយពង្រឹងការអាន ការផ្គូផ្គង និងការប្រកបពាក្យខ្មែរតាមរយៈរូបភាព និងសំឡេង', color: '#F59E0B' }
 ];
 
 interface LearningGamesProps {
@@ -101,6 +103,7 @@ export default function LearningGames({ onBack }: LearningGamesProps) {
   if (activeGame === 'pattern') return <PatternGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'colors') return <ColorsGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'khmer-alphabet') return <KhmerAlphabetGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'khmer-reading') return <KhmerReadingGame onBack={() => setActiveGame(null)} />;
 
   return (
     <div className={`p-4 md:p-8 max-w-7xl mx-auto min-h-screen ${onBack ? 'bg-transparent' : 'bg-slate-50/50'}`}>
@@ -129,7 +132,7 @@ export default function LearningGames({ onBack }: LearningGamesProps) {
                 'fraction', 'fast-math', 'multiplication', 'guess-time', 'money', 'geometry', 'even-odd',
                 'match-word', 'sort-letters', 'word-wheel', 'guess-word', 'flashcards', 'tts',
                 'memory', 'find-pairs', 'group-students', 'score-table',
-                'counting', 'compare-numbers', 'sequence', 'pattern', 'colors', 'khmer-alphabet'
+                'counting', 'compare-numbers', 'sequence', 'pattern', 'colors', 'khmer-alphabet', 'khmer-reading'
               ];
               if (availableGames.includes(game.id)) {
                 setActiveGame(game.id);

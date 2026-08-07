@@ -805,6 +805,29 @@ export default function MobilePortal({
                     </span>
                   </button>
 
+                  {/* Button: ល្បែងសិក្សា */}
+                  <button
+                    onClick={() => setInnerView('learning-games')}
+                    className="flex flex-col items-stretch justify-between p-3 bg-white rounded-3xl border shadow-sm active:scale-97 transition-all cursor-pointer min-h-[115px] relative border-orange-500/10 hover:bg-orange-50/50 hover:border-orange-200"
+                  >
+                    <div className="flex justify-between items-start w-full">
+                      <div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
+                        <span className="text-lg">🎮</span>
+                      </div>
+                      {/* SVG - Game controller */}
+                      <svg viewBox="0 0 120 120" className="w-14 h-14 shrink-0 -mt-1 -mr-1">
+                        <rect x="20" y="35" width="80" height="50" rx="25" fill="#F97316" stroke="#C2410C" strokeWidth="2" />
+                        <circle cx="40" cy="60" r="12" fill="#FED7AA" />
+                        <path d="M40,52 L40,68 M32,60 L48,60" stroke="#C2410C" strokeWidth="3.5" strokeLinecap="round" />
+                        <circle cx="72" cy="66" r="5" fill="#FED7AA" />
+                        <circle cx="84" cy="54" r="5" fill="#FED7AA" />
+                      </svg>
+                    </div>
+                    <span className="text-[13px] font-extrabold text-left text-orange-950 leading-tight">
+                      ល្បែងសិក្សា
+                    </span>
+                  </button>
+
                   {/* Button 11: timetable */}
                   <button
                     onClick={() => setInnerView('timetable')}
