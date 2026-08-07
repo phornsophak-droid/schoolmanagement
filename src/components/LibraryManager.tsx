@@ -212,6 +212,19 @@ export default function LibraryManager({ students = [], grades = [], currentUser
     setBooks(next); await saveBooks(next);
   };
 
+  const removeAllBooks = async () => {
+    if (!confirm('តើអ្នកពិតជាចង់លុបបញ្ជីសៀវភៅទាំងអស់មែនទេ? (ទិន្នន័យមិនអាចទាញយកវិញបានទេ)')) return;
+    const borrowedBookIds = new Set(loans.filter(l => !l.returnedAt).map(l => l.bookId));
+    const next = books.filter(b => borrowedBookIds.has(b.id)); // keep only books currently borrowed
+    const deletedCount = books.length - next.length;
+    if (deletedCount === 0) {
+      flash('គ្មានសៀវភៅសម្រាប់លុបទេ ឬសៀវភៅទាំងអស់កំពុងត្រូវបានខ្ចី។');
+      return;
+    }
+    setBooks(next); await saveBooks(next);
+    flash(`បានលុបសៀវភៅចំនួន ${toKh(deletedCount)} ក្បាល ✓` + (next.length > 0 ? ` (រក្សាទុកសៀវភៅកំពុងខ្ចី ${toKh(next.length)} ក្បាល)` : ''));
+  };
+
   // ---- loans ----
   const [lDraft, setLDraft] = useState({ bookSearch: '', student: '', gender: '', grade: '', dueAt: '', days: '' });
   const [editingLoanId, setEditingLoanId] = useState<string | null>(null);
@@ -504,6 +517,9 @@ export default function LibraryManager({ students = [], grades = [], currentUser
                 <div className="flex items-center gap-1.5">
                   <button onClick={downloadTemplate} className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1.5">
                     <Download size={12} /> គំរូ
+                  </button>
+                  <button onClick={removeAllBooks} className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center gap-1.5">
+                    <Trash2 size={12} /> លុបទាំងអស់
                   </button>
                   <button onClick={() => fileRef.current?.click()} disabled={busy}
                     className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-blue-50 hover:bg-blue-100 disabled:opacity-60 text-blue-600 border border-blue-200 flex items-center gap-1.5">
