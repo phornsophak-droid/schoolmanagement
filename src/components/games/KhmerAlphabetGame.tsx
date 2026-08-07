@@ -59,6 +59,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
   const [activeLetter, setActiveLetter] = useState<LetterItem | null>(null);
   
   // Quiz Mode State
+  const [quizState, setQuizState] = useState<'idle' | 'playing'>('idle');
   const [score, setScore] = useState(0);
   const [targetLetter, setTargetLetter] = useState<LetterItem | null>(null);
   const [quizOptions, setQuizOptions] = useState<LetterItem[]>([]);
@@ -117,7 +118,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
     playSound(letter.name);
   };
 
-  const generateQuiz = useCallback(() => {
+  const generateQuiz = useCallback((immediatePlay: boolean = false) => {
     setIsGenerating(true);
     const data = getActiveData();
     const target = data[Math.floor(Math.random() * data.length)];
@@ -140,21 +141,27 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
     setWrongLetter(null);
     setIsGenerating(false);
 
-    // Play target sound automatically after a short delay
-    setTimeout(() => {
+    if (immediatePlay) {
       playSound(target.name);
-    }, 500);
+    } else {
+      setTimeout(() => {
+        playSound(target.name);
+      }, 500);
+    }
   }, [getActiveData, difficulty, playSound]);
 
   // Handle mode or tab change
   useEffect(() => {
     if (mode === 'quiz') {
-      generateQuiz();
+      if (quizState === 'playing') {
+        generateQuiz(false);
+      }
     } else {
       setScore(0);
       setActiveLetter(null);
+      setQuizState('idle');
     }
-  }, [mode, activeTab, difficulty, generateQuiz]);
+  }, [mode, activeTab, difficulty, generateQuiz, quizState]);
 
   const handleQuizClick = (letter: LetterItem) => {
     if (showCelebration || isGenerating || !targetLetter) return;
@@ -317,7 +324,25 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
               activeTab === 'dependent_vowels' ? 'grid-cols-4 md:grid-cols-6' : 
               'grid-cols-3 md:grid-cols-5'
             }`}>
-              {(mode === 'quiz' ? quizOptions : getActiveData()).map((letter, idx) => (
+              {mode === 'quiz' && quizState === 'idle' ? (
+                <div className="col-span-full flex flex-col items-center justify-center py-20">
+                  <div className="w-24 h-24 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                    <Trophy size={48} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-800 mb-2">ត្រៀមខ្លួនរួចរាល់ឬនៅ?</h2>
+                  <p className="text-slate-500 mb-8 max-w-md text-center">ស្តាប់សំឡេងអានតួអក្សរ រួចចុចជ្រើសរើសតួអក្សរដែលត្រឹមត្រូវឱ្យបានលឿន!</p>
+                  <button
+                    onClick={() => {
+                      setQuizState('playing');
+                      setScore(0);
+                      generateQuiz(true);
+                    }}
+                    className="flex items-center gap-3 bg-orange-500 hover:bg-orange-600 text-white px-10 py-4 rounded-full font-black text-xl shadow-lg shadow-orange-500/30 hover:-translate-y-1 transition-all active:scale-95"
+                  >
+                    <Play fill="currentColor" size={24} /> ចាប់ផ្តើមលេង
+                  </button>
+                </div>
+              ) : (mode === 'quiz' ? quizOptions : getActiveData()).map((letter, idx) => (
                 <button
                   key={`${mode}-${letter.char}-${idx}`}
                   onClick={() => mode === 'learn' ? handlePlayLearnSound(letter) : handleQuizClick(letter)}
