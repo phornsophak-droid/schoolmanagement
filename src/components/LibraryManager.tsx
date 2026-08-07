@@ -615,18 +615,18 @@ export default function LibraryManager({ students = [], grades = [], currentUser
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-slate-400 border-b border-slate-100">
-                    <th className="py-2 pr-2 font-bold">លេខកូដ</th>
-                    <th className="py-2 pr-2 font-bold">ចំណងជើង</th>
-                    <th className="py-2 pr-2 font-bold">ភាសា</th>
-                    <th className="py-2 pr-2 font-bold">អ្នកនិពន្ធ</th>
-                    <th className="py-2 pr-2 font-bold text-center">សរុប</th>
-                    <th className="py-2 pr-2 font-bold text-center">ខ្ចី</th>
-                    <th className="py-2 pr-2 font-bold text-center">នៅសល់</th>
+                    {renderSortableHeader('លេខកូដ', 'code')}
+                    {renderSortableHeader('ចំណងជើង', 'title')}
+                    {renderSortableHeader('ភាសា', 'language')}
+                    {renderSortableHeader('អ្នកនិពន្ធ', 'author')}
+                    {renderSortableHeader('សរុប', 'total', 'center')}
+                    {renderSortableHeader('ខ្ចី', 'borrowed', 'center')}
+                    {renderSortableHeader('នៅសល់', 'available', 'center')}
                     {canEdit && <th className="py-2 font-bold" />}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(b => {
+                  {sortedBooks.map(b => {
                     const free = availableCount(b, loans);
                     const out = outCount(b.id, loans);
                     return (
