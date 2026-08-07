@@ -421,6 +421,62 @@ export default function LibraryManager({ students = [], grades = [], currentUser
     return [b.title, b.author, b.code, b.category, b.language].some(x => (x || '').toLowerCase().includes(s));
   });
 
+  type SortKey = keyof Book | 'available' | 'borrowed';
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'asc' | 'desc' } | null>(null);
+
+  const requestSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedBooks = useMemo(() => {
+    let sortable = [...filtered];
+    if (sortConfig !== null) {
+      sortable.sort((a, b) => {
+        let valA: any, valB: any;
+        if (sortConfig.key === 'available') {
+          valA = availableCount(a, loans);
+          valB = availableCount(b, loans);
+        } else if (sortConfig.key === 'borrowed') {
+          valA = outCount(a.id, loans);
+          valB = outCount(b.id, loans);
+        } else {
+          valA = a[sortConfig.key as keyof Book];
+          valB = b[sortConfig.key as keyof Book];
+        }
+        
+        if (valA === undefined || valA === null) valA = '';
+        if (valB === undefined || valB === null) valB = '';
+        
+        if (typeof valA === 'string' && typeof valB === 'string') {
+           const res = valA.localeCompare(valB, 'km');
+           if (res !== 0) return sortConfig.direction === 'asc' ? res : -res;
+        } else {
+           if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+           if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortable;
+  }, [filtered, sortConfig, loans]);
+
+  const renderSortableHeader = (label: string, key: SortKey, align = 'left') => {
+    return (
+      <th className={`py-2 pr-2 font-bold cursor-pointer hover:text-emerald-700 select-none group ${align === 'center' ? 'text-center' : 'text-left'}`} onClick={() => requestSort(key)}>
+        <div className={`flex items-center gap-1 ${align === 'center' ? 'justify-center' : ''}`}>
+          {label}
+          <span className={`text-[10px] ${sortConfig?.key === key ? 'text-emerald-600' : 'text-slate-300 opacity-0 group-hover:opacity-100'}`}>
+            {sortConfig?.key === key && sortConfig.direction === 'desc' ? '▼' : '▲'}
+          </span>
+        </div>
+      </th>
+    );
+  };
+
   const totalCopies = books.reduce((sum, b) => sum + (b.total || 0), 0);
   const khmerCopies = books.filter(b => b.language === 'ខ្មែរ' || b.language?.toLowerCase() === 'khmer').reduce((sum, b) => sum + (b.total || 0), 0);
   const englishCopies = books.filter(b => b.language === 'អង់គ្លេស' || b.language?.toLowerCase() === 'english').reduce((sum, b) => sum + (b.total || 0), 0);
