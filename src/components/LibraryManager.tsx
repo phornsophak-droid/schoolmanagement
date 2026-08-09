@@ -10,7 +10,7 @@
 // the same screens read-only, so a teacher can still look a book up.
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Upload, Download, AlertTriangle, Pencil, Monitor, ExternalLink } from 'lucide-react';
+import { BookMarked, Plus, Trash2, Search, Check, X, Users, Library, Undo2, Upload, Download, AlertTriangle, Pencil, Monitor, ExternalLink, Database } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SchoolUser, StudentScore, afterHoursSubject } from '../types';
 import {
@@ -70,6 +70,27 @@ export default function LibraryManager({ students = [], grades = [], currentUser
   const [q, setQ] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2500); };
+
+  const [webhookUrl, setWebhookUrl] = useState(localStorage.getItem('library_webhook_url') || '');
+  const [backupStatus, setBackupStatus] = useState('');
+  
+  const handleBackup = async () => {
+    if (!webhookUrl) {
+      flash('សូមបញ្ចូល Webhook URL ជាមុនសិន!');
+      return;
+    }
+    localStorage.setItem('library_webhook_url', webhookUrl);
+    setBackupStatus('កំពុងបញ្ជូន...');
+    try {
+      const { backupToGoogleSheet } = await import('../lib/googleSheetBackup');
+      await backupToGoogleSheet(webhookUrl, { books, loans, visits });
+      setBackupStatus('');
+      flash('បញ្ជូនទិន្នន័យទៅ Google Sheet ជោគជ័យ ✓');
+    } catch (e: any) {
+      setBackupStatus('');
+      flash(e.message);
+    }
+  };
 
   // Pull the shared library so every device shows the same shelves.
   useEffect(() => {
@@ -491,6 +512,26 @@ export default function LibraryManager({ students = [], grades = [], currentUser
         </div>
         <div className="flex items-center gap-2">
           {!canEdit && <span className="text-[11px] font-bold text-slate-400">អានតែប៉ុណ្ណោះ</span>}
+          
+          {canEdit && (
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1">
+              <input 
+                type="text" 
+                placeholder="Google Sheet Webhook URL" 
+                value={webhookUrl}
+                onChange={e => setWebhookUrl(e.target.value)}
+                className="text-[10px] bg-transparent border-none outline-none w-32 focus:w-48 transition-all"
+              />
+              <button 
+                onClick={handleBackup}
+                disabled={!!backupStatus}
+                className="px-2 py-1 text-[10px] font-bold bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+              >
+                <Database size={12} /> {backupStatus || 'Backup'}
+              </button>
+            </div>
+          )}
+
           {onClose && (
             <button onClick={onClose} className="px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-1.5">
               <X size={13} /> បិទ
