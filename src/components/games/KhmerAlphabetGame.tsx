@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Volume2, Play, Star, RotateCcw, HelpCircle, Trophy } from 'lucide-react';
+import { ArrowLeft, Volume2, Play, Star, RotateCcw, HelpCircle, Trophy, VolumeX } from 'lucide-react';
+import { speakKhmer, hasKhmerVoice, primeVoices } from '../../lib/khmerSpeech';
 
 interface KhmerAlphabetGameProps {
   onBack: () => void;
@@ -68,17 +69,20 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Audio State
-  const [synth, setSynth] = useState<SpeechSynthesis | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  // True when the device has NO Khmer TTS voice — then km-KH speech is silent and
+  // we show the user how to enable it instead of failing without explanation.
+  const [noKhmerVoice, setNoKhmerVoice] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      setSynth(window.speechSynthesis);
-    }
+    primeVoices();
+    let alive = true;
+    hasKhmerVoice().then(has => { if (alive) setNoKhmerVoice(!has); });
     return () => {
-      if (synth) synth.cancel();
+      alive = false;
+      if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
     };
-  }, [synth]);
+  }, []);
 
   const getActiveData = useCallback(() => {
     switch (activeTab) {
@@ -89,37 +93,17 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
   }, [activeTab]);
 
   const playSound = useCallback((letterName: string, onEnd?: () => void) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const synth = window.speechSynthesis;
-
-    if (synth.speaking) {
-      synth.cancel();
-    }
-
     let textToSpeak = letterName;
     // For single letters (consonants), add "អក្សរ" (Letter) to help TTS recognize it better
     if (textToSpeak.length === 1 && !textToSpeak.includes('ស្រៈ')) {
       textToSpeak = `អក្សរ ${textToSpeak}`;
     }
-
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'km-KH';
-    utterance.rate = 0.9;
-    
-    const voices = synth.getVoices();
-    const khmerVoice = voices.find(v => v.lang.includes('km'));
-    if (khmerVoice) {
-      utterance.voice = khmerVoice;
-    }
-
-    utterance.onstart = () => setIsPlaying(true);
-    utterance.onend = () => {
-      setIsPlaying(false);
-      if (onEnd) onEnd();
-    };
-    utterance.onerror = () => setIsPlaying(false);
-
-    synth.speak(utterance);
+    speakKhmer(textToSpeak, {
+      rate: 0.9,
+      onStart: () => setIsPlaying(true),
+      onEnd: () => { setIsPlaying(false); onEnd?.(); },
+      onError: () => { setIsPlaying(false); onEnd?.(); },
+    });
   }, []);
 
   const handlePlayLearnSound = (letter: LetterItem) => {
@@ -175,20 +159,11 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
   const handleQuizClick = (letter: LetterItem) => {
     if (showCelebration || isGenerating || !targetLetter) return;
 
-    const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
-
     if (letter.char === targetLetter.char) {
       // Correct
       setShowCelebration(true);
       setScore(s => s + 10);
-      
-      if (synth) {
-        if (synth.speaking) synth.cancel();
-        const successSpeech = new SpeechSynthesisUtterance('ត្រឹមត្រូវល្អណាស់');
-        successSpeech.lang = 'km-KH';
-        successSpeech.rate = 1.1;
-        synth.speak(successSpeech);
-      }
+      speakKhmer('ត្រឹមត្រូវល្អណាស់', { rate: 1.1 });
 
       setTimeout(() => {
         generateQuiz();
@@ -197,14 +172,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
       // Wrong
       setWrongLetter(letter.char);
       setScore(s => Math.max(0, s - 2));
-      
-      if (synth) {
-        if (synth.speaking) synth.cancel();
-        const wrongSpeech = new SpeechSynthesisUtterance('មិនទាន់ត្រូវទេ ស្តាប់ម្តងទៀត');
-        wrongSpeech.lang = 'km-KH';
-        wrongSpeech.rate = 1.1;
-        synth.speak(wrongSpeech);
-      }
+      speakKhmer('មិនទាន់ត្រូវទេ ស្តាប់ម្តងទៀត', { rate: 1.1 });
 
       setTimeout(() => setWrongLetter(null), 800);
       setTimeout(() => {
@@ -248,6 +216,21 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
           </button>
         </div>
       </header>
+
+      {noKhmerVoice && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3">
+          <div className="max-w-6xl mx-auto flex items-start gap-2.5 text-[13px] text-amber-800 leading-relaxed">
+            <VolumeX size={18} className="text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <b>ឧបករណ៍នេះមិនទាន់មានសំឡេងខ្មែរ (Khmer TTS)</b> ដូច្នេះអក្សរនឹងមិនលឺសំឡេងទេ។ សូមដំឡើងសំឡេងខ្មែរជាមុន៖
+              <div className="mt-1 text-[12px] text-amber-700">
+                📱 <b>Android</b>៖ Settings → System → Languages &amp; input → Text-to-speech → ⚙️ → Install voice data → ជ្រើស <b>ខ្មែរ (Khmer)</b>។<br />
+                🍎 <b>iPhone</b>៖ Settings → Accessibility → Spoken Content → Voices → <b>Khmer</b> → ទាញយក។ បន្ទាប់មកបើកល្បែងឡើងវិញ។
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1 flex flex-col p-4 md:p-8 max-w-6xl mx-auto w-full">
         {/* Tabs for choosing letter category */}
