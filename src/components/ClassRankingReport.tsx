@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getAcademicYear } from '../lib/schoolYear';
 import React, { useState } from 'react';
 import { Printer, X, Download, Loader2, Image as ImageIcon } from 'lucide-react';
 import SchoolLogo from './SchoolLogo';
@@ -187,7 +188,7 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
           </div>
           <div className="flex justify-between items-end mb-2 px-1 font-bold">
             <span>{grade === 'ទាំងអស់' ? 'គ្រប់ថ្នាក់' : grade}</span>
-            <span>ឆ្នាំសិក្សា ២០២៥ - ២០២៦</span>
+            <span>ឆ្នាំសិក្សា {getAcademicYear()}</span>
           </div>
 
           {/* Two-column ranking table */}

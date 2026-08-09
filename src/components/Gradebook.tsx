@@ -23,11 +23,16 @@ import {
   Hash,
   Printer,
   BarChart2,
-  CalendarDays
+  CalendarDays,
+  List,
+  Save,
+  Image as ImageIcon,
+  Database
 } from 'lucide-react';
 import { StudentScore, KhmerScore, MathScore, SchoolUser, ENGLISH_SUBJECTS, SCIENCE_SUBJECTS, SOCIAL_SUBJECTS, isEnglishClass, getCustomSubjects, afterHoursSubject } from '../types';
 import { calculateStudentFields, clampScore, rankStudents, generateUniqueId } from '../mockData';
 import { SEM_SUBJECTS, niddesColor } from '../utils/scoring';
+import { getAcademicYear } from '../lib/schoolYear';
 import { REMARK_PRESETS } from '../utils/remarkPresets';
 import StudentReportCard from './StudentReportCard';
 import MeritCertificate from './MeritCertificate';
@@ -331,9 +336,9 @@ export default function Gradebook({
   // Merit certificate: students + period phrase + per-mode average for the current view.
   const meritLetterOf = (v: number | null | undefined): string => (v == null || v <= 0) ? '' : v >= 9 ? 'A' : v >= 8 ? 'B' : v >= 7 ? 'C' : v >= 6 ? 'D' : v >= 5 ? 'E' : 'F';
   const meritInfo = (): { list: any[]; scoreOf: (s: any) => number | null; phrase: string } => {
-    if (activeMode === 'semester') return { list: filteredSemesterStudents, scoreOf: (s) => s.semesterAvg ?? null, phrase: `ប្រចាំ​ឆមាសទី ${toKh(selectedSemester)} ឆ្នាំសិក្សា ២០២៥-២០២៦` };
-    if (activeMode === 'annual') return { list: filteredAnnualStudents, scoreOf: (s) => s.annualAvg ?? null, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` };
-    return { list: filteredStudents, scoreOf: (s) => s.overallAvg ?? null, phrase: `ប្រចាំខែ${selectedMonth} ឆ្នាំសិក្សា ២០២៥-២០២៦` };
+    if (activeMode === 'semester') return { list: filteredSemesterStudents, scoreOf: (s) => s.semesterAvg ?? null, phrase: `ប្រចាំ​ឆមាសទី ${toKh(selectedSemester)} ឆ្នាំសិក្សា ${getAcademicYear()}` };
+    if (activeMode === 'annual') return { list: filteredAnnualStudents, scoreOf: (s) => s.annualAvg ?? null, phrase: `ប្រចាំឆ្នាំសិក្សា ${getAcademicYear()}` };
+    return { list: filteredStudents, scoreOf: (s) => s.overallAvg ?? null, phrase: `ប្រចាំខែ${selectedMonth} ឆ្នាំសិក្សា ${getAcademicYear()}` };
   };
   // Top-5 honor roll for the current mode (month / semester / year).
   const honorData = (): { subtitle: string; entries: HonorEntry[] } => {
@@ -761,6 +766,28 @@ export default function Gradebook({
   const [formGender, setFormGender] = useState<'ប្រុស' | 'ស្រី'>('ប្រុស');
   const [formGrade, setFormGrade] = useState('ថ្នាក់ទី៦');
   const [formMonth, setFormMonth] = useState('មេសា');
+
+  // Google Sheet Backup State
+  const [webhookUrl, setWebhookUrl] = useState(localStorage.getItem('gradebook_webhook_url') || '');
+  const [backupStatus, setBackupStatus] = useState('');
+  
+  const handleBackup = async () => {
+    if (!webhookUrl) {
+      alert('សូមបញ្ចូល Webhook URL ជាមុនសិន!');
+      return;
+    }
+    localStorage.setItem('gradebook_webhook_url', webhookUrl);
+    setBackupStatus('កំពុងបញ្ជូន...');
+    try {
+      const { backupToGoogleSheet } = await import('../lib/googleSheetBackup');
+      await backupToGoogleSheet(webhookUrl, { scores: students });
+      setBackupStatus('');
+      alert('បញ្ជូនពិន្ទុទៅ Google Sheet ជោគជ័យ ✓');
+    } catch (e: any) {
+      setBackupStatus('');
+      alert(e.message);
+    }
+  };
 
   // Sub-subjects Khmer
   const [khmerListening, setKhmerListening] = useState('');
@@ -1859,6 +1886,24 @@ export default function Gradebook({
                 <Upload size={16} />
                 នាំចូលពីកុំព្យូទ័រ
               </button>
+
+              <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl px-2 py-1 ml-auto">
+                <input 
+                  type="text" 
+                  placeholder="Google Sheet URL" 
+                  value={webhookUrl}
+                  onChange={e => setWebhookUrl(e.target.value)}
+                  className="text-xs bg-transparent border-none outline-none w-32 focus:w-48 transition-all"
+                />
+                <button 
+                  onClick={handleBackup}
+                  disabled={!!backupStatus}
+                  className="px-2 py-1.5 text-[11px] font-bold bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+                  title="Backup ពិន្ទុ"
+                >
+                  <Database size={14} /> {backupStatus || 'Backup'}
+                </button>
+              </div>
               <input
                 ref={scoreFileRef}
                 type="file"
@@ -3259,7 +3304,7 @@ export default function Gradebook({
       {meritStudent && (() => {
         const info = meritInfo();
         const phrase = (activeMode === 'monthly' && selectedMonth === 'ទាំងអស់')
-          ? `ប្រចាំខែ${meritStudent.month} ឆ្នាំសិក្សា ២០២៥-២០២៦`
+          ? `ប្រចាំខែ${meritStudent.month} ឆ្នាំសិក្សា ${getAcademicYear()}`
           : info.phrase;
         return (
           <MeritCertificate

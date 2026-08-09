@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getAcademicYear } from '../lib/schoolYear';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Plus, 
@@ -2209,7 +2210,7 @@ export default function ClassStudentMgmt({
                           <div className="pt-2 border-t border-slate-100 space-y-2 text-[11px] text-slate-500 font-semibold font-sans">
                             <div className="flex justify-between items-center">
                               <span>{t('cls.academicYear')}</span>
-                              <span className="text-slate-800">២០២៥ - ២០២៦</span>
+                              <span className="text-slate-800">{getAcademicYear()}</span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span>{t('cls.org')}</span>

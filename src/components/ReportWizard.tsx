@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getAcademicYear } from '../lib/schoolYear';
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
@@ -106,7 +107,7 @@ export default function ReportWizard({
     currentUser?.role === 'teacher' ? (currentUser.grade || gradesList[0] || 'ថ្នាក់ទី៦') : (gradesList[0] || 'ថ្នាក់ទី៦')
   );
   const [month, setMonth] = useState('មេសា');
-  const [academicYear, setAcademicYear] = useState('២០២៥-២០២៦');
+  const [academicYear, setAcademicYear] = useState(getAcademicYear());
 
   useEffect(() => {
     if (gradesList.length > 0 && !reportToEdit) {

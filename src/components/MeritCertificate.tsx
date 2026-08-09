@@ -13,6 +13,7 @@ import PrincipalSignature from './PrincipalSignature';
 import TeacherSignature, { teacherNameForGrade } from './TeacherSignature';
 import { khmerLunarFull } from '../utils/khmerDate';
 import { exportCertToPdf, exportCertToImage } from '../utils/exportPdf';
+import { getAcademicYear, getEndYear, academicYearNumForMonth } from '../lib/schoolYear';
 import certFrameEnglish from '../assets/cert-frame-english.jpg';
 import certFrame from '../assets/cert-frame.png';
 
@@ -60,8 +61,8 @@ const formatDob = (rawIn: string): string | null => {
 // End-of-month date for the signature block (school year: Sep–Dec 2025, Jan–Aug 2026).
 const monthEndDate = (month: string) => {
   const idx = KH_MONTHS.indexOf((month || '').trim());
-  if (idx < 0) return { day: '.....', year: '២០២៦', lunar: khmerLunarFull(new Date()) };
-  const yearNum = idx >= 8 ? 2025 : 2026;
+  if (idx < 0) return { day: '.....', year: toKh(getEndYear()), lunar: khmerLunarFull(new Date()) };
+  const yearNum = academicYearNumForMonth(idx);
   const date = new Date(yearNum, idx, MONTH_LAST_DAY[idx]);
   return { day: toKh(MONTH_LAST_DAY[idx]), year: toKh(yearNum), lunar: khmerLunarFull(date) };
 };
@@ -91,7 +92,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
   const certName = isEnglish ? (student.englishName ? student.englishName.trim() : transliterateKhmerName(baseStudentName(student.name))) : baseStudentName(student.name);
   const teacherName = teacherNameForGrade(student.grade);
   const niddes = gradeBand(scoreOverride ?? student.overallAvg);
-  const period = periodPhrase || `ប្រចាំខែ${student.month} ឆ្នាំសិក្សា ២០២៥-២០២៦`;
+  const period = periodPhrase || `ប្រចាំខែ${student.month} ឆ្នាំសិក្សា ${getAcademicYear()}`;
   // Issue date auto-fills from the record's month for a monthly cert. For a
   // semester/year cert the record's "month" is an exam string (e.g. ប្រឡងឆមាសទី១),
   // so derive the period-end calendar month from the phrase instead.
@@ -105,7 +106,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
   const enEndDate = (() => {
     const idx = KH_MONTHS.indexOf((dateMonth || '').trim());
     if (idx < 0) return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    const yearNum = idx >= 8 ? 2025 : 2026;
+    const yearNum = academicYearNumForMonth(idx);
     return new Date(yearNum, idx, MONTH_LAST_DAY[idx]).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   })();
 

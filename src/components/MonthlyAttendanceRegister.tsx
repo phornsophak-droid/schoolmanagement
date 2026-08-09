@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getAcademicYear } from '../lib/schoolYear';
 import React, { useMemo, useRef, useState } from 'react';
 import { X, Download, Upload, Printer, Eraser } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -216,7 +217,7 @@ export default function MonthlyAttendanceRegister({ students, allStudents, grade
       return c ? toKh(c) : '';
     })).concat([toKh(grandTotals.late), toKh(grandTotals.perm), toKh(grandTotals.abs), toKh(grandTotals.total)]);
 
-    const title = [`តារាងតាមដានអវត្តមានសិស្ស ${grade} ប្រចាំខែ${monthName} ឆ្នាំសិក្សា ២០២៥-២០២៦`];
+    const title = [`តារាងតាមដានអវត្តមានសិស្ស ${grade} ប្រចាំខែ${monthName} ឆ្នាំសិក្សា ${getAcademicYear()}`];
     const aoa = [title, [], dowRow, numRow, ...body, totalRow, [],
       [`ចំនួនសិស្សក្នុងបញ្ជី៖ ${toKh(roster.length)} នាក់ (ស្រី ${toKh(girls)})`,],
       [`ចំនួនថ្ងៃសិក្សា៖ ${toKh(operatedDays)} ថ្ងៃ`,],
@@ -394,7 +395,7 @@ export default function MonthlyAttendanceRegister({ students, allStudents, grade
             <SchoolLogo size={48} />
             <div className="text-center">
               <div className="text-sm font-extrabold">តារាងតាមដានអវត្តមានសិស្ស</div>
-              <div className="text-xs font-bold">{grade} • ប្រចាំខែ{monthName} • ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
+              <div className="text-xs font-bold">{grade} • ប្រចាំខែ{monthName} • ឆ្នាំសិក្សា {getAcademicYear()}</div>
             </div>
           </div>
 

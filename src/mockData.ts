@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getAcademicYear } from './lib/schoolYear';
 import { StudentScore, SchoolReport } from './types';
 
 // Helper to safely clamp score between 0 and 10
@@ -215,7 +216,7 @@ export const initialReports: SchoolReport[] = [
       teacherName: 'សៅរ៍ កុសល',
       grade: 'ថ្នាក់ទី ១ក',
       month: 'មេសា',
-      academicYear: '២០២៥-២០២៦'
+      academicYear: getAcademicYear()
     },
     studentStats: {
       startYearTotal: 32,

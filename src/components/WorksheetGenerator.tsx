@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getAcademicYear } from '../lib/schoolYear';
 import React, { useMemo, useState, useEffect } from 'react';
 import { Printer, X, Download, Loader2, Sparkles, Save, KeyRound, FileText, Trash2, BookMarked, ChevronDown, HelpCircle, ClipboardList } from 'lucide-react';
 import { SchoolUser } from '../types';
@@ -158,7 +159,7 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, du
         <Identity />
         <div className="flex justify-between items-center font-bold text-[13pt] py-2.5">
           <div>📖 សន្លឹកកិច្ចការ{month ? ` ប្រចាំខែ${month}` : ''}</div>
-          <div>ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
+          <div>ឆ្នាំសិក្សា {getAcademicYear()}</div>
         </div>
         <div className="text-[12pt] leading-[2.4]">
           <div className="flex gap-8">
@@ -190,7 +191,7 @@ const PrintHeader = ({ params, heading, totalPoints, examPeriod, teacherName, du
       <Identity />
       <div className="flex justify-between items-center font-bold text-[13pt] py-2.5">
         <div>📝 វិញ្ញាសាប្រឡង</div>
-        <div>ឆ្នាំសិក្សា ២០២៥-២០២៦</div>
+        <div>ឆ្នាំសិក្សា {getAcademicYear()}</div>
       </div>
       <div className="text-center font-bold text-[13pt] leading-[1.9] mb-1">
         <div>{month ? `ប្រឡងប្រចាំខែ${month}` : `ប្រឡង${EXAM_PERIOD_LABELS[examPeriod]}`}</div>
@@ -249,7 +250,7 @@ const buildWordHtml = (d: WordDocInput): string => {
     ${rule}
     <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:4pt"><tr>
       <td style="font-weight:bold;font-size:13pt">${examPeriod ? '📝 វិញ្ញាសាប្រឡង' : '📖 សន្លឹកកិច្ចការ'}</td>
-      <td align="right" style="font-weight:bold;font-size:13pt">ឆ្នាំសិក្សា ២០២៥-២០២៦</td>
+      <td align="right" style="font-weight:bold;font-size:13pt">ឆ្នាំសិក្សា ${getAcademicYear()}</td>
     </tr></table>`;
 
   const subtitle = `

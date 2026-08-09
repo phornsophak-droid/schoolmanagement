@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getAcademicYear } from '../lib/schoolYear';
 import React, { useMemo, useState, useRef } from 'react';
 import { Printer, X, PenLine, Download, Loader2, Image as ImageIcon } from 'lucide-react';
 import { StudentScore, getCustomSubjects, isEnglishClass, ENGLISH_SUBJECTS } from '../types';
@@ -243,7 +244,7 @@ export default function StudentReportCard({ student, students, onClose }: Studen
 
           <div className="text-center my-3">
             <h1 className="text-base font-extrabold text-indigo-700">ព្រឹត្តបត្រពិន្ទុសិស្សប្រចាំខែ {student.month}</h1>
-            <p className="text-[11px] text-slate-500">ឆ្នាំសិក្សា ២០២៥ - ២០២៦</p>
+            <p className="text-[11px] text-slate-500">ឆ្នាំសិក្សា {getAcademicYear()}</p>
           </div>
 
           {/* Student info */}

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { getAcademicYear, academicYearKhForMonth } from '../lib/schoolYear';
 import React, { useMemo, useState, useRef } from 'react';
 import { Printer, X, PenLine, Download, Loader2, Image as ImageIcon } from 'lucide-react';
 import { StudentScore } from '../types';
@@ -218,7 +219,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
 
           <div className="text-center my-3">
             <h1 className="text-base font-extrabold text-indigo-700">ព្រឹត្តបត្រពិន្ទុសិស្ស {periodTitle}</h1>
-            <p className="text-[11px] text-slate-500">ឆ្នាំសិក្សា ២០២៥ - ២០២៦</p>
+            <p className="text-[11px] text-slate-500">ឆ្នាំសិក្សា {getAcademicYear()}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-x-8 gap-y-1 mb-3 text-[12px]">
@@ -337,7 +338,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
             </div>
             <div>
               <p>{endLunar}</p>
-              <p>ច្បារច្រុះ ថ្ងៃទី{endDay} ខែ{lastMonth} ឆ្នាំ{lastIdx >= 8 ? '២០២៥' : '២០២៦'}</p>
+              <p>ច្បារច្រុះ ថ្ងៃទី{endDay} ខែ{lastMonth} ឆ្នាំ{academicYearKhForMonth(lastIdx)}</p>
               <p className="font-bold pt-1">គ្រូបន្ទុកថ្នាក់</p>
               <TeacherSignature grade={student.grade} />
             </div>

@@ -6,6 +6,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Search, FileText, Loader2, GraduationCap, Award, ExternalLink, Monitor, RefreshCw } from 'lucide-react';
 import { hardRefresh } from '../utils/hardRefresh';
+import { getAcademicYear } from '../lib/schoolYear';
 import { CURATED_ELIBRARY, fetchELinksFromCloud, ELink } from '../lib/library';
 import { useT, LanguageToggle } from '../i18n';
 import { StudentScore } from '../types';
@@ -330,19 +331,19 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
         const rec = recs.find(r => r.month === m);
         const score = rec?.overallAvg ?? null;
         const l = meritLetterOf(score);
-        if (rec && l) mOpts.push({ key: `m-${m}`, label: `${t('parent.monthPrefix')}${t('month.' + m)} (${l})`, student: rec, score: score!, phrase: `ប្រចាំខែ${m} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+        if (rec && l) mOpts.push({ key: `m-${m}`, label: `${t('parent.monthPrefix')}${t('month.' + m)} (${l})`, student: rec, score: score!, phrase: `ប្រចាំខែ${m} ឆ្នាំសិក្សា ${getAcademicYear()}` });
       });
       ([1, 2] as const).forEach(sem => {
         const score = semesterAvgOf(recs, sem);
         const l = meritLetterOf(score);
-        if (l) mOpts.push({ key: `s-${sem}`, label: `${t('parent.sem' + sem)} (${l})`, student: anyR, score: score!, phrase: `ប្រចាំ​ឆមាសទី ${toKh(sem)} ឆ្នាំសិក្សា ២០២៥-២០២៦` });
+        if (l) mOpts.push({ key: `s-${sem}`, label: `${t('parent.sem' + sem)} (${l})`, student: anyR, score: score!, phrase: `ប្រចាំ​ឆមាសទី ${toKh(sem)} ឆ្នាំសិក្សា ${getAcademicYear()}` });
       });
       const semAvgs = [semesterAvgOf(recs, 1), semesterAvgOf(recs, 2)].filter((v): v is number => v !== null && v !== undefined);
       const annualRaw = semAvgs.length ? semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length : null;
       const ex = readAnnualExtra(g, anyR.name.trim());
       const yearScore = annualRaw !== null ? annualRaw * 0.8 + 0.1 * ex.skills + 0.1 * ex.conduct : null;
       const yl = meritLetterOf(yearScore);
-      if (yl) mOpts.push({ key: 'year', label: `${t('parent.annual')} (${yl})`, student: anyR, score: yearScore!, phrase: `ប្រចាំឆ្នាំសិក្សា ២០២៥-២០២៦` });
+      if (yl) mOpts.push({ key: 'year', label: `${t('parent.annual')} (${yl})`, student: anyR, score: yearScore!, phrase: `ប្រចាំឆ្នាំសិក្សា ${getAcademicYear()}` });
       
       return { grade: g, records: recs, anyRec: anyR, monthsAvailable: months, meritOptions: mOpts };
     })

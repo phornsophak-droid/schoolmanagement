@@ -12,6 +12,7 @@ import { BookOpen, Download, Loader2, X, Trash2, Upload, CalendarDays, Plus, Mes
 import handbookHtml from '../assets/handbook.html?raw';
 import { exportLandscapeSheetsToPdf } from '../utils/exportPdf';
 import { kvReadSync, kvWrite, kvHydrate } from '../lib/kvStore';
+import { getAcademicYear, getStartYear } from '../lib/schoolYear';
 import { StudentScore } from '../types';
 import { distinctStudentKey } from '../utils/studentKey';
 import {
@@ -32,8 +33,8 @@ const SCHOOL = 'សាលាសហគមន៍ច្បារច្រុះ';
 const SCHOOL_COMMUNE = 'ក្រាំងចេក';
 const SCHOOL_DISTRICT = 'សាមគ្គីមុនីជ័យ';
 const SCHOOL_PROVINCE = 'កំពង់ស្ពឺ';
-const YEAR_START = 2025;                 // the current school year runs 2025-2026
-const YEAR = `${'២០២៥'}-${'២០២៦'}`;
+// The current school year comes from the central source (src/lib/schoolYear.ts)
+// so the handbook rolls over to 2026-2027 and beyond with the rest of the app.
 
 export interface YearDates { open: string; close: string }
 
@@ -183,7 +184,7 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
   const values = useMemo<Record<string, string>>(() => {
     if (!student) return {};
     const v: Record<string, string> = {
-      school: SCHOOL, year: YEAR,
+      school: SCHOOL, year: getAcademicYear(),
       sch_commune: SCHOOL_COMMUNE, sch_district: SCHOOL_DISTRICT, sch_province: SCHOOL_PROVINCE,
       name: student.name,
       class: student.grade,
@@ -229,7 +230,7 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
     if (lvl >= 1) {
       for (let g = 1; g <= Math.min(lvl, 6); g++) {
         const i = g - 1;
-        const y = YEAR_START - (lvl - g);
+        const y = getStartYear() - (lvl - g);
         v[`y_${i}`] = `${toKh(y)}-${toKh(y + 1)}`;
         v[`g_${i}`] = toKh(g);
         v[`sch_${i}`] = SCHOOL;
@@ -240,8 +241,8 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
       }
     } else {
       // មត្តេយ្យ / unnumbered class — just this year.
-      const cal = yearDates[YEAR_START];
-      v.y_0 = YEAR; v.g_0 = student.grade; v.sch_0 = SCHOOL; v.sid_0 = student.studentId || '';
+      const cal = yearDates[getStartYear()];
+      v.y_0 = getAcademicYear(); v.g_0 = student.grade; v.sch_0 = SCHOOL; v.sid_0 = student.studentId || '';
       if (cal) { v.in_0 = cal.open; v.out_0 = cal.close; }
     }
 
