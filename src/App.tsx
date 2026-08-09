@@ -145,6 +145,7 @@ import LoginPortal from './components/LoginPortal';
 import ParentPortal from './components/ParentPortal';
 import ParentPortalAdmin from './components/ParentPortalAdmin';
 import StaffPinManager from './components/StaffPinManager';
+import SchoolYearSetting from './components/SchoolYearSetting';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
 import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
@@ -290,6 +291,8 @@ export default function App() {
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   // Principal-only: view/reset every staff account's login password.
   const [isPinsManagerOpen, setIsPinsManagerOpen] = useState(false);
+  // Principal-only: set the active school year (2025-2026 → 2026-2027 …).
+  const [isYearSettingOpen, setIsYearSettingOpen] = useState(false);
   const [pinChangeOld, setPinChangeOld] = useState('');
   const [pinChangeNew, setPinChangeNew] = useState('');
   const [pinChangeError, setPinChangeError] = useState('');
@@ -1942,6 +1945,15 @@ export default function App() {
             <div className="flex items-center gap-1">
               {currentUser?.role === 'principal' && (
                 <button
+                  onClick={() => setIsYearSettingOpen(true)}
+                  className="p-1.5 hover:bg-slate-800 hover:text-blue-400 text-slate-400 rounded-lg transition-colors flex-shrink-0"
+                  title="ឆ្នាំសិក្សា"
+                >
+                  <CalendarDays size={13} />
+                </button>
+              )}
+              {currentUser?.role === 'principal' && (
+                <button
                   onClick={() => setIsPinsManagerOpen(true)}
                   className="p-1.5 hover:bg-slate-800 hover:text-emerald-400 text-slate-400 rounded-lg transition-colors flex-shrink-0"
                   title="គ្រប់គ្រងលេខសម្ងាត់គ្រូ"
@@ -2295,6 +2307,17 @@ export default function App() {
                     </p>
                   </div>
                   <div className="flex flex-col gap-1.5 ml-2">
+                    {currentUser?.role === 'principal' && (
+                      <button
+                        onClick={() => {
+                          setIsYearSettingOpen(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="p-1 px-2.5 bg-slate-800/80 rounded border border-slate-700 hover:text-blue-400 text-slate-400 text-[10px] font-medium transition-colors flex items-center gap-1 justify-center"
+                      >
+                        <CalendarDays size={10} /> ឆ្នាំសិក្សា
+                      </button>
+                    )}
                     {currentUser?.role === 'principal' && (
                       <button
                         onClick={() => {
@@ -3233,6 +3256,10 @@ export default function App() {
 
       {currentUser?.role === 'principal' && (
         <StaffPinManager open={isPinsManagerOpen} onClose={() => setIsPinsManagerOpen(false)} />
+      )}
+
+      {currentUser?.role === 'principal' && (
+        <SchoolYearSetting open={isYearSettingOpen} onClose={() => setIsYearSettingOpen(false)} />
       )}
 
       {isChangePinOpen && (

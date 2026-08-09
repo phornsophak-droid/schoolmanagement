@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { academicYearNumForMonth } from '../lib/schoolYear';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Printer, X, Send, CheckCircle2, Save, AlertTriangle } from 'lucide-react';
 import { StudentScore } from '../types';
@@ -184,7 +185,7 @@ export default function GeneralClassReport({ students, grade, period, teacherNam
     const empty = { count: 0, pct: 0, list: [] as { name: string; gender: string; days: number }[] };
     const idx = KH_MONTHS.indexOf((period || '').trim());
     if (idx < 0) return empty;
-    const ym = `${idx >= 8 ? 2025 : 2026}-${String(idx + 1).padStart(2, '0')}`;
+    const ym = `${academicYearNumForMonth(idx)}-${String(idx + 1).padStart(2, '0')}`;
     const persons = new Map<string, { ids: Set<string>; gender: string }>(); // name -> ids + gender
     students.filter(s => s.grade === grade).forEach(s => {
       const k = s.name.trim();

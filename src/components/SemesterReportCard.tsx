@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAcademicYear, academicYearKhForMonth } from '../lib/schoolYear';
+import { getAcademicYear, academicYearKhForMonth, academicYearNumForMonth } from '../lib/schoolYear';
 import React, { useMemo, useState, useRef } from 'react';
 import { Printer, X, PenLine, Download, Loader2, Image as ImageIcon } from 'lucide-react';
 import { StudentScore } from '../types';
@@ -128,7 +128,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
   const lastIdx = KH_MONTHS.indexOf(lastMonth);
   const endDayNum = lastMonth === 'កុម្ភៈ' ? 28 : (['មេសា', 'មិថុនា', 'កញ្ញា', 'វិច្ឆិកា'].includes(lastMonth) ? 30 : 31);
   const endDay = toKh(endDayNum);
-  const endLunar = khmerLunarFull(new Date(lastIdx >= 8 ? 2025 : 2026, lastIdx < 0 ? 4 : lastIdx, endDayNum));
+  const endLunar = khmerLunarFull(new Date(academicYearNumForMonth(lastIdx), lastIdx < 0 ? 4 : lastIdx, endDayNum));
 
   const printCss = `@media print {
     body * { visibility: hidden !important; }

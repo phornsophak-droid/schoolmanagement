@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAcademicYear } from '../lib/schoolYear';
+import { getAcademicYear, academicYearNumForMonth } from '../lib/schoolYear';
 import React, { useMemo, useRef, useState } from 'react';
 import { X, Download, Upload, Printer, Eraser } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -308,7 +308,7 @@ export default function MonthlyAttendanceRegister({ students, allStudents, grade
         wb.SheetNames.forEach(sn => {
           const mIdx = KH_MONTHS.indexOf(sn.trim());
           const useMonth = mIdx >= 0 ? mIdx + 1 : month;
-          const useYear = mIdx >= 0 ? (useMonth >= 9 ? 2025 : 2026) : year;
+          const useYear = mIdx >= 0 ? academicYearNumForMonth(mIdx) : year;
           if (parseSheet(wb.Sheets[sn], useYear, useMonth)) sheetsUsed++;
         });
 

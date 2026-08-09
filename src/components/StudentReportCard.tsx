@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAcademicYear } from '../lib/schoolYear';
+import { getAcademicYear, academicYearNumForMonth } from '../lib/schoolYear';
 import React, { useMemo, useState, useRef } from 'react';
 import { Printer, X, PenLine, Download, Loader2, Image as ImageIcon } from 'lucide-react';
 import { StudentScore, getCustomSubjects, isEnglishClass, ENGLISH_SUBJECTS } from '../types';
@@ -87,7 +87,7 @@ const MONTH_LAST_DAY = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const monthEndDate = (month: string) => {
   const idx = KH_MONTHS.indexOf((month || '').trim());
   if (idx < 0) return { day: '.........', year: '២០២៦', lunar: khmerLunarFull(new Date()) };
-  const yearNum = idx >= 8 ? 2025 : 2026; // កញ្ញា–ធ្នូ → 2025, else 2026
+  const yearNum = academicYearNumForMonth(idx); // កញ្ញា–ធ្នូ → 2025, else 2026
   const date = new Date(yearNum, idx, MONTH_LAST_DAY[idx]);
   return { day: toKh(MONTH_LAST_DAY[idx]), year: toKh(yearNum), lunar: khmerLunarFull(date) };
 };

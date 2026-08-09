@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { academicYearNumForMonth } from '../lib/schoolYear';
 import { StudentScore, afterHoursSubject } from '../types';
 import { loadAttendance } from './attendanceStore';
 import { SEM1_MONTHS, SEM2_MONTHS, semesterAvgOf, annualFinalOf } from './scoring';
@@ -98,7 +99,7 @@ const KH_MONTHS_CAL = ['មករា', 'កុម្ភៈ', 'មីនា', '�
 const monthDateKey = (month: string): string => {
   const idx = KH_MONTHS_CAL.indexOf((month || '').trim());
   if (idx < 0) return '';
-  const year = idx >= 8 ? 2025 : 2026;
+  const year = academicYearNumForMonth(idx);
   return `${year}-${String(idx + 1).padStart(2, '0')}`;
 };
 

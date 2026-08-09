@@ -11,6 +11,7 @@
 // Each saved record is one session (morning/afternoon), so a full-day absence in a
 // general class counts as 2 — the same convention the attendance module displays.
 
+import { academicYearNumForMonth } from '../lib/schoolYear';
 import { loadAttendance } from './attendanceStore';
 
 const KH_MONTHS = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
@@ -43,7 +44,7 @@ export function tallyAbsences(
     monthNames.map(m => {
       const idx = KH_MONTHS.indexOf((m || '').trim());
       if (idx < 0) return '';
-      const year = idx >= 8 ? 2025 : 2026; // កញ្ញា–ធ្នូ → 2025, else 2026
+      const year = academicYearNumForMonth(idx); // កញ្ញា–ធ្នូ → 2025, else 2026
       return `${year}-${String(idx + 1).padStart(2, '0')}`;
     }).filter(Boolean)
   );
