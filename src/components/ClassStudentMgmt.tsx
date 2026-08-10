@@ -21,9 +21,11 @@ import {
   Upload,
   FileSpreadsheet,
   School,
-  ArrowUpDown
+  ArrowUpDown,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { StudentScore, SchoolUser, afterHoursSubject } from '../types';
+import PromoteStudents from './PromoteStudents';
 import { calculateStudentFields, generateUniqueId } from '../mockData';
 import { distinctStudentKey, findPhantomGrades, baseStudentName } from '../utils/studentKey';
 import { syncUpsertSetting } from '../lib/supabase';
@@ -181,6 +183,7 @@ export default function ClassStudentMgmt({
 
   // Create/Edit Student states
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
+  const [isPromoteOpen, setIsPromoteOpen] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [studentFormName, setStudentFormName] = useState('');
     const [studentFormEnglishName, setStudentFormEnglishName] = useState('');
@@ -1736,6 +1739,14 @@ export default function ClassStudentMgmt({
                           ចុះឈ្មោះសិស្ស
                         </button>
                       )}
+                      <button
+                        onClick={() => setIsPromoteOpen(true)}
+                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shadow-2xs"
+                        title="ផ្លាស់សិស្សចូលថ្នាក់ថ្មី (សម្រាប់ឆ្នាំសិក្សាថ្មី)"
+                      >
+                        <ArrowRightLeft size={12} />
+                        ផ្លាស់ថ្នាក់
+                      </button>
                     </div>
                   </div>
 
@@ -2293,6 +2304,16 @@ export default function ClassStudentMgmt({
           )}
         </div>
       </div>
+
+      <PromoteStudents
+        open={isPromoteOpen}
+        onClose={() => setIsPromoteOpen(false)}
+        students={students}
+        grades={grades}
+        onSaveStudents={onSaveStudents}
+        currentUser={currentUser}
+        canManage={canManageStudents}
+      />
     </div>
   );
 }
