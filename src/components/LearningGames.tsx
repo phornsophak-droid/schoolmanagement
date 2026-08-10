@@ -1,5 +1,5 @@
 import React from 'react';
-import { Rocket, ArrowLeft } from 'lucide-react';
+import { Rocket, ArrowLeft, Maximize, Minimize } from 'lucide-react';
 
 import TimerGame from './games/TimerGame';
 import RandomizerGame from './games/RandomizerGame';
@@ -75,35 +75,73 @@ interface LearningGamesProps {
 
 export default function LearningGames({ onBack }: LearningGamesProps) {
   const [activeGame, setActiveGame] = React.useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
-  if (activeGame === 'timer') return <TimerGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'randomizer') return <RandomizerGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'name-wheel') return <NameSpinnerGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'whiteboard') return <WhiteboardGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'fraction') return <FractionGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'fast-math') return <FastMathGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'multiplication') return <MultiplicationGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'guess-time') return <GuessTimeGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'money') return <MoneyGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'geometry') return <GeometryGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'even-odd') return <EvenOddGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'match-word') return <MatchWordGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'sort-letters') return <SortLettersGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'word-wheel') return <WordWheelGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'guess-word') return <GuessWordGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'flashcards') return <FlashcardsGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'tts') return <TTSGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'memory') return <MemoryGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'find-pairs') return <FindPairsGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'group-students') return <GroupStudentsGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'score-table') return <ScoreTableGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'counting') return <CountingGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'compare-numbers') return <CompareNumbersGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'sequence') return <SequenceGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'pattern') return <PatternGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'colors') return <ColorsGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'khmer-alphabet') return <KhmerAlphabetGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'khmer-reading') return <KhmerReadingGame onBack={() => setActiveGame(null)} />;
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => console.log(err));
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  const getGameComponent = () => {
+    switch (activeGame) {
+      case 'timer': return <TimerGame onBack={() => setActiveGame(null)} />;
+      case 'randomizer': return <RandomizerGame onBack={() => setActiveGame(null)} />;
+      case 'name-wheel': return <NameSpinnerGame onBack={() => setActiveGame(null)} />;
+      case 'whiteboard': return <WhiteboardGame onBack={() => setActiveGame(null)} />;
+      case 'fraction': return <FractionGame onBack={() => setActiveGame(null)} />;
+      case 'fast-math': return <FastMathGame onBack={() => setActiveGame(null)} />;
+      case 'multiplication': return <MultiplicationGame onBack={() => setActiveGame(null)} />;
+      case 'guess-time': return <GuessTimeGame onBack={() => setActiveGame(null)} />;
+      case 'money': return <MoneyGame onBack={() => setActiveGame(null)} />;
+      case 'geometry': return <GeometryGame onBack={() => setActiveGame(null)} />;
+      case 'even-odd': return <EvenOddGame onBack={() => setActiveGame(null)} />;
+      case 'match-word': return <MatchWordGame onBack={() => setActiveGame(null)} />;
+      case 'sort-letters': return <SortLettersGame onBack={() => setActiveGame(null)} />;
+      case 'word-wheel': return <WordWheelGame onBack={() => setActiveGame(null)} />;
+      case 'guess-word': return <GuessWordGame onBack={() => setActiveGame(null)} />;
+      case 'flashcards': return <FlashcardsGame onBack={() => setActiveGame(null)} />;
+      case 'tts': return <TTSGame onBack={() => setActiveGame(null)} />;
+      case 'memory': return <MemoryGame onBack={() => setActiveGame(null)} />;
+      case 'find-pairs': return <FindPairsGame onBack={() => setActiveGame(null)} />;
+      case 'group-students': return <GroupStudentsGame onBack={() => setActiveGame(null)} />;
+      case 'score-table': return <ScoreTableGame onBack={() => setActiveGame(null)} />;
+      case 'counting': return <CountingGame onBack={() => setActiveGame(null)} />;
+      case 'compare-numbers': return <CompareNumbersGame onBack={() => setActiveGame(null)} />;
+      case 'sequence': return <SequenceGame onBack={() => setActiveGame(null)} />;
+      case 'pattern': return <PatternGame onBack={() => setActiveGame(null)} />;
+      case 'colors': return <ColorsGame onBack={() => setActiveGame(null)} />;
+      case 'khmer-alphabet': return <KhmerAlphabetGame onBack={() => setActiveGame(null)} />;
+      case 'khmer-reading': return <KhmerReadingGame onBack={() => setActiveGame(null)} />;
+      default: return null;
+    }
+  };
+
+  const GameNode = getGameComponent();
+  if (GameNode) {
+    return (
+      <div className="relative group w-full min-h-screen bg-slate-50">
+        {GameNode}
+        <button
+          onClick={toggleFullscreen}
+          className="fixed bottom-6 right-6 p-3 bg-slate-800/50 hover:bg-slate-800 text-white rounded-full shadow-xl backdrop-blur transition-all z-[9999] opacity-30 hover:opacity-100 group-hover:opacity-100"
+          title="បិទ/បើក Full Screen"
+        >
+          {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={`p-4 md:p-8 max-w-7xl mx-auto min-h-screen ${onBack ? 'bg-transparent' : 'bg-slate-50/50'}`}>
