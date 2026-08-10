@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   RotateCcw,
   Users2,
-  Download
+  Download,
+  Database
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { StudentScore, SchoolUser, afterHoursSubject } from '../types';
@@ -128,6 +129,28 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
   const { t } = useT();
   // Navigation Tab inside attendance view: 'student' | 'teacher'
   const [activeTab, setActiveTab] = useState<'student' | 'teacher'>('student');
+
+  // Google Sheet Backup State
+  const [webhookUrl, setWebhookUrl] = useState(localStorage.getItem('attendance_webhook_url') || '');
+  const [backupStatus, setBackupStatus] = useState('');
+  
+  const handleBackup = async () => {
+    if (!webhookUrl) {
+      alert('សូមបញ្ចូល Webhook URL ជាមុនសិន!');
+      return;
+    }
+    localStorage.setItem('attendance_webhook_url', webhookUrl);
+    setBackupStatus('កំពុងបញ្ជូន...');
+    try {
+      const { backupToGoogleSheet } = await import('../lib/googleSheetBackup');
+      await backupToGoogleSheet(webhookUrl, { attendance: records });
+      setBackupStatus('');
+      alert('បញ្ជូនអវត្តមានទៅ Google Sheet ជោគជ័យ ✓');
+    } catch (e: any) {
+      setBackupStatus('');
+      alert(e.message);
+    }
+  };
 
   // Date and Grade tracking
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -1287,6 +1310,24 @@ export default function DailyAttendance({ students, currentUser, grades }: Daily
                     >
                       <ClipboardList size={12} /> តារាងអវត្តមានប្រចាំខែ
                     </button>
+                    
+                    <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-1.5 py-0.5 ml-2">
+                      <input 
+                        type="text" 
+                        placeholder="Google Sheet URL" 
+                        value={webhookUrl}
+                        onChange={e => setWebhookUrl(e.target.value)}
+                        className="text-[10px] bg-transparent border-none outline-none w-24 focus:w-40 transition-all"
+                      />
+                      <button 
+                        onClick={handleBackup}
+                        disabled={!!backupStatus}
+                        className="px-2 py-1 text-[10px] font-bold bg-emerald-100 text-emerald-700 rounded text-center hover:bg-emerald-200 disabled:opacity-50 flex items-center gap-1 whitespace-nowrap"
+                        title="Backup អវត្តមាន"
+                      >
+                        <Database size={10} /> {backupStatus || 'Backup'}
+                      </button>
+                    </div>
                   </div>
                   <span className="text-[10.5px] text-slate-500 font-bold bg-white px-2.5 py-1 border border-slate-200 rounded-lg">
                     សរុប៖ <b>{displayStudents.length}</b> នាក់
