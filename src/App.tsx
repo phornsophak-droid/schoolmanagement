@@ -148,6 +148,7 @@ import ParentPortalAdmin from './components/ParentPortalAdmin';
 import StaffPinManager from './components/StaffPinManager';
 import SchoolYearSetting from './components/SchoolYearSetting';
 import YearArchive from './components/YearArchive';
+import { getAcademicYear } from './lib/schoolYear';
 import ClassStudentMgmt from './components/ClassStudentMgmt';
 import MobilePortal from './components/MobilePortal';
 import DailyAttendance from './components/DailyAttendance';
@@ -1577,7 +1578,18 @@ export default function App() {
               <p className="text-[10px] text-slate-400 font-bold font-mono tracking-widest mt-0.5 uppercase">School Admin v2.0</p>
             </div>
           </div>
-          <p className="text-[9px] text-slate-400 mt-3 tracking-wide bg-slate-900/40 py-1 px-2 text-center rounded border border-slate-800/10 font-medium">{t('common.school')}</p>
+          <h2 className="text-base font-bold text-white mt-4 text-center leading-snug tracking-wide">{t('common.school')}</h2>
+          {/* School-year selector — shows the active year; principal taps to change it. */}
+          <div className="mt-2.5 flex justify-center">
+            <button
+              onClick={() => { if (currentUser?.role === 'principal') setIsYearSettingOpen(true); }}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/30 text-blue-200 text-xs font-bold transition-colors ${currentUser?.role === 'principal' ? 'hover:bg-blue-500/25 cursor-pointer' : 'cursor-default'}`}
+              title={currentUser?.role === 'principal' ? 'ចុចដើម្បីប្តូរឆ្នាំសិក្សា' : 'ឆ្នាំសិក្សា'}
+            >
+              <CalendarDays size={13} className="text-blue-300" />
+              ឆ្នាំសិក្សា {getAcademicYear()}
+            </button>
+          </div>
           <div className="mt-3 flex justify-center">
             <LanguageToggle className="bg-slate-800/60 border-slate-700 text-slate-200 hover:bg-slate-700/60" />
           </div>
