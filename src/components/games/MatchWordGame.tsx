@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Check, RotateCcw } from 'lucide-react';
+import { speakKhmer } from '../../lib/khmerSpeech';
 
 interface MatchWordGameProps {
   onBack: () => void;
@@ -254,7 +255,10 @@ export default function MatchWordGame({ onBack }: MatchWordGameProps) {
                     <button
                       key={`img-${item.id}`}
                       disabled={isMatched}
-                      onClick={() => setSelectedImageId(item.id)}
+                      onClick={() => {
+                        setSelectedImageId(item.id);
+                        speakKhmer(item.word);
+                      }}
                       className={btnClass}
                     >
                       {item.image}
@@ -286,7 +290,10 @@ export default function MatchWordGame({ onBack }: MatchWordGameProps) {
                     <button
                       key={`word-${item.id}`}
                       disabled={isMatched}
-                      onClick={() => setSelectedWordId(item.id)}
+                      onClick={() => {
+                        setSelectedWordId(item.id);
+                        speakKhmer(item.word);
+                      }}
                       className={btnClass}
                     >
                       {item.word}
