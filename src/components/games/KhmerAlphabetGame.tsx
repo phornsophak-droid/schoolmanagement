@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Volume2, Play, Star, RotateCcw, HelpCircle, Trophy, VolumeX } from 'lucide-react';
-import { speakKhmer, hasKhmerVoice, primeVoices } from '../../lib/khmerSpeech';
+import { speakKhmer, hasKhmerVoice, primeVoices, playKhmerClip } from '../../lib/khmerSpeech';
 
 interface KhmerAlphabetGameProps {
   onBack: () => void;
@@ -40,6 +40,18 @@ const INDEPENDENT_VOWELS: LetterItem[] = [
   { char: 'ឫ', name: 'ស្រៈ ឫ', latin: 'rue' }, { char: 'ឬ', name: 'ស្រៈ ឬ', latin: 'rueu' }, { char: 'ឭ', name: 'ស្រៈ ឭ', latin: 'lue' }, { char: 'ឮ', name: 'ស្រៈ ឮ', latin: 'lueu' }, { char: 'ឯ', name: 'ស្រៈ ឯ', latin: 'ae' }, 
   { char: 'ឰ', name: 'ស្រៈ ឰ', latin: 'ai' }, { char: 'ឱ', name: 'ស្រៈ ឱ', latin: 'ao' }, { char: 'ឳ', name: 'ស្រៈ ឳ', latin: 'aou' }
 ];
+
+// Stable audio-clip key per letter, by its unique char — matches the recorded files
+// in /public/audio/km/ (c01…c33 consonants, dv01…dv23 dependent vowels,
+// iv01…iv13 independent vowels). See /public/audio/km/RECORDING-LIST.md.
+const AUDIO_KEYS: Map<string, string> = (() => {
+  const m = new Map<string, string>();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  CONSONANTS.forEach((l, i) => m.set(l.char, `c${pad(i + 1)}`));
+  DEPENDENT_VOWELS.forEach((l, i) => m.set(l.char, `dv${pad(i + 1)}`));
+  INDEPENDENT_VOWELS.forEach((l, i) => m.set(l.char, `iv${pad(i + 1)}`));
+  return m;
+})();
 
 // Helper to shuffle array
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -92,23 +104,28 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
     }
   }, [activeTab]);
 
-  const playSound = useCallback((letterName: string, onEnd?: () => void) => {
-    let textToSpeak = letterName;
-    // For single letters (consonants), add "អក្សរ" (Letter) to help TTS recognize it better
+  // Play a letter's sound: prefer the recorded clip (works on every device), fall
+  // back to TTS text if the clip isn't recorded yet.
+  const playSound = useCallback((letter: LetterItem, onEnd?: () => void) => {
+    let textToSpeak = letter.name;
+    // For single letters (consonants), add "អក្សរ" so the TTS fallback reads it better.
     if (textToSpeak.length === 1 && !textToSpeak.includes('ស្រៈ')) {
       textToSpeak = `អក្សរ ${textToSpeak}`;
     }
-    speakKhmer(textToSpeak, {
+    const opts = {
       rate: 0.9,
       onStart: () => setIsPlaying(true),
       onEnd: () => { setIsPlaying(false); onEnd?.(); },
       onError: () => { setIsPlaying(false); onEnd?.(); },
-    });
+    };
+    const key = AUDIO_KEYS.get(letter.char);
+    if (key) playKhmerClip(key, textToSpeak, opts);
+    else speakKhmer(textToSpeak, opts);
   }, []);
 
   const handlePlayLearnSound = (letter: LetterItem) => {
     setActiveLetter(letter);
-    playSound(letter.name);
+    playSound(letter);
   };
 
   const generateQuiz = useCallback((immediatePlay: boolean = false) => {
@@ -135,10 +152,10 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
     setIsGenerating(false);
 
     if (immediatePlay) {
-      playSound(target.name);
+      playSound(target);
     } else {
       setTimeout(() => {
-        playSound(target.name);
+        playSound(target);
       }, 500);
     }
   }, [getActiveData, difficulty, playSound]);
@@ -163,7 +180,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
       // Correct
       setShowCelebration(true);
       setScore(s => s + 10);
-      speakKhmer('ត្រឹមត្រូវល្អណាស់', { rate: 1.1 });
+      playKhmerClip('correct', 'ត្រឹមត្រូវល្អណាស់', { rate: 1.1 });
 
       setTimeout(() => {
         generateQuiz();
@@ -172,7 +189,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
       // Wrong
       setWrongLetter(letter.char);
       setScore(s => Math.max(0, s - 2));
-      speakKhmer('មិនទាន់ត្រូវទេ ស្តាប់ម្តងទៀត', { rate: 1.1 });
+      playKhmerClip('wrong', 'មិនទាន់ត្រូវទេ ស្តាប់ម្តងទៀត', { rate: 1.1 });
 
       setTimeout(() => setWrongLetter(null), 800);
       setTimeout(() => {

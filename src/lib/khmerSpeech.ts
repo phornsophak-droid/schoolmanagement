@@ -104,3 +104,27 @@ export function speakKhmer(text: string, opts: SpeakOpts = {}): void {
     }
   }
 }
+
+// Play a PRE-RECORDED Khmer clip from /public/audio/km/<key>.mp3 (a real human
+// voice — the reliable way to get sound on every device, including Windows where
+// no Khmer TTS voice exists). If the file isn't there yet (or fails), it falls back
+// to speakKhmer(fallbackText) so nothing breaks before the recordings are added.
+// SYNCHRONOUS start so iOS keeps the user-gesture unlock.
+let clipAudio: HTMLAudioElement | null = null;
+export function playKhmerClip(key: string, fallbackText: string, opts: SpeakOpts = {}): void {
+  if (typeof window === 'undefined') { opts.onError?.(); return; }
+  try {
+    if (clipAudio) { try { clipAudio.pause(); } catch { /* ignore */ } clipAudio = null; }
+    if (activeAudio) { try { activeAudio.pause(); } catch { /* ignore */ } }
+    if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) window.speechSynthesis.cancel();
+    const base = ((import.meta as any).env && (import.meta as any).env.BASE_URL) || '/';
+    const audio = new Audio(`${base}audio/km/${key}.mp3`);
+    clipAudio = audio;
+    let fellBack = false;
+    const fallback = () => { if (fellBack) return; fellBack = true; speakKhmer(fallbackText, opts); };
+    audio.onplay = () => opts.onStart?.();
+    audio.onended = () => opts.onEnd?.();
+    audio.onerror = fallback;           // missing/invalid file → TTS
+    audio.play().catch(fallback);       // autoplay blocked/failed → TTS
+  } catch { speakKhmer(fallbackText, opts); }
+}
