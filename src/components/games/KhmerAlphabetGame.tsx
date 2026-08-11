@@ -15,6 +15,10 @@ interface LetterItem {
   name: string;
   latin: string;
   type?: 'O' | 'U';
+  // Explicit recorded-clip key. Used when the char alone is ambiguous — e.g. the
+  // independent vowel «អ» shares its char with the consonant «អ» (c33), so it
+  // carries its own key here instead of colliding in AUDIO_KEYS.
+  audioKey?: string;
 }
 
 const CONSONANTS: LetterItem[] = [
@@ -45,10 +49,13 @@ const DEPENDENT_VOWELS: LetterItem[] = [
   { char: '◌ុះ', name: 'ស្រៈ អុះ', latin: 'oh' }, { char: '◌េះ', name: 'ស្រៈ អេះ', latin: 'eh' }, { char: '◌ោះ', name: 'ស្រៈ អោះ', latin: 'aoh' }
 ];
 
+// Standard 15-letter recitation of ស្រៈពេញតួ: អ អា ឥ ឦ ឧ ឩ ឪ ឫ ឬ ឭ ឮ ឯ ឰ ឱ ឳ.
+// «អ» and «អា» share chars with the consonant អ / អា, so each carries an explicit audioKey.
 const INDEPENDENT_VOWELS: LetterItem[] = [
-  { char: 'ឥ', name: 'ស្រៈ ឥ', latin: 'e' }, { char: 'ឦ', name: 'ស្រៈ ឦ', latin: 'ei' }, { char: 'ឧ', name: 'ស្រៈ ឧ', latin: 'o' }, { char: 'ឩ', name: 'ស្រៈ ឩ', latin: 'ou' }, { char: 'ឪ', name: 'ស្រៈ ឪ', latin: 'ov' }, 
-  { char: 'ឫ', name: 'ស្រៈ ឫ', latin: 'rue' }, { char: 'ឬ', name: 'ស្រៈ ឬ', latin: 'rueu' }, { char: 'ឭ', name: 'ស្រៈ ឭ', latin: 'lue' }, { char: 'ឮ', name: 'ស្រៈ ឮ', latin: 'lueu' }, { char: 'ឯ', name: 'ស្រៈ ឯ', latin: 'ae' }, 
-  { char: 'ឰ', name: 'ស្រៈ ឰ', latin: 'ai' }, { char: 'ឱ', name: 'ស្រៈ ឱ', latin: 'ao' }, { char: 'ឳ', name: 'ស្រៈ ឳ', latin: 'aou' }
+  { char: 'អ', name: 'ស្រៈ អ', latin: 'a', audioKey: 'iv01' }, { char: 'អា', name: 'ស្រៈ អា', latin: 'aa', audioKey: 'iv02' },
+  { char: 'ឥ', name: 'ស្រៈ ឥ', latin: 'e', audioKey: 'iv03' }, { char: 'ឦ', name: 'ស្រៈ ឦ', latin: 'ei', audioKey: 'iv04' }, { char: 'ឧ', name: 'ស្រៈ ឧ', latin: 'o', audioKey: 'iv05' }, { char: 'ឩ', name: 'ស្រៈ ឩ', latin: 'ou', audioKey: 'iv06' }, { char: 'ឪ', name: 'ស្រៈ ឪ', latin: 'ov', audioKey: 'iv07' },
+  { char: 'ឫ', name: 'ស្រៈ ឫ', latin: 'rue', audioKey: 'iv08' }, { char: 'ឬ', name: 'ស្រៈ ឬ', latin: 'rueu', audioKey: 'iv09' }, { char: 'ឭ', name: 'ស្រៈ ឭ', latin: 'lue', audioKey: 'iv10' }, { char: 'ឮ', name: 'ស្រៈ ឮ', latin: 'lueu', audioKey: 'iv11' }, { char: 'ឯ', name: 'ស្រៈ ឯ', latin: 'ae', audioKey: 'iv12' },
+  { char: 'ឰ', name: 'ស្រៈ ឰ', latin: 'ai', audioKey: 'iv13' }, { char: 'ឱ', name: 'ស្រៈ ឱ', latin: 'ao', audioKey: 'iv14' }, { char: 'ឳ', name: 'ស្រៈ ឳ', latin: 'aou', audioKey: 'iv15' }
 ];
 
 // Stable audio-clip key per letter, by its unique char — matches the recorded files
@@ -61,7 +68,8 @@ const AUDIO_KEYS: Map<string, string> = (() => {
   CONSONANTS.forEach((l, i) => m.set(l.char, `c${pad(i + 1)}`));
   SUBSCRIPT_CONSONANTS.forEach((l, i) => m.set(l.char, `cj${pad(i + 1)}`));
   DEPENDENT_VOWELS.forEach((l, i) => m.set(l.char, `dv${pad(i + 1)}`));
-  INDEPENDENT_VOWELS.forEach((l, i) => m.set(l.char, `iv${pad(i + 1)}`));
+  // INDEPENDENT_VOWELS carry an explicit audioKey (iv01…iv15) on each item to
+  // avoid the «អ» char colliding with the consonant «អ» (c33).
   return m;
 })();
 
@@ -131,7 +139,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
       onEnd: () => { setIsPlaying(false); onEnd?.(); },
       onError: () => { setIsPlaying(false); onEnd?.(); },
     };
-    const key = AUDIO_KEYS.get(letter.char);
+    const key = letter.audioKey || AUDIO_KEYS.get(letter.char);
     if (key) playKhmerClip(key, textToSpeak, opts);
     else speakKhmer(textToSpeak, opts);
   }, []);
