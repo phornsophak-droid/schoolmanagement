@@ -5,7 +5,14 @@ interface FindPairsGameProps {
   onBack: () => void;
 }
 
-const EMOJIS = ['🍎', '🍌', '🍉', '🍇', '🍓', '🍒', '🥭', '🍍', '🥝', '🥥'];
+const EMOJIS = [
+  '🍎', '🍌', '🍉', '🍇', '🍓', '🍒', '🥭', '🍍', '🥝', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🥒', '🥬', '🥦', '🧄',
+  '🧅', '🍄', '🥜', '🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮',
+  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆',
+  '🚗', '🚕', '🚙', '🚌', '🏎️', '🚓', '🚑', '🚒', '🚐', '🚚', '🚜', '🏍️', '🚲', '🛴', '🚁', '✈️', '🚀', '🛸', '⛵', '🚢',
+  '🌲', '🌳', '🌴', '🌵', '🌿', '🍀', '🍁', '🍂', '🌍', '🌎', '🌏', '🌕', '☀️', '⭐', '☁️', '⛅', '⛈️', '🌧️', '❄️', '🔥',
+  '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥊', '🥋', '⛳', '⛸️', '🎣', '🎯', '🎮', '🎲', '🧩', '🎨'
+];
 
 export default function FindPairsGame({ onBack }: FindPairsGameProps) {
   const [items, setItems] = useState<{ id: string; emoji: string; isMatched: boolean }[]>([]);
@@ -13,9 +20,14 @@ export default function FindPairsGame({ onBack }: FindPairsGameProps) {
   const [score, setScore] = useState(0);
   const [isWon, setIsWon] = useState(false);
 
-  const startLevel = () => {
+  const [pairCount, setPairCount] = useState(10);
+
+  const startLevel = (count: number = pairCount) => {
+    // Select random subset of emojis based on count
+    const shuffledPool = [...EMOJIS].sort(() => Math.random() - 0.5).slice(0, count);
+    
     // Generate pairs
-    const paired = [...EMOJIS, ...EMOJIS]
+    const paired = [...shuffledPool, ...shuffledPool]
       .sort(() => Math.random() - 0.5)
       .map((emoji, index) => ({
         id: `${index}-${emoji}`,
@@ -27,6 +39,7 @@ export default function FindPairsGame({ onBack }: FindPairsGameProps) {
     setSelectedId(null);
     setScore(0);
     setIsWon(false);
+    setPairCount(count);
   };
 
   useEffect(() => {
@@ -103,7 +116,7 @@ export default function FindPairsGame({ onBack }: FindPairsGameProps) {
               <p className="text-slate-500 mb-8">អ្នកបានស្វែងរកគូរូបភាពទាំងអស់ឃើញហើយ។ ពិន្ទុរបស់អ្នកគឺ {score}។</p>
               
               <button
-                onClick={startLevel}
+                onClick={() => startLevel(pairCount)}
                 className="w-full max-w-sm mx-auto py-4 px-6 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30 text-lg"
               >
                 <RotateCcw size={24} /> លេងម្តងទៀត
@@ -111,12 +124,34 @@ export default function FindPairsGame({ onBack }: FindPairsGameProps) {
             </div>
           ) : (
             <>
-              <div className="text-center mb-8">
+              <div className="text-center mb-6">
                 <h2 className="text-xl text-slate-800 font-bold mb-2">ស្វែងរកគូរូបភាព</h2>
-                <p className="text-slate-500">ចុចលើរូបភាព ២ ដែលដូចគ្នា ដើម្បីលុបវាចេញ។</p>
+                <p className="text-slate-500 mb-4">ចុចលើរូបភាព ២ ដែលដូចគ្នា ដើម្បីលុបវាចេញ។</p>
+                
+                <div className="flex flex-wrap justify-center gap-2 mb-2">
+                  {[
+                    { label: 'ងាយ', value: 8 },
+                    { label: 'មធ្យម', value: 12 },
+                    { label: 'ពិបាក', value: 24 },
+                    { label: 'ខ្លាំង', value: 50 },
+                    { label: 'កំពូល (១០០គូ)', value: 100 }
+                  ].map(lvl => (
+                    <button
+                      key={lvl.value}
+                      onClick={() => startLevel(lvl.value)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
+                        pairCount === lvl.value 
+                          ? 'bg-amber-500 text-white' 
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {lvl.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               
-              <div className="flex flex-wrap justify-center gap-3 md:gap-4 w-full">
+              <div className="flex flex-wrap justify-center gap-2 md:gap-3 w-full">
                 {items.map(item => {
                   const isSelected = selectedId === item.id;
                   
@@ -125,7 +160,11 @@ export default function FindPairsGame({ onBack }: FindPairsGameProps) {
                       key={item.id}
                       onClick={() => handleSelect(item)}
                       disabled={item.isMatched}
-                      className={`w-16 h-16 md:w-20 md:h-20 rounded-2xl text-4xl flex items-center justify-center transition-all ${
+                      className={`rounded-xl flex items-center justify-center transition-all ${
+                        pairCount >= 50 ? 'w-8 h-8 text-base md:w-10 md:h-10 md:text-xl' :
+                        pairCount >= 24 ? 'w-12 h-12 text-2xl md:w-14 md:h-14 md:text-3xl' :
+                        'w-16 h-16 md:w-20 md:h-20 text-4xl'
+                      } ${
                         item.isMatched 
                           ? 'opacity-0 scale-50 invisible' 
                           : isSelected 
