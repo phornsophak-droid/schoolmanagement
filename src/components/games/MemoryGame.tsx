@@ -5,7 +5,14 @@ interface MemoryGameProps {
   onBack: () => void;
 }
 
-const EMOJIS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
+const EMOJIS = [
+  '🍎', '🍌', '🍉', '🍇', '🍓', '🍒', '🥭', '🍍', '🥝', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶️', '🥒', '🥬', '🥦', '🧄',
+  '🧅', '🍄', '🥜', '🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮',
+  '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆',
+  '🚗', '🚕', '🚙', '🚌', '🏎️', '🚓', '🚑', '🚒', '🚐', '🚚', '🚜', '🏍️', '🚲', '🛴', '🚁', '✈️', '🚀', '🛸', '⛵', '🚢',
+  '🌲', '🌳', '🌴', '🌵', '🌿', '🍀', '🍁', '🍂', '🌍', '🌎', '🌏', '🌕', '☀️', '⭐', '☁️', '⛅', '⛈️', '🌧️', '❄️', '🔥',
+  '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥊', '🥋', '⛳', '⛸️', '🎣', '🎯', '🎮', '🎲', '🧩', '🎨'
+];
 
 export default function MemoryGame({ onBack }: MemoryGameProps) {
   const [cards, setCards] = useState<{ id: number; emoji: string; isFlipped: boolean; isMatched: boolean }[]>([]);
@@ -14,8 +21,11 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
   const [isLocked, setIsLocked] = useState(false);
   const [isWon, setIsWon] = useState(false);
 
-  const startLevel = () => {
-    const shuffledEmojis = [...EMOJIS, ...EMOJIS]
+  const [pairCount, setPairCount] = useState(8);
+
+  const startLevel = (count: number = pairCount) => {
+    const shuffledPool = [...EMOJIS].sort(() => Math.random() - 0.5).slice(0, count);
+    const shuffledEmojis = [...shuffledPool, ...shuffledPool]
       .sort(() => Math.random() - 0.5)
       .map((emoji, idx) => ({
         id: idx,
@@ -29,6 +39,7 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
     setMoves(0);
     setIsWon(false);
     setIsLocked(false);
+    setPairCount(count);
   };
 
   useEffect(() => {
@@ -102,7 +113,7 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 max-w-lg w-full flex flex-col items-center">
+        <div className="bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-slate-200 w-full max-w-5xl flex flex-col items-center">
           
           {isWon ? (
             <div className="text-center w-full animate-in zoom-in duration-500 py-10">
@@ -111,7 +122,7 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
               <p className="text-slate-500 mb-8">អ្នកប្រើពេល {moves} ដង ដើម្បីស្វែងរករូបដូចគ្នាទាំងអស់។</p>
               
               <button
-                onClick={startLevel}
+                onClick={() => startLevel(pairCount)}
                 className="w-full max-w-sm mx-auto py-4 px-6 rounded-xl font-bold text-white bg-pink-500 hover:bg-pink-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-pink-500/30 text-lg"
               >
                 <RotateCcw size={24} /> លេងម្តងទៀត
@@ -119,9 +130,37 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
             </div>
           ) : (
             <>
-              <h2 className="text-xl text-slate-800 font-bold mb-8">ស្វែងរករូបភាពដូចគ្នា</h2>
+              <div className="text-center mb-6">
+                <h2 className="text-xl text-slate-800 font-bold mb-2">ស្វែងរករូបភាពដូចគ្នា</h2>
+                <div className="flex flex-wrap justify-center gap-2 mt-4">
+                  {[
+                    { label: 'ងាយ (៨គូ)', value: 8 },
+                    { label: 'មធ្យម (១២គូ)', value: 12 },
+                    { label: 'ពិបាក (២៤គូ)', value: 24 },
+                    { label: 'ខ្លាំង (៥០គូ)', value: 50 },
+                    { label: 'កំពូល (១០០គូ)', value: 100 }
+                  ].map(lvl => (
+                    <button
+                      key={lvl.value}
+                      onClick={() => startLevel(lvl.value)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
+                        pairCount === lvl.value 
+                          ? 'bg-pink-500 text-white' 
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {lvl.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               
-              <div className="grid grid-cols-4 gap-3 md:gap-4 w-full">
+              <div className={`grid gap-2 md:gap-3 w-full ${
+                pairCount >= 50 ? 'grid-cols-10 md:grid-cols-14 lg:grid-cols-20' :
+                pairCount >= 24 ? 'grid-cols-6 md:grid-cols-8 lg:grid-cols-12' :
+                pairCount >= 12 ? 'grid-cols-4 md:grid-cols-6 lg:grid-cols-8' :
+                'grid-cols-4'
+              }`}>
                 {cards.map((card, idx) => (
                   <div 
                     key={card.id} 
@@ -132,12 +171,12 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
                       
                       {/* Back of card (visible when face down) */}
                       <div className={`absolute w-full h-full backface-hidden rounded-xl shadow-sm border-2 border-slate-200 flex items-center justify-center transition-colors ${card.isFlipped ? '' : 'bg-slate-100 hover:bg-pink-50 hover:border-pink-200'}`}>
-                        <span className="text-3xl text-slate-300">?</span>
+                        <span className={`${pairCount >= 50 ? 'text-sm md:text-base' : 'text-xl md:text-3xl'} text-slate-300 font-bold`}>?</span>
                       </div>
                       
                       {/* Front of card (visible when face up) */}
-                      <div className={`absolute w-full h-full backface-hidden rotate-y-180 rounded-xl shadow-md border-2 flex items-center justify-center text-4xl bg-white ${card.isMatched ? 'border-green-400 bg-green-50' : 'border-pink-400'}`}>
-                        <span className={card.isMatched ? 'animate-bounce' : ''}>
+                      <div className={`absolute w-full h-full backface-hidden rotate-y-180 rounded-xl shadow-md border-2 flex items-center justify-center bg-white ${card.isMatched ? 'border-green-400 bg-green-50' : 'border-pink-400'}`}>
+                        <span className={`${pairCount >= 50 ? 'text-base md:text-xl' : 'text-3xl md:text-4xl'} ${card.isMatched ? 'animate-bounce' : ''}`}>
                           {card.emoji}
                         </span>
                       </div>

@@ -396,7 +396,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                 </div>
 
                 {/* Title */}
-                <div className="text-center mt-1">
+                <div className="text-center" style={{ marginTop: isCompletion ? '3cqw' : '0.25rem' }}>
                   <h1 className="font-extrabold text-red-600 tracking-wide" style={{ fontFamily: "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif", fontSize: isCompletion ? '3cqw' : '3.8cqw', lineHeight: 1.15 }}>{isCompletion ? 'វិញ្ញាបនបត្របញ្ជាក់ការសិក្សា' : 'ប័ណ្ណសរសើរ'}</h1>
                   <p className="font-bold text-slate-700" style={{ fontSize: '2.4cqw' }}>នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
                 </div>
