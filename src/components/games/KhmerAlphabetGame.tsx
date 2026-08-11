@@ -58,16 +58,28 @@ const INDEPENDENT_VOWELS: LetterItem[] = [
   { char: 'ឰ', name: 'ស្រៈ ឰ', latin: 'ai', audioKey: 'iv13' }, { char: 'ឱ', name: 'ស្រៈ ឱ', latin: 'ao', audioKey: 'iv14' }, { char: 'ឳ', name: 'ស្រៈ ឳ', latin: 'aou', audioKey: 'iv15' }
 ];
 
-// សញ្ញាវណ្ណយុត្តិ (Khmer punctuation marks). audioKey pk01…pk08 for future recordings.
+// វណ្ណយុត្តិ — the 19 Khmer marks. Combining marks show on a dotted circle (◌);
+// standalone marks show alone. audioKey pk01…pk19 for future recordings.
 const PUNCTUATION: LetterItem[] = [
-  { char: '។', name: 'ខណ្ឌ', latin: 'khan', audioKey: 'pk01' },
-  { char: '៕', name: 'បរិយោសាន', latin: 'bariyoosan', audioKey: 'pk02' },
-  { char: 'ៗ', name: 'លេខទោ', latin: 'lek to', audioKey: 'pk03' },
-  { char: '!', name: 'ឧទានសញ្ញា', latin: 'exclamation', audioKey: 'pk04' },
-  { char: '៚', name: 'គោមូត្រ', latin: 'koomuut', audioKey: 'pk05' },
-  { char: '?', name: 'សួរសញ្ញា', latin: 'question', audioKey: 'pk06' },
-  { char: '«»', name: 'អញ្ញប្រកាស', latin: 'guillemets', audioKey: 'pk07' },
-  { char: '៖', name: 'ចំណុចពីរគូស', latin: 'camnuc pii kuuh', audioKey: 'pk08' }
+  { char: '◌ៈ', name: 'វិសជ៌នី', latin: 'visarjani', audioKey: 'pk01' },
+  { char: '◌៉', name: 'មូសិកទន្ត', latin: 'musikatoan', audioKey: 'pk02' },
+  { char: '◌៊', name: 'ត្រីស័ព្ទ', latin: 'treisap', audioKey: 'pk03' },
+  { char: '◌៍', name: 'ទណ្ឌឃាត', latin: 'toandakhiat', audioKey: 'pk04' },
+  { char: '◌់', name: 'បន្តក់', latin: 'bantak', audioKey: 'pk05' },
+  { char: '◌័', name: 'សំយោគសញ្ញា', latin: 'samyoksanya', audioKey: 'pk06' },
+  { char: '◌្', name: 'ជើង', latin: 'coeng', audioKey: 'pk07' },
+  { char: 'ៗ', name: 'លេខទោ', latin: 'lek to', audioKey: 'pk08' },
+  { char: '◌៎', name: 'លេខអដ្ឋ', latin: 'lek asda', audioKey: 'pk09' },
+  { char: '+', name: 'កាកបាទ', latin: 'kakabat', audioKey: 'pk10' },
+  { char: '៙', name: 'កុក្កុដនេត្រ', latin: 'kukkudanet', audioKey: 'pk11' },
+  { char: '៘', name: 'បេះ', latin: 'beh', audioKey: 'pk12' },
+  { char: '៕', name: 'បេះបរិយោសាន', latin: 'bariyoosan', audioKey: 'pk13' },
+  { char: '៚', name: 'គោមូត្រ', latin: 'koomuut', audioKey: 'pk14' },
+  { char: '( )', name: 'វង់ក្រចក', latin: 'parentheses', audioKey: 'pk15' },
+  { char: '-', name: 'សហសញ្ញា', latin: 'hyphen', audioKey: 'pk16' },
+  { char: '…', name: 'មច្ឆណសញ្ញា', latin: 'ellipsis', audioKey: 'pk17' },
+  { char: '។ល។', name: 'បេយ្យាល', latin: 'beyyal', audioKey: 'pk18' },
+  { char: '៖', name: 'យុគលពិន្ទុ', latin: 'yukolpintu', audioKey: 'pk19' }
 ];
 
 // Stable audio-clip key per letter, by its unique char — matches the recorded files
