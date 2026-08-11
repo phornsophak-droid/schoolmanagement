@@ -380,12 +380,12 @@ export default function MeritCertificate({ student, students, scoreOverride, per
           ) : (
             <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
               <img src={certFrame} alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
-              <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: isCompletion ? '7.5% 13% 7%' : '7.5% 13% 11%' }}>
+              <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7.5% 13% 11%' }}>
 
                 {/* Header: CAMKIDS org (left), kingdom motto (right) */}
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col items-center text-emerald-700" style={{ fontSize: '2cqw' }}>
-                    <div style={{ width: '9.5cqw', marginTop: '2.5cqw' }}><SchoolLogo className="w-full h-auto" /></div>
+                    <div style={{ width: '9.5cqw', marginTop: isCompletion ? '0.5cqw' : '2.5cqw' }}><SchoolLogo className="w-full h-auto" /></div>
                     <div className="font-bold mt-0.5">សាលាសហគមន៍ច្បារច្រុះ</div>
                   </div>
                   <div className="text-center text-emerald-800" style={{ fontSize: '1.9cqw' }}>
@@ -403,7 +403,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
 
                 {/* Body — scales with the frame, justified to both margins. Sized so the
                     date of birth lands on line 1 and the niddes on line 2 (even for long names). */}
-                <div className="text-justify mt-1" style={{ fontSize: '2.0cqw', lineHeight: 1.55 }}>
+                <div className="text-justify mt-1" style={{ fontSize: '2.0cqw', lineHeight: isCompletion ? 1.46 : 1.55 }}>
                   {isCompletion ? (
                     <p>
                       សូមបញ្ជាក់ថាសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
