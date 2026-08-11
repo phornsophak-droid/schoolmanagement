@@ -646,8 +646,8 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
                     </div>
                   )}
 
-                  {/* Grade-6 study-completion certificate — for every grade-6 child. */}
-                  {/^ថ្នាក់ទី\s*៦/.test(gd.grade) && gd.yearScore != null && (
+                  {/* Study-completion certificate — for every grade level. */}
+                  {gd.yearScore != null && (
                     <div className="mt-3 pt-2.5 border-t border-slate-50">
                       <button
                         onClick={() => setMeritCard({ student: gd.anyRec, score: gd.yearScore, phrase: `ប្រចាំឆ្នាំសិក្សា ${getAcademicYear()}`, certType: 'completion' })}

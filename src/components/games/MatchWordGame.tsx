@@ -180,14 +180,14 @@ export default function MatchWordGame({ onBack }: MatchWordGameProps) {
     if (selectedImageId !== null && selectedWordId !== null) {
       if (selectedImageId === selectedWordId) {
         // Match!
-        playKhmerClip('correct', 'ត្រូវហើយ', { rate: 1.2 });
+        playKhmerClip('correct', 'ត្រឹមត្រូវ', { rate: 1.2 });
         setMatchedIds(prev => [...prev, selectedImageId]);
         setScore(s => s + 10);
         setSelectedImageId(null);
         setSelectedWordId(null);
       } else {
         // Wrong
-        playKhmerClip('wrong', 'ខុសហើយ', { rate: 1.2 });
+        playKhmerClip('wrong', 'មិនត្រឹមត្រូវ', { rate: 1.2 });
         setWrongMatch(true);
         setTimeout(() => {
           setSelectedImageId(null);
