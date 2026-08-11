@@ -6,7 +6,7 @@ interface KhmerAlphabetGameProps {
   onBack: () => void;
 }
 
-type TabType = 'consonants' | 'subscript_consonants' | 'dependent_vowels' | 'independent_vowels';
+type TabType = 'consonants' | 'subscript_consonants' | 'dependent_vowels' | 'independent_vowels' | 'punctuation';
 type ModeType = 'learn' | 'quiz';
 type DifficultyType = 'easy' | 'medium' | 'hard';
 
@@ -56,6 +56,18 @@ const INDEPENDENT_VOWELS: LetterItem[] = [
   { char: 'ឥ', name: 'ស្រៈ ឥ', latin: 'e', audioKey: 'iv03' }, { char: 'ឦ', name: 'ស្រៈ ឦ', latin: 'ei', audioKey: 'iv04' }, { char: 'ឧ', name: 'ស្រៈ ឧ', latin: 'o', audioKey: 'iv05' }, { char: 'ឩ', name: 'ស្រៈ ឩ', latin: 'ou', audioKey: 'iv06' }, { char: 'ឪ', name: 'ស្រៈ ឪ', latin: 'ov', audioKey: 'iv07' },
   { char: 'ឫ', name: 'ស្រៈ ឫ', latin: 'rue', audioKey: 'iv08' }, { char: 'ឬ', name: 'ស្រៈ ឬ', latin: 'rueu', audioKey: 'iv09' }, { char: 'ឭ', name: 'ស្រៈ ឭ', latin: 'lue', audioKey: 'iv10' }, { char: 'ឮ', name: 'ស្រៈ ឮ', latin: 'lueu', audioKey: 'iv11' }, { char: 'ឯ', name: 'ស្រៈ ឯ', latin: 'ae', audioKey: 'iv12' },
   { char: 'ឰ', name: 'ស្រៈ ឰ', latin: 'ai', audioKey: 'iv13' }, { char: 'ឱ', name: 'ស្រៈ ឱ', latin: 'ao', audioKey: 'iv14' }, { char: 'ឳ', name: 'ស្រៈ ឳ', latin: 'aou', audioKey: 'iv15' }
+];
+
+// សញ្ញាវណ្ណយុត្តិ (Khmer punctuation marks). audioKey pk01…pk08 for future recordings.
+const PUNCTUATION: LetterItem[] = [
+  { char: '។', name: 'ខណ្ឌ', latin: 'khan', audioKey: 'pk01' },
+  { char: '៕', name: 'បរិយោសាន', latin: 'bariyoosan', audioKey: 'pk02' },
+  { char: 'ៗ', name: 'លេខទោ', latin: 'lek to', audioKey: 'pk03' },
+  { char: '!', name: 'ឧទានសញ្ញា', latin: 'exclamation', audioKey: 'pk04' },
+  { char: '៚', name: 'គោមូត្រ', latin: 'koomuut', audioKey: 'pk05' },
+  { char: '?', name: 'សួរសញ្ញា', latin: 'question', audioKey: 'pk06' },
+  { char: '«»', name: 'អញ្ញប្រកាស', latin: 'guillemets', audioKey: 'pk07' },
+  { char: '៖', name: 'ចំណុចពីរគូស', latin: 'camnuc pii kuuh', audioKey: 'pk08' }
 ];
 
 // Stable audio-clip key per letter, by its unique char — matches the recorded files
@@ -116,6 +128,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
       case 'subscript_consonants': return SUBSCRIPT_CONSONANTS;
       case 'dependent_vowels': return DEPENDENT_VOWELS;
       case 'independent_vowels': return INDEPENDENT_VOWELS;
+      case 'punctuation': return PUNCTUATION;
     }
   }, [activeTab]);
 
@@ -256,7 +269,8 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
             { id: 'consonants', label: 'ព្យញ្ជនៈ', icon: 'កខ' },
             { id: 'subscript_consonants', label: 'ជើងព្យញ្ជនៈ', icon: '្ក្ខ' },
             { id: 'dependent_vowels', label: 'ស្រៈនិស្ស័យ', icon: 'ាិី' },
-            { id: 'independent_vowels', label: 'ស្រៈពេញតួ', icon: 'ឥឦ' }
+            { id: 'independent_vowels', label: 'ស្រៈពេញតួ', icon: 'ឥឦ' },
+            { id: 'punctuation', label: 'សញ្ញាវណ្ណយុត្តិ', icon: '។ៗ' }
           ].map(tab => (
             <button
               key={tab.id}
