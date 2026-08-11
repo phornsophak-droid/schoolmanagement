@@ -52,12 +52,14 @@ const INDEPENDENT_VOWELS: LetterItem[] = [
 ];
 
 // Stable audio-clip key per letter, by its unique char — matches the recorded files
-// in /public/audio/km/ (c01…c33 consonants, dv01…dv23 dependent vowels,
-// iv01…iv13 independent vowels). See /public/audio/km/RECORDING-LIST.md.
+// in /public/audio/km/ (c01…c33 consonants, cj01…cj33 subscript/coeng,
+// dv01…dv23 dependent vowels, iv01…iv13 independent vowels).
+// See /public/audio/km/RECORDING-LIST.md.
 const AUDIO_KEYS: Map<string, string> = (() => {
   const m = new Map<string, string>();
   const pad = (n: number) => String(n).padStart(2, '0');
   CONSONANTS.forEach((l, i) => m.set(l.char, `c${pad(i + 1)}`));
+  SUBSCRIPT_CONSONANTS.forEach((l, i) => m.set(l.char, `cj${pad(i + 1)}`));
   DEPENDENT_VOWELS.forEach((l, i) => m.set(l.char, `dv${pad(i + 1)}`));
   INDEPENDENT_VOWELS.forEach((l, i) => m.set(l.char, `iv${pad(i + 1)}`));
   return m;
