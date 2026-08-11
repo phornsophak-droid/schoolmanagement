@@ -249,6 +249,10 @@ export default function Gradebook({
   };
   const [honorOpen, setHonorOpen] = useState(false);
   const [meritPickerOpen, setMeritPickerOpen] = useState(false);
+  // The same picker + certificate serve two types: 'merit' (ប័ណ្ណសរសើរ, niddes A/B/C)
+  // and 'completion' (វិញ្ញាបនបត្របញ្ជាក់ការសិក្សា — grade-6 study completion, all students).
+  const [pickerType, setPickerType] = useState<'merit' | 'completion'>('merit');
+  const [certType, setCertType] = useState<'merit' | 'completion'>('merit');
   const [rankingOpen, setRankingOpen] = useState(false);
 
   // Robust printing using hidden iframe (bypasses all React/Chrome flex-layout bugs)
@@ -2562,11 +2566,18 @@ export default function Gradebook({
               🏅 តារាងកិត្តិយស
             </button>
             <button
-              onClick={() => setMeritPickerOpen(true)}
+              onClick={() => { setPickerType('merit'); setMeritPickerOpen(true); }}
               className="px-3 py-1.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 hover:text-amber-800 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
               title="ប័ណ្ណសរសើរ (សិស្សនិទ្ទេស A/B/C)"
             >
               📜 ប័ណ្ណសរសើរ
+            </button>
+            <button
+              onClick={() => { setPickerType('completion'); setMeritPickerOpen(true); }}
+              className="px-3 py-1.5 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 hover:text-rose-800 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
+              title="វិញ្ញាបនបត្របញ្ជាក់ការសិក្សា (ថ្នាក់ទី៦ បញ្ចប់ការសិក្សា)"
+            >
+              🎓 វិញ្ញាបនបត្រ
             </button>
             <button
               onClick={() => setRankingOpen(true)}
@@ -3271,20 +3282,23 @@ export default function Gradebook({
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4" onClick={() => setMeritPickerOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-800">📜 ប័ណ្ណសរសើរ — ជ្រើសសិស្ស (និទ្ទេស A/B/C)</h3>
+              <h3 className="text-sm font-bold text-slate-800">{pickerType === 'completion' ? '🎓 វិញ្ញាបនបត្របញ្ជាក់ការសិក្សា — ជ្រើសសិស្ស' : '📜 ប័ណ្ណសរសើរ — ជ្រើសសិស្ស (និទ្ទេស A/B/C)'}</h3>
               <button onClick={() => setMeritPickerOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"><X size={16} /></button>
             </div>
             <div className="overflow-auto p-2">
               {(() => {
                 const info = meritInfo();
-                const ab = info.list.filter(s => { const l = meritLetterOf(info.scoreOf(s)); return l === 'A' || l === 'B' || l === 'C'; });
-                if (ab.length === 0) return <p className="text-center text-slate-400 text-xs py-10">គ្មានសិស្សនិទ្ទេស A B ឬ C សម្រាប់ {info.phrase} ទេ។</p>;
+                // Completion cert = every student (all who completed); merit = A/B/C only.
+                const ab = pickerType === 'completion'
+                  ? info.list
+                  : info.list.filter(s => { const l = meritLetterOf(info.scoreOf(s)); return l === 'A' || l === 'B' || l === 'C'; });
+                if (ab.length === 0) return <p className="text-center text-slate-400 text-xs py-10">គ្មានសិស្ស{pickerType === 'completion' ? '' : 'និទ្ទេស A B ឬ C'} សម្រាប់ {info.phrase} ទេ។</p>;
                 return ab.map(s => {
                   const letter = meritLetterOf(info.scoreOf(s));
                   return (
                   <button
                     key={s.id}
-                    onClick={() => { setMeritStudent(s); setMeritPickerOpen(false); }}
+                    onClick={() => { setCertType(pickerType); setMeritStudent(s); setMeritPickerOpen(false); }}
                     className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-amber-50 rounded-lg text-left transition-colors"
                   >
                     <span className="font-semibold text-slate-700 text-sm">{s.name}</span>
@@ -3312,6 +3326,7 @@ export default function Gradebook({
             students={students}
             scoreOverride={info.scoreOf(meritStudent)}
             periodPhrase={phrase}
+            certType={certType}
             onClose={() => setMeritStudent(null)}
           />
         );

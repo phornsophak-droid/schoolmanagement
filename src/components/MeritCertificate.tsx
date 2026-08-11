@@ -22,6 +22,10 @@ interface MeritCertificateProps {
   students: StudentScore[]; // full list — to resolve dob from any of the student's rows
   scoreOverride?: number | null; // the average for the active period (semester/annual)
   periodPhrase?: string;         // e.g. "ប្រចាំខែមិថុនា ឆ្នាំសិក្សា ២០២៥-២០២៦"
+  // 'merit' = ប័ណ្ណសរសើរ (default). 'completion' = វិញ្ញាបនបត្របញ្ជាក់ការសិក្សា — the
+  // grade-6 study-completion certificate; same frame/logo/school name, different
+  // title + wording, and always the Khmer layout.
+  certType?: 'merit' | 'completion';
   onClose: () => void;
 }
 
@@ -87,11 +91,15 @@ const renderDob = (text: string): React.ReactNode => {
   return <span className="font-bold">{text}</span>;
 };
 
-export default function MeritCertificate({ student, students, scoreOverride, periodPhrase, onClose }: MeritCertificateProps) {
-  const isEnglish = /grade|អង់គ្លេស/i.test(student.grade);
+export default function MeritCertificate({ student, students, scoreOverride, periodPhrase, certType = 'merit', onClose }: MeritCertificateProps) {
+  const isCompletion = certType === 'completion';
+  // The completion certificate is always the Khmer layout, even for English classes.
+  const isEnglish = !isCompletion && /grade|អង់គ្លេស/i.test(student.grade);
   const certName = isEnglish ? (student.englishName ? student.englishName.trim() : transliterateKhmerName(baseStudentName(student.name))) : baseStudentName(student.name);
   const teacherName = teacherNameForGrade(student.grade);
-  const niddes = gradeBand(scoreOverride ?? student.overallAvg);
+  const avgVal = scoreOverride ?? student.overallAvg;
+  const avgKh = avgVal != null && avgVal > 0 ? toKh(avgVal.toFixed(2)).replace('.', ',') : '..........';
+  const niddes = gradeBand(avgVal);
   const period = periodPhrase || `ប្រចាំខែ${student.month} ឆ្នាំសិក្សា ${getAcademicYear()}`;
   // Issue date auto-fills from the record's month for a monthly cert. For a
   // semester/year cert the record's "month" is an exam string (e.g. ប្រឡងឆមាសទី១),
@@ -138,7 +146,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     const el = document.getElementById('merit-cert');
     if (!el) return;
     setPdfBusy(true);
-      try { await exportCertToPdf(el, `វិញ្ញាបនបត្រ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
+      try { await exportCertToPdf(el, `${isCompletion ? 'វិញ្ញាបនបត្រ' : 'ប័ណ្ណសរសើរ'}_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
       catch (e: any) { console.error('PDF export failed', e); alert('មិនអាចទាញយក PDF បានទេ - សូមព្យាយាមម្តងទៀត។ Error: ' + String(e?.message || e)); }
       finally { setPdfBusy(false); }
   };
@@ -148,7 +156,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
     const el = document.getElementById('merit-cert');
     if (!el) return;
     setImgBusy(true);
-      try { await exportCertToImage(el, `វិញ្ញាបនបត្រ_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
+      try { await exportCertToImage(el, `${isCompletion ? 'វិញ្ញាបនបត្រ' : 'ប័ណ្ណសរសើរ'}_${student.name.replace(/\s+/g, '_')}`, CERT_EXPORT_WIDTH); }
       catch (e: any) { console.error('Image export failed', e); alert('មិនអាចបង្កើតរូបភាពបានទេ — សូមព្យាយាមម្តងទៀត។ Error: ' + String(e?.message || e)); }
       finally { setImgBusy(false); }
   };
@@ -191,7 +199,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
       <div className="w-full" style={{ maxWidth: 'min(64rem, calc((100dvh - 120px) * 1.414))' }}>
         {/* Toolbar */}
         <div className="rc-no-print flex items-center justify-between gap-3 p-3 bg-white rounded-t-2xl border-b border-slate-100">
-          <h3 className="text-sm font-bold text-slate-800">ប័ណ្ណសរសើរ — {student.name} ({niddes.en})</h3>
+          <h3 className="text-sm font-bold text-slate-800">{isCompletion ? 'វិញ្ញាបនបត្របញ្ជាក់ការសិក្សា' : 'ប័ណ្ណសរសើរ'} — {student.name} ({niddes.en})</h3>
           <div className="flex items-center justify-end flex-wrap gap-2">
             <button onClick={handleDownloadPdf} disabled={pdfBusy} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-colors">
               {pdfBusy ? <Loader2 size={13} className="animate-spin" /> : <Printer size={13} />} ទាញយក PDF
@@ -389,25 +397,39 @@ export default function MeritCertificate({ student, students, scoreOverride, per
 
                 {/* Title */}
                 <div className="text-center mt-1">
-                  <h1 className="font-extrabold text-red-600 tracking-wide" style={{ fontFamily: "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif", fontSize: '3.8cqw', lineHeight: 1.15 }}>ប័ណ្ណសរសើរ</h1>
+                  <h1 className="font-extrabold text-red-600 tracking-wide" style={{ fontFamily: "'Khmer OS Muol Light','Khmer OS Moul Light','Moul',serif", fontSize: isCompletion ? '3cqw' : '3.8cqw', lineHeight: 1.15 }}>{isCompletion ? 'វិញ្ញាបនបត្របញ្ជាក់ការសិក្សា' : 'ប័ណ្ណសរសើរ'}</h1>
                   <p className="font-bold text-slate-700" style={{ fontSize: '2.4cqw' }}>នាយកសាលាសហគមន៍ច្បារច្រុះ</p>
                 </div>
 
                 {/* Body — scales with the frame, justified to both margins. Sized so the
                     date of birth lands on line 1 and the niddes on line 2 (even for long names). */}
                 <div className="text-justify mt-1" style={{ fontSize: '2.0cqw', lineHeight: 1.55 }}>
-                  <p>
-                    សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
-                    ភេទ <span className="font-bold">{student.gender}</span>{' '}
-                    {dobText
-                      ? <>កើតនៅ<span style={{ whiteSpace: 'nowrap' }}>{renderDob(dobText)}</span> </>
-                      : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
-                    រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
-                    ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
-                    <span className="font-bold text-red-700" style={{ whiteSpace: 'nowrap' }}>{niddes.km} ({niddes.en})</span>
-                    {' '}{renderPeriod(period)} ។
-                  </p>
-                  <p className="mt-3">ប័ណ្ណសរសើរនេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
+                  {isCompletion ? (
+                    <p>
+                      សូមបញ្ជាក់ថាសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
+                      ភេទ <span className="font-bold">{student.gender}</span>{' '}
+                      {dobText
+                        ? <>កើតនៅ<span style={{ whiteSpace: 'nowrap' }}>{renderDob(dobText)}</span> </>
+                        : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
+                      ពិតជាបានបញ្ចប់ការសិក្សានៅកម្រិតបឋមសិក្សាដោយជោគជ័យ ដោយទទួលបានមធ្យមភាគប្រចាំឆ្នាំ{' '}
+                      <span className="font-bold text-red-700">{avgKh}</span>{' '}
+                      និងនិទ្ទេស <span className="font-bold text-red-700" style={{ whiteSpace: 'nowrap' }}>{niddes.km} ({niddes.en})</span>{' '}
+                      ក្នុងឆ្នាំសិក្សា <span className="font-bold">{getAcademicYear()}</span> ។
+                    </p>
+                  ) : (
+                    <p>
+                      សូមសរសើរចំពោះសិស្សឈ្មោះ <span className="font-bold text-red-700">{student.name}</span>{' '}
+                      ភេទ <span className="font-bold">{student.gender}</span>{' '}
+                      {dobText
+                        ? <>កើតនៅ<span style={{ whiteSpace: 'nowrap' }}>{renderDob(dobText)}</span> </>
+                        : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
+                      រៀនថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span>{' '}
+                      ដែលទទួលបានលទ្ធផលល្អក្នុងការសិក្សា និងទទួលបាននិទ្ទេស{' '}
+                      <span className="font-bold text-red-700" style={{ whiteSpace: 'nowrap' }}>{niddes.km} ({niddes.en})</span>
+                      {' '}{renderPeriod(period)} ។
+                    </p>
+                  )}
+                  <p className="mt-3">{isCompletion ? 'វិញ្ញាបនបត្រ' : 'ប័ណ្ណសរសើរ'}នេះប្រគល់ជូនសាមីខ្លួនប្រើប្រាស់តាមការដែលអាចប្រើបាន។</p>
                 </div>
 
                 {/* Signatures — principal (left), student photo (center), teacher + date (right).
