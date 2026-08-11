@@ -411,7 +411,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
                       {dobText
                         ? <>កើតនៅ<span style={{ whiteSpace: 'nowrap' }}>{renderDob(dobText)}</span> </>
                         : <>កើតនៅថ្ងៃទី.......ខែ.........ឆ្នាំ......... </>}
-                      ពិតជាបានបញ្ចប់ការសិក្សានៅកម្រិតបឋមសិក្សាដោយជោគជ័យ ដោយទទួលបានមធ្យមភាគប្រចាំឆ្នាំ{' '}
+                      ពិតជាបានបញ្ចប់ការសិក្សានៅកម្រិតថ្នាក់ទី <span className="font-bold">{student.grade.replace(/^ថ្នាក់ទី\s*/, '')}</span> ដោយជោគជ័យ ដោយទទួលបានមធ្យមភាគប្រចាំឆ្នាំ{' '}
                       <span className="font-bold text-red-700">{avgKh}</span>{' '}
                       និងនិទ្ទេស <span className="font-bold text-red-700" style={{ whiteSpace: 'nowrap' }}>{niddes.km} ({niddes.en})</span>{' '}
                       ក្នុងឆ្នាំសិក្សា <span className="font-bold">{getAcademicYear()}</span> ។
