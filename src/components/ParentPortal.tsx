@@ -103,7 +103,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
   // Open-card state
   const [monthlyRec, setMonthlyRec] = useState<StudentScore | null>(null);
   const [semCard, setSemCard] = useState<{ student: StudentScore; period: 1 | 2 | 'year' } | null>(null);
-  const [meritCard, setMeritCard] = useState<{ student: StudentScore; score: number | null; phrase: string } | null>(null);
+  const [meritCard, setMeritCard] = useState<{ student: StudentScore; score: number | null; phrase: string; certType?: 'merit' | 'completion' } | null>(null);
 
   // Pull the principal signature once so it shows on the report cards parents open.
   useEffect(() => {
@@ -345,7 +345,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
       const yl = meritLetterOf(yearScore);
       if (yl) mOpts.push({ key: 'year', label: `${t('parent.annual')} (${yl})`, student: anyR, score: yearScore!, phrase: `ប្រចាំឆ្នាំសិក្សា ${getAcademicYear()}` });
       
-      return { grade: g, records: recs, anyRec: anyR, monthsAvailable: months, meritOptions: mOpts };
+      return { grade: g, records: recs, anyRec: anyR, monthsAvailable: months, meritOptions: mOpts, yearScore };
     })
     // General (ចំណេះទូទៅ) classes on top, after-hours classes below.
     .sort((a, b) => Number(isExtraClass(a.grade)) - Number(isExtraClass(b.grade)));
@@ -636,13 +636,25 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
                         {gd.meritOptions.map(o => (
                           <button
                             key={o.key}
-                            onClick={() => setMeritCard({ student: o.student, score: o.score, phrase: o.phrase })}
+                            onClick={() => setMeritCard({ student: o.student, score: o.score, phrase: o.phrase, certType: 'merit' })}
                             className="px-3 py-1.5 bg-gradient-to-br from-amber-100 to-yellow-100 text-amber-800 hover:from-amber-200 hover:to-yellow-200 border border-amber-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 shadow-sm"
                           >
                             🏅 {o.label}
                           </button>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Grade-6 study-completion certificate — for every grade-6 child. */}
+                  {/^ថ្នាក់ទី\s*៦/.test(gd.grade) && gd.yearScore != null && (
+                    <div className="mt-3 pt-2.5 border-t border-slate-50">
+                      <button
+                        onClick={() => setMeritCard({ student: gd.anyRec, score: gd.yearScore, phrase: `ប្រចាំឆ្នាំសិក្សា ${getAcademicYear()}`, certType: 'completion' })}
+                        className="px-3 py-1.5 bg-gradient-to-br from-rose-100 to-red-100 text-rose-800 hover:from-rose-200 hover:to-red-200 border border-rose-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm"
+                      >
+                        🎓 វិញ្ញាបនបត្របញ្ជាក់ការសិក្សា
+                      </button>
                     </div>
                   )}
                 </div>
@@ -732,6 +744,7 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
           students={studentsForCards}
           scoreOverride={meritCard.score}
           periodPhrase={meritCard.phrase}
+          certType={meritCard.certType}
           onClose={() => setMeritCard(null)}
         />
       )}
