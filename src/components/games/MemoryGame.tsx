@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { playKhmerClip } from '../../lib/khmerSpeech';
 
 interface MemoryGameProps {
   onBack: () => void;
@@ -63,6 +64,7 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
       
       if (cards[firstIndex].emoji === cards[secondIndex].emoji) {
         // Match
+        playKhmerClip('correct', 'ត្រូវហើយ', { rate: 1.2 });
         setTimeout(() => {
           setCards(prev => {
             const next = prev.map((card, i) => 
@@ -80,6 +82,7 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
         }, 500);
       } else {
         // No match
+        playKhmerClip('wrong', 'ខុសហើយ', { rate: 1.2 });
         setTimeout(() => {
           setCards(prev => prev.map((card, i) => 
             (i === firstIndex || i === secondIndex) 

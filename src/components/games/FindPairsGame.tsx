@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { playKhmerClip } from '../../lib/khmerSpeech';
 
 interface FindPairsGameProps {
   onBack: () => void;
@@ -61,6 +62,7 @@ export default function FindPairsGame({ onBack }: FindPairsGameProps) {
       const firstItem = items.find(i => i.id === selectedId);
       if (firstItem && firstItem.emoji === item.emoji) {
         // Match!
+        playKhmerClip('correct', 'ត្រូវហើយ', { rate: 1.2 });
         setItems(prev => prev.map(p => 
           p.id === selectedId || p.id === item.id 
             ? { ...p, isMatched: true } 
@@ -80,6 +82,7 @@ export default function FindPairsGame({ onBack }: FindPairsGameProps) {
         }, 100);
       } else {
         // Not a match, reset selection
+        playKhmerClip('wrong', 'ខុសហើយ', { rate: 1.2 });
         setSelectedId(null);
         // Optional penalty
         setScore(s => Math.max(0, s - 2));
