@@ -380,7 +380,7 @@ export default function MeritCertificate({ student, students, scoreOverride, per
           ) : (
             <div className="relative w-full" style={{ aspectRatio: '1.414 / 1', containerType: 'inline-size' }}>
               <img src={certFrame} alt="" className="absolute inset-0 w-full h-full pointer-events-none select-none" />
-              <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: '7.5% 13% 11%' }}>
+              <div className="absolute inset-0 flex flex-col text-slate-800" style={{ padding: isCompletion ? '7.5% 13% 7%' : '7.5% 13% 11%' }}>
 
                 {/* Header: CAMKIDS org (left), kingdom motto (right) */}
                 <div className="flex items-start justify-between">
