@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Volume2, Play, Star, RotateCcw, HelpCircle, Trophy, VolumeX } from 'lucide-react';
-import { speakKhmer, hasKhmerVoice, primeVoices, playKhmerClip } from '../../lib/khmerSpeech';
+import { ArrowLeft, Volume2, Play, Star, RotateCcw, HelpCircle, Trophy } from 'lucide-react';
+import { speakKhmer, primeVoices, playKhmerClip } from '../../lib/khmerSpeech';
 
 interface KhmerAlphabetGameProps {
   onBack: () => void;
@@ -102,16 +102,10 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
 
   // Audio State
   const [isPlaying, setIsPlaying] = useState(false);
-  // True when the device has NO Khmer TTS voice — then km-KH speech is silent and
-  // we show the user how to enable it instead of failing without explanation.
-  const [noKhmerVoice, setNoKhmerVoice] = useState(false);
 
   useEffect(() => {
     primeVoices();
-    let alive = true;
-    hasKhmerVoice().then(has => { if (alive) setNoKhmerVoice(!has); });
     return () => {
-      alive = false;
       if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
     };
   }, []);
@@ -254,21 +248,6 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
           </button>
         </div>
       </header>
-
-      {noKhmerVoice && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3">
-          <div className="max-w-6xl mx-auto flex items-start gap-2.5 text-[13px] text-amber-800 leading-relaxed">
-            <VolumeX size={18} className="text-amber-500 shrink-0 mt-0.5" />
-            <div>
-              <b>ឧបករណ៍នេះមិនទាន់មានសំឡេងខ្មែរ (Khmer TTS)</b> ដូច្នេះអក្សរនឹងមិនលឺសំឡេងទេ។ សូមដំឡើងសំឡេងខ្មែរជាមុន៖
-              <div className="mt-1 text-[12px] text-amber-700">
-                📱 <b>Android</b>៖ Settings → System → Languages &amp; input → Text-to-speech → ⚙️ → Install voice data → ជ្រើស <b>ខ្មែរ (Khmer)</b>។<br />
-                🍎 <b>iPhone</b>៖ Settings → Accessibility → Spoken Content → Voices → <b>Khmer</b> → ទាញយក។ បន្ទាប់មកបើកល្បែងឡើងវិញ។
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <main className="flex-1 flex flex-col p-4 md:p-8 max-w-6xl mx-auto w-full">
         {/* Tabs for choosing letter category */}
