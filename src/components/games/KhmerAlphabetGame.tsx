@@ -6,7 +6,7 @@ interface KhmerAlphabetGameProps {
   onBack: () => void;
 }
 
-type TabType = 'consonants' | 'dependent_vowels' | 'independent_vowels';
+type TabType = 'consonants' | 'subscript_consonants' | 'dependent_vowels' | 'independent_vowels';
 type ModeType = 'learn' | 'quiz';
 type DifficultyType = 'easy' | 'medium' | 'hard';
 
@@ -25,6 +25,16 @@ const CONSONANTS: LetterItem[] = [
   { char: 'ប', name: 'ប', latin: 'ba', type: 'O' }, { char: 'ផ', name: 'ផ', latin: 'pha', type: 'O' }, { char: 'ព', name: 'ព', latin: 'po', type: 'U' }, { char: 'ភ', name: 'ភ', latin: 'pho', type: 'U' }, { char: 'ម', name: 'ម', latin: 'mo', type: 'U' },
   { char: 'យ', name: 'យ', latin: 'yo', type: 'U' }, { char: 'រ', name: 'រ', latin: 'ro', type: 'U' }, { char: 'ល', name: 'ល', latin: 'lo', type: 'U' }, { char: 'វ', name: 'វ', latin: 'vo', type: 'U' },
   { char: 'ស', name: 'ស', latin: 'sa', type: 'O' }, { char: 'ហ', name: 'ហ', latin: 'ha', type: 'O' }, { char: 'ឡ', name: 'ឡ', latin: 'la', type: 'O' }, { char: 'អ', name: 'អ', latin: 'a', type: 'O' }
+];
+
+const SUBSCRIPT_CONSONANTS: LetterItem[] = [
+  { char: '្ក', name: 'ជើង ក', latin: 'ka', type: 'O' }, { char: '្ខ', name: 'ជើង ខ', latin: 'kha', type: 'O' }, { char: '្គ', name: 'ជើង គ', latin: 'ko', type: 'U' }, { char: '្ឃ', name: 'ជើង ឃ', latin: 'kho', type: 'U' }, { char: '្ង', name: 'ជើង ង', latin: 'ngo', type: 'U' },
+  { char: '្ច', name: 'ជើង ច', latin: 'ca', type: 'O' }, { char: '្ឆ', name: 'ជើង ឆ', latin: 'cha', type: 'O' }, { char: '្ជ', name: 'ជើង ជ', latin: 'co', type: 'U' }, { char: '្ឈ', name: 'ជើង ឈ', latin: 'cho', type: 'U' }, { char: '្ញ', name: 'ជើង ញ', latin: 'nho', type: 'U' },
+  { char: '្ដ', name: 'ជើង ដ', latin: 'da', type: 'O' }, { char: '្ឋ', name: 'ជើង ឋ', latin: 'tha', type: 'O' }, { char: '្ឌ', name: 'ជើង ឌ', latin: 'do', type: 'U' }, { char: '្ឍ', name: 'ជើង ឍ', latin: 'tho', type: 'U' }, { char: '្ណ', name: 'ជើង ណ', latin: 'na', type: 'O' },
+  { char: '្ត', name: 'ជើង ត', latin: 'ta', type: 'O' }, { char: '្ថ', name: 'ជើង ថ', latin: 'tha', type: 'O' }, { char: '្ទ', name: 'ជើង ទ', latin: 'to', type: 'U' }, { char: '្ធ', name: 'ជើង ធ', latin: 'tho', type: 'U' }, { char: '្ន', name: 'ជើង ន', latin: 'no', type: 'U' },
+  { char: '្ប', name: 'ជើង ប', latin: 'ba', type: 'O' }, { char: '្ផ', name: 'ជើង ផ', latin: 'pha', type: 'O' }, { char: '្ព', name: 'ជើង ព', latin: 'po', type: 'U' }, { char: '្ភ', name: 'ជើង ភ', latin: 'pho', type: 'U' }, { char: '្ម', name: 'ជើង ម', latin: 'mo', type: 'U' },
+  { char: '្យ', name: 'ជើង យ', latin: 'yo', type: 'U' }, { char: '្រ', name: 'ជើង រ', latin: 'ro', type: 'U' }, { char: '្ល', name: 'ជើង ល', latin: 'lo', type: 'U' }, { char: '្វ', name: 'ជើង វ', latin: 'vo', type: 'U' },
+  { char: '្ស', name: 'ជើង ស', latin: 'sa', type: 'O' }, { char: '្ហ', name: 'ជើង ហ', latin: 'ha', type: 'O' }, { char: '្អ', name: 'ជើង អ', latin: 'a', type: 'O' }
 ];
 
 const DEPENDENT_VOWELS: LetterItem[] = [
@@ -99,6 +109,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
   const getActiveData = useCallback(() => {
     switch (activeTab) {
       case 'consonants': return CONSONANTS;
+      case 'subscript_consonants': return SUBSCRIPT_CONSONANTS;
       case 'dependent_vowels': return DEPENDENT_VOWELS;
       case 'independent_vowels': return INDEPENDENT_VOWELS;
     }
@@ -251,11 +262,12 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
 
       <main className="flex-1 flex flex-col p-4 md:p-8 max-w-6xl mx-auto w-full">
         {/* Tabs for choosing letter category */}
-        <div className="flex flex-wrap gap-2 mb-6 bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
+        <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {[
-            { id: 'consonants', label: 'ព្យញ្ជនៈ ៣៣តួ', icon: '📝' },
-            { id: 'dependent_vowels', label: 'ស្រៈនិស្ស័យ', icon: '〰️' },
-            { id: 'independent_vowels', label: 'ស្រៈពេញតួ', icon: '🔤' }
+            { id: 'consonants', label: 'ព្យញ្ជនៈ', icon: 'កខ' },
+            { id: 'subscript_consonants', label: 'ជើងព្យញ្ជនៈ', icon: '្ក្ខ' },
+            { id: 'dependent_vowels', label: 'ស្រៈនិស្ស័យ', icon: 'ាិី' },
+            { id: 'independent_vowels', label: 'ស្រៈពេញតួ', icon: 'ឥឦ' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -331,6 +343,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
               (mode === 'quiz' ? quizOptions : getActiveData()).length <= 4 ? 'grid-cols-2 max-w-lg mx-auto' :
               (mode === 'quiz' ? quizOptions : getActiveData()).length <= 12 ? 'grid-cols-3 md:grid-cols-4' :
               activeTab === 'consonants' ? 'grid-cols-4 md:grid-cols-5' : 
+              activeTab === 'subscript_consonants' ? 'grid-cols-4 md:grid-cols-5' : 
               activeTab === 'dependent_vowels' ? 'grid-cols-4 md:grid-cols-6' : 
               'grid-cols-3 md:grid-cols-5'
             }`}>
@@ -379,7 +392,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
               ))}
             </div>
             
-            {activeTab === 'consonants' && mode === 'learn' && (
+            {(activeTab === 'consonants' || activeTab === 'subscript_consonants') && mode === 'learn' && (
               <div className="mt-6 flex justify-center gap-6 text-sm font-medium">
                 <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-rose-600"></span> ពួក "អ" (O)</div>
                 <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-indigo-600"></span> ពួក "អ៊" (U)</div>
