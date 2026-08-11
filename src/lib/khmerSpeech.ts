@@ -38,10 +38,21 @@ export function getKhmerVoice(): SpeechSynthesisVoice | null {
   try { return window.speechSynthesis.getVoices().find(isKhmer) || null; } catch { return null; }
 }
 
-// Async check used to decide whether to show the "install Khmer voice" hint.
-// Now that we have a Google TTS fallback, we can assume TTS always works.
+// Async check used to decide whether to show the "enable Khmer voice" hint. Waits
+// for voices to load so it doesn't false-negative on first paint. (The Google TTS
+// fallback is blocked in practice — returns non-audio — so we must not assume TTS
+// always works; the hint is what lets a user fix it on their device.)
 export function hasKhmerVoice(): Promise<boolean> {
-  return Promise.resolve(true);
+  return new Promise(resolve => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) { resolve(false); return; }
+    const synth = window.speechSynthesis;
+    const check = () => synth.getVoices().some(isKhmer);
+    if (synth.getVoices().length) { resolve(check()); return; }
+    let done = false;
+    const finish = () => { if (done) return; done = true; resolve(check()); };
+    synth.addEventListener?.('voiceschanged', finish, { once: true } as any);
+    setTimeout(finish, 1800);
+  });
 }
 
 export interface SpeakOpts { rate?: number; onStart?: () => void; onEnd?: () => void; onError?: () => void; }
