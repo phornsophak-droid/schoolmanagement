@@ -197,7 +197,7 @@ export default function LearningGames({ onBack }: LearningGamesProps) {
       </div>
       
       <div className="mt-12 text-center text-xs text-slate-400 font-medium">
-        អភិវឌ្ឍន៍ដោយ Antigravity AI សម្រាប់កុមារកម្ពុជា ❤️
+        អភិវឌ្ឍន៍ដោយ សាលាសហគមន៍ច្បារច្រុះ!
       </div>
     </div>
   );
