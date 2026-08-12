@@ -48,9 +48,6 @@ export default function EvenOddGame({ onBack }: EvenOddGameProps) {
 
     if (isEvenGuess === isActuallyEven) {
       setScore(s => s + 1);
-    } else {
-      // Penalty or just wrong
-      setScore(s => Math.max(0, s - 1));
     }
     
     generateProblem();

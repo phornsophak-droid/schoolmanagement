@@ -111,7 +111,6 @@ export default function KhmerReadingGame({ onBack }: KhmerReadingGameProps) {
 
   const handleWrong = (answer: string) => {
     setWrongAnswer(answer);
-    setScore(s => Math.max(0, s - 2));
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();

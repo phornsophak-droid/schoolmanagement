@@ -84,8 +84,6 @@ export default function FindPairsGame({ onBack }: FindPairsGameProps) {
         // Not a match, reset selection
         playKhmerClip('wrong', 'មិនត្រឹមត្រូវ', { rate: 1.2 });
         setSelectedId(null);
-        // Optional penalty
-        setScore(s => Math.max(0, s - 2));
       }
     }
   };
