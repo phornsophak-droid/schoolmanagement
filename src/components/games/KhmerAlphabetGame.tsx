@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Volume2, Play, Star, RotateCcw, HelpCircle, Trophy } from 'lucide-react';
+import { ArrowLeft, Volume2, Play, Star, RotateCcw, HelpCircle, Trophy, Timer } from 'lucide-react';
 import { speakKhmer, primeVoices, playKhmerClip } from '../../lib/khmerSpeech';
 
 interface KhmerAlphabetGameProps {
@@ -107,6 +107,9 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return newArray;
 };
 
+// Quiz countdown length (seconds) for the guess-the-letter game.
+const QUIZ_SECONDS = 60;
+
 export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
   const [mode, setMode] = useState<ModeType>('learn');
   const [activeTab, setActiveTab] = useState<TabType>('consonants');
@@ -116,8 +119,9 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
   const [activeLetter, setActiveLetter] = useState<LetterItem | null>(null);
   
   // Quiz Mode State
-  const [quizState, setQuizState] = useState<'idle' | 'playing'>('idle');
+  const [quizState, setQuizState] = useState<'idle' | 'playing' | 'finished'>('idle');
   const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(QUIZ_SECONDS);
   const [targetLetter, setTargetLetter] = useState<LetterItem | null>(null);
   const [quizOptions, setQuizOptions] = useState<LetterItem[]>([]);
   const [wrongLetter, setWrongLetter] = useState<string | null>(null);
@@ -212,6 +216,18 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
       setQuizState('idle');
     }
   }, [mode, activeTab, difficulty, generateQuiz, quizState]);
+
+  // Countdown timer for the quiz. When it reaches 0 the game ends and shows the score.
+  useEffect(() => {
+    if (quizState !== 'playing') return;
+    if (timeLeft <= 0) {
+      setShowCelebration(false);
+      setQuizState('finished');
+      return;
+    }
+    const t = setTimeout(() => setTimeLeft(s => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [quizState, timeLeft]);
 
   const handleQuizClick = (letter: LetterItem) => {
     if (showCelebration || isGenerating || !targetLetter) return;
@@ -326,7 +342,14 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
                 <Star className="fill-orange-500 text-orange-500 animate-pulse" />
                 ពិន្ទុ៖ {score}
               </div>
-              
+
+              {quizState === 'playing' && (
+                <div className={`flex items-center gap-2 text-xl font-black tabular-nums ${timeLeft <= 10 ? 'text-red-600 animate-pulse' : 'text-slate-700'}`}>
+                  <Timer size={22} className={timeLeft <= 10 ? 'text-red-600' : 'text-slate-500'} />
+                  {timeLeft} វិ
+                </div>
+              )}
+
               <button
                 onClick={() => targetLetter && playSound(targetLetter.name)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold text-white transition-all shadow-md active:scale-95 ${
@@ -362,22 +385,33 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
               activeTab === 'dependent_vowels' ? 'grid-cols-4 md:grid-cols-6' : 
               'grid-cols-3 md:grid-cols-5'
             }`}>
-              {mode === 'quiz' && quizState === 'idle' ? (
+              {mode === 'quiz' && (quizState === 'idle' || quizState === 'finished') ? (
                 <div className="col-span-full flex flex-col items-center justify-center py-20">
-                  <div className="w-24 h-24 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mb-6 shadow-inner">
-                    <Trophy size={48} />
+                  <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-inner ${quizState === 'finished' ? 'bg-green-100' : 'bg-orange-100 text-orange-500'}`}>
+                    {quizState === 'finished' ? <span className="text-5xl">🎉</span> : <Trophy size={48} />}
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-800 mb-2">ត្រៀមខ្លួនរួចរាល់ឬនៅ?</h2>
-                  <p className="text-slate-500 mb-8 max-w-md text-center">ស្តាប់សំឡេងអានតួអក្សរ រួចចុចជ្រើសរើសតួអក្សរដែលត្រឹមត្រូវឱ្យបានលឿន!</p>
+                  {quizState === 'finished' ? (
+                    <>
+                      <h2 className="text-2xl font-bold text-slate-800 mb-2">អស់ម៉ោងហើយ! ({QUIZ_SECONDS} វិនាទី)</h2>
+                      <p className="text-slate-500 mb-1 text-center">ពិន្ទុសរុបរបស់អ្នក</p>
+                      <p className="text-5xl font-black text-orange-600 mb-8">{score}</p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="text-2xl font-bold text-slate-800 mb-2">ត្រៀមខ្លួនរួចរាល់ឬនៅ?</h2>
+                      <p className="text-slate-500 mb-8 max-w-md text-center">ស្តាប់សំឡេងអានតួអក្សរ រួចចុចជ្រើសរើសតួអក្សរដែលត្រឹមត្រូវឱ្យបានលឿន! អ្នកមានពេល {QUIZ_SECONDS} វិនាទី។</p>
+                    </>
+                  )}
                   <button
                     onClick={() => {
                       setQuizState('playing');
                       setScore(0);
+                      setTimeLeft(QUIZ_SECONDS);
                       generateQuiz(true);
                     }}
                     className="flex items-center gap-3 bg-orange-500 hover:bg-orange-600 text-white px-10 py-4 rounded-full font-black text-xl shadow-lg shadow-orange-500/30 hover:-translate-y-1 transition-all active:scale-95"
                   >
-                    <Play fill="currentColor" size={24} /> ចាប់ផ្តើមលេង
+                    <Play fill="currentColor" size={24} /> {quizState === 'finished' ? 'លេងម្ដងទៀត' : 'ចាប់ផ្តើមលេង'}
                   </button>
                 </div>
               ) : (mode === 'quiz' ? quizOptions : getActiveData()).map((letter, idx) => (
