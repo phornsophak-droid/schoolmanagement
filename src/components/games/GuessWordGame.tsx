@@ -83,7 +83,7 @@ export default function GuessWordGame({ onBack }: GuessWordGameProps) {
       const guessedWord = newGuess.join('');
       if (guessedWord === targetWord) {
         setIsCorrect(true);
-        setScore(s => s + 10);
+        setScore(s => s + 1);
       } else {
         setWrongMatch(true);
         setTimeout(() => {

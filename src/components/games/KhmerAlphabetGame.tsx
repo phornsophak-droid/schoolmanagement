@@ -235,7 +235,7 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
     if (letter.char === targetLetter.char) {
       // Correct
       setShowCelebration(true);
-      setScore(s => s + 10);
+      setScore(s => s + 1);
       playKhmerClip('correct', 'ត្រឹមត្រូវល្អណាស់', { rate: 1.1 });
 
       setTimeout(() => {

@@ -68,7 +68,7 @@ export default function FindPairsGame({ onBack }: FindPairsGameProps) {
             ? { ...p, isMatched: true } 
             : p
         ));
-        setScore(s => s + 10);
+        setScore(s => s + 1);
         setSelectedId(null);
         
         // Check win

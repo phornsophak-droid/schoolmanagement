@@ -53,7 +53,7 @@ export default function SortLettersGame({ onBack }: SortLettersGameProps) {
       const guessedWord = newGuess.map(g => g.letter).join('');
       if (guessedWord === targetWord) {
         setIsCorrect(true);
-        setScore(s => s + 10);
+        setScore(s => s + 1);
       } else {
         setWrongMatch(true);
         setTimeout(() => {

@@ -95,7 +95,7 @@ export default function KhmerReadingGame({ onBack }: KhmerReadingGameProps) {
 
   const handleCorrect = () => {
     setShowCelebration(true);
-    setScore(s => s + 10);
+    setScore(s => s + 1);
     
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();

@@ -182,7 +182,7 @@ export default function MatchWordGame({ onBack }: MatchWordGameProps) {
         // Match!
         playKhmerClip('correct', 'ត្រឹមត្រូវ', { rate: 1.2 });
         setMatchedIds(prev => [...prev, selectedImageId]);
-        setScore(s => s + 10);
+        setScore(s => s + 1);
         setSelectedImageId(null);
         setSelectedWordId(null);
       } else {
