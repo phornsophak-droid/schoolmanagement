@@ -111,11 +111,18 @@ export async function findChild(nameTyped: string): Promise<ChildRow[]> {
       if (full === q || full.includes(q) || tokens.every(t => full.includes(t))) put(r);
     }
   }
-  // 2. Subsequence fallback (spelling drift) — only if the exact/token match found
-  //    nothing, so a mis-typed letter still resolves the child.
-  if (seen.size === 0) {
-    const probe = ([...tokens].sort((a, b) => b.length - a.length)[0] || q).slice(0, 2);
-    const { data } = await supabase.from('student_scores').select('name, grade, extra_data').ilike('name', `%${probe}%`).limit(800);
+  // 2. Subsequence fallback (spelling drift, missing/extra spaces)
+  if (seen.size === 0 && nq.length > 0) {
+    // Interleave '%' between the first 4 characters of the space-stripped query.
+    // e.g. "សុវណ្ណ" -> "%ស%ុ%វ%ណ%". Matches DB "សុវណ្ណ", "សុ វណ", etc.
+    const probeChars = nq.slice(0, 4).split('');
+    const probe = '%' + probeChars.join('%') + '%';
+    
+    const { data } = await supabase.from('student_scores')
+      .select('name, grade, extra_data')
+      .ilike('name', probe)
+      .limit(2000);
+      
     for (const r of (data || []) as any[]) {
       const nn = bare(r.name);
       if (nn.length >= 3 && (isSub(nq, nn) || isSub(nn, nq))) put(r);
@@ -147,19 +154,20 @@ export async function findChildClasses(sess: { name: string; studentId?: string 
     } catch { /* offline */ }
   }
   // 2. By name — TOLERANT (exact base, contains, all-tokens, or subsequence so a
-  //    small spelling drift across rosters still joins). Fetch by the given-name
-  //    token with an ORDER BY + high limit + a light select (name+grade only), so the
-  //    result is DETERMINISTIC and never randomly truncates the child's GRADE row.
-  if (tokens.length) {
+  //    small spelling drift across rosters still joins).
+  if (tokens.length || targetBase) {
     try {
-      const probe = ([...tokens].sort((a, b) => b.length - a.length)[0] || targetBase).slice(0, 2);
-      const { data } = await supabase.from('student_scores')
-        .select('name, grade')
-        .ilike('name', `%${probe}%`)
-        .order('name', { ascending: true })
-        .limit(4000);
       const bare = (s: string) => normParentName(stripSubjectTag(s)).replace(/\s/g, '');
       const nq = bare(sess.name);
+      const probeChars = nq.slice(0, 4).split('');
+      const probe = '%' + probeChars.join('%') + '%';
+      
+      const { data } = await supabase.from('student_scores')
+        .select('name, grade')
+        .ilike('name', probe)
+        .order('name', { ascending: true })
+        .limit(2000);
+        
       const isSub = (a: string, b: string) => { let i = 0; for (let j = 0; j < b.length && i < a.length; j++) if (b[j] === a[i]) i++; return i === a.length; };
       for (const r of (data || []) as any[]) {
         const full = normParentName(stripSubjectTag(r.name));
