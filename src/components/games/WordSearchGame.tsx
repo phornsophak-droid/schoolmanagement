@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ArrowLeft, RotateCcw, CheckCircle2, Trophy } from 'lucide-react';
 import { playKhmerClip, speakKhmer } from '../../lib/khmerSpeech';
-import confetti from 'canvas-confetti';
 
 interface WordSearchGameProps {
   onBack: () => void;
@@ -175,11 +174,6 @@ export default function WordSearchGame({ onBack }: WordSearchGameProps) {
 
   useEffect(() => {
     if (isLevelComplete && foundWords.length > 0) {
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
       playKhmerClip('win', 'អបអរសាទរ អ្នកឈ្នះហើយ!', { rate: 1.1 });
     }
   }, [isLevelComplete]);
