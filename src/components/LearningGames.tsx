@@ -173,7 +173,8 @@ export default function LearningGames({ onBack }: LearningGamesProps) {
                 'fraction', 'fast-math', 'multiplication', 'guess-time', 'money', 'geometry', 'even-odd',
                 'match-word', 'sort-letters', 'word-wheel', 'guess-word', 'flashcards', 'tts',
                 'memory', 'find-pairs', 'group-students', 'score-table',
-                'counting', 'compare-numbers', 'sequence', 'pattern', 'colors', 'khmer-alphabet', 'khmer-reading'
+                'counting', 'compare-numbers', 'sequence', 'pattern', 'colors', 'khmer-alphabet', 'khmer-reading',
+                'word-search'
               ];
               if (availableGames.includes(game.id)) {
                 setActiveGame(game.id);
