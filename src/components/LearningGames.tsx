@@ -29,6 +29,7 @@ import PatternGame from './games/PatternGame';
 import ColorsGame from './games/ColorsGame';
 import KhmerAlphabetGame from './games/KhmerAlphabetGame';
 import KhmerReadingGame from './games/KhmerReadingGame';
+import WordSearchGame from './games/WordSearchGame';
 
 interface Game {
   id: string;
@@ -66,7 +67,8 @@ const GAMES: Game[] = [
   { id: 'name-wheel', emoji: '👤', title: '២៥. កងវិលចាប់ឈ្មោះ', description: 'បង្វិលកងដើម្បីហៅឈ្មោះសិស្ស។', color: '#0EA5E9' },
   { id: 'group-students', emoji: '👥', title: '២៦. រៀបសិស្សជាក្រុម', description: 'បែងចែកសិស្សជាក្រុមដោយស្វ័យប្រវត្តិ។', color: '#6366F1' },
   { id: 'score-table', emoji: '🏆', title: '២៧. តារាងពិន្ទុកក្រុម', description: 'កត់ត្រា និងបូកពិន្ទុសម្រាប់ក្រុមនីមួយៗ។', color: '#EAB308' },
-  { id: 'whiteboard', emoji: '✏️', title: '២៨. ក្តារខៀនឌីជីថល', description: 'គូររូប និងសរសេរពន្យល់នៅលើក្តារខៀន។', color: '#EF4444' }
+  { id: 'whiteboard', emoji: '✏️', title: '២៨. ក្តារខៀនឌីជីថល', description: 'គូររូប និងសរសេរពន្យល់នៅលើក្តារខៀន។', color: '#EF4444' },
+  { id: 'word-search', emoji: '🔎', title: '២៩. ល្បែងស្វែងរកពាក្យ', description: 'អូសស្វែងរកពាក្យខ្មែរដែលលាក់នៅក្នុងតារាង។', color: '#22C55E' }
 ];
 
 interface LearningGamesProps {
@@ -123,6 +125,7 @@ export default function LearningGames({ onBack }: LearningGamesProps) {
       case 'colors': return <ColorsGame onBack={() => setActiveGame(null)} />;
       case 'khmer-alphabet': return <KhmerAlphabetGame onBack={() => setActiveGame(null)} />;
       case 'khmer-reading': return <KhmerReadingGame onBack={() => setActiveGame(null)} />;
+      case 'word-search': return <WordSearchGame onBack={() => setActiveGame(null)} />;
       default: return null;
     }
   };
