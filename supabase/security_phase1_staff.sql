@@ -69,21 +69,27 @@ create policy tc_principal_manage on public.teacher_classes
 -- ============================================================================
 -- CREATE THE FIRST PRINCIPAL (do this once, in the dashboard)
 -- ============================================================================
--- The `username` MUST equal the account id the app already uses ('principal'
--- for the principal, 'teacher_g6' etc. for teachers) so the login maps to it
--- automatically. The email is always <username>@staff.ccc.local.
+-- Two accounts: the PRINCIPAL and one SHARED TEACHER account. The login maps by
+-- role → email (src/lib/auth.ts STAFF_EMAILS): principal → sophak.camkids@gmail.com,
+-- teacher → phornsophak@gmail.com. Real inboxes, so email password-reset works.
 --
--- a) Authentication → Users → "Add user" → create with:
---       email:    principal@staff.ccc.local
---       password: <a numeric password, min 6 digits>
---    Copy the new user's UID.
--- b) Then run (replace the UID and name):
+-- PRINCIPAL:
+-- a) Authentication → Users → "Add user":
+--       email: sophak.camkids@gmail.com   password: <numeric, min 6 digits>
+--       ☑ Auto Confirm User
+--    Copy the UID, then run:
+--       insert into public.staff (id, username, full_name, role)
+--       values ('PASTE-PRINCIPAL-UID', 'principal', 'ផន សុភាក់', 'principal');
 --
---    insert into public.staff (id, username, full_name, role)
---    values ('PASTE-USER-UID-HERE', 'principal', 'ផន សុភាព', 'principal');
+-- TEACHER (shared by all teachers):
+-- b) Authentication → Users → "Add user":
+--       email: phornsophak@gmail.com   password: <numeric, min 6 digits>
+--       ☑ Auto Confirm User
+--    Copy the UID, then run:
+--       insert into public.staff (id, username, full_name, role)
+--       values ('PASTE-TEACHER-UID', 'teacher', 'គ្រូបង្រៀន', 'teacher');
 --
--- The SQL editor runs as service_role, so it bypasses RLS for this first insert.
--- After that, the principal can add teachers from inside the app.
+-- The SQL editor runs as service_role, so it bypasses RLS for these inserts.
 -- ============================================================================
 
 -- ROLLBACK (undo this step):

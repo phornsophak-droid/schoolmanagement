@@ -12,7 +12,19 @@
 // ============================================================================
 import { getSupabaseClient } from './supabase';
 
-export const STAFF_EMAIL_DOMAIN = 'staff.ccc.local';
+// School staff sign-in emails (real inboxes, so email password-reset works).
+// The principal has their own account; all teachers share one account. These
+// are this school's config — change them for another school (or later: move to
+// a school setting for white-labelling).
+export const STAFF_EMAILS: { principal: string; teacher: string } = {
+  principal: 'sophak.camkids@gmail.com',
+  teacher: 'phornsophak@gmail.com',
+};
+
+/** The Supabase Auth sign-in email for a staff account, chosen by role. */
+export function emailForRole(role: string): string {
+  return role === 'principal' ? STAFF_EMAILS.principal : STAFF_EMAILS.teacher;
+}
 
 export interface StaffProfile {
   id: string;
@@ -20,12 +32,6 @@ export interface StaffProfile {
   full_name: string;
   role: 'principal' | 'teacher';
   active: boolean;
-}
-
-/** Map a typed username to the internal Supabase Auth email. */
-export function usernameToEmail(username: string): string {
-  const clean = username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
-  return `${clean}@${STAFF_EMAIL_DOMAIN}`;
 }
 
 /** Look up the signed-in user's staff row (null if not signed in / not staff). */
@@ -51,14 +57,11 @@ export interface SignInResult {
 }
 
 /** Sign a staff member in with username + password. */
-export async function signInStaff(username: string, password: string): Promise<SignInResult> {
+export async function signInStaff(email: string, password: string): Promise<SignInResult> {
   const sb = getSupabaseClient();
   if (!sb) return { ok: false, error: 'គ្មានការតភ្ជាប់ទៅ Supabase' };
 
-  const { data, error } = await sb.auth.signInWithPassword({
-    email: usernameToEmail(username),
-    password,
-  });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error || !data?.user) {
     return { ok: false, error: 'ឈ្មោះ ឬ លេខសម្ងាត់ មិនត្រឹមត្រូវ' };
   }

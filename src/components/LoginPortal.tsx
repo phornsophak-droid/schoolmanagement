@@ -3,7 +3,7 @@ import { SchoolUser } from '../types';
 import { useT, LanguageToggle } from '../i18n';
 import { getPinForUser, setPinForUser } from '../utils/auth';
 import { syncUpsertSetting, syncGradesBulk } from '../lib/supabase';
-import { signInStaff } from '../lib/auth';
+import { signInStaff, emailForRole } from '../lib/auth';
 import { SchoolLogo } from './SchoolLogo';
 import InstallPWAButton from './InstallPWAButton';
 import { 
@@ -229,7 +229,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
       // 1. Try the secure server account first (username = the account id). Once
       //    an account is migrated to Supabase Auth, this is the real, server-
       //    checked login and it establishes the session RLS will rely on.
-      const res = await signInStaff(selectedUser.id, pinCode);
+      const res = await signInStaff(emailForRole(selectedUser.role), pinCode);
       if (res.ok) { onLoginSuccess(selectedUser); return; }
 
       // 2. Fall back to the local PIN so accounts not yet migrated keep working
