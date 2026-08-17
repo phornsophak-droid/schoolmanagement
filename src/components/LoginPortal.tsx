@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SchoolUser } from '../types';
 import { useT, LanguageToggle } from '../i18n';
-import { getPinForUser, setPinForUser, getEmergencyPin } from '../utils/auth';
+import { setPinForUser, getEmergencyPin } from '../utils/auth';
 import { syncUpsertSetting, syncGradesBulk } from '../lib/supabase';
 import { signInStaff, emailForAccount, registerTeacher } from '../lib/auth';
 import { SchoolLogo } from './SchoolLogo';
@@ -237,33 +237,24 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
     if (!selectedUser || verifying) return;
     setErrorMsg('');
 
-    // Principal break-glass: the self-set emergency PIN works INSTANTLY, even
-    // when Supabase is unreachable — which is exactly when it's needed. Check it
-    // BEFORE any network call so a down/slow server never blocks it.
-    if (selectedUser.role === 'principal') {
-      const emergency = getEmergencyPin();
-      if (emergency && pinCode === emergency) { onLoginSuccess(selectedUser); return; }
+    // Teachers must sign in with their OWN email now (the «ចូលដោយ Email» button).
+    // The name + code path is principal-only.
+    if (selectedUser.role !== 'principal') {
+      setErrorMsg('គ្រូសូមចូលដោយចុចប៊ូតុង «ចូលដោយ Email» ខាងក្រោម (email + លេខសម្ងាត់ខ្លួនឯង)។ បើមិនទាន់មានគណនី សូមចុះឈ្មោះ។');
+      return;
     }
+
+    // Principal break-glass: the self-set emergency PIN works INSTANTLY, even
+    // when Supabase is unreachable — check it BEFORE any network call.
+    const emergency = getEmergencyPin();
+    if (emergency && pinCode === emergency) { onLoginSuccess(selectedUser); return; }
 
     setVerifying(true);
     try {
-      // Try the secure server account (email chosen by role). Once migrated this
-      // is the real, server-checked login and it establishes the RLS session.
       const res = await signInStaff(emailForAccount(selectedUser), pinCode);
       if (res.ok) { onLoginSuccess(selectedUser); return; }
-
-      // The principal's old default PIN is disabled — only the account password
-      // or the emergency PIN (handled above) works.
-      if (selectedUser.role === 'principal') {
-        setErrorMsg('លេខសម្ងាត់មិនត្រឹមត្រូវ (សូមប្រើលេខសម្ងាត់គណនីថ្មី ឬ លេខសង្គ្រោះ)');
-        return;
-      }
-
-      // 2. Teachers not yet migrated: fall back to the local PIN.
-      const correctPin = getPinForUser(selectedUser.id, selectedUser.role);
-      if (pinCode === correctPin) { onLoginSuccess(selectedUser); return; }
-
-      setErrorMsg(t('login.wrongPin'));
+      // Old default PIN is disabled — only the account password or emergency PIN.
+      setErrorMsg('លេខសម្ងាត់មិនត្រឹមត្រូវ (សូមប្រើលេខសម្ងាត់គណនីថ្មី ឬ លេខសង្គ្រោះ)');
     } finally {
       setVerifying(false);
     }
@@ -290,14 +281,18 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
         setErrorMsg('សម្រាប់គ្រូ សូមចូលដោយ ជ្រើសឈ្មោះថ្នាក់របស់អ្នក រួចវាយលេខសម្ងាត់ (មិនមែនតាម Email)។');
         return;
       }
-      const user: SchoolUser = matched || {
-        id: res.staff.username,
-        name: res.staff.full_name,
-        role: res.staff.role,
-        grade: res.staff.role === 'principal' ? 'ទាំងអស់' : '',
-        photoCode: (res.staff.full_name || 'គ').replace(/\s/g, '').slice(0, 2),
-        avatarBg: 'bg-gradient-to-tr from-blue-600 to-sky-500',
-      };
+      // Use the existing class account (grade/avatar/id) but show the REGISTERED
+      // teacher's real name instead of the old placeholder name.
+      const user: SchoolUser = matched
+        ? { ...matched, name: res.staff!.full_name || matched.name }
+        : {
+            id: res.staff.username,
+            name: res.staff.full_name,
+            role: res.staff.role,
+            grade: res.staff.role === 'principal' ? 'ទាំងអស់' : '',
+            photoCode: (res.staff.full_name || 'គ').replace(/\s/g, '').slice(0, 2),
+            avatarBg: 'bg-gradient-to-tr from-blue-600 to-sky-500',
+          };
       onLoginSuccess(user);
     } finally {
       setVerifying(false);
