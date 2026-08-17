@@ -12,20 +12,17 @@
 // ============================================================================
 import { getSupabaseClient } from './supabase';
 
-// School staff sign-in emails. The principal has one account. Each teacher gets
-// a UNIQUE gmail +alias of the base address (every alias still lands in the one
-// inbox) so every teacher has their own account/password and can be scoped
-// per-class later. School-specific config — change for another school, or later
-// move to a school setting for white-labelling.
+// School staff sign-in emails. The principal has their own account; ALL teachers
+// currently share ONE account — a teacher signs in by picking their class name +
+// this shared password. (Per-teacher accounts can come later; the self-register
+// flow is still available for that.) School-specific config — change for another
+// school, or later move to a school setting for white-labelling.
 export const PRINCIPAL_EMAIL = 'sophak.camkids@gmail.com';
-export const TEACHER_EMAIL_BASE = 'phornsophak@gmail.com';
+export const TEACHER_EMAIL = 'phornsophak@gmail.com';
 
 /** The Supabase Auth sign-in email for a given app account. */
 export function emailForAccount(user: { id: string; role: string }): string {
-  if (user.role === 'principal') return PRINCIPAL_EMAIL;
-  const tag = (user.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
-  const [local, domain] = TEACHER_EMAIL_BASE.split('@');
-  return `${local}+${tag}@${domain}`;
+  return user.role === 'principal' ? PRINCIPAL_EMAIL : TEACHER_EMAIL;
 }
 
 export interface StaffProfile {
