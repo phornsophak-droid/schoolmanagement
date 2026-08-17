@@ -12,18 +12,20 @@
 // ============================================================================
 import { getSupabaseClient } from './supabase';
 
-// School staff sign-in emails (real inboxes, so email password-reset works).
-// The principal has their own account; all teachers share one account. These
-// are this school's config — change them for another school (or later: move to
-// a school setting for white-labelling).
-export const STAFF_EMAILS: { principal: string; teacher: string } = {
-  principal: 'sophak.camkids@gmail.com',
-  teacher: 'phornsophak@gmail.com',
-};
+// School staff sign-in emails. The principal has one account. Each teacher gets
+// a UNIQUE gmail +alias of the base address (every alias still lands in the one
+// inbox) so every teacher has their own account/password and can be scoped
+// per-class later. School-specific config — change for another school, or later
+// move to a school setting for white-labelling.
+export const PRINCIPAL_EMAIL = 'sophak.camkids@gmail.com';
+export const TEACHER_EMAIL_BASE = 'phornsophak@gmail.com';
 
-/** The Supabase Auth sign-in email for a staff account, chosen by role. */
-export function emailForRole(role: string): string {
-  return role === 'principal' ? STAFF_EMAILS.principal : STAFF_EMAILS.teacher;
+/** The Supabase Auth sign-in email for a given app account. */
+export function emailForAccount(user: { id: string; role: string }): string {
+  if (user.role === 'principal') return PRINCIPAL_EMAIL;
+  const tag = (user.id || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  const [local, domain] = TEACHER_EMAIL_BASE.split('@');
+  return `${local}+${tag}@${domain}`;
 }
 
 export interface StaffProfile {
