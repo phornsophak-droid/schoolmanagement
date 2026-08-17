@@ -69,14 +69,18 @@ create policy tc_principal_manage on public.teacher_classes
 -- ============================================================================
 -- CREATE THE FIRST PRINCIPAL (do this once, in the dashboard)
 -- ============================================================================
+-- The `username` MUST equal the account id the app already uses ('principal'
+-- for the principal, 'teacher_g6' etc. for teachers) so the login maps to it
+-- automatically. The email is always <username>@staff.ccc.local.
+--
 -- a) Authentication → Users → "Add user" → create with:
---       email:    <username>@staff.ccc.local   (e.g. sophak@staff.ccc.local)
---       password: <a strong password>
+--       email:    principal@staff.ccc.local
+--       password: <a numeric password, min 6 digits>
 --    Copy the new user's UID.
 -- b) Then run (replace the UID and name):
 --
 --    insert into public.staff (id, username, full_name, role)
---    values ('PASTE-USER-UID-HERE', 'sophak', 'ផន សុភាព', 'principal');
+--    values ('PASTE-USER-UID-HERE', 'principal', 'ផន សុភាព', 'principal');
 --
 -- The SQL editor runs as service_role, so it bypasses RLS for this first insert.
 -- After that, the principal can add teachers from inside the app.

@@ -3,6 +3,7 @@ import { SchoolUser } from '../types';
 import { useT, LanguageToggle } from '../i18n';
 import { getPinForUser, setPinForUser } from '../utils/auth';
 import { syncUpsertSetting, syncGradesBulk } from '../lib/supabase';
+import { signInStaff } from '../lib/auth';
 import { SchoolLogo } from './SchoolLogo';
 import InstallPWAButton from './InstallPWAButton';
 import { 
@@ -197,6 +198,7 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
   const [pinCode, setPinCode] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [showPin, setShowPin] = useState<boolean>(false);
+  const [verifying, setVerifying] = useState<boolean>(false);
   const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
 
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
@@ -218,16 +220,26 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
     setErrorMsg('');
   };
 
-  const handlePinSubmit = (e: React.FormEvent) => {
+  const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser) return;
+    if (!selectedUser || verifying) return;
+    setErrorMsg('');
+    setVerifying(true);
+    try {
+      // 1. Try the secure server account first (username = the account id). Once
+      //    an account is migrated to Supabase Auth, this is the real, server-
+      //    checked login and it establishes the session RLS will rely on.
+      const res = await signInStaff(selectedUser.id, pinCode);
+      if (res.ok) { onLoginSuccess(selectedUser); return; }
 
-    const correctPin = getPinForUser(selectedUser.id, selectedUser.role);
+      // 2. Fall back to the local PIN so accounts not yet migrated keep working
+      //    (and it still works offline / before Supabase Auth is set up).
+      const correctPin = getPinForUser(selectedUser.id, selectedUser.role);
+      if (pinCode === correctPin) { onLoginSuccess(selectedUser); return; }
 
-    if (pinCode === correctPin) {
-      onLoginSuccess(selectedUser);
-    } else {
       setErrorMsg(t('login.wrongPin'));
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -520,10 +532,11 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md flex items-center justify-center gap-1 group"
+                  disabled={verifying}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-wait text-white font-bold rounded-xl text-xs transition-colors shadow-md flex items-center justify-center gap-1 group"
                 >
                   <Lock size={12} className="group-hover:scale-95 transition-transform" />
-                  {t('login.verify')}
+                  {verifying ? '...' : t('login.verify')}
                   <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </form>
