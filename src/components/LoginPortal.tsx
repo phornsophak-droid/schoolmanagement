@@ -244,8 +244,15 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
       const res = await signInStaff(emailForAccount(selectedUser), pinCode);
       if (res.ok) { onLoginSuccess(selectedUser); return; }
 
-      // 2. Fall back to the local PIN so accounts not yet migrated keep working
-      //    (and it still works offline / before Supabase Auth is set up).
+      // The principal is migrated to a real account, so the old PIN no longer
+      // works for them — only the Supabase password. (Teachers keep the PIN
+      // fallback until they register their own account.)
+      if (selectedUser.role === 'principal') {
+        setErrorMsg('លេខសម្ងាត់មិនត្រឹមត្រូវ (PIN ចាស់លែងប្រើសម្រាប់នាយកទៀត — សូមប្រើលេខសម្ងាត់គណនីថ្មី)');
+        return;
+      }
+
+      // 2. Teachers not yet migrated: fall back to the local PIN.
       const correctPin = getPinForUser(selectedUser.id, selectedUser.role);
       if (pinCode === correctPin) { onLoginSuccess(selectedUser); return; }
 
