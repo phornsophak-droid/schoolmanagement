@@ -35,7 +35,8 @@ import {
   ExternalLink,
   Rocket,
   KeyRound,
-  Archive
+  Archive,
+  UserCheck
 } from 'lucide-react';
 
 import { StudentScore, SchoolReport, SchoolUser } from './types';
@@ -146,6 +147,7 @@ import LoginPortal from './components/LoginPortal';
 import ParentPortal from './components/ParentPortal';
 import ParentPortalAdmin from './components/ParentPortalAdmin';
 import StaffPinManager from './components/StaffPinManager';
+import TeacherApprovals from './components/TeacherApprovals';
 import SchoolYearSetting from './components/SchoolYearSetting';
 import YearArchive from './components/YearArchive';
 import { getAcademicYear } from './lib/schoolYear';
@@ -294,6 +296,7 @@ export default function App() {
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
   // Principal-only: view/reset every staff account's login password.
   const [isPinsManagerOpen, setIsPinsManagerOpen] = useState(false);
+  const [isApprovalsOpen, setIsApprovalsOpen] = useState(false);
   // Principal-only: set the active school year (2025-2026 → 2026-2027 …).
   const [isYearSettingOpen, setIsYearSettingOpen] = useState(false);
   // Principal-only: archive a school year's data before starting a new one.
@@ -1979,6 +1982,15 @@ export default function App() {
               )}
               {currentUser?.role === 'principal' && (
                 <button
+                  onClick={() => setIsApprovalsOpen(true)}
+                  className="p-1.5 hover:bg-slate-800 hover:text-emerald-400 text-slate-400 rounded-lg transition-colors flex-shrink-0"
+                  title="អនុម័តគ្រូថ្មី"
+                >
+                  <UserCheck size={13} />
+                </button>
+              )}
+              {currentUser?.role === 'principal' && (
+                <button
                   onClick={() => setIsPinsManagerOpen(true)}
                   className="p-1.5 hover:bg-slate-800 hover:text-emerald-400 text-slate-400 rounded-lg transition-colors flex-shrink-0"
                   title="គ្រប់គ្រងលេខសម្ងាត់គ្រូ"
@@ -3291,7 +3303,10 @@ export default function App() {
       </div>
 
       {currentUser?.role === 'principal' && (
-        <StaffPinManager open={isPinsManagerOpen} onClose={() => setIsPinsManagerOpen(false)} />
+        <>
+          <StaffPinManager open={isPinsManagerOpen} onClose={() => setIsPinsManagerOpen(false)} />
+          <TeacherApprovals open={isApprovalsOpen} onClose={() => setIsApprovalsOpen(false)} />
+        </>
       )}
 
       {currentUser?.role === 'principal' && (
