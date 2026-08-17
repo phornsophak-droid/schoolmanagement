@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SchoolUser } from '../types';
 import { useT, LanguageToggle } from '../i18n';
-import { getPinForUser, setPinForUser } from '../utils/auth';
+import { getPinForUser, setPinForUser, getEmergencyPin } from '../utils/auth';
 import { syncUpsertSetting, syncGradesBulk } from '../lib/supabase';
 import { signInStaff, emailForAccount, registerTeacher } from '../lib/auth';
 import { SchoolLogo } from './SchoolLogo';
@@ -236,19 +236,26 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
     e.preventDefault();
     if (!selectedUser || verifying) return;
     setErrorMsg('');
+
+    // Principal break-glass: the self-set emergency PIN works INSTANTLY, even
+    // when Supabase is unreachable — which is exactly when it's needed. Check it
+    // BEFORE any network call so a down/slow server never blocks it.
+    if (selectedUser.role === 'principal') {
+      const emergency = getEmergencyPin();
+      if (emergency && pinCode === emergency) { onLoginSuccess(selectedUser); return; }
+    }
+
     setVerifying(true);
     try {
-      // 1. Try the secure server account first (username = the account id). Once
-      //    an account is migrated to Supabase Auth, this is the real, server-
-      //    checked login and it establishes the session RLS will rely on.
+      // Try the secure server account (email chosen by role). Once migrated this
+      // is the real, server-checked login and it establishes the RLS session.
       const res = await signInStaff(emailForAccount(selectedUser), pinCode);
       if (res.ok) { onLoginSuccess(selectedUser); return; }
 
-      // The principal is migrated to a real account, so the old PIN no longer
-      // works for them — only the Supabase password. (Teachers keep the PIN
-      // fallback until they register their own account.)
+      // The principal's old default PIN is disabled — only the account password
+      // or the emergency PIN (handled above) works.
       if (selectedUser.role === 'principal') {
-        setErrorMsg('លេខសម្ងាត់មិនត្រឹមត្រូវ (PIN ចាស់លែងប្រើសម្រាប់នាយកទៀត — សូមប្រើលេខសម្ងាត់គណនីថ្មី)');
+        setErrorMsg('លេខសម្ងាត់មិនត្រឹមត្រូវ (សូមប្រើលេខសម្ងាត់គណនីថ្មី ឬ លេខសង្គ្រោះ)');
         return;
       }
 

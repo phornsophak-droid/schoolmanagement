@@ -580,6 +580,7 @@ export default function App() {
               mergeCachedSettings(data.settings);
               if (data.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(data.settings['school_custom_users']));
               if (data.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(data.settings['school_custom_pins']));
+              if (data.settings['school_principal_emergency_pin']) localStorage.setItem('school_principal_emergency_pin', String(data.settings['school_principal_emergency_pin']));
               if (data.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(data.settings['school_custom_teachers_v2']));
               try { if (data.settings['school_principal_signature_v1']) localStorage.setItem('school_principal_signature_v1', data.settings['school_principal_signature_v1']); } catch { /* quota — served from memory cache */ }
               Object.keys(data.settings).forEach(k => { if (k.startsWith('school_teacher_signature::')) { try { localStorage.setItem(k, data.settings[k]); } catch { /* quota — served from memory cache */ } } });
@@ -656,6 +657,7 @@ export default function App() {
                     mergeCachedSettings(newData.settings);
                     if (newData.settings['school_custom_users']) localStorage.setItem('school_custom_users', JSON.stringify(newData.settings['school_custom_users']));
                     if (newData.settings['school_custom_pins']) localStorage.setItem('school_custom_pins', JSON.stringify(newData.settings['school_custom_pins']));
+                    if (newData.settings['school_principal_emergency_pin']) localStorage.setItem('school_principal_emergency_pin', String(newData.settings['school_principal_emergency_pin']));
                     if (newData.settings['school_custom_teachers_v2']) localStorage.setItem('school_custom_teachers_v2', JSON.stringify(newData.settings['school_custom_teachers_v2']));
                     try { if (newData.settings['school_principal_signature_v1']) localStorage.setItem('school_principal_signature_v1', newData.settings['school_principal_signature_v1']); } catch { /* quota — served from memory cache */ }
                     Object.keys(newData.settings).forEach(k => { if (k.startsWith('school_teacher_signature::')) { try { localStorage.setItem(k, newData.settings[k]); } catch { /* quota — served from memory cache */ } } });

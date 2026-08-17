@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { X, Eye, EyeOff, KeyRound, ShieldAlert, RotateCcw, CheckCircle, Search } from 'lucide-react';
 import { AVAILABLE_USERS } from './LoginPortal';
-import { getPinForUser, setPinForUser } from '../utils/auth';
+import { getPinForUser, setPinForUser, getEmergencyPin, setEmergencyPin } from '../utils/auth';
 
 // Principal-only view of every staff account's login password. Passwords are kept
 // readable BY DESIGN (same model as the SOF app member passwords) so the principal
@@ -16,6 +16,11 @@ export default function StaffPinManager({ open, onClose }: { open: boolean; onCl
   // Local editable copy keyed by user id, seeded from the stored pins.
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [savedId, setSavedId] = useState<string>('');
+  // Emergency principal PIN (break-glass).
+  const storedEm = useMemo(() => getEmergencyPin(), [open]);
+  const [emDraft, setEmDraft] = useState<string | null>(null);
+  const [emSaved, setEmSaved] = useState(false);
+  const emValue = emDraft ?? storedEm;
   // Re-read stored pins whenever the modal (re)opens.
   const stored = useMemo(() => {
     const m: Record<string, string> = {};
@@ -23,6 +28,15 @@ export default function StaffPinManager({ open, onClose }: { open: boolean; onCl
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  const saveEmergency = () => {
+    const v = (emValue || '').trim();
+    if (v && v.length < 4) { alert('លេខសង្គ្រោះត្រូវមានយ៉ាងតិច ៤ ខ្ទង់'); return; }
+    setEmergencyPin(v);
+    setEmDraft(null);
+    setEmSaved(true);
+    setTimeout(() => setEmSaved(false), 1500);
+  };
 
   if (!open) return null;
 
@@ -80,6 +94,30 @@ export default function StaffPinManager({ open, onClose }: { open: boolean; onCl
             <ShieldAlert size={14} className="text-amber-500 shrink-0 mt-0.5" />
             សម្រាប់នាយកសាលាតែប៉ុណ្ណោះ។ ព័ត៌មាននេះជាការសម្ងាត់ — កុំបង្ហាញអ្នកដទៃ។ គ្រូអាចប្តូរលេខសម្ងាត់ខ្លួនឯងបាន ក្នុងកម្មវិធី។
           </p>
+        </div>
+
+        <div className="p-3 border-b border-slate-100 shrink-0 bg-rose-50/50">
+          <label className="block text-[11px] font-bold text-rose-800 mb-1.5 flex items-center gap-1.5">
+            <ShieldAlert size={13} className="text-rose-500" />
+            លេខសម្ងាត់សង្គ្រោះនាយក (ចូលពេលភ្លេច password ឬ អ៊ីនធឺណិតដាច់)
+          </label>
+          <div className="flex gap-2">
+            <input
+              type={reveal ? 'text' : 'password'}
+              value={emValue}
+              maxLength={12}
+              onChange={e => setEmDraft(e.target.value)}
+              placeholder="កំណត់លេខ ៦ ខ្ទង់"
+              className="flex-1 px-3 py-2 border border-rose-200 rounded-lg font-mono text-center text-sm font-bold text-slate-800 focus:outline-none focus:border-rose-500 bg-white"
+            />
+            <button
+              onClick={saveEmergency}
+              className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 shrink-0"
+            >
+              {emSaved ? <><CheckCircle size={13} /> រួច</> : 'រក្សាទុក'}
+            </button>
+          </div>
+          <p className="text-[10px] text-rose-700/80 mt-1">សម្ងាត់ខ្លាំង។ ទុកទទេ = បិទ។</p>
         </div>
 
         <div className="p-3 border-b border-slate-100 shrink-0">
