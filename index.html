@@ -42,7 +42,22 @@
       });
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch((error) => {
+          navigator.serviceWorker.register('/sw.js').then((reg) => {
+            // Auto-update: when a NEW version is installed and a controller already
+            // exists (i.e. this is an update, not the first install), reload once so
+            // every device picks up the latest code without a manual cache clear.
+            reg.addEventListener('updatefound', () => {
+              const nw = reg.installing;
+              if (!nw) return;
+              nw.addEventListener('statechange', () => {
+                if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              });
+            });
+            // Check for a new version periodically while the app stays open.
+            setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+          }).catch((error) => {
             console.error('ServiceWorker registration failed: ', error);
           });
         });
