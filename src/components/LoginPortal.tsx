@@ -583,109 +583,48 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
               </div>
             </div>
           ) : !selectedUser ? (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-1.5">
-                  <Users className="text-blue-600" size={20} />
-                  {t('login.selectAccount')}
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">{t('login.selectHint')}</p>
+            <div className="space-y-5 max-w-sm mx-auto w-full">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-2xl mx-auto bg-blue-600 flex items-center justify-center text-white mb-3 shadow-lg shadow-blue-600/25">
+                  <Lock size={26} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800">ចូលទៅប្រព័ន្ធ</h2>
+                <p className="text-xs text-slate-500 mt-1">សម្រាប់នាយក និងគ្រូបង្រៀន</p>
               </div>
 
-              {/* Scrollable list of available profiles to switch between */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1">
-                
-                {/* Principal user element */}
+              <button
+                onClick={() => { setEmailMode(true); setErrorMsg(''); }}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition-all active:scale-[0.99]"
+              >
+                <Lock size={16} /> ចូលដោយ Email
+              </button>
+
+              <div className="text-center">
+                <button
+                  onClick={() => { setRegisterMode(true); setErrorMsg(''); }}
+                  className="text-xs text-indigo-600 hover:underline font-bold"
+                >
+                  គ្រូថ្មី? ចុះឈ្មោះនៅទីនេះ
+                </button>
+              </div>
+
+              {/* Principal — signs in via Email above, or here for emergency-PIN access. */}
+              <div className="pt-4 border-t border-slate-200/60">
                 <button
                   onClick={() => handleSelectUser(AVAILABLE_USERS[0])}
-                  className="p-4 rounded-xl border border-slate-200 bg-white hover:border-amber-400 hover:shadow-sm text-left transition-all duration-150 group"
+                  className="w-full p-3 rounded-xl border border-slate-200 bg-white hover:border-amber-400 hover:shadow-sm text-left transition-all group flex items-center gap-3"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
-                      {AVAILABLE_USERS[0].photoCode}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">{t('login.principalBadge')}</span>
-                      <h3 className="text-xs font-bold text-slate-800 mt-1 truncate group-hover:text-amber-700">{AVAILABLE_USERS[0].name}</h3>
-                    </div>
+                  <div className="w-9 h-9 rounded-xl bg-amber-600 flex items-center justify-center text-white text-xs font-bold shadow-md shrink-0">
+                    {AVAILABLE_USERS[0].photoCode}
                   </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">{t('login.principalBadge')}</span>
+                    <h3 className="text-xs font-bold text-slate-800 mt-0.5 truncate group-hover:text-amber-700">{AVAILABLE_USERS[0].name}</h3>
+                  </div>
+                  <ChevronRight size={16} className="text-slate-300 group-hover:text-amber-500 shrink-0" />
                 </button>
-
-                {/* Teacher elements */}
-                {AVAILABLE_USERS.slice(1).map((teacher) => (
-                  <button
-                    key={teacher.id}
-                    onClick={() => handleSelectUser(teacher)}
-                    className="p-4 rounded-xl border border-slate-200 bg-white hover:border-blue-400 hover:shadow-xs text-left transition-all duration-150 group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                        {teacher.photoCode}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold">{teacher.grade}</span>
-                        <h3 className="text-xs font-semibold text-slate-800 mt-1 truncate group-hover:text-blue-600">{teacher.name}</h3>
-                      </div>
-                      
-                      {/* Delete button for custom users */}
-                      {teacher.id.startsWith('teacher_custom_') && (
-                        <button
-                          onClick={(e) => handleDeleteCustomUser(teacher.id, e)}
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
-                          title={t('login.deleteAccount')}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </button>
-                ))}
-
+                <p className="text-[10px] text-slate-400 text-center mt-1.5">នាយក៖ ចូលដោយ Email ខាងលើ ឬ ចុចទីនេះសម្រាប់លេខសង្គ្រោះ</p>
               </div>
-              
-              {/* Secure email + password sign-in for staff */}
-              <div className="pt-2 flex justify-center">
-                <button
-                  onClick={() => { setEmailMode(true); setErrorMsg(''); }}
-                  className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md"
-                >
-                  <Lock size={14} /> ចូលដោយ Email (គ្រូ/នាយក)
-                </button>
-              </div>
-
-              {/* Add New Class Button */}
-              <div className="pt-2 border-t border-slate-200/60 flex justify-center">
-                <button
-                  onClick={() => setIsAddClassOpen(true)}
-                  className="px-4 py-2 border border-dashed border-slate-300 text-slate-500 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
-                >
-                  <span>+</span>
-                  <span>{t('login.addClass')}</span>
-                </button>
-              </div>
-
-              {/* Parent access — view/download a child's report card (no login) */}
-              {onParentAccess && (
-                <div className="pt-3 mt-1 border-t border-slate-200/60 flex justify-center gap-2 flex-wrap">
-                  <button
-                    onClick={onParentAccess}
-                    className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md"
-                  >
-                    <Users size={15} />
-                    <span>{t('login.parentAccess')}</span>
-                  </button>
-                  {onStudentTest && (
-                    <button
-                      onClick={onStudentTest}
-                      className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md"
-                    >
-                      <span>📝</span>
-                      <span>{t('login.studentTest')}</span>
-                    </button>
-                  )}
-                </div>
-              )}
-
             </div>
           ) : (
             // Back to selection and dynamic security token check
