@@ -283,6 +283,13 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
         return;
       }
       const matched = AVAILABLE_USERS.find(u => u.id === res.staff!.username);
+      // A shared teacher account (username='teacher') maps to no specific class,
+      // so email sign-in can't know which class to open — send them to pick their
+      // name instead (that flow uses the same shared password).
+      if (res.staff.role === 'teacher' && !matched) {
+        setErrorMsg('សម្រាប់គ្រូ សូមចូលដោយ ជ្រើសឈ្មោះថ្នាក់របស់អ្នក រួចវាយលេខសម្ងាត់ (មិនមែនតាម Email)។');
+        return;
+      }
       const user: SchoolUser = matched || {
         id: res.staff.username,
         name: res.staff.full_name,
