@@ -199,6 +199,11 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [showPin, setShowPin] = useState<boolean>(false);
   const [verifying, setVerifying] = useState<boolean>(false);
+  // Sign-in with a personal email + password (Supabase Auth), as an alternative
+  // to picking a name + PIN.
+  const [emailMode, setEmailMode] = useState<boolean>(false);
+  const [emailInput, setEmailInput] = useState<string>('');
+  const [passwordInput, setPasswordInput] = useState<string>('');
   const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
 
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
@@ -238,6 +243,34 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
       if (pinCode === correctPin) { onLoginSuccess(selectedUser); return; }
 
       setErrorMsg(t('login.wrongPin'));
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Email + password sign-in. On success the staff row's `username` tells us which
+  // app account (class) this is, so we can show the right class view.
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (verifying) return;
+    setErrorMsg('');
+    setVerifying(true);
+    try {
+      const res = await signInStaff(emailInput.trim(), passwordInput);
+      if (!res.ok || !res.staff) {
+        setErrorMsg('អ៊ីមែល ឬ លេខសម្ងាត់ មិនត្រឹមត្រូវ');
+        return;
+      }
+      const matched = AVAILABLE_USERS.find(u => u.id === res.staff!.username);
+      const user: SchoolUser = matched || {
+        id: res.staff.username,
+        name: res.staff.full_name,
+        role: res.staff.role,
+        grade: res.staff.role === 'principal' ? 'ទាំងអស់' : '',
+        photoCode: (res.staff.full_name || 'គ').replace(/\s/g, '').slice(0, 2),
+        avatarBg: 'bg-gradient-to-tr from-blue-600 to-sky-500',
+      };
+      onLoginSuccess(user);
     } finally {
       setVerifying(false);
     }
@@ -379,7 +412,67 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
         <div className="md:col-span-7 p-6 md:p-8 flex flex-col justify-center bg-slate-50 relative">
           <LanguageToggle className="absolute top-3 right-3 border-slate-200 text-slate-600 bg-white hover:bg-slate-100" />
 
-          {!selectedUser ? (
+          {emailMode ? (
+            <div className="space-y-6 max-w-sm mx-auto w-full">
+              <button
+                onClick={() => { setEmailMode(false); setErrorMsg(''); setEmailInput(''); setPasswordInput(''); }}
+                className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 hover:underline transition-colors mb-2"
+              >
+                ← ត្រឡប់ក្រោយ
+              </button>
+              <div className="text-center">
+                <div className="w-14 h-14 rounded-full mx-auto bg-blue-600 flex items-center justify-center text-white mb-3 shadow-md">
+                  <Lock size={22} />
+                </div>
+                <h2 className="text-lg font-bold text-slate-800">ចូលដោយ Email</h2>
+                <p className="text-xs text-slate-500 mt-1">សម្រាប់នាយក និងគ្រូបង្រៀន</p>
+              </div>
+              <form onSubmit={handleEmailLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">អ៊ីមែល</label>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="username"
+                    value={emailInput}
+                    onChange={(e) => { setEmailInput(e.target.value); setErrorMsg(''); }}
+                    placeholder="name@gmail.com"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-slate-800 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1.5">លេខសម្ងាត់</label>
+                  <div className="relative">
+                    <input
+                      type={showPin ? 'text' : 'password'}
+                      required
+                      autoComplete="current-password"
+                      value={passwordInput}
+                      onChange={(e) => { setPasswordInput(e.target.value); setErrorMsg(''); }}
+                      placeholder="••••••"
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-all text-slate-800 text-sm"
+                    />
+                    <button type="button" onClick={() => setShowPin(!showPin)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+                {errorMsg && (
+                  <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg flex items-start gap-2 text-[11px] text-rose-700 font-medium">
+                    <ShieldAlert size={16} className="text-rose-500 flex-shrink-0 mt-0.5" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={verifying}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition-colors shadow-md flex items-center justify-center gap-1"
+                >
+                  <Lock size={12} /> {verifying ? '...' : 'ចូល'}
+                </button>
+              </form>
+            </div>
+          ) : !selectedUser ? (
             <div className="space-y-6">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-1.5">
@@ -440,6 +533,16 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
 
               </div>
               
+              {/* Secure email + password sign-in for staff */}
+              <div className="pt-2 flex justify-center">
+                <button
+                  onClick={() => { setEmailMode(true); setErrorMsg(''); }}
+                  className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md"
+                >
+                  <Lock size={14} /> ចូលដោយ Email (គ្រូ/នាយក)
+                </button>
+              </div>
+
               {/* Add New Class Button */}
               <div className="pt-2 border-t border-slate-200/60 flex justify-center">
                 <button
