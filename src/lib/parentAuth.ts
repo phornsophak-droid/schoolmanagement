@@ -98,12 +98,15 @@ export async function findChild(nameTyped: string): Promise<ChildRow[]> {
   const nq = bare(q);
   const isSub = (a: string, b: string) => { let i = 0; for (let j = 0; j < b.length && i < a.length; j++) if (b[j] === a[i]) i++; return i === a.length; };
   const seen = new Map<string, ChildRow>();
-  const put = (r: any) => { const k = `${r.name}||${r.grade}`; if (!seen.has(k)) seen.set(k, { name: r.name, grade: r.grade, studentId: r.extra_data?.studentId }); };
+  const put = (r: any) => { const k = `${r.name}||${r.grade}`; if (!seen.has(k)) seen.set(k, { name: r.name, grade: r.grade, studentId: r.studentId }); };
 
   // 1. Narrow AND-token query first — requires every word, so the result is small
   //    and never truncated by the row limit (unlike a 2-letter probe).
+  // NOTE: select only the studentId scalar out of extra_data, never the whole JSON
+  // (which carries every sub-score map, several KB/row) — that JSON × up to 2000
+  // rows per search was a major Supabase egress source.
   if (tokens.length) {
-    let query = supabase.from('student_scores').select('name, grade, extra_data');
+    let query = supabase.from('student_scores').select('name, grade, studentId:extra_data->>studentId');
     for (const t of tokens) query = query.ilike('name', `%${t}%`);
     const { data } = await query.limit(500);
     for (const r of (data || []) as any[]) {
@@ -119,10 +122,10 @@ export async function findChild(nameTyped: string): Promise<ChildRow[]> {
     const probe = '%' + probeChars.join('%') + '%';
     
     const { data } = await supabase.from('student_scores')
-      .select('name, grade, extra_data')
+      .select('name, grade, studentId:extra_data->>studentId')
       .ilike('name', probe)
       .limit(2000);
-      
+
     for (const r of (data || []) as any[]) {
       const nn = bare(r.name);
       if (nn.length >= 3 && (isSub(nq, nn) || isSub(nn, nq))) put(r);
@@ -141,7 +144,7 @@ export async function findChildClasses(sess: { name: string; studentId?: string 
   const supabase = getSupabaseClient();
   if (!supabase) return [];
   const seen = new Map<string, ChildRow>();
-  const put = (r: any) => { const k = `${r.grade}||${String(r.name || '').trim()}`; if (!seen.has(k)) seen.set(k, { name: r.name, grade: r.grade, studentId: r.extra_data?.studentId }); };
+  const put = (r: any) => { const k = `${r.grade}||${String(r.name || '').trim()}`; if (!seen.has(k)) seen.set(k, { name: r.name, grade: r.grade, studentId: r.studentId }); };
   const targetBase = normParentName(stripSubjectTag(sess.name));
   const tokens = targetBase.split(' ').filter(t => t.length >= 2);
   const sid = (sess.studentId || '').trim();
@@ -149,7 +152,7 @@ export async function findChildClasses(sess: { name: string; studentId?: string 
   // 1. Same អត្តលេខ (reliable across classes when present).
   if (sid) {
     try {
-      const { data } = await supabase.from('student_scores').select('name, grade, extra_data').eq('extra_data->>studentId', sid).limit(500);
+      const { data } = await supabase.from('student_scores').select('name, grade, studentId:extra_data->>studentId').eq('extra_data->>studentId', sid).limit(500);
       (data || []).forEach(put);
     } catch { /* offline */ }
   }

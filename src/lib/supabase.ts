@@ -431,12 +431,12 @@ export async function fetchStudentDobByName(name: string): Promise<string | unde
   if (!base) return undefined;
   const { data, error } = await supabase
     .from('student_scores')
-    .select('name, extra_data')
+    .select('name, dob:extra_data->>dob')
     .ilike('name', `${base}%`)
     .limit(60);
   if (error || !data) return undefined;
   for (const row of data) {
-    const dob = (row as any).extra_data?.dob;
+    const dob = (row as any).dob;
     const rowBase = String((row as any).name || '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+/g, ' ').trim();
     if (dob && rowBase === base) return String(dob);
   }
