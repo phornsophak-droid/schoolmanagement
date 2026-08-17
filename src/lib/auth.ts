@@ -100,3 +100,64 @@ export function onStaffAuthChange(cb: (staff: StaffProfile | null) => void): () 
   });
   return () => data.subscription.unsubscribe();
 }
+
+// ---------------------------------------------------------------------------
+// Teacher self-registration (principal-approved).
+// A teacher signs up with their own email/password and picks their class; this
+// creates a PENDING (active=false) staff row. is_staff() checks active, and
+// signInStaff() rejects inactive accounts, so they cannot access anything until
+// the principal approves. Requires the staff_self_register RLS policy and email
+// confirmation turned OFF (so sign-up establishes a session to insert the row).
+// ---------------------------------------------------------------------------
+export interface RegisterResult { ok: boolean; error?: string }
+
+export async function registerTeacher(
+  classId: string, fullName: string, email: string, password: string,
+): Promise<RegisterResult> {
+  const sb = getSupabaseClient();
+  if (!sb) return { ok: false, error: 'គ្មានការតភ្ជាប់ទៅ Supabase' };
+
+  const { data, error } = await sb.auth.signUp({ email: email.trim(), password });
+  if (error || !data?.user) {
+    return { ok: false, error: error?.message || 'ចុះឈ្មោះមិនបានសម្រេច' };
+  }
+  if (!data.session) {
+    // Email confirmation is ON — we can't create the staff row yet.
+    return { ok: false, error: 'សូមបិទ Confirm email នៅ Supabase រួចសាកម្ដងទៀត' };
+  }
+
+  const { error: insErr } = await sb.from('staff').insert({
+    id: data.user.id, username: classId, full_name: fullName, role: 'teacher', active: false,
+  });
+  await sb.auth.signOut(); // must wait for approval before using the account
+  if (insErr) {
+    return { ok: false, error: insErr.message.includes('duplicate') ? 'ថ្នាក់នេះមានគណនីរួចហើយ' : insErr.message };
+  }
+  return { ok: true };
+}
+
+/** Principal: list teacher accounts awaiting approval. */
+export async function listPendingStaff(): Promise<StaffProfile[]> {
+  const sb = getSupabaseClient();
+  if (!sb) return [];
+  const { data } = await sb.from('staff')
+    .select('id, username, full_name, role, active')
+    .eq('active', false).eq('role', 'teacher');
+  return (data as StaffProfile[]) || [];
+}
+
+/** Principal: approve (activate) or suspend a staff account. */
+export async function setStaffActive(id: string, active: boolean): Promise<boolean> {
+  const sb = getSupabaseClient();
+  if (!sb) return false;
+  const { error } = await sb.from('staff').update({ active }).eq('id', id);
+  return !error;
+}
+
+/** Principal: reject/remove a staff row (does not delete the auth user). */
+export async function removeStaff(id: string): Promise<boolean> {
+  const sb = getSupabaseClient();
+  if (!sb) return false;
+  const { error } = await sb.from('staff').delete().eq('id', id);
+  return !error;
+}

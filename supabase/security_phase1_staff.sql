@@ -66,6 +66,14 @@ create policy tc_principal_manage on public.teacher_classes
     for all to authenticated
     using (public.is_principal()) with check (public.is_principal());
 
+-- 5. Teacher SELF-REGISTRATION (principal-approved): a signed-in user may create
+-- ONLY their own row, as an INACTIVE teacher. They cannot make themselves a
+-- principal or active — the principal flips active=true to approve. Safe.
+drop policy if exists staff_self_register on public.staff;
+create policy staff_self_register on public.staff
+    for insert to authenticated
+    with check (id = auth.uid() and role = 'teacher' and active = false);
+
 -- ============================================================================
 -- CREATE THE FIRST PRINCIPAL (do this once, in the dashboard)
 -- ============================================================================

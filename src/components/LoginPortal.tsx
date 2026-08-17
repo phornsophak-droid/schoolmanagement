@@ -3,7 +3,7 @@ import { SchoolUser } from '../types';
 import { useT, LanguageToggle } from '../i18n';
 import { getPinForUser, setPinForUser } from '../utils/auth';
 import { syncUpsertSetting, syncGradesBulk } from '../lib/supabase';
-import { signInStaff, emailForAccount } from '../lib/auth';
+import { signInStaff, emailForAccount, registerTeacher } from '../lib/auth';
 import { SchoolLogo } from './SchoolLogo';
 import InstallPWAButton from './InstallPWAButton';
 import { 
@@ -204,6 +204,13 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
   const [emailMode, setEmailMode] = useState<boolean>(false);
   const [emailInput, setEmailInput] = useState<string>('');
   const [passwordInput, setPasswordInput] = useState<string>('');
+  // Teacher self-registration (principal-approved).
+  const [registerMode, setRegisterMode] = useState<boolean>(false);
+  const [regClassId, setRegClassId] = useState<string>('');
+  const [regName, setRegName] = useState<string>('');
+  const [regEmail, setRegEmail] = useState<string>('');
+  const [regPassword, setRegPassword] = useState<string>('');
+  const [regDone, setRegDone] = useState<boolean>(false);
   const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
 
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
@@ -271,6 +278,22 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
         avatarBg: 'bg-gradient-to-tr from-blue-600 to-sky-500',
       };
       onLoginSuccess(user);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (verifying) return;
+    setErrorMsg('');
+    if (!regClassId) { setErrorMsg('សូមជ្រើសថ្នាក់របស់អ្នក'); return; }
+    if (regPassword.length < 6) { setErrorMsg('លេខសម្ងាត់ត្រូវយ៉ាងតិច ៦ តួ'); return; }
+    setVerifying(true);
+    try {
+      const res = await registerTeacher(regClassId, regName.trim() || regClassId, regEmail, regPassword);
+      if (res.ok) setRegDone(true);
+      else setErrorMsg(res.error || 'ចុះឈ្មោះមិនបានសម្រេច');
     } finally {
       setVerifying(false);
     }
@@ -412,7 +435,70 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
         <div className="md:col-span-7 p-6 md:p-8 flex flex-col justify-center bg-slate-50 relative">
           <LanguageToggle className="absolute top-3 right-3 border-slate-200 text-slate-600 bg-white hover:bg-slate-100" />
 
-          {emailMode ? (
+          {registerMode ? (
+            <div className="space-y-5 max-w-sm mx-auto w-full">
+              <button
+                onClick={() => { setRegisterMode(false); setRegDone(false); setErrorMsg(''); }}
+                className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 hover:underline transition-colors mb-2"
+              >
+                ← ត្រឡប់ក្រោយ
+              </button>
+              {regDone ? (
+                <div className="text-center p-6 bg-emerald-50 border border-emerald-200 rounded-2xl">
+                  <div className="text-4xl mb-2">✅</div>
+                  <h2 className="text-base font-bold text-emerald-800">ចុះឈ្មោះបានសម្រេច!</h2>
+                  <p className="text-xs text-emerald-700 mt-2 leading-relaxed">សូមរង់ចាំនាយកអនុម័តគណនីរបស់អ្នក។ បន្ទាប់មកចូលដោយប៊ូតុង «ចូលដោយ Email»។</p>
+                </div>
+              ) : (
+                <>
+                  <div className="text-center">
+                    <div className="w-14 h-14 rounded-full mx-auto bg-indigo-600 flex items-center justify-center text-white mb-3 shadow-md">
+                      <GraduationCap size={22} />
+                    </div>
+                    <h2 className="text-lg font-bold text-slate-800">ចុះឈ្មោះគ្រូថ្មី</h2>
+                    <p className="text-xs text-slate-500 mt-1">បំពេញព័ត៌មាន រួចរង់ចាំនាយកអនុម័ត</p>
+                  </div>
+                  <form onSubmit={handleRegister} className="space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">ថ្នាក់របស់អ្នក</label>
+                      <select
+                        required
+                        value={regClassId}
+                        onChange={(e) => { setRegClassId(e.target.value); setErrorMsg(''); }}
+                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 outline-none focus:border-blue-500"
+                      >
+                        <option value="">— ជ្រើសថ្នាក់ —</option>
+                        {AVAILABLE_USERS.filter(u => u.role === 'teacher').map(u => (
+                          <option key={u.id} value={u.id}>{u.grade}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">ឈ្មោះអ្នក</label>
+                      <input type="text" value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="ឈ្មោះគ្រូ" className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 outline-none focus:border-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">អ៊ីមែល</label>
+                      <input type="email" required autoComplete="username" value={regEmail} onChange={(e) => { setRegEmail(e.target.value); setErrorMsg(''); }} placeholder="name@gmail.com" className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 outline-none focus:border-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1.5">លេខសម្ងាត់ (យ៉ាងតិច ៦ តួ)</label>
+                      <input type={showPin ? 'text' : 'password'} required autoComplete="new-password" value={regPassword} onChange={(e) => { setRegPassword(e.target.value); setErrorMsg(''); }} placeholder="••••••" className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 outline-none focus:border-blue-500" />
+                    </div>
+                    {errorMsg && (
+                      <div className="p-3 bg-rose-50 border border-rose-100 rounded-lg flex items-start gap-2 text-[11px] text-rose-700 font-medium">
+                        <ShieldAlert size={16} className="text-rose-500 flex-shrink-0 mt-0.5" />
+                        <span>{errorMsg}</span>
+                      </div>
+                    )}
+                    <button type="submit" disabled={verifying} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition-colors shadow-md">
+                      {verifying ? '...' : 'ចុះឈ្មោះ'}
+                    </button>
+                  </form>
+                </>
+              )}
+            </div>
+          ) : emailMode ? (
             <div className="space-y-6 max-w-sm mx-auto w-full">
               <button
                 onClick={() => { setEmailMode(false); setErrorMsg(''); setEmailInput(''); setPasswordInput(''); }}
@@ -471,6 +557,14 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                   <Lock size={12} /> {verifying ? '...' : 'ចូល'}
                 </button>
               </form>
+              <div className="text-center pt-1">
+                <button
+                  onClick={() => { setEmailMode(false); setRegisterMode(true); setErrorMsg(''); setEmailInput(''); setPasswordInput(''); }}
+                  className="text-xs text-indigo-600 hover:underline font-bold"
+                >
+                  គ្រូថ្មី? ចុះឈ្មោះនៅទីនេះ
+                </button>
+              </div>
             </div>
           ) : !selectedUser ? (
             <div className="space-y-6">
