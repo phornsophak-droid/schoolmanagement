@@ -1734,16 +1734,32 @@ export default function Gradebook({
       }
     } else if (activeMode === 'semester') {
       filename = `របាយការណ៍ពិន្ទុឆមាសទី${toKh(selectedSemester)}_${selectedGrade}.xlsx`;
-      const header = ['ល.រ', 'អត្តលេខ', 'ឈ្មោះសិស្ស', 'ភេទ', 'ថ្នាក់សិក្សា', ...SEM_SUBJECTS.map(s => s.km), 'មធ្យមភាគប្រចាំខែ', 'ពិន្ទុប្រឡងឆមាស', 'មធ្យមភាគប្រចាំឆមាស', 'និទ្ទេស', 'ចំណាត់ថ្នាក់', 'លទ្ធផល', 'មូលវិចារគ្រូ'];
       
-      const body = filteredSemesterStudents.map((st, i) => {
-        const examRec = st.examRecord;
-        const examScores = SEM_SUBJECTS.map(sub => examRec ? (sub.get(examRec) ?? '') : '');
-        return [
-          i + 1, st.studentId || '', st.name, st.gender, st.grade, ...examScores,
-          st.overallMonthlyAvg ?? '', st.examScore ?? '', st.semesterAvg ?? '', st.gradeLetter ?? '', st.ranking ?? '', st.result ?? '', examRec?.remark || ''
-        ];
-      });
+      const isCustom = viewingEnglish;
+      let header: string[];
+      let body: any[][];
+
+      if (isCustom && customSubjects) {
+        header = ['ល.រ', 'អត្តលេខ', 'ឈ្មោះសិស្ស', 'ភេទ', 'ថ្នាក់សិក្សា', ...customSubjects.map(s => typeof s === 'string' ? s : s.km), 'មធ្យមភាគប្រចាំខែ', 'ពិន្ទុប្រឡងឆមាស', 'មធ្យមភាគប្រចាំឆមាស', 'និទ្ទេស', 'ចំណាត់ថ្នាក់', 'លទ្ធផល', 'មូលវិចារគ្រូ'];
+        body = filteredSemesterStudents.map((st, i) => {
+          const examRec = st.examRecord;
+          const examScores = customSubjects.map(sub => examRec?.englishScores?.[sub.key] ?? '');
+          return [
+            i + 1, st.studentId || '', st.name, st.gender, st.grade, ...examScores,
+            st.overallMonthlyAvg ?? '', st.examScore ?? '', st.semesterAvg ?? '', st.gradeLetter ?? '', st.ranking ?? '', st.result ?? '', examRec?.remark || ''
+          ];
+        });
+      } else {
+        header = ['ល.រ', 'អត្តលេខ', 'ឈ្មោះសិស្ស', 'ភេទ', 'ថ្នាក់សិក្សា', ...SEM_SUBJECTS.map(s => s.km), 'មធ្យមភាគប្រចាំខែ', 'ពិន្ទុប្រឡងឆមាស', 'មធ្យមភាគប្រចាំឆមាស', 'និទ្ទេស', 'ចំណាត់ថ្នាក់', 'លទ្ធផល', 'មូលវិចារគ្រូ'];
+        body = filteredSemesterStudents.map((st, i) => {
+          const examRec = st.examRecord;
+          const examScores = SEM_SUBJECTS.map(sub => examRec ? (sub.get(examRec) ?? '') : '');
+          return [
+            i + 1, st.studentId || '', st.name, st.gender, st.grade, ...examScores,
+            st.overallMonthlyAvg ?? '', st.examScore ?? '', st.semesterAvg ?? '', st.gradeLetter ?? '', st.ranking ?? '', st.result ?? '', examRec?.remark || ''
+          ];
+        });
+      }
 
       const getStatsByGradeSem = (letter: string) => {
         const list = filteredSemesterStudents.filter(s => s.gradeLetter === letter);
@@ -2926,9 +2942,15 @@ export default function Gradebook({
                   <th className="px-3 py-3 text-center">អត្តលេខ</th>
                   <th className="gb-corner px-3 py-3 sticky left-0 z-10 bg-slate-50 shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">ឈ្មោះសិស្ស</th>
                   <th className="px-3 py-3 text-center">ភេទ</th>
-                  {SEM_SUBJECTS.map(sub => (
-                    <th key={sub.km} className="px-2 py-3 text-center font-normal whitespace-nowrap">{sub.km}</th>
-                  ))}
+                  {customSubjects ? (
+                    customSubjects.map(sub => (
+                      <th key={sub.key} className="px-2 py-3 text-center font-normal whitespace-nowrap">{sub.km}</th>
+                    ))
+                  ) : (
+                    SEM_SUBJECTS.map(sub => (
+                      <th key={sub.km} className="px-2 py-3 text-center font-normal whitespace-nowrap">{sub.km}</th>
+                    ))
+                  )}
                   <th className="px-3 py-3 text-center bg-blue-50/30 text-blue-700">មធ្យមភាគប្រឡងឆមាស</th>
                   <th className="px-3 py-3 text-center bg-indigo-50/30 text-indigo-700">មធ្យមភាគប្រចាំខែ</th>
                   <th className="px-3 py-3 text-center bg-indigo-600 text-white font-extrabold">មធ្យមភាគប្រចាំឆមាស</th>
@@ -2963,17 +2985,31 @@ export default function Gradebook({
                             {st.gender}
                           </span>
                         </td>
-                        {SEM_SUBJECTS.map((sub, si) => {
-                          const v = st.examRecord ? sub.get(st.examRecord) : null;
-                          const has = v !== undefined && v !== null && v > 0;
-                          return (
-                            <td key={sub.km} className={`px-2 py-3.5 text-center font-mono ${has ? 'text-slate-700 font-bold' : 'text-slate-300'}`}>
-                              {inlineEdit
-                                ? <ScoreInput value={has ? (v as number) : null} onCommit={val => commitSemSubject(st, si, val)} />
-                                : (has ? Number(v).toFixed(1) : '-')}
-                            </td>
-                          );
-                        })}
+                        {customSubjects ? (
+                          customSubjects.map(sub => {
+                            const v = st.examRecord?.englishScores?.[sub.key];
+                            const has = v !== undefined && v !== null && v > 0;
+                            return (
+                              <td key={sub.key} className={`px-2 py-3.5 text-center font-mono ${has ? 'text-slate-700 font-bold' : 'text-slate-300'}`}>
+                                {inlineEdit
+                                  ? <ScoreInput value={has ? (v as number) : null} onCommit={val => commitSemCustomSubject(st, sub.key, val)} />
+                                  : (has ? Number(v).toFixed(1) : '-')}
+                              </td>
+                            );
+                          })
+                        ) : (
+                          SEM_SUBJECTS.map((sub, si) => {
+                            const v = st.examRecord ? sub.get(st.examRecord) : null;
+                            const has = v !== undefined && v !== null && v > 0;
+                            return (
+                              <td key={sub.km} className={`px-2 py-3.5 text-center font-mono ${has ? 'text-slate-700 font-bold' : 'text-slate-300'}`}>
+                                {inlineEdit
+                                  ? <ScoreInput value={has ? (v as number) : null} onCommit={val => commitSemSubject(st, si, val)} />
+                                  : (has ? Number(v).toFixed(1) : '-')}
+                              </td>
+                            );
+                          })
+                        )}
                         
                         <td className="px-3 py-3.5 text-center font-bold font-mono text-blue-600 bg-blue-50/10">
                           {st.examScore !== null && st.examScore !== undefined ? st.examScore.toFixed(2) : (
