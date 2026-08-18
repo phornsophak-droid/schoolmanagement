@@ -10,7 +10,8 @@ import { getAcademicYear } from '../lib/schoolYear';
 import { CURATED_ELIBRARY, fetchELinksFromCloud, ELink } from '../lib/library';
 import { useT, LanguageToggle } from '../i18n';
 import { StudentScore } from '../types';
-import { fetchClassStudents, fetchSetting, fetchStudentDobByName, fetchGradesList } from '../lib/supabase';
+import { fetchClassStudents, fetchSetting, fetchStudentDobByName, fetchGradesList, mapDBToScore } from '../lib/supabase';
+import { apiRecords } from '../lib/parentPortalApi';
 import { semesterAvgOf, readAnnualExtra } from '../utils/scoring';
 import SchoolLogo from './SchoolLogo';
 import { PRINCIPAL_SIG_KEY } from './PrincipalSignature';
@@ -161,28 +162,45 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
     
     setLoading(true);
     try {
-      let childRows: ChildRow[] = [];
-      try { childRows = await findChildClasses({ name: sess.name, studentId: sess.studentId }); } catch { childRows = []; }
-      setChildClassKeys(new Set(childRows.map(r => `${r.grade}||${r.name.trim()}`)));
       // Only classes that STILL EXIST in the app. Read the real active list from the
       // cloud (parents have no cached custom grades, so the default prop would drop
-      // "GRADE n" classes). Deleted classes leave orphaned rows we must skip.
+      // "GRADE n" classes). Deleted classes leave orphaned rows the render filter skips.
       let activeList = grades;
       try { const g = await fetchGradesList(); if (g.length) { activeList = g; setCloudGrades(g); } } catch { /* offline — use prop */ }
       const activeSet = new Set(activeList.map(normGrade));
-      let gradesToFetch = (childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade])
-        .filter(g => activeSet.has(normGrade(g)));
-      if (gradesToFetch.length === 0 && activeSet.has(normGrade(sess.grade))) gradesToFetch = [sess.grade];
-      
-      gradesToFetch.forEach(g => {
+
+      // Secure path (Phase 2): fetch ONLY this child's rows from the server proxy —
+      // the browser never receives other students. Returns null when the endpoint
+      // is unreachable (local dev / not deployed) → fall back to the anon path.
+      const loadSigs = (gradeList: string[]) => gradeList.forEach(g => {
         fetchSetting(teacherSigKey(g))
           .then(v => { if (v) { try { localStorage.setItem(teacherSigKey(g), v); } catch { /* ignore */ } } })
           .catch(() => { /* offline */ });
       });
 
+      const api = await apiRecords(sess.token || '');
+      if (api && api.ok && Array.isArray(api.records)) {
+        const mapped = api.records.map(mapDBToScore);
+        setChildClassKeys(new Set(mapped.map(r => `${r.grade}||${r.name.trim()}`)));
+        loadSigs(Array.from(new Set(mapped.map(r => r.grade))));
+        setClassStudents(mapped);
+        if (mapped.length === 0) setError(t('parent.err.noClassData'));
+        return;
+      }
+
+      // Fallback: legacy anon path (whole-class reads, filtered client-side).
+      let childRows: ChildRow[] = [];
+      try { childRows = await findChildClasses({ name: sess.name, studentId: sess.studentId }); } catch { childRows = []; }
+      setChildClassKeys(new Set(childRows.map(r => `${r.grade}||${r.name.trim()}`)));
+      let gradesToFetch = (childRows.length > 0 ? Array.from(new Set(childRows.map(r => r.grade))) : [sess.grade])
+        .filter(g => activeSet.has(normGrade(g)));
+      if (gradesToFetch.length === 0 && activeSet.has(normGrade(sess.grade))) gradesToFetch = [sess.grade];
+
+      loadSigs(gradesToFetch);
+
       const arrays = await Promise.all(gradesToFetch.map(g => fetchClassStudents(g)));
       const combined = arrays.flat();
-      
+
       setClassStudents(combined);
       if (combined.length === 0) setError(t('parent.err.noClassData'));
     } catch {
@@ -366,7 +384,10 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
 
   // Gate the whole portal behind login.
   if (!session) {
-    return <ParentLogin onBack={onBack} onLogin={(child) => setSession({ name: child.name, grade: child.grade, studentId: child.studentId })} />;
+    // ParentLogin has already persisted the full session (incl. the secure token)
+    // to localStorage, so read it back to keep the token rather than rebuilding
+    // a token-less session from the child alone.
+    return <ParentLogin onBack={onBack} onLogin={(child) => setSession(loadSession() || { name: child.name, grade: child.grade, studentId: child.studentId })} />;
   }
 
   const logout = () => {

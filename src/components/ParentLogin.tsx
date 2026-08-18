@@ -25,6 +25,9 @@ export default function ParentLogin({ onBack, onLogin }: Props) {
 
   // First-login "set your own password" step.
   const [child, setChild] = useState<ChildRow | null>(null);
+  // Signed session token from the secure server proxy (Phase 2), stashed at login
+  // so it's carried into the session after the optional set-password step.
+  const [token, setToken] = useState<string | undefined>(undefined);
   const [newPass, setNewPass] = useState('');
   const [newPass2, setNewPass2] = useState('');
 
@@ -44,8 +47,9 @@ export default function ParentLogin({ onBack, onLogin }: Props) {
     try {
       const r = await parentLogin(name, password);
       if (r.ok && r.child) {
+        setToken(r.token);
         if (r.firstTime) { setChild(r.child); } // offer to set a personal password
-        else { saveSession(r.child); onLogin(r.child); }
+        else { saveSession({ ...r.child, token: r.token }); onLogin(r.child); }
       } else {
         setError(errText(r.error));
         if (r.matches) setMatches(r.matches);
@@ -66,7 +70,7 @@ export default function ParentLogin({ onBack, onLogin }: Props) {
       try { await changeParentPassword(child, newPass); } catch { /* saved locally */ }
       setBusy(false);
     }
-    saveSession(child);
+    saveSession({ ...child, token });
     onLogin(child);
   };
 

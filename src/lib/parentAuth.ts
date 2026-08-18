@@ -16,6 +16,7 @@
 
 import { getSupabaseClient, fetchSetting, syncUpsertSetting } from './supabase';
 import { kvReadSync, kvWrite, kvHydrate } from './kvStore';
+import { apiLogin } from './parentPortalApi';
 
 const PASS_KEY = 'parent_portal_passcode'; // shared code (string)
 const ACCT_KEY = 'parent_portal_accounts'; // { [childKey]: ParentAccount }
@@ -34,7 +35,10 @@ export const stripSubjectTag = (n: string) => (n || '').replace(/\s*\([^)]*\)\s*
 export interface ParentAccount { name: string; grade: string; studentId?: string; password: string; updatedAt: number; }
 export type ParentAccounts = Record<string, ParentAccount>;
 export interface ChildRow { name: string; grade: string; studentId?: string; }
-export interface ParentSession { name: string; grade: string; studentId?: string }
+// `token` is the signed session token from the secure server proxy (Phase 2) —
+// carried so later reads (the child's records) can authenticate without a
+// password. Absent on a legacy anon-path login (server unreachable at login).
+export interface ParentSession { name: string; grade: string; studentId?: string; token?: string }
 
 // One account per child: keyed by studentId when present (survives name edits),
 // otherwise by the normalized name.
@@ -197,8 +201,18 @@ export function resolveGeneral(rows: ChildRow[]): { child?: ChildRow; ambiguous?
 }
 
 // ── login ────────────────────────────────────────────────────────────────────
-export interface LoginResult { ok: boolean; child?: ChildRow; firstTime?: boolean; error?: 'noName' | 'ambiguous' | 'wrongPass' | 'noPasscode'; matches?: ChildRow[]; }
+export interface LoginResult { ok: boolean; child?: ChildRow; firstTime?: boolean; error?: 'noName' | 'ambiguous' | 'wrongPass' | 'noPasscode'; matches?: ChildRow[]; token?: string; }
 export async function parentLogin(nameTyped: string, password: string): Promise<LoginResult> {
+  // Secure path first: the server proxy resolves the child + verifies the
+  // password with the service-role key (the anon key can't read whole classes).
+  // A null result means the endpoint is unreachable (local dev / not deployed) —
+  // fall through to the legacy anon check below.
+  const api = await apiLogin(nameTyped, password);
+  if (api) {
+    if (api.ok && api.child) return { ok: true, child: api.child, firstTime: api.firstTime, token: api.token };
+    return { ok: false, error: api.error as LoginResult['error'], matches: api.matches };
+  }
+
   const rows = await findChild(nameTyped);
   const { child, ambiguous } = resolveGeneral(rows);
   if (ambiguous) return { ok: false, error: 'ambiguous', matches: ambiguous };
