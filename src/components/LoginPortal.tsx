@@ -201,7 +201,6 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
   const [verifying, setVerifying] = useState<boolean>(false);
   // Sign-in with a personal email + password (Supabase Auth), as an alternative
   // to picking a name + PIN.
-  const [emailMode, setEmailMode] = useState<boolean>(false);
   const [emailInput, setEmailInput] = useState<string>('');
   const [passwordInput, setPasswordInput] = useState<string>('');
   // Teacher self-registration (principal-approved).
@@ -514,21 +513,16 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                 </>
               )}
             </div>
-          ) : emailMode ? (
-            <div className="space-y-6 max-w-sm mx-auto w-full">
-              <button
-                onClick={() => { setEmailMode(false); setErrorMsg(''); setEmailInput(''); setPasswordInput(''); }}
-                className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 hover:underline transition-colors mb-2"
-              >
-                ← ត្រឡប់ក្រោយ
-              </button>
+          ) : !selectedUser ? (
+            <div className="space-y-5 max-w-sm mx-auto w-full">
               <div className="text-center">
-                <div className="w-14 h-14 rounded-full mx-auto bg-blue-600 flex items-center justify-center text-white mb-3 shadow-md">
-                  <Lock size={22} />
+                <div className="w-16 h-16 rounded-2xl mx-auto bg-blue-600 flex items-center justify-center text-white mb-3 shadow-lg shadow-blue-600/25">
+                  <Lock size={26} />
                 </div>
-                <h2 className="text-lg font-bold text-slate-800">ចូលដោយ Email</h2>
+                <h2 className="text-xl font-bold text-slate-800">ចូលគណនី</h2>
                 <p className="text-xs text-slate-500 mt-1">សម្រាប់នាយក និងគ្រូបង្រៀន</p>
               </div>
+
               <form onSubmit={handleEmailLogin} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 mb-1.5">អ៊ីមែល</label>
@@ -568,62 +562,19 @@ export default function LoginPortal({ onLoginSuccess, onParentAccess, onStudentT
                 <button
                   type="submit"
                   disabled={verifying}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold rounded-xl text-xs transition-colors shadow-md flex items-center justify-center gap-1"
+                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition-all active:scale-[0.99]"
                 >
-                  <Lock size={12} /> {verifying ? '...' : 'ចូល'}
+                  {verifying ? '...' : 'ចូលគណនី'}
                 </button>
               </form>
-              <div className="text-center pt-1">
-                <button
-                  onClick={() => { setEmailMode(false); setRegisterMode(true); setErrorMsg(''); setEmailInput(''); setPasswordInput(''); }}
-                  className="text-xs text-indigo-600 hover:underline font-bold"
-                >
+
+              <div className="text-center space-y-2 pt-1">
+                <button onClick={() => { setRegisterMode(true); setErrorMsg(''); }} className="block w-full text-xs text-indigo-600 hover:underline font-bold">
                   គ្រូថ្មី? ចុះឈ្មោះនៅទីនេះ
                 </button>
-              </div>
-            </div>
-          ) : !selectedUser ? (
-            <div className="space-y-5 max-w-sm mx-auto w-full">
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-2xl mx-auto bg-blue-600 flex items-center justify-center text-white mb-3 shadow-lg shadow-blue-600/25">
-                  <Lock size={26} />
-                </div>
-                <h2 className="text-xl font-bold text-slate-800">ចូលទៅប្រព័ន្ធ</h2>
-                <p className="text-xs text-slate-500 mt-1">សម្រាប់នាយក និងគ្រូបង្រៀន</p>
-              </div>
-
-              <button
-                onClick={() => { setEmailMode(true); setErrorMsg(''); }}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 transition-all active:scale-[0.99]"
-              >
-                <Lock size={16} /> ចូលដោយ Email
-              </button>
-
-              <div className="text-center">
-                <button
-                  onClick={() => { setRegisterMode(true); setErrorMsg(''); }}
-                  className="text-xs text-indigo-600 hover:underline font-bold"
-                >
-                  គ្រូថ្មី? ចុះឈ្មោះនៅទីនេះ
+                <button onClick={() => handleSelectUser(AVAILABLE_USERS[0])} className="text-[11px] text-slate-400 hover:text-amber-600">
+                  នាយក — ចូលដោយលេខសង្គ្រោះ
                 </button>
-              </div>
-
-              {/* Principal — signs in via Email above, or here for emergency-PIN access. */}
-              <div className="pt-4 border-t border-slate-200/60">
-                <button
-                  onClick={() => handleSelectUser(AVAILABLE_USERS[0])}
-                  className="w-full p-3 rounded-xl border border-slate-200 bg-white hover:border-amber-400 hover:shadow-sm text-left transition-all group flex items-center gap-3"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-amber-600 flex items-center justify-center text-white text-xs font-bold shadow-md shrink-0">
-                    {AVAILABLE_USERS[0].photoCode}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">{t('login.principalBadge')}</span>
-                    <h3 className="text-xs font-bold text-slate-800 mt-0.5 truncate group-hover:text-amber-700">{AVAILABLE_USERS[0].name}</h3>
-                  </div>
-                  <ChevronRight size={16} className="text-slate-300 group-hover:text-amber-500 shrink-0" />
-                </button>
-                <p className="text-[10px] text-slate-400 text-center mt-1.5">នាយក៖ ចូលដោយ Email ខាងលើ ឬ ចុចទីនេះសម្រាប់លេខសង្គ្រោះ</p>
               </div>
             </div>
           ) : (
