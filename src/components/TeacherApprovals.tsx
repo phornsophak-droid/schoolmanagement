@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { listPendingStaff, setStaffActive, removeStaff, StaffProfile } from '../lib/auth';
+import { listPendingStaff, setStaffActive, removeStaff, getStaffSession, StaffProfile } from '../lib/auth';
 import { AVAILABLE_USERS } from './LoginPortal';
 import { UserCheck, X, Check, Trash2 } from 'lucide-react';
 
@@ -14,9 +14,22 @@ export default function TeacherApprovals({ open, onClose }: Props) {
   const [pending, setPending] = useState<StaffProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  // True when the principal is NOT signed in via a real Supabase (Email) session
+  // — e.g. they used the emergency PIN. Without a session, RLS hides all pending
+  // rows, so the list would look empty for the wrong reason.
+  const [needsEmailLogin, setNeedsEmailLogin] = useState(false);
 
   const load = async () => {
     setLoading(true);
+    const session = await getStaffSession();
+    if (!session || session.role !== 'principal') {
+      // No server session (emergency PIN) → RLS blocks the pending list.
+      setNeedsEmailLogin(true);
+      setPending([]);
+      setLoading(false);
+      return;
+    }
+    setNeedsEmailLogin(false);
     setPending(await listPendingStaff());
     setLoading(false);
   };
@@ -49,6 +62,16 @@ export default function TeacherApprovals({ open, onClose }: Props) {
         <div className="p-4 max-h-[60vh] overflow-y-auto">
           {loading ? (
             <p className="text-center text-slate-400 text-sm py-8">កំពុងផ្ទុក...</p>
+          ) : needsEmailLogin ? (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-center">
+              <div className="text-2xl mb-1">🔑</div>
+              <p className="text-xs font-bold text-amber-800 leading-relaxed">
+                ដើម្បីមើល និងអនុម័តគ្រូ សូមចេញ រួចចូលម្តងទៀតដោយ <span className="underline">Email នាយក</span> (sophak.camkids@gmail.com) + លេខសម្ងាត់។
+              </p>
+              <p className="text-[10px] text-amber-600 mt-2 leading-relaxed">
+                ការចូលដោយ «លេខសង្គ្រោះ» មិនអាចអនុម័តគ្រូបានទេ (គ្មានសិទ្ធិលើ server)។
+              </p>
+            </div>
           ) : pending.length === 0 ? (
             <p className="text-center text-slate-400 text-sm py-8">គ្មានគ្រូរង់ចាំការអនុម័តទេ</p>
           ) : (
