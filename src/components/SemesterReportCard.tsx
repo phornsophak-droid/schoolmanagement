@@ -16,6 +16,7 @@ import { tallyAbsences } from '../utils/attendance';
 import { exportElementToPdf, exportElementToImage } from '../utils/exportPdf';
 import { SEM1_MONTHS, SEM2_MONTHS, SEM_SUBJECTS, semesterAvgOf, readAnnualExtra, niddesColor } from '../utils/scoring';
 import { RemarkChecklist } from './StudentReportCard';
+import { getCustomSubjects, isEnglishClass } from '../types';
 import FitToWidth from './FitToWidth';
 
 interface SemesterReportCardProps {
@@ -47,6 +48,8 @@ export default function SemesterReportCard({ student, students, period, onClose 
   const months = isYear ? [...SEM1_MONTHS, ...SEM2_MONTHS] : (period === 1 ? SEM1_MONTHS : SEM2_MONTHS);
   const examMonths = isYear ? ['ប្រឡងឆមាសទី១', 'ប្រឡងឆមាសទី២'] : [period === 1 ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២'];
   const nameKey = student.name.trim();
+  const custom = getCustomSubjects(student.grade);
+  const bilingual = isEnglishClass(student.grade);
   // Date of birth is constant per student — fall back to ANY of this student's
   // records (by អត្តលេខ first, then name) across any class/month.
   const dobFrom = (pred: (s: StudentScore) => boolean) => students.find(s => pred(s) && !!s.dob)?.dob;
@@ -70,10 +73,15 @@ export default function SemesterReportCard({ student, students, period, onClose 
     names.forEach(n => {
       const recs = students.filter(s => s.name.trim() === n && s.grade === student.grade);
       const exams = recs.filter(s => examMonths.includes(s.month));
-      const subjVals = SEM_SUBJECTS.map(sub => {
-        const vals = exams.map(e => sub.get(e)).filter((v): v is number => v !== null && v !== undefined && v > 0);
-        return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null;
-      });
+      const subjVals = custom 
+        ? custom.map(sub => {
+            const vals = exams.map(e => e.englishScores?.[sub.key]).filter((v): v is number => v !== null && v !== undefined && v > 0);
+            return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+          })
+        : SEM_SUBJECTS.map(sub => {
+            const vals = exams.map(e => sub.get(e)).filter((v): v is number => v !== null && v !== undefined && v > 0);
+            return vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length) : null;
+          });
       const scored = subjVals.filter((v): v is number => v !== null && v > 0);
       const examTotal = scored.reduce((a, b) => a + b, 0);
       const examAvg = scored.length ? examTotal / scored.length : null;
@@ -96,7 +104,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
     return map;
   }, [students, student.grade, period]);
 
-  const me: StudentFigures = classData[nameKey] || { subjVals: SEM_SUBJECTS.map(() => null), examTotal: 0, examAvg: null, monthlyAvg: null, academic: null, finalAvg: null };
+  const me: StudentFigures = classData[nameKey] || { subjVals: (custom || SEM_SUBJECTS).map(() => null), examTotal: 0, examAvg: null, monthlyAvg: null, academic: null, finalAvg: null };
 
   const rankBySubject = (i: number): string => {
     const myVal = me.subjVals[i];
