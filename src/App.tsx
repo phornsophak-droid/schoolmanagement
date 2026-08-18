@@ -995,7 +995,14 @@ export default function App() {
   const handleLoginSuccess = (user: SchoolUser) => {
     setCurrentUser(user);
     localStorage.setItem('school_current_user_v2', JSON.stringify(user));
-    
+
+    // An email sign-in has just established the Supabase Auth session, so pull
+    // once authenticated. The startup sync ran as anon (before login) and, once
+    // anon read on student_scores is locked down, would read nothing — this fills
+    // in scores/reports for a freshly-signed-in (or fresh-device) staff member.
+    // Empty cloud reads never overwrite the local cache (guarded in applyCloud*).
+    pullFromSupabase(true).catch(() => { /* offline / no session — keep local */ });
+
     // Auto-routes based on role and screen size
     const isMobile = window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     if (user.id === 'librarian') {

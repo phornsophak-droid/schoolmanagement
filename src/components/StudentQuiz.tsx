@@ -87,9 +87,22 @@ export default function StudentQuiz({ initialCode, onBack }: Props) {
   const loadRoster = async (g: string) => {
     setBusy(true); setError('');
     try {
-      const rows = await fetchClassStudents(g);
-      const names = [...new Set(rows.map(r => (r.name || '').trim()).filter(Boolean))]
-        .sort((a, b) => a.localeCompare(b, 'km'));
+      // Secure path: the server roster proxy returns only the class NAMES, gated
+      // by this open test's join code (works once anon read is locked down).
+      // Returns null when unreachable (local dev) → fall back to the direct read.
+      let names: string[] | null = null;
+      try {
+        const res = await fetch('/api/test-roster', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: (code || '').trim().toUpperCase(), grade: g }),
+        });
+        if (res.ok) { const j = await res.json(); if (j?.ok && Array.isArray(j.names)) names = j.names; }
+      } catch { /* unreachable — fall back below */ }
+      if (names === null) {
+        const rows = await fetchClassStudents(g);
+        names = [...new Set(rows.map(r => (r.name || '').trim()).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, 'km'));
+      }
       setRoster(names);
       if (!names.length) setError('ថ្នាក់នេះមិនទាន់មានបញ្ជីឈ្មោះសិស្សទេ។');
     } catch {
