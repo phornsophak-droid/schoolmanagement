@@ -133,7 +133,13 @@ function resolveGeneral(rows: ChildRow[]): { child?: ChildRow; ambiguous?: Child
 // map — only this one child's data ever leaves the server.
 async function fetchChildRecords(db: SupabaseClient, child: ChildRow): Promise<any[]> {
   const rows = new Map<string, any>();
-  const put = (r: any) => { const k = `${r.grade}||${String(r.name || '').trim()}`; if (!rows.has(k)) rows.set(k, r); };
+  // Dedup by the row's own primary key — every MONTH is a separate row for the
+  // same (grade, name), so keying on grade||name would collapse the whole year to
+  // one month. `id` only dedups a row that both probes (studentId + name) returned.
+  const put = (r: any) => {
+    const k = String(r.id ?? `${r.grade}||${String(r.name || '').trim()}||${r.month || ''}`);
+    if (!rows.has(k)) rows.set(k, r);
+  };
   const targetBase = normName(stripTag(child.name));
   const tokens = targetBase.split(' ').filter(t => t.length >= 2);
   const sid = (child.studentId || '').trim();
