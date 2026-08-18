@@ -1,5 +1,5 @@
 // Bump this version on any change you want to force out to all devices.
-const CACHE_NAME = 'camkids-pwa-v3';
+const CACHE_NAME = 'camkids-pwa-v4';
 
 self.addEventListener('install', () => {
   // Activate the new service worker immediately, don't wait for old tabs to close.
