@@ -163,6 +163,26 @@ async function fetchChildRecords(db: SupabaseClient, child: ChildRow): Promise<a
   return [...rows.values()];
 }
 
+// Strip every personal identifier from a classmate row, keeping only what the
+// client needs to compute this child's RANK (grade, month, numeric scores, and
+// the sub-score maps for per-subject ranks). No name / studentId / dob / parents
+// / address / phone leaves the server — a parent gets an anonymous score
+// distribution, never another child's identity.
+function anonymizeRow(r: any): any {
+  const ed = r.extra_data || {};
+  return {
+    ...r,
+    name: '',
+    gender: null,
+    extra_data: {
+      group: ed.group ?? null,
+      englishScores: ed.englishScores ?? null,
+      scienceScores: ed.scienceScores ?? null,
+      socialScores: ed.socialScores ?? null,
+    },
+  };
+}
+
 // ── school_settings KV (service-role read/write) ────────────────────────────
 async function readSetting(db: SupabaseClient, key: string): Promise<any> {
   const { data } = await db.from('school_settings').select('setting_value').eq('setting_key', key).limit(1);
@@ -235,7 +255,17 @@ export default async function handler(req: Req, res: Res) {
       const p = verifyToken(String(body?.token || ''));
       if (!p) { res.status(200).json({ ok: false, error: 'expired' }); return; }
       const records = await fetchChildRecords(db, { name: p.n, grade: p.g, studentId: p.s });
-      res.status(200).json({ ok: true, records });
+      // Anonymized classmates for the child's classes so the client can compute
+      // each month's ranking (overall + per-subject) without any other child's
+      // identity — the child's own rows are excluded (they're in `records`).
+      const grades = [...new Set(records.map(r => r.grade))];
+      const recordIds = new Set(records.map(r => r.id));
+      let roster: any[] = [];
+      if (grades.length) {
+        const { data } = await db.from('student_scores').select('*').in('grade', grades);
+        roster = (data || []).filter((r: any) => !recordIds.has(r.id)).map(anonymizeRow);
+      }
+      res.status(200).json({ ok: true, records, roster });
       return;
     }
 

@@ -181,9 +181,13 @@ export default function ParentPortal({ grades, onBack, onStudentTest }: ParentPo
       const api = await apiRecords(sess.token || '');
       if (api && api.ok && Array.isArray(api.records)) {
         const mapped = api.records.map(mapDBToScore);
+        // Anonymized classmates (no names/PII) so the report card can still rank
+        // the child within the class. They carry no name, so childRecords (keyed
+        // on grade||name) never treats them as the child's own report cards.
+        const roster = Array.isArray(api.roster) ? api.roster.map(mapDBToScore) : [];
         setChildClassKeys(new Set(mapped.map(r => `${r.grade}||${r.name.trim()}`)));
         loadSigs(Array.from(new Set(mapped.map(r => r.grade))));
-        setClassStudents(mapped);
+        setClassStudents([...mapped, ...roster]);
         if (mapped.length === 0) setError(t('parent.err.noClassData'));
         return;
       }

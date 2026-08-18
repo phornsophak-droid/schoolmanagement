@@ -15,7 +15,9 @@
 
 export interface ApiChild { name: string; grade: string; studentId?: string }
 export interface ApiLoginResult { ok: boolean; child?: ApiChild; firstTime?: boolean; token?: string; error?: string; matches?: ApiChild[] }
-export interface ApiRecordsResult { ok: boolean; records?: any[]; error?: string }
+// `roster` = anonymized classmate rows (no names/PII) for the child's classes,
+// used only to compute each month's ranking on the client.
+export interface ApiRecordsResult { ok: boolean; records?: any[]; roster?: any[]; error?: string }
 
 async function post(payload: Record<string, any>): Promise<any | null> {
   try {
