@@ -258,12 +258,19 @@ export default async function handler(req: Req, res: Res) {
       // Anonymized classmates for the child's classes so the client can compute
       // each month's ranking (overall + per-subject) without any other child's
       // identity — the child's own rows are excluded (they're in `records`).
+      // Fetch each grade separately AND paginate: a single .in() over several
+      // grades hits PostgREST's 1000-row cap and silently drops classmates, which
+      // made the monthly average rank wrong. One complete grade at a time fixes it.
       const grades = [...new Set(records.map(r => r.grade))];
       const recordIds = new Set(records.map(r => r.id));
-      let roster: any[] = [];
-      if (grades.length) {
-        const { data } = await db.from('student_scores').select('*').in('grade', grades);
-        roster = (data || []).filter((r: any) => !recordIds.has(r.id)).map(anonymizeRow);
+      const roster: any[] = [];
+      for (const g of grades) {
+        for (let from = 0; ; from += 1000) {
+          const { data, error } = await db.from('student_scores').select('*').eq('grade', g).range(from, from + 999);
+          if (error || !data || data.length === 0) break;
+          for (const r of data) if (!recordIds.has(r.id)) roster.push(anonymizeRow(r));
+          if (data.length < 1000) break;
+        }
       }
       res.status(200).json({ ok: true, records, roster });
       return;
