@@ -156,13 +156,15 @@ export const outCount = (bookId: string, loans: Loan[]): number =>
 export const availableCount = (book: Book, loans: Loan[]): number =>
   Math.max(0, (book.total || 0) - outCount(book.id, loans));
 
-// The principal always may; a librarian is anyone the principal has named.
+// The principal always may; the built-in librarian account always may (it IS the
+// library account); otherwise a librarian is anyone the principal has named.
 export const canManageLibrary = (
-  user: { name?: string; role?: string } | null | undefined,
+  user: { id?: string; name?: string; role?: string } | null | undefined,
   settings: LibrarySettings,
 ): boolean => {
   if (!user) return false;
   if (user.role === 'principal') return true;
+  if (user.id === 'librarian') return true;
   const me = (user.name || '').trim();
   return !!me && settings.librarians.some(n => n.trim() === me);
 };
