@@ -49,7 +49,7 @@ const sendTyping = (chatId: string | number) => tg('sendChatAction', { chat_id: 
 const HELP =
   'សួស្តី! នេះជា Bot ព័ត៌មានសិស្ស <b>សាលាសហគមន៍ច្បារច្រុះ</b>។\n\n' +
   '• ផ្ញើ <b>ឈ្មោះកូន</b> ឬ <b>អត្តលេខ</b> ដើម្បីភ្ជាប់កូន (លើកដំបូង) — ភ្ជាប់គ្រប់ថ្នាក់ស្វ័យប្រវត្តិ។\n' +
-  '• ក្រោយភ្ជាប់រួច អ្នកអាច <b>សួរសំណួរ</b>អំពីកូន (ឧ. «កូនខ្ញុំអវត្តមានប៉ុន្មានដង?», «ពិន្ទុកូនខ្ញុំយ៉ាងណា?»)។\n\n' +
+  '• ក្រោយភ្ជាប់រួច អ្នកអាច <b>សួរសំណួរ</b>អំពីកូន (ឧ. «កូនខ្ញុំជាប់លេខប៉ុន្មាន?», «អវត្តមានប៉ុន្មានដង?», «ពិន្ទុកូនខ្ញុំយ៉ាងណា?», «កូនខ្ញុំរីកចម្រើនទេ?»)។\n\n' +
   'ពាក្យបញ្ជា៖\n• /link ឈ្មោះ — បន្ថែមកូនថ្មី\n• /list — មើលកូនដែលបានភ្ជាប់\n• /unlink — លុបការភ្ជាប់ទាំងអស់';
 
 // After-hours class detection (mirrors the app's EXTRA_CLASS_KEYWORDS).
@@ -192,7 +192,7 @@ async function handleLink(db: SupabaseClient, chatId: number, query: string) {
     const full = await expandByStudentId(db, link);
     await linkMany(db, chatId, full);
     const list = full.map(r => `• ${r.grade}`).join('\n');
-    await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${display}</b> — គ្រប់ថ្នាក់ (${full.length})៖\n${list}\n\nឥឡូវអ្នកអាចសួរសំណួរអំពីកូន (ឧ. «អវត្តមានប៉ុន្មានដង?»)។`);
+    await sendMessage(chatId, `✅ បានភ្ជាប់ជាមួយ <b>${display}</b> — គ្រប់ថ្នាក់ (${full.length})៖\n${list}\n\nឥឡូវអ្នកអាចសួរសំណួរអំពីកូន (ឧ. «ជាប់លេខប៉ុន្មាន?», «អវត្តមានប៉ុន្មានដង?», «រីកចម្រើនទេ?»)។`);
   } else {
     await sendMessage(chatId,
       `រកមិនឃើញសិស្សឈ្មោះ ឬអត្តលេខ "<b>${query}</b>" ទេ។\n\n` +
@@ -242,6 +242,32 @@ async function buildContext(db: SupabaseClient, links: Link[]): Promise<string> 
     }
   }
 
+  // Class-rank pool: every classmate's monthly average per grade+month, so we can
+  // compute the child's rank (the stored `ranking` column is usually empty — rank
+  // is worked out on the report card, not saved). Lets the bot answer "ជាប់លេខ
+  // ប៉ុន្មាន?". service_role bypasses RLS, so this still reads after the lockdown.
+  const rankPool = new Map<string, number[]>(); // `grade||month` -> overall_avgs
+  for (const gr of grades) {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await db.from('student_scores').select('grade, month, overall_avg').eq('grade', gr).range(from, from + 999);
+      if (error || !data || data.length === 0) break;
+      for (const r of data) {
+        const avg = (r as any).overall_avg;
+        if (avg === null || avg === undefined) continue;
+        const k = `${(r as any).grade}||${(r as any).month}`;
+        const arr = rankPool.get(k) || []; arr.push(Number(avg)); rankPool.set(k, arr);
+      }
+      if (data.length < 1000) break;
+    }
+  }
+  const rankOf = (grade: string, month: string, avg: any): { rank: number; size: number } | null => {
+    if (avg === null || avg === undefined) return null;
+    const pool = rankPool.get(`${grade}||${month}`);
+    if (!pool || pool.length === 0) return null;
+    const mine = Number(avg);
+    return { rank: pool.filter(x => x > mine).length + 1, size: pool.length };
+  };
+
   const parts: string[] = [];
   for (const key of linked) {
     const [nm, gr] = key.split('||');
@@ -252,7 +278,15 @@ async function buildContext(db: SupabaseClient, links: Link[]): Promise<string> 
     for (const id of idsByChild.get(key) || []) { const t = tally.get(id); if (t) { ab += t.absent; pe += t.permission; } }
     let s = `- ${stripTag(nm)} — ថ្នាក់ ${gr}\n  អវត្តមានសរុប៖ ${ab + pe} ដង (គ្មានច្បាប់ ${ab}, មានច្បាប់ ${pe})`;
     if (latest) {
-      s += `\n  លទ្ធផលខែ${latest.month}៖ មធ្យមភាគ ${fmt(latest.overall_avg)} (និទ្ទេស ${latest.grade_letter || '-'})` + (latest.ranking ? `, ចំណាត់ថ្នាក់ទី ${latest.ranking}` : '');
+      const rk = rankOf(gr, latest.month, latest.overall_avg);
+      s += `\n  លទ្ធផលខែ${latest.month}៖ មធ្យមភាគ ${fmt(latest.overall_avg)} (និទ្ទេស ${latest.grade_letter || '-'})` + (rk ? `, ចំណាត់ថ្នាក់ទី ${rk.rank} ក្នុងចំណោមសិស្ស ${rk.size} នាក់` : '');
+      // Month-by-month averages (with rank) so the bot can answer progress/trend questions.
+      if (monthly.length > 1) {
+        s += `\n  មធ្យមភាគតាមខែ៖ ` + monthly.map(m => {
+          const r = rankOf(gr, m.month, m.overall_avg);
+          return `${m.month} ${fmt(m.overall_avg)}${r ? ` (ទី${r.rank})` : ''}`;
+        }).join(', ');
+      }
       if (!isExtra(gr)) {
         s += `\n  ពិន្ទុមុខវិជ្ជា៖ ភាសាខ្មែរ ${fmt(latest.khmer_avg)}, គណិត ${fmt(latest.math_avg)}, វិទ្យាសាស្ត្រ ${fmt(latest.science)}, សិក្សាសង្គម ${fmt(latest.social_studies)}, កាយ-កីឡា ${fmt(latest.physical_education)}, សុខភាព ${fmt(latest.health)}, បំណិនជីវិត ${fmt(latest.life_skills)}, ភាសាបរទេស ${fmt(latest.foreign_language)}`;
       }
