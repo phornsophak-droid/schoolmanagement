@@ -183,17 +183,26 @@ export default function Handbook({ students = [], grades = [], onSaveStudents, o
   // Map the student's data onto the layout's fill slots.
   const values = useMemo<Record<string, string>>(() => {
     if (!student) return {};
+    // Personal details (dob, parents, address, birthplace) are entered once on the
+    // roster, so only SOME of a student's rows carry them — a monthly/exam row is
+    // usually blank. records[0] happened to work for one class but not others, so
+    // resolve each field from ANY row that has it (same idea as the report card's
+    // dob lookup) — full info now shows for every class, like grade 6 did.
+    const firstOf = (get: (s: typeof student) => unknown): string => {
+      for (const r of records) { const val = get(r); if (val != null && String(val).trim() !== '') return String(val); }
+      return '';
+    };
     const v: Record<string, string> = {
       school: SCHOOL, year: getAcademicYear(),
       sch_commune: SCHOOL_COMMUNE, sch_district: SCHOOL_DISTRICT, sch_province: SCHOOL_PROVINCE,
       name: student.name,
       class: student.grade,
-      dob: formatDobKh(student.dob || ''),
-      birthplace: student.birthPlace || '',
+      dob: formatDobKh(firstOf(s => s.dob)),
+      birthplace: firstOf(s => s.birthPlace),
       // The form asks for "ឈ្មោះ និងមុខរបរ" — name and occupation together.
-      father: [student.fatherName, student.fatherJob].filter(Boolean).join(' — '),
-      mother: [student.motherName, student.motherJob].filter(Boolean).join(' — '),
-      address: student.address || '',
+      father: [firstOf(s => s.fatherName), firstOf(s => s.fatherJob)].filter(Boolean).join(' — '),
+      mother: [firstOf(s => s.motherName), firstOf(s => s.motherJob)].filter(Boolean).join(' — '),
+      address: firstOf(s => s.address),
       // ង- ការសរសើរ និងកំណែលម្អ is the class teacher's remark from the report card,
       // split by which side of the presets each ticked sentence came from. Anything
       // the teacher typed themselves can't be sorted, so it stays in the ច block
