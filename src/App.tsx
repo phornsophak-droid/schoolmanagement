@@ -143,7 +143,7 @@ import Gradebook from './components/Gradebook';
 import ReportWizard from './components/ReportWizard';
 import ReportDetail from './components/ReportDetail';
 import ReportsHub from './components/ReportsHub';
-import LoginPortal from './components/LoginPortal';
+import LoginPortal, { AVAILABLE_USERS } from './components/LoginPortal';
 import ParentPortal from './components/ParentPortal';
 import ParentPortalAdmin from './components/ParentPortalAdmin';
 import StaffPinManager from './components/StaffPinManager';
@@ -838,11 +838,8 @@ export default function App() {
         mergeCachedSettings(data.settings);
         if (data.settings['school_custom_users']) {
           localStorage.setItem('school_custom_users', JSON.stringify(data.settings['school_custom_users']));
-          // Refresh the AVAILABLE_USERS array from localStorage (but without page reload it won't impact until reload? 
-          // Actually LoginPortal reads it on load, so we just mutate it.
-          const { AVAILABLE_USERS } = require('./components/LoginPortal');
-          // Clear custom users from AVAILABLE_USERS
-          const customIds = data.settings['school_custom_users'].map((u: any) => u.id);
+          // Refresh the shared AVAILABLE_USERS array in place (imported at the top —
+          // a browser bundle has no `require`, which was throwing here on sync).
           const filtered = AVAILABLE_USERS.filter((u: any) => !u.id.startsWith('teacher_custom_'));
           AVAILABLE_USERS.length = 0;
           AVAILABLE_USERS.push(...filtered, ...data.settings['school_custom_users']);
