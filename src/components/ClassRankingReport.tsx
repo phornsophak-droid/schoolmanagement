@@ -120,6 +120,12 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
     #class-ranking { position: absolute; left: 0; top: 0; width: 100%; }
     .rc-fit-outer, .rc-fit-frame, .rc-fit-inner { width: auto !important; height: auto !important; overflow: visible !important; margin: 0 !important; transform: none !important; }
     .rc-no-print { display: none !important; }
+    /* Print the small Khmer text crisply: true black + a heavier weight (thin
+       glyphs at 10px print faint), and keep the niddes colours at full strength
+       (exact) instead of the browser lightening them. Inline niddes colours are
+       not !important, so this black default doesn't override them. */
+    #class-ranking, #class-ranking * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    #class-ranking td, #class-ranking th, #class-ranking h1 { color: #000; font-weight: 600; }
     @page { size: A4 portrait; margin: 10mm; }
   }`;
 
@@ -168,7 +174,7 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
         </div>
 
         <FitToWidth designWidth={896}>
-        <div id="class-ranking" className="bg-white rounded-b-2xl shadow-xl p-6 text-slate-800 text-[11px]">
+        <div id="class-ranking" className="bg-white rounded-b-2xl shadow-xl p-6 text-slate-900 text-[11px]">
           {/* Header */}
           <div className="flex justify-between items-start mb-1">
             <div className="flex flex-col items-center font-semibold text-emerald-700">
