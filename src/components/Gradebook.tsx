@@ -846,6 +846,20 @@ export default function Gradebook({
   }, [students, formGrade]);
 
   // Filter students based on top filter selections
+  // Index every record by student (name+grade) ONCE, so the aggregations below look
+  // a student's rows up in O(1) instead of re-scanning the whole students array per
+  // student — that O(n²) scan made switching class/category lag on a full school.
+  const recordsByStudent = useMemo(() => {
+    const m = new Map<string, StudentScore[]>();
+    for (const s of students) {
+      const key = `${s.name.trim()}_${s.grade}`;
+      let arr = m.get(key); if (!arr) { arr = []; m.set(key, arr); }
+      arr.push(s);
+    }
+    return m;
+  }, [students]);
+  const recsFor = (name: string, grade: string): StudentScore[] => recordsByStudent.get(`${name}_${grade}`) || [];
+
   const filteredStudents = useMemo(() => {
     // If selectedMonth is 'ទាំងអស់' or selectedGrade is 'ទាំងអស់', fall back to standard filtering
     if (selectedGrade === 'ទាំងអស់') {
@@ -920,7 +934,7 @@ export default function Gradebook({
     const meta = new Map<string, StudentScore>();
     students.forEach(s => { if (s.grade === selectedGrade && !meta.has(s.name.trim())) meta.set(s.name.trim(), s); });
     let list: StudentScore[] = Array.from(meta.entries()).map(([name, sample]) => {
-      const existing = students.find(s => s.grade === selectedGrade && s.month === selectedMonth && s.name.trim() === name);
+      const existing = recsFor(name, selectedGrade).find(s => s.month === selectedMonth);
       if (existing) return existing;
       return calculateStudentFields({
         id: `__new__${selectedGrade}__${selectedMonth}__${name}`,
@@ -1051,11 +1065,8 @@ export default function Gradebook({
     const examMonthName = selectedSemester === '1' ? 'ប្រឡងឆមាសទី១' : 'ប្រឡងឆមាសទី២';
 
     const roster = Array.from(uniqueStudentsMap.values()).map(student => {
-      const monthlyRecords = students.filter(s =>
-        s.name.trim() === student.name &&
-        s.grade === student.grade &&
-        targetMonths.includes(s.month)
-      );
+      const allRecs = recsFor(student.name, student.grade);
+      const monthlyRecords = allRecs.filter(s => targetMonths.includes(s.month));
 
       const monthAveragesMap: Record<string, number> = {};
       let sumMonthlyAvgs = 0;
@@ -1072,11 +1083,7 @@ export default function Gradebook({
 
       const overallMonthlyAvg = activeMonthsCount > 0 ? clampScore(sumMonthlyAvgs / activeMonthsCount) : null;
 
-      const examRecord = students.find(s =>
-        s.name.trim() === student.name &&
-        s.grade === student.grade &&
-        s.month === examMonthName
-      );
+      const examRecord = allRecs.find(s => s.month === examMonthName);
 
       const examScore = examRecord ? examRecord.overallAvg : null;
 
@@ -1156,12 +1163,9 @@ export default function Gradebook({
     });
 
     const roster = Array.from(uniqueStudentsMap.values()).map(student => {
+      const allRecs = recsFor(student.name, student.grade);
       // Semester 1 calculation
-      const mRecords1 = students.filter(s =>
-        s.name.trim() === student.name &&
-        s.grade === student.grade &&
-        SEMESTER_1_MONTHS.includes(s.month)
-      );
+      const mRecords1 = allRecs.filter(s => SEMESTER_1_MONTHS.includes(s.month));
       let sumMonthlyAvgs1 = 0;
       let count1 = 0;
       SEMESTER_1_MONTHS.forEach(m => {
@@ -1172,21 +1176,13 @@ export default function Gradebook({
         }
       });
       const overallMonthlyAvg1 = count1 > 0 ? clampScore(sumMonthlyAvgs1 / count1) : null;
-      const examRecord1 = students.find(s =>
-        s.name.trim() === student.name &&
-        s.grade === student.grade &&
-        s.month === 'ប្រឡងឆមាសទី១'
-      );
+      const examRecord1 = allRecs.find(s => s.month === 'ប្រឡងឆមាសទី១');
       const examScore1 = examRecord1 ? examRecord1.overallAvg : null;
       const s1Valid = count1 > 0 || examScore1 !== null;
       const s1Avg = s1Valid ? (examScore1 !== null ? (overallMonthlyAvg1 !== null ? clampScore((overallMonthlyAvg1 + examScore1) / 2) : examScore1) : overallMonthlyAvg1) : null;
 
       // Semester 2 calculation
-      const mRecords2 = students.filter(s =>
-        s.name.trim() === student.name &&
-        s.grade === student.grade &&
-        SEMESTER_2_MONTHS.includes(s.month)
-      );
+      const mRecords2 = allRecs.filter(s => SEMESTER_2_MONTHS.includes(s.month));
       let sumMonthlyAvgs2 = 0;
       let count2 = 0;
       SEMESTER_2_MONTHS.forEach(m => {
@@ -1197,11 +1193,7 @@ export default function Gradebook({
         }
       });
       const overallMonthlyAvg2 = count2 > 0 ? clampScore(sumMonthlyAvgs2 / count2) : null;
-      const examRecord2 = students.find(s =>
-        s.name.trim() === student.name &&
-        s.grade === student.grade &&
-        s.month === 'ប្រឡងឆមាសទី២'
-      );
+      const examRecord2 = allRecs.find(s => s.month === 'ប្រឡងឆមាសទី២');
       const examScore2 = examRecord2 ? examRecord2.overallAvg : null;
       const s2Valid = count2 > 0 || examScore2 !== null;
       const s2Avg = s2Valid ? (examScore2 !== null ? (overallMonthlyAvg2 !== null ? clampScore((overallMonthlyAvg2 + examScore2) / 2) : examScore2) : overallMonthlyAvg2) : null;
