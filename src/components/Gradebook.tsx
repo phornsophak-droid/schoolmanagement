@@ -2746,6 +2746,10 @@ export default function Gradebook({
             .gb-print-header { display: flex !important; }
             .gb-scroll * { position: static !important; }
             .gb-scroll th, .gb-scroll td { box-shadow: none !important; }
+            /* Print crisp: force TRUE BLACK on every cell (the light slate/blue
+               text printed faint), and make the student-name column extra bold. */
+            #gb-print .gb-scroll td, #gb-print .gb-scroll th { color: #000 !important; }
+            #gb-print .gb-scroll td.gb-name { font-weight: 800 !important; }
             @page { size: A4 landscape; margin: 8mm; }
           }
         `}</style>
@@ -2842,7 +2846,7 @@ export default function Gradebook({
                           {idx + 1}
                         </td>
                         <td className="px-1 py-3 text-center font-mono sticky left-9 z-10 bg-white w-14 min-w-14">{(st.studentId || '').trim() ? <span className="text-slate-500">{st.studentId}</span> : (isExtraClass(st.grade) ? <span className="text-slate-300">-</span> : <span className="px-1 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 text-[9px] font-bold">គ្មាន</span>)}</td>
-                        <td className="px-2 py-3 font-semibold text-slate-800 sticky left-[92px] z-10 bg-white shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">{st.name}</td>
+                        <td className="gb-name px-2 py-3 font-bold text-slate-900 sticky left-[92px] z-10 bg-white shadow-[6px_0_8px_-4px_rgba(0,0,0,0.12)] whitespace-nowrap">{st.name}</td>
                         <td className="px-4 py-3 text-center">{st.gender}</td>
                         <td className="px-4 py-3 text-center text-slate-500">{st.grade}</td>
                         {customSubjects && (
@@ -2983,7 +2987,7 @@ export default function Gradebook({
                         <td className="px-3 py-3.5 text-center font-mono text-slate-500">
                           {((st as any).studentId || st.examRecord?.studentId || '').toString().trim() || '-'}
                         </td>
-                        <td className="px-3 py-3.5 font-bold text-slate-800 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{st.name}</td>
+                        <td className="gb-name px-3 py-3.5 font-bold text-slate-900 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{st.name}</td>
                         <td className="px-3 py-3.5 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             st.gender === 'ស្រី' 
@@ -3121,7 +3125,7 @@ export default function Gradebook({
                       <tr key={`${st.name}_${st.grade}_annual`} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-4 py-4 text-center text-slate-500 text-xs">{index + 1}</td>
                         <td className="px-4 py-4 text-center font-mono text-slate-500 text-xs">{st.studentId || '-'}</td>
-                        <td className="px-4 py-4 font-bold text-slate-800 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{st.name}</td>
+                        <td className="gb-name px-4 py-4 font-bold text-slate-900 sticky left-0 z-10 bg-white shadow-[3px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-nowrap">{st.name}</td>
                         <td className="px-4 py-4 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             st.gender === 'ស្រី' 
