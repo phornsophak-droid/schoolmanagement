@@ -2748,7 +2748,8 @@ export default function Gradebook({
             .gb-scroll th, .gb-scroll td { box-shadow: none !important; }
             /* Print crisp: force TRUE BLACK on every cell (the light slate/blue
                text printed faint), and make the student-name column extra bold. */
-            #gb-print .gb-scroll td, #gb-print .gb-scroll th { color: #000 !important; }
+            #gb-print .gb-scroll td, #gb-print .gb-scroll th { color: #000 !important; border: 1px solid #000 !important; }
+            #gb-print .gb-scroll table { border-collapse: collapse !important; }
             #gb-print .gb-scroll td.gb-name { font-weight: 800 !important; }
             @page { size: A4 landscape; margin: 8mm; }
           }
