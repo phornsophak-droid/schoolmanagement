@@ -74,8 +74,8 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
   const isMonth = KHMER_MONTHS.includes(period);
   const periodLabel = isMonth
     ? `ប្រចាំខែ ${period}`
-    : period === 'ប្រឡងឆមាសទី១' ? 'ប្រឡងឆមាសទី ១'
-    : period === 'ប្រឡងឆមាសទី២' ? 'ប្រឡងឆមាសទី ២'
+    : period === 'ប្រឡងឆមាសទី១' ? 'ប្រចាំឆមាសទី ១'
+    : period === 'ប្រឡងឆមាសទី២' ? 'ប្រចាំឆមាសទី ២'
     : 'ប្រចាំឆ្នាំ';
   // Auto date: month-end for a monthly report, else today's date.
   const _today = new Date();
@@ -190,7 +190,7 @@ export default function ClassRankingReport({ roster, grade, period, onClose }: C
 
           {/* Title */}
           <div className="text-center my-2">
-            <h1 className="text-base font-extrabold text-slate-900">តារាងចំណាត់ថ្នាក់សរុប{periodLabel}</h1>
+            <h1 className="text-base font-extrabold text-slate-900">តារាងចំណាត់ថ្នាក់{periodLabel}</h1>
           </div>
           <div className="flex justify-between items-end mb-2 px-1 font-bold">
             <span>{grade === 'ទាំងអស់' ? 'គ្រប់ថ្នាក់' : grade}</span>
