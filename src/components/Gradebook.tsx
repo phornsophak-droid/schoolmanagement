@@ -2736,6 +2736,8 @@ export default function Gradebook({
         <style>{`
           .gb-print-header { display: none; }
           .gb-scroll thead th { position: sticky; top: 0; z-index: 20; background: #f8fafc; }
+          /* All column headers in black (some were slate/blue). */
+          .gb-scroll thead th { color: #000 !important; }
           .gb-scroll thead th.gb-corner { z-index: 30; }
           .gb-scroll thead tr:nth-child(2) th { top: 33px; }
           @media print {
