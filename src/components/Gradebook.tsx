@@ -953,6 +953,14 @@ export default function Gradebook({
     return orderRows(rankStudents(list));
   }, [inlineReady, students, selectedGrade, selectedMonth, selectedGradeGroup, searchTerm, customSubjects, filteredStudents, tableSort]);
 
+  // Guard: showing EVERY class × EVERY month in the monthly table at once is
+  // thousands of rows / tens of thousands of cells — it froze the page for many
+  // seconds and isn't a meaningful view. Ask for a class or month first (search
+  // still works, since it narrows the set).
+  const monthlyTooBroad = activeMode === 'monthly'
+    && selectedGrade === 'ទាំងអស់' && selectedMonth === 'ទាំងអស់'
+    && searchTerm.trim() === '';
+
   // Mutate a row's underlying record (creating it for blank rows), recompute and persist.
   const applyToRecord = (row: StudentScore, mutate: (rec: StudentScore) => void) => {
     const isNew = String(row.id).startsWith('__new__');
@@ -2812,7 +2820,15 @@ export default function Gradebook({
                 )}
               </thead>
               <tbody className="divide-y divide-slate-50 text-xs text-slate-700" onPaste={handleTablePaste}>
-                {monthlyRows.length > 0 ? (
+                {monthlyTooBroad ? (
+                  <tr>
+                    <td colSpan={50} className="text-center py-16 text-slate-400">
+                      <div className="text-3xl mb-2">🔎</div>
+                      <div className="text-sm font-semibold text-slate-500">សូមជ្រើសរើស <span className="text-blue-600">ថ្នាក់</span> ឬ <span className="text-blue-600">ខែ</span> ខាងលើ ដើម្បីមើលពិន្ទុ</div>
+                      <div className="text-xs mt-1">ការបង្ហាញគ្រប់ថ្នាក់ × គ្រប់ខែ ព្រមគ្នា មានទិន្នន័យច្រើនពេក (ធ្វើឱ្យយឺត)។ ការស្វែងរកតាមឈ្មោះក៏ដំណើរការ។</div>
+                    </td>
+                  </tr>
+                ) : monthlyRows.length > 0 ? (
                   monthlyRows.map((st, idx) => {
                     let badgeColors = 'bg-rose-50 text-rose-600 border-rose-200';
                     if (st.result === 'ជាប់') {
