@@ -3034,7 +3034,7 @@ export default function Gradebook({
                           {st.overallMonthlyAvg !== null && st.overallMonthlyAvg !== undefined ? st.overallMonthlyAvg.toFixed(2) : '-'}
                         </td>
 
-                        <td className="px-3 py-3.5 text-center font-black font-mono text-white bg-indigo-600">
+                        <td className="px-3 py-3.5 text-center font-black font-mono text-slate-900 bg-slate-100">
                           {st.semesterAvg !== null && st.semesterAvg !== undefined ? st.semesterAvg.toFixed(2) : '-'}
                         </td>
 
