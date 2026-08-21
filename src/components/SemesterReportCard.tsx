@@ -30,11 +30,12 @@ const KH_NUM = ['១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩', '
 
 const gradeBand = (v: number | null | undefined): { km: string; en: string } => {
   if (v === null || v === undefined || v <= 0) return { km: '', en: '' };
-  if (v >= 9) return { km: 'ល្អប្រសើរ', en: 'A' };
-  if (v >= 8) return { km: 'ល្អណាស់', en: 'B' };
-  if (v >= 7) return { km: 'ល្អ', en: 'C' };
-  if (v >= 6) return { km: 'ល្អបង្គួរ', en: 'D' };
-  if (v >= 5) return { km: 'មធ្យម', en: 'E' };
+  const val = Math.round(v * 100) / 100;
+  if (val >= 9) return { km: 'ល្អប្រសើរ', en: 'A' };
+  if (val >= 8) return { km: 'ល្អណាស់', en: 'B' };
+  if (val >= 7) return { km: 'ល្អ', en: 'C' };
+  if (val >= 6) return { km: 'ល្អបង្គួរ', en: 'D' };
+  if (val >= 5) return { km: 'មធ្យម', en: 'E' };
   return { km: 'ខ្សោយ', en: 'F' };
 };
 const toKh = (n: number | string) => String(n).replace(/[0-9]/g, d => '០១២៣៤៥៦៧៨៩'[+d]);

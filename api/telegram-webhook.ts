@@ -57,11 +57,12 @@ const EXTRA_CLASS_KEYWORDS = ['GRADE', 'គ្លេស', 'ភាសាអង់
 const isExtra = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
 const gradeBand = (v: number | null | undefined): string => {
   if (v === null || v === undefined || v <= 0) return '-';
-  if (v >= 9) return 'A (ល្អប្រសើរ)';
-  if (v >= 8) return 'B (ល្អណាស់)';
-  if (v >= 7) return 'C (ល្អ)';
-  if (v >= 6) return 'D (ល្អបង្គួរ)';
-  if (v >= 5) return 'E (មធ្យម)';
+  const val = Math.round(v * 100) / 100;
+  if (val >= 9) return 'A (ល្អប្រសើរ)';
+  if (val >= 8) return 'B (ល្អណាស់)';
+  if (val >= 7) return 'C (ល្អ)';
+  if (val >= 6) return 'D (ល្អបង្គួរ)';
+  if (val >= 5) return 'E (មធ្យម)';
   return 'F (ខ្សោយ)';
 };
 const stripTag = (n: string) => (n || '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+/g, ' ').trim();
