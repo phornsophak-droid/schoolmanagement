@@ -412,12 +412,13 @@ export async function fetchSetting(key: string): Promise<any> {
 export async function fetchClassStudents(grade: string): Promise<StudentScore[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('student_scores')
-    .select('*')
-    .eq('grade', grade);
+  const normG = (g: string) => (g || "").replace(/[\\u200b\\u200c\\u200d\\u200e\\u200f\\uFEFF]/g, "").replace(/\\s+/g, "").toUpperCase();
+  const baseGrade = grade.replace(/\\s+/g, "%");
+  const { data, error } = await supabase.from("student_scores").select("*").ilike("grade", "%" + baseGrade + "%");
   if (error) throw error;
-  return (data || []).map(mapDBToScore);
+  const myGrade = normG(grade);
+  const matched = (data || []).filter(r => normG(r.grade) === myGrade);
+  return matched.map(mapDBToScore);
 }
 
 // Resolve a student's date of birth from ANY of their rows across all classes.

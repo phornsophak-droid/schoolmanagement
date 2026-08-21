@@ -270,17 +270,26 @@ export default async function handler(req: Req, res: Res) {
       // Fetch each grade separately AND paginate: a single .in() over several
       // grades hits PostgREST's 1000-row cap and silently drops classmates, which
       // made the monthly average rank wrong. One complete grade at a time fixes it.
-      const grades = [...new Set(records.map(r => r.grade))];
-      const recordIds = new Set(records.map(r => r.id));
-      const roster: any[] = [];
-      for (const g of grades) {
-        for (let from = 0; ; from += 1000) {
-          const { data, error } = await db.from('student_scores').select('*').eq('grade', g).range(from, from + 999);
-          if (error || !data || data.length === 0) break;
-          for (const r of data) if (!recordIds.has(r.id)) roster.push(anonymizeRow(r));
-          if (data.length < 1000) break;
+      const normG = (g: string) => (g || "").replace(/[\\u200b\\u200c\\u200d\\u200e\\u200f\\uFEFF]/g, "").replace(/\\s+/g, "").toUpperCase();
+        const myGrades = new Set(records.map(r => normG(r.grade)));
+        const recordIds = new Set(records.map(r => r.id));
+        const roster: any[] = [];
+        
+        const grades = [...new Set(records.map(r => r.grade))];
+        for (const g of grades) {
+            const baseGrade = g.replace(/\\s+/g, "%");
+            for (let from = 0; ; from += 1000) {
+                const { data, error } = await db.from("student_scores").select("*").ilike("grade", "%" + baseGrade + "%").range(from, from + 1000);
+                if (error || !data || data.length === 0) break;
+                for (const row of data) {
+                    if (!recordIds.has(row.id) && myGrades.has(normG(row.grade))) {
+                        roster.push(anonymizeRow(row));
+                        recordIds.add(row.id);
+                    }
+                }
+                if (data.length < 1000) break;
+            }
         }
-      }
       res.status(200).json({ ok: true, records, roster });
       return;
     }
