@@ -55,6 +55,15 @@ const HELP =
 // After-hours class detection (mirrors the app's EXTRA_CLASS_KEYWORDS).
 const EXTRA_CLASS_KEYWORDS = ['GRADE', 'គ្លេស', 'ភាសាអង់គ្លេស', 'អង់គ្លេស', 'គំនូរ', 'កុំព្យូទ័រ', 'កីឡា', 'អប់រំកាយ', 'អប់រំសុខភាព'];
 const isExtra = (grade: string) => EXTRA_CLASS_KEYWORDS.some(k => (grade || '').includes(k));
+const gradeBand = (v: number | null | undefined): string => {
+  if (v === null || v === undefined || v <= 0) return '-';
+  if (v >= 9) return 'A (ល្អប្រសើរ)';
+  if (v >= 8) return 'B (ល្អណាស់)';
+  if (v >= 7) return 'C (ល្អ)';
+  if (v >= 6) return 'D (ល្អបង្គួរ)';
+  if (v >= 5) return 'E (មធ្យម)';
+  return 'F (ខ្សោយ)';
+};
 const stripTag = (n: string) => (n || '').replace(/\s*\([^)]*\)\s*$/, '').replace(/\s+/g, ' ').trim();
 const baseName = (n: string) => stripTag(n).toLowerCase();
 const MONTH_ORDER = ['កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
@@ -248,16 +257,43 @@ async function buildContext(db: SupabaseClient, links: Link[]): Promise<string> 
   // ប៉ុន្មាន?". service_role bypasses RLS, so this still reads after the lockdown.
   const rankPool = new Map<string, number[]>(); // `grade||month` -> overall_avgs
   for (const gr of grades) {
+    const classScores = new Map<string, any[]>();
     for (let from = 0; ; from += 1000) {
-      const { data, error } = await db.from('student_scores').select('grade, month, overall_avg').eq('grade', gr).range(from, from + 999);
+      const { data, error } = await db.from('student_scores').select('name, grade, month, overall_avg').eq('grade', gr).range(from, from + 999);
       if (error || !data || data.length === 0) break;
       for (const r of data) {
         const avg = (r as any).overall_avg;
-        if (avg === null || avg === undefined) continue;
-        const k = `${(r as any).grade}||${(r as any).month}`;
-        const arr = rankPool.get(k) || []; arr.push(Number(avg)); rankPool.set(k, arr);
+        if (avg !== null && avg !== undefined) {
+          const k = `${(r as any).grade}||${(r as any).month}`;
+          const arr = rankPool.get(k) || []; arr.push(Number(avg)); rankPool.set(k, arr);
+        }
+        const sname = (r as any).name || '';
+        if (!classScores.has(sname)) classScores.set(sname, []);
+        classScores.get(sname)!.push(r);
       }
       if (data.length < 1000) break;
+    }
+
+    const SEM1_MONTHS = ['ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា'];
+    const SEM2_MONTHS = ['ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
+    const mean = (a: any[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+
+    for (const recs of classScores.values()) {
+      const e1 = recs.find(e => e.month === 'ប្រឡងឆមាសទី១')?.overall_avg;
+      const m1Vals = SEM1_MONTHS.map(m => recs.find(r => r.month === m)?.overall_avg).filter(v => v !== null && v !== undefined).map(Number);
+      const m1 = mean(m1Vals);
+      const s1 = (e1 != null && m1 != null) ? (Number(e1) + Number(m1)) / 2 : (e1 ?? m1);
+
+      const e2 = recs.find(e => e.month === 'ប្រឡងឆមាសទី២')?.overall_avg;
+      const m2Vals = SEM2_MONTHS.map(m => recs.find(r => r.month === m)?.overall_avg).filter(v => v !== null && v !== undefined).map(Number);
+      const m2 = mean(m2Vals);
+      const s2 = (e2 != null && m2 != null) ? (Number(e2) + Number(m2)) / 2 : (e2 ?? m2);
+
+      const annRaw = (s1 != null && s2 != null) ? (s1 + s2) / 2 : null;
+
+      if (s1 != null) { const k = `${gr}||ឆមាសទី១`; const arr = rankPool.get(k) || []; arr.push(s1); rankPool.set(k, arr); }
+      if (s2 != null) { const k = `${gr}||ឆមាសទី២`; const arr = rankPool.get(k) || []; arr.push(s2); rankPool.set(k, arr); }
+      if (annRaw != null) { const k = `${gr}||ប្រចាំឆ្នាំ`; const arr = rankPool.get(k) || []; arr.push(annRaw); rankPool.set(k, arr); }
     }
   }
   const rankOf = (grade: string, month: string, avg: any): { rank: number; size: number } | null => {
@@ -312,12 +348,19 @@ async function buildContext(db: SupabaseClient, links: Link[]): Promise<string> 
 
     if (s1 != null || s2 != null) {
       let semStr = '\n  លទ្ធផលឆមាស៖';
-      if (s1 != null) semStr += ` ឆមាសទី១ (ប្រឡងឆមាសទី១=${fmt(e1)}, មធ្យមភាគប្រចាំឆមាសទី១=${fmt(s1)})`;
-      if (s2 != null) semStr += ` ឆមាសទី២ (ប្រឡងឆមាសទី២=${fmt(e2)}, មធ្យមភាគប្រចាំឆមាសទី២=${fmt(s2)})`;
+      if (s1 != null) {
+        const r = rankOf(gr, 'ឆមាសទី១', s1);
+        semStr += `\n    - ឆមាសទី១: មធ្យមភាគប្រចាំឆមាស ${fmt(s1)} (និទ្ទេស ${gradeBand(s1)})${r ? `, ចំណាត់ថ្នាក់ទី ${r.rank} ក្នុងចំណោម ${r.size} នាក់` : ''}`;
+      }
+      if (s2 != null) {
+        const r = rankOf(gr, 'ឆមាសទី២', s2);
+        semStr += `\n    - ឆមាសទី២: មធ្យមភាគប្រចាំឆមាស ${fmt(s2)} (និទ្ទេស ${gradeBand(s2)})${r ? `, ចំណាត់ថ្នាក់ទី ${r.rank} ក្នុងចំណោម ${r.size} នាក់` : ''}`;
+      }
       s += semStr;
     }
     if (annRaw != null) {
-      s += `\n  មធ្យមភាគប្រចាំឆ្នាំ (គោល): ${fmt(annRaw)}`;
+      const r = rankOf(gr, 'ប្រចាំឆ្នាំ', annRaw);
+      s += `\n  លទ្ធផលប្រចាំឆ្នាំ (គោល): មធ្យមភាគ ${fmt(annRaw)} (និទ្ទេស ${gradeBand(annRaw)})${r ? `, ចំណាត់ថ្នាក់ទី ${r.rank} ក្នុងចំណោម ${r.size} នាក់` : ''}`;
     }
 
     parts.push(s);
@@ -334,6 +377,7 @@ async function answerQuestion(question: string, context: string): Promise<string
     `ច្បាប់៖\n` +
     `- ប្រើតែទិន្នន័យកូនខាងក្រោមប៉ុណ្ណោះ។ កុំបង្កើតលេខ ឬព័ត៌មានថ្មី។\n` +
     `- បើសំណួរជាព័ត៌មានទូទៅ (ម៉ោងរៀន ថ្ងៃឈប់...) ដែលគ្មានក្នុងទិន្នន័យ សូមណែនាំឱ្យទាក់ទងសាលាដោយផ្ទាល់។\n` +
+    `- បើសួរអំពីលទ្ធផលឆមាស ឬប្រចាំឆ្នាំ សូមរៀបរាប់ឱ្យបានច្បាស់នូវ មធ្យមភាគ និទ្ទេស ចំណាត់ថ្នាក់ និងចំនួនអវត្តមានសរុប។\n` +
     `- បើសួរអំពីកូនដែលគ្មានក្នុងទិន្នន័យ សូមប្រាប់ថាអ្នកមិនមានព័ត៌មាននោះទេ។\n` +
     `- សរសេរជាអក្សរធម្មតា។ កុំប្រើ markdown (** ឬ #)។ អាចប្រើ • សម្រាប់បញ្ជី។\n\n` +
     `ទិន្នន័យកូន៖\n${context || '(គ្មានទិន្នន័យ)'}\n\n` +
