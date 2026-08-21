@@ -291,6 +291,35 @@ async function buildContext(db: SupabaseClient, links: Link[]): Promise<string> 
         s += `\n  ពិន្ទុមុខវិជ្ជា៖ ភាសាខ្មែរ ${fmt(latest.khmer_avg)}, គណិត ${fmt(latest.math_avg)}, វិទ្យាសាស្ត្រ ${fmt(latest.science)}, សិក្សាសង្គម ${fmt(latest.social_studies)}, កាយ-កីឡា ${fmt(latest.physical_education)}, សុខភាព ${fmt(latest.health)}, បំណិនជីវិត ${fmt(latest.life_skills)}, ភាសាបរទេស ${fmt(latest.foreign_language)}`;
       }
     }
+
+    const allRecs = byChild.get(key) || [];
+    const exams = allRecs.filter(r => r.month && String(r.month).startsWith('ប្រឡង'));
+    const SEM1_MONTHS = ['ធ្នូ', 'មករា', 'កុម្ភៈ', 'មីនា'];
+    const SEM2_MONTHS = ['ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា'];
+    const mean = (a: any[]) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+
+    const e1 = exams.find(e => e.month === 'ប្រឡងឆមាសទី១')?.overall_avg;
+    const m1Vals = SEM1_MONTHS.map(m => monthly.find(r => r.month === m)?.overall_avg).filter(v => v !== null && v !== undefined).map(Number);
+    const m1 = mean(m1Vals);
+    const s1 = (e1 != null && m1 != null) ? (Number(e1) + Number(m1)) / 2 : (e1 ?? m1);
+
+    const e2 = exams.find(e => e.month === 'ប្រឡងឆមាសទី២')?.overall_avg;
+    const m2Vals = SEM2_MONTHS.map(m => monthly.find(r => r.month === m)?.overall_avg).filter(v => v !== null && v !== undefined).map(Number);
+    const m2 = mean(m2Vals);
+    const s2 = (e2 != null && m2 != null) ? (Number(e2) + Number(m2)) / 2 : (e2 ?? m2);
+
+    const annRaw = (s1 != null && s2 != null) ? (s1 + s2) / 2 : null;
+
+    if (s1 != null || s2 != null) {
+      let semStr = '\n  លទ្ធផលឆមាស៖';
+      if (s1 != null) semStr += ` ឆមាសទី១ (ប្រឡងឆមាសទី១=${fmt(e1)}, មធ្យមភាគប្រចាំឆមាសទី១=${fmt(s1)})`;
+      if (s2 != null) semStr += ` ឆមាសទី២ (ប្រឡងឆមាសទី២=${fmt(e2)}, មធ្យមភាគប្រចាំឆមាសទី២=${fmt(s2)})`;
+      s += semStr;
+    }
+    if (annRaw != null) {
+      s += `\n  មធ្យមភាគប្រចាំឆ្នាំ (គោល): ${fmt(annRaw)}`;
+    }
+
     parts.push(s);
   }
   return parts.join('\n');
