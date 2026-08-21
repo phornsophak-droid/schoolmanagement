@@ -413,7 +413,7 @@ export async function fetchClassStudents(grade: string): Promise<StudentScore[]>
   const supabase = getSupabaseClient();
   if (!supabase) return [];
   const normG = (g: string) => (g || "").replace(/[\\u200b\\u200c\\u200d\\u200e\\u200f\\uFEFF]/g, "").replace(/\\s+/g, "").toUpperCase();
-  const baseGrade = grade.replace(/\\s+/g, "%");
+  const baseGrade = normG(grade).split("").join("%");
   const { data, error } = await supabase.from("student_scores").select("*").ilike("grade", "%" + baseGrade + "%");
   if (error) throw error;
   const myGrade = normG(grade);

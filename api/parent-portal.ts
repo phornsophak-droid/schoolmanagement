@@ -277,7 +277,7 @@ export default async function handler(req: Req, res: Res) {
         
         const grades = [...new Set(records.map(r => r.grade))];
         for (const g of grades) {
-            const baseGrade = g.replace(/\\s+/g, "%");
+            const baseGrade = normG(g).split("").join("%");
             for (let from = 0; ; from += 1000) {
                 const { data, error } = await db.from("student_scores").select("*").ilike("grade", "%" + baseGrade + "%").range(from, from + 1000);
                 if (error || !data || data.length === 0) break;
