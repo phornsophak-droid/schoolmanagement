@@ -262,6 +262,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
                 <th className="border border-slate-300 px-1 py-1 w-10">ល.រ</th>
                 <th className="border border-slate-300 px-2 py-1 text-left">ឈ្មោះមុខវិជ្ជា</th>
                 <th className="border border-slate-300 px-1 py-1 w-16">ពិន្ទុ</th>
+                <th className="border border-slate-300 px-1 py-1 w-20">ចំណាត់ថ្នាក់</th>
                 <th className="border border-slate-300 px-1 py-1 w-40" colSpan={2}>និទ្ទេស</th>
                 <th className="border border-slate-300 px-1 py-1 w-28">មូលវិចារគ្រូបន្ទុកថ្នាក់</th>
               </tr>
@@ -275,6 +276,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
                     <td className="border border-slate-300 px-1 py-0.5">{KH_NUM[i]}</td>
                     <td className="border border-slate-300 px-2 py-0.5 text-left">{sub.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(val)}</td>
+                    <td className="border border-slate-300 px-1 py-0.5">{rankBySubject(i)}</td>
                     <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(g.en) }}>{g.km}</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-bold" style={{ color: niddesColor(g.en) }}>{g.en}</td>
                     {i === 0 && (
@@ -286,7 +288,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
               <tr className="text-center font-bold bg-slate-50">
                 <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>សរុបពិន្ទុ</td>
                 <td className="border border-slate-300 px-1 py-0.5 font-mono">{me.examTotal > 0 ? me.examTotal.toFixed(2) : '-'}</td>
-                <td className="border border-slate-300 px-1 py-0.5" colSpan={2}></td>
+                <td className="border border-slate-300 px-1 py-0.5" colSpan={3}></td>
               </tr>
 
               {!isYear && (
@@ -294,14 +296,14 @@ export default function SemesterReportCard({ student, students, period, onClose 
                   <tr className="text-center font-bold">
                     <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>មធ្យមភាគប្រឡងឆមាស</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(me.examAvg)}</td>
-                    
+                    <td className="border border-slate-300 px-1 py-0.5"></td>
                     <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(gradeBand(me.examAvg).en) }}>{gradeBand(me.examAvg).km}</td>
                     <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(gradeBand(me.examAvg).en) }}>{gradeBand(me.examAvg).en}</td>
                   </tr>
                   <tr className="text-center font-bold">
                     <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>មធ្យមភាគប្រចាំខែ</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(me.monthlyAvg)}</td>
-                    
+                    <td className="border border-slate-300 px-1 py-0.5"></td>
                     <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(gradeBand(me.monthlyAvg).en) }}>{gradeBand(me.monthlyAvg).km}</td>
                     <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(gradeBand(me.monthlyAvg).en) }}>{gradeBand(me.monthlyAvg).en}</td>
                   </tr>
@@ -313,17 +315,17 @@ export default function SemesterReportCard({ student, students, period, onClose 
                   <tr className="text-center font-bold">
                     <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>ចំណេះវិជ្ជា (៨០%)</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{fix(me.academic)}</td>
-                    <td className="border border-slate-300 px-1 py-0.5" colSpan={2}></td>
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={3}></td>
                   </tr>
                   <tr className="text-center font-bold">
                     <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>បំណិនសម្បទា (១០%)</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{(0.1 * meExtra.skills).toFixed(2)}</td>
-                    <td className="border border-slate-300 px-1 py-0.5" colSpan={2}></td>
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={3}></td>
                   </tr>
                   <tr className="text-center font-bold">
                     <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>ចរិយាសម្បទា (១០%)</td>
                     <td className="border border-slate-300 px-1 py-0.5 font-mono">{(0.1 * meExtra.conduct).toFixed(2)}</td>
-                    <td className="border border-slate-300 px-1 py-0.5" colSpan={2}></td>
+                    <td className="border border-slate-300 px-1 py-0.5" colSpan={3}></td>
                   </tr>
                 </>
               )}
@@ -331,6 +333,7 @@ export default function SemesterReportCard({ student, students, period, onClose 
               <tr className="text-center font-bold bg-blue-50">
                 <td className="border border-slate-300 px-1 py-0.5" colSpan={2}>{isYear ? 'មធ្យមភាគប្រចាំឆ្នាំ' : 'មធ្យមភាគប្រចាំឆមាស'}</td>
                 <td className="border border-slate-300 px-1 py-0.5 font-mono text-blue-700">{fix(me.finalAvg)}</td>
+                <td className="border border-slate-300 px-1 py-0.5">{finalRank}</td>
                 <td className="border border-slate-300 px-1 py-0.5" style={{ color: niddesColor(meBand.en) }}>{meBand.km}</td>
                 <td className="border border-slate-300 px-1 py-0.5 font-bold" style={{ color: niddesColor(meBand.en) }}>{meBand.en}</td>
               </tr>
