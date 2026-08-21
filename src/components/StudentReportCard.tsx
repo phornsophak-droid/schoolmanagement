@@ -113,10 +113,11 @@ export default function StudentReportCard({ student, students, onClose }: Studen
   );
 
   // Classmates (same class & month) used for per-subject ranking.
-  const roster = useMemo(
-    () => students.filter(s => s.grade === student.grade && s.month === student.month),
-    [students, student.grade, student.month]
-  );
+  const roster = useMemo(() => {
+    const normG = (g) => (g || "").replace(/[\\u200b\\u200c\\u200d\\u200e\\u200f\\uFEFF]/g, "").replace(/\\s+/g, "").toUpperCase();
+    const myG = normG(student.grade);
+    return students.filter(s => normG(s.grade) === myG && s.month === student.month);
+  }, [students, student.grade, student.month]);
 
   // 1-based rank of this student's score within the class for a given accessor.
   const rankIn = (get: (s: StudentScore) => number | null | undefined): string => {
