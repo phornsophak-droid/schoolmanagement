@@ -66,12 +66,20 @@ export default function SemesterReportCard({ student, students, period, onClose 
   // table (per student) and read here read-only from localStorage.
   const meExtra = readAnnualExtra(student.grade, nameKey);
 
+  // Compare grades loosely — the viewed student comes from the aggregated semester
+  // list while classmates come from raw rows, and grade strings can carry invisible
+  // characters/spacing. A strict === sometimes matched only the student themselves,
+  // so every rank showed ១ (a class of one). Normalize before comparing.
+  const normG = (g?: string) => (g || '').replace(/[​‌‍‎‏⁠﻿ ]/g, '').replace(/\s+/g, '').toUpperCase();
+  const myGrade = normG(student.grade);
+  const sameGrade = (s: StudentScore) => normG(s.grade) === myGrade;
+
   // Figures for every classmate (for the card itself + ranking), computed once.
   const classData = useMemo<Record<string, StudentFigures>>(() => {
-    const names = [...new Set(students.filter(s => s.grade === student.grade).map(s => s.name.trim()))];
+    const names = [...new Set(students.filter(sameGrade).map(s => s.name.trim()))];
     const map: Record<string, StudentFigures> = {};
     names.forEach(n => {
-      const recs = students.filter(s => s.name.trim() === n && s.grade === student.grade);
+      const recs = students.filter(s => s.name.trim() === n && sameGrade(s));
       const exams = recs.filter(s => examMonths.includes(s.month));
       const subjVals = custom 
         ? custom.map(sub => {
