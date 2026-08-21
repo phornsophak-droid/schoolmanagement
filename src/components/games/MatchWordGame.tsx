@@ -187,7 +187,6 @@ export default function MatchWordGame({ onBack }: MatchWordGameProps) {
         setSelectedWordId(null);
       } else {
         // Wrong
-        playKhmerClip('wrong', 'មិនត្រឹមត្រូវ', { rate: 1.2 });
         setWrongMatch(true);
         setTimeout(() => {
           setSelectedImageId(null);

@@ -82,7 +82,6 @@ export default function MemoryGame({ onBack }: MemoryGameProps) {
         }, 500);
       } else {
         // No match
-        playKhmerClip('wrong', 'មិនត្រឹមត្រូវ', { rate: 1.2 });
         setTimeout(() => {
           setCards(prev => prev.map((card, i) => 
             (i === firstIndex || i === secondIndex) 

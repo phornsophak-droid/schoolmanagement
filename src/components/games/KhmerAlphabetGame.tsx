@@ -244,7 +244,6 @@ export default function KhmerAlphabetGame({ onBack }: KhmerAlphabetGameProps) {
     } else {
       // Wrong
       setWrongLetter(letter.char);
-      playKhmerClip('wrong', 'មិនទាន់ត្រូវទេ ស្តាប់ម្តងទៀត', { rate: 1.1 });
 
       setTimeout(() => setWrongLetter(null), 800);
       setTimeout(() => {

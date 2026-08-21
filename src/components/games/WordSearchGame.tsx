@@ -160,10 +160,8 @@ export default function WordSearchGame({ onBack }: WordSearchGameProps) {
           speakKhmer(matchedWord);
         } else {
           // Wrong
-          playKhmerClip('wrong', 'មិនត្រឹមត្រូវ', { rate: 1.2 });
         }
       } else {
-        playKhmerClip('wrong', '', { volume: 0.5 });
       }
       setSelectedStart(null);
       setHoverEnd(null);
