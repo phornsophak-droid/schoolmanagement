@@ -165,14 +165,23 @@ async function fetchChildRecords(db: SupabaseClient, child: ChildRow): Promise<a
 
 // Strip every personal identifier from a classmate row, keeping only what the
 // client needs to compute this child's RANK (grade, month, numeric scores, and
-// the sub-score maps for per-subject ranks). No name / studentId / dob / parents
-// / address / phone leaves the server — a parent gets an anonymous score
+// the sub-score maps for per-subject ranks). No real name / studentId / dob /
+// parents / address / phone leaves the server — a parent gets an anonymous score
 // distribution, never another child's identity.
+//
+// The `name` becomes a STABLE pseudonym (a hash of the real name+grade) rather
+// than blank: the semester/annual report card groups a classmate's monthly+exam
+// rows by name to build one semester average per student, so a blank name would
+// collapse the whole class into one entry and every rank would read ១. The hash
+// keeps each classmate distinct for ranking without revealing who they are.
+function pseudoName(r: any): string {
+  return '~' + crypto.createHash('sha256').update(`${r.name || ''}|${r.grade || ''}`).digest('hex').slice(0, 12);
+}
 function anonymizeRow(r: any): any {
   const ed = r.extra_data || {};
   return {
     ...r,
-    name: '',
+    name: pseudoName(r),
     gender: null,
     extra_data: {
       group: ed.group ?? null,
